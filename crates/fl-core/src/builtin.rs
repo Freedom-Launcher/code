@@ -6,11 +6,17 @@ use serde_json::{json, Value};
 use crate::{
     accounts::{self, Account, AccountKind, AccountStore},
     actions::ActionRegistry,
+    game::service,
     instances::{self, Instance, InstanceStore},
     msauth,
     settings::Settings,
     store, unix_now, versions, Core, CoreError, Permission as P,
 };
+
+#[derive(Deserialize)]
+struct InstanceArg {
+    instance: String,
+}
 
 fn args<T: DeserializeOwned>(v: Value) -> Result<T, CoreError> {
     let v = if v.is_null() { json!({}) } else { v };
@@ -190,6 +196,28 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             Ok(serde_json::to_value(inst)?)
         },
     );
+    register_game(r);
+}
+
+fn register_game(r: &mut ActionRegistry) {
+    // `game.install` resolves when done; the UI polls `game.progress` meanwhile.
+    r.register("game.install", P::GameLaunch, true, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        service::install_instance(&c, &instance).await
+    });
+    r.register(
+        "game.progress",
+        P::InstancesRead,
+        false,
+        |c, a| async move {
+            let InstanceArg { instance } = args(a)?;
+            Ok(service::progress(&c, &instance))
+        },
+    );
+    r.register("game.launch", P::GameLaunch, true, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        service::launch_instance(&c, &instance).await
+    });
 }
 
 async fn update_settings(c: &Core, f: impl FnOnce(&mut Settings)) -> Result<Value, CoreError> {

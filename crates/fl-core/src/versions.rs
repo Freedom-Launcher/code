@@ -9,6 +9,36 @@ const CACHE_TTL: Duration = Duration::from_secs(3600);
 
 /// Version list. Served from cache when fresh; falls back to a stale cache offline.
 pub async fn list(core: &Core, snapshots: bool) -> Result<Value, CoreError> {
+    let manifest = manifest(core).await?;
+    let versions: Vec<Value> = manifest["versions"]
+        .as_array()
+        .map(|a| a.as_slice())
+        .unwrap_or_default()
+        .iter()
+        .filter(|v| v["type"] == "release" || (snapshots && v["type"] == "snapshot"))
+        .map(|v| json!({ "id": v["id"], "type": v["type"], "release_time": v["releaseTime"] }))
+        .collect();
+
+    Ok(json!({ "latest": manifest["latest"], "versions": versions }))
+}
+
+/// `(url, sha1)` of a version's JSON from the manifest.
+pub async fn locate(core: &Core, id: &str) -> Result<(String, String), CoreError> {
+    let manifest = manifest(core).await?;
+    manifest["versions"]
+        .as_array()
+        .and_then(|a| a.iter().find(|v| v["id"] == id))
+        .and_then(|v| {
+            Some((
+                v["url"].as_str()?.to_owned(),
+                v["sha1"].as_str().unwrap_or("").to_owned(),
+            ))
+        })
+        .ok_or_else(|| CoreError::msg(format!("unknown game version: {id}")))
+}
+
+/// The raw version manifest, cached for an hour, stale cache used offline.
+pub async fn manifest(core: &Core) -> Result<Value, CoreError> {
     let cache = core.data_dir.join("cache").join("version_manifest_v2.json");
     let fresh = fs::metadata(&cache)
         .and_then(|m| m.modified())
@@ -32,17 +62,7 @@ pub async fn list(core: &Core, snapshots: bool) -> Result<Value, CoreError> {
             Err(e) => return Err(e),
         }
     };
-
-    let versions: Vec<Value> = manifest["versions"]
-        .as_array()
-        .map(|a| a.as_slice())
-        .unwrap_or_default()
-        .iter()
-        .filter(|v| v["type"] == "release" || (snapshots && v["type"] == "snapshot"))
-        .map(|v| json!({ "id": v["id"], "type": v["type"], "release_time": v["releaseTime"] }))
-        .collect();
-
-    Ok(json!({ "latest": manifest["latest"], "versions": versions }))
+    Ok(manifest)
 }
 
 async fn fetch(core: &Core) -> Result<Vec<u8>, CoreError> {

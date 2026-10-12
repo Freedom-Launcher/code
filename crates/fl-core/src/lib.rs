@@ -17,6 +17,7 @@ pub mod accounts;
 pub mod actions;
 mod builtin;
 pub mod error;
+pub mod game;
 pub mod instances;
 pub mod msauth;
 pub mod permissions;
@@ -39,6 +40,9 @@ pub struct Core {
     /// Serialises read-modify-write of state files.
     pub(crate) state_lock: tokio::sync::Mutex<()>,
     pub(crate) ms_pending: tokio::sync::Mutex<Option<msauth::Pending>>,
+    /// Install progress per instance id, polled by `game.progress`.
+    pub(crate) game_progress:
+        std::sync::Mutex<std::collections::HashMap<String, Arc<game::download::Progress>>>,
 }
 
 impl Core {
@@ -59,6 +63,7 @@ impl Core {
             registry,
             state_lock: Default::default(),
             ms_pending: Default::default(),
+            game_progress: Default::default(),
         }))
     }
 

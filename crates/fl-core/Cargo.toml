@@ -13,6 +13,11 @@ tokio.workspace = true
 reqwest.workspace = true
 uuid.workspace = true
 md5.workspace = true
+sha1.workspace = true
+futures-util.workspace = true
+zip.workspace = true
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_System_SystemInformation"] }
