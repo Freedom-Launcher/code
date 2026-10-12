@@ -1,0 +1,18 @@
+[package]
+name = "fl-core"
+description = "Freedom Launcher core: action bus, permissions, accounts, versions, instances"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+uuid.workspace = true
+md5.workspace = true
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

@@ -1,0 +1,76 @@
+:root {
+  --bg: #0f1115;
+  --surface: #171a21;
+  --surface-2: #1f232c;
+  --line: #2a2f3a;
+  --text: #e7e9ee;
+  --muted: #8b92a1;
+  --accent: #5b8cff;
+  --accent-text: #fff;
+  --danger: #ff5b6b;
+  --ok: #3ecf8e;
+  --radius: 12px;
+  --speed: 160ms;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+h1 { font-size: 22px; margin: 0 0 16px; font-weight: 650; }
+h2 { font-size: 15px; margin: 0 0 12px; font-weight: 600; }
+p { margin: 0 0 10px; }
+
+.app { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
+.top { display: flex; align-items: center; gap: 24px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+.brand { font-weight: 700; letter-spacing: .02em; }
+.tabs { display: flex; gap: 4px; flex: 1; }
+main { overflow: auto; padding: 24px; }
+.status { display: flex; justify-content: space-between; padding: 6px 20px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); }
+.status .is-error { color: var(--danger); }
+
+.view { display: none; max-width: 880px; margin: 0 auto; }
+.view.is-active { display: block; animation: enter var(--speed) var(--ease); }
+@keyframes enter { from { opacity: 0; transform: translateY(4px); } }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
+.create { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.create input { flex: 1; min-width: 180px; }
+.options, .stack { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.stack { flex-direction: column; align-items: stretch; }
+.flow { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 4px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.code { font: 600 28px/1 ui-monospace, Consolas, monospace; letter-spacing: .12em; padding: 10px 14px; background: var(--surface-2); border-radius: 8px; user-select: all; }
+.hint, .empty { color: var(--muted); font-size: 13px; }
+.check { color: var(--muted); display: flex; gap: 6px; align-items: center; }
+
+input, select { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; outline: none; transition: border-color var(--speed) var(--ease); }
+input:focus, select:focus { border-color: var(--accent); }
+
+.btn, .tab, .chip { font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer;
+  transition: background var(--speed) var(--ease), border-color var(--speed) var(--ease), transform var(--speed) var(--ease), opacity var(--speed) var(--ease); }
+.btn:hover, .tab:hover, .chip:hover { border-color: #3a4150; }
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn.ghost, .tab { background: transparent; border-color: transparent; }
+.btn.danger { color: var(--danger); }
+.tab { color: var(--muted); }
+.tab.is-active { color: var(--text); background: var(--surface-2); }
+.chip { border-radius: 999px; }
+
+/* Action states, set by the launcher (data-state). Themes style these. */
+[data-state="loading"] { opacity: .65; pointer-events: none; }
+[data-state="success"] { border-color: var(--ok); }
+[data-state="error"] { border-color: var(--danger); }
+
+.list { list-style: none; padding: 0; margin: 0 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.item.is-selected { border-color: var(--accent); }
+.item .grow { flex: 1; min-width: 0; }
+.item .sub { color: var(--muted); font-size: 12px; }
+
+.safe { min-height: 100%; display: grid; place-items: center; padding: 24px; }
+.safe .card { max-width: 440px; width: 100%; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Freedom Launcher</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div id="app" class="app" hidden>
+    <header class="top">
+      <div class="brand">Freedom</div>
+      <nav class="tabs">
+        <button class="tab is-active" data-view="instances">Сборки</button>
+        <button class="tab" data-view="accounts">Аккаунты</button>
+        <button class="tab" data-view="catalog">Дополнения</button>
+      </nav>
+      <button class="chip" data-view="accounts" id="account-chip">Войти</button>
+    </header>
+
+    <main>
+      <section class="view is-active" id="view-instances">
+        <h1>Сборки</h1>
+        <form id="create-form" class="card create">
+          <input name="name" placeholder="Название сборки" maxlength="64" required>
+          <select name="version" id="version-select" required><option value="">Загрузка версий…</option></select>
+          <label class="check"><input type="checkbox" id="snapshots"> снапшоты</label>
+          <button type="submit" class="btn primary" id="create-btn">Создать</button>
+        </form>
+        <ul id="instance-list" class="list"></ul>
+        <p class="empty" id="instances-empty">Пока нет сборок. Создайте первую.</p>
+      </section>
+
+      <section class="view" id="view-accounts">
+        <h1>Аккаунты</h1>
+        <ul id="account-list" class="list"></ul>
+        <div class="card">
+          <h2>Добавить аккаунт</h2>
+          <div class="options">
+            <button class="btn primary" id="ms-login">Войти через Microsoft</button>
+            <button class="btn" id="offline-open" hidden>Офлайн-профиль</button>
+            <button class="btn ghost" data-view="catalog">Сторонний сервис</button>
+          </div>
+          <div id="ms-flow" class="flow" hidden>
+            <p>Откройте страницу входа и введите код:</p>
+            <div class="code" id="ms-code"></div>
+            <div class="options">
+              <button class="btn" id="ms-open">Открыть страницу входа</button>
+              <button class="btn ghost" id="ms-copy">Скопировать код</button>
+            </div>
+            <p class="hint">Ждём подтверждения…</p>
+          </div>
+          <form id="offline-form" class="flow" hidden>
+            <input name="name" placeholder="Имя профиля (3–16 символов)" minlength="3" maxlength="16" pattern="[A-Za-z0-9_]{3,16}" required>
+            <button type="submit" class="btn primary">Создать профиль</button>
+          </form>
+          <p class="hint" id="offline-hint">Офлайн-профили появятся после входа через Microsoft-аккаунт с Minecraft: Java Edition.</p>
+        </div>
+      </section>
+
+      <section class="view" id="view-catalog">
+        <h1>Дополнения</h1>
+        <div class="card">
+          <h2>Вход через сторонние сервисы</h2>
+          <p>Сторонние способы входа подключаются как дополнения-провайдеры аккаунтов. Каталог дополнений появится на следующем этапе.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="status"><span id="status-msg"></span><span id="startup"></span></footer>
+  </div>
+
+  <div id="safe" class="safe" hidden>
+    <div class="card">
+      <h1>Безопасные настройки</h1>
+      <p>Темы и дополнения сейчас не загружены. Выберите, что восстановить, затем перезапустите лаунчер.</p>
+      <div class="stack">
+        <button class="btn" data-action="safe.restore_theme">Вернуть стандартную тему</button>
+        <button class="btn" data-action="safe.disable_addons">Отключить все дополнения</button>
+        <button class="btn danger" data-action="safe.reset_settings">Сбросить настройки</button>
+      </div>
+      <p class="hint" id="safe-msg"></p>
+    </div>
+  </div>
+</body>
+</html>

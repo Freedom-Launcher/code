@@ -1,0 +1,15 @@
+[package]
+name = "freedom-launcher"
+description = "Freedom Launcher desktop app (Tauri 2 shell around fl-core)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+fl-core = { path = "../crates/fl-core" }
+serde_json.workspace = true
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Main window: core IPC only. Everything else goes through the `action` command and the core's permission checks.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
