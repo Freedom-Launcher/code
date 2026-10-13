@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>Freedom UI — компоненты</title>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="components-2.css">
+  <link rel="stylesheet" href="layout.css">
+  <link rel="stylesheet" href="showcase.css">
+  <script src="ui.js" defer></script>
+  <script src="showcase.js" defer></script>
+</head>
+<body class="sc" data-id="showcase">
+  <header class="sc-top" data-id="showcase.top">
+    <div class="wordmark">Freedom <span>UI</span></div>
+    <div class="spacer"></div>
+    <div class="seg" id="sc-theme"><button data-t="dark" aria-selected="true">Тёмная</button><button data-t="light">Светлая</button></div>
+    <label class="check"><input type="checkbox" id="sc-motion" checked> Анимации</label>
+  </header>
+  <main class="sc-main">
+    <h1 class="sc-h1">Компоненты</h1>
+    <p class="lead muted">Всё, из чего собран лаунчер. Цвета, радиусы и время анимаций берутся только из <span class="mono">tokens.css</span> — тема меняет их, не трогая компоненты.</p>
+
+    <section class="sc-sec" data-id="showcase.buttons"><div class="sc-n">01</div><div class="sc-body">
+      <h2>Кнопки</h2><p class="muted">Одна акцентная кнопка на экран — главное действие.</p>
+      <div class="sc-frame"><div class="sc-row">
+        <button class="btn btn-primary"><span class="lbl">Играть</span></button>
+        <button class="btn"><span class="lbl">Обычная</span></button>
+        <button class="btn btn-ghost"><span class="lbl">Тихая</span></button>
+        <button class="btn btn-danger"><span class="lbl">Удалить</span></button>
+        <button class="btn" disabled><span class="lbl">Недоступна</span></button>
+      </div><div class="sc-row">
+        <button class="btn btn-primary btn-lg"><span class="lbl">Большая</span></button>
+        <button class="btn btn-sm"><span class="lbl">Маленькая</span></button>
+        <button class="btn btn-icon" data-tip="Новая сборка" data-kbd="Ctrl N" aria-label="Добавить"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3v10M3 8h10"/></svg></button>
+      </div></div>
+    </div></section>
+
+    <section class="sc-sec" data-id="showcase.states"><div class="sc-n">02</div><div class="sc-body">
+      <h2>Состояния действия</h2><p class="muted"><span class="mono">data-state</span> из библиотеки действий: загрузка → готово или ошибка. Размер кнопки не прыгает.</p>
+      <div class="sc-frame"><div class="sc-row">
+        <button class="btn btn-primary" data-demo="success"><span class="lbl">Нажми — успех</span></button>
+        <button class="btn" data-demo="error"><span class="lbl">Нажми — ошибка</span></button>
+        <button class="btn" data-state="loading"><span class="lbl">Загрузка</span></button>
+      </div></div>
+    </div></section>
+
+    <section class="sc-sec" data-id="showcase.fields"><div class="sc-n">03</div><div class="sc-body">
+      <h2>Поля</h2>
+      <div class="sc-frame sc-grid2">
+        <div><label class="label">Название</label><input class="field" placeholder="Например, Выживание"><p class="hint">До 64 символов</p></div>
+        <div><label class="label">Версия</label><select class="field mono"><option>1.21.4</option><option>1.20.1</option></select></div>
+        <label class="field-wrap"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input class="field" placeholder="Поиск"><kbd>/</kbd></label>
+      </div>
+    </div></section>
+
+    <section class="sc-sec" data-id="showcase.toggles"><div class="sc-n">04</div><div class="sc-body">
+      <h2>Переключатели и сегменты</h2><p class="muted">Плашка сегмента скользит к выбранному пункту.</p>
+      <div class="sc-frame"><div class="sc-row">
+        <label class="switch"><input type="checkbox" checked><i></i></label>
+        <label class="switch"><input type="checkbox"><i></i></label>
+        <label class="check"><input type="checkbox" checked> Снапшоты</label>
+        <div class="seg"><button aria-selected="true">Vanilla</button><button>Fabric</button><button>Forge</button><button>NeoForge</button></div>
+      </div></div>
+    </div></section>
+
+    <section class="sc-sec" data-id="showcase.menus"><div class="sc-n">05</div><div class="sc-body">
+      <h2>Меню и подсказки</h2><p class="muted">Меню раскрывается из кнопки. Подсказка появляется с задержкой, переходит между целями, исчезает сразу.</p>
+      <div class="sc-frame"><div class="sc-row">
+        <button class="btn" data-menu="sc-menu"><span class="lbl">Открыть меню</span></button>
+        <button class="btn btn-ghost" data-tip="Скриншоты">Наведи</button>
+        <button class="btn btn-ghost" data-tip="Папка сборки" data-kbd="Ctrl O">и сюда</button>
+        <button class="btn btn-ghost" data-tip="Настройки сборки">и сюда</button>
+      </div></div>
+    </div></section>
+
+    <section class="sc-sec" data-id="showcase.feedback"><div class="sc-n">06</div><div class="sc-body">
+      <h2>Уведомления и прогресс</h2>
+      <div class="sc-frame">
+        <div class="sc-row"><button class="btn" id="sc-toast"><span class="lbl">Показать уведомление</span></button><button class="btn" id="sc-toast-err"><span class="lbl">Ошибка</span></button></div>
+        <div class="play-status sc-wide"><div class="line"><span>Ресурсы</span><span class="mono num" id="sc-pct">0 / 612 МБ</span></div><div class="progress" id="sc-bar"><i></i></div></div>
+        <div class="progress sc-wide" data-indeterminate><i></i></div>
+        <div class="meter sc-meter"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div>
+      </div>
+    </div></section>
+
+    <section class="sc-sec" data-id="showcase.rows"><div class="sc-n">07</div><div class="sc-body">
+      <h2>Списки, значки, загрузка</h2><p class="muted">Скелетон плавно сменяется содержимым.</p>
+      <div class="sc-frame sc-grid2">
+        <div>
+          <div class="row" aria-selected="true"><span class="inst-ico">В</span><div class="grow"><div class="title">Выживание</div><div class="sub mono">1.21.4</div></div><span class="badge is-accent">Fabric</span></div>
+          <div class="row"><span class="inst-ico">Т</span><div class="grow"><div class="title">Творческий</div><div class="sub mono">1.20.1</div></div><span class="badge">Vanilla</span></div>
+          <div class="row"><span class="inst-ico">S</span><div class="grow"><div class="title">Снапшот</div><div class="sub mono">25w14a</div></div><span class="badge is-warn">Снапшот</span></div>
+        </div>
+        <div id="sc-skel">
+          <div class="row"><span class="inst-ico skel"></span><div class="grow"><div class="skel sc-l1"></div><div class="skel sc-l2"></div></div></div>
+          <div class="row"><span class="inst-ico skel"></span><div class="grow"><div class="skel sc-l1"></div><div class="skel sc-l2"></div></div></div>
+          <button class="btn btn-sm" id="sc-load"><span class="lbl">Загрузить</span></button>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="sc-sec" data-id="showcase.dialog"><div class="sc-n">08</div><div class="sc-body">
+      <h2>Диалог</h2>
+      <div class="sc-frame"><div class="sc-row"><button class="btn" data-open="sc-dlg"><span class="lbl">Открыть диалог</span></button><span class="muted">Закрывается по Esc или клику мимо.</span></div></div>
+    </div></section>
+  </main>
+
+  <div class="pop" id="sc-menu" data-id="showcase.menu" role="menu">
+    <div class="menu-label">Сборка</div>
+    <button class="menu-item">Открыть папку<kbd>Ctrl O</kbd></button>
+    <button class="menu-item">Проверить файлы</button>
+    <div class="menu-sep"></div>
+    <button class="menu-item is-danger">Удалить сборку</button>
+  </div>
+  <div class="scrim" id="scrim"></div>
+  <div class="dialog" id="sc-dlg" data-id="showcase.dialog.box" role="dialog">
+    <h2>Удалить сборку?</h2>
+    <p class="muted">Миры и скриншоты этой сборки будут удалены с диска.</p>
+    <div class="actions"><button class="btn btn-ghost" data-close>Отмена</button><button class="btn btn-danger" data-close>Удалить</button></div>
+  </div>
+  <div class="tip" id="tip" role="tooltip"></div>
+  <div class="toasts" id="toasts"></div>
+</body>
+</html>

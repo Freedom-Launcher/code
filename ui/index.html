@@ -1,84 +1,194 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Freedom Launcher</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="components-2.css">
+  <link rel="stylesheet" href="layout.css">
+  <script src="ui.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
-  <div id="app" class="app" hidden>
-    <header class="top">
-      <div class="brand">Freedom</div>
-      <nav class="tabs">
-        <button class="tab is-active" data-view="instances">Сборки</button>
-        <button class="tab" data-view="accounts">Аккаунты</button>
-        <button class="tab" data-view="catalog">Дополнения</button>
+  <div id="app" class="app" data-id="app" hidden>
+    <header class="top" data-id="topbar">
+      <div class="wordmark">Freedom <span>Launcher</span></div>
+      <nav class="seg" data-id="nav" id="nav">
+        <button data-view="instances" aria-selected="true">Сборки</button>
+        <button data-view="catalog">Дополнения</button>
+        <button data-view="settings">Настройки</button>
       </nav>
-      <button class="chip" data-view="accounts" id="account-chip">Войти</button>
+      <div class="spacer"></div>
+      <div data-slot="topbar.end"></div>
+      <button class="btn btn-ghost account-btn" id="account-btn" data-id="account-button" data-menu="menu-account">
+        <span class="head inst-ico" id="account-head">?</span>
+        <span class="lbl" id="account-name">Войти</span>
+      </button>
     </header>
 
-    <main>
-      <section class="view is-active" id="view-instances">
-        <h1>Сборки</h1>
-        <form id="create-form" class="card create">
-          <input name="name" placeholder="Название сборки" maxlength="64" required>
-          <select name="version" id="version-select" required><option value="">Загрузка версий…</option></select>
-          <label class="check"><input type="checkbox" id="snapshots"> снапшоты</label>
-          <button type="submit" class="btn primary" id="create-btn">Создать</button>
-        </form>
-        <ul id="instance-list" class="list"></ul>
-        <p class="empty" id="instances-empty">Пока нет сборок. Создайте первую.</p>
-      </section>
-
-      <section class="view" id="view-accounts">
-        <h1>Аккаунты</h1>
-        <ul id="account-list" class="list"></ul>
-        <div class="card">
-          <h2>Добавить аккаунт</h2>
-          <div class="options">
-            <button class="btn primary" id="ms-login">Войти через Microsoft</button>
-            <button class="btn" id="offline-open" hidden>Офлайн-профиль</button>
-            <button class="btn ghost" data-view="catalog">Сторонний сервис</button>
-          </div>
-          <div id="ms-flow" class="flow" hidden>
-            <p>Откройте страницу входа и введите код:</p>
-            <div class="code" id="ms-code"></div>
-            <div class="options">
-              <button class="btn" id="ms-open">Открыть страницу входа</button>
-              <button class="btn ghost" id="ms-copy">Скопировать код</button>
-            </div>
-            <p class="hint">Ждём подтверждения…</p>
-          </div>
-          <form id="offline-form" class="flow" hidden>
-            <input name="name" placeholder="Имя профиля (3–16 символов)" minlength="3" maxlength="16" pattern="[A-Za-z0-9_]{3,16}" required>
-            <button type="submit" class="btn primary">Создать профиль</button>
-          </form>
-          <p class="hint" id="offline-hint">Офлайн-профили появятся после входа через Microsoft-аккаунт с Minecraft: Java Edition.</p>
+    <main class="view is-active" id="view-instances" data-id="view.instances">
+      <aside class="rail" data-id="instances.rail">
+        <div class="rail-head">
+          <label class="field-wrap">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+            <input class="field" id="inst-search" placeholder="Найти сборку" data-id="instances.search">
+          </label>
+          <button class="btn btn-icon" data-open="dlg-create" data-tip="Новая сборка" data-kbd="Ctrl N" data-id="instances.new" aria-label="Новая сборка">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3v10M3 8h10"/></svg>
+          </button>
         </div>
-      </section>
+        <div class="rail-list" id="inst-list" role="listbox" data-id="instances.list"></div>
+        <div data-slot="instances.rail.end"></div>
+      </aside>
 
-      <section class="view" id="view-catalog">
-        <h1>Дополнения</h1>
-        <div class="card">
-          <h2>Вход через сторонние сервисы</h2>
-          <p>Сторонние способы входа подключаются как дополнения-провайдеры аккаунтов. Каталог дополнений появится на следующем этапе.</p>
+      <section class="stage" data-id="instances.stage">
+        <div class="stage-inner" id="stage" hidden>
+          <div>
+            <div class="eyebrow"><span id="st-loader">Vanilla</span><span class="sep">·</span><span class="mono" id="st-version"></span></div>
+            <h1 class="inst-name" id="st-name"></h1>
+            <div class="inst-meta" id="st-meta"></div>
+          </div>
+
+          <div class="play-row" data-id="instances.play">
+            <button class="btn btn-primary play-btn" id="play" data-id="game.play">
+              <span class="lbl"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg><span id="play-label">Играть</span></span>
+            </button>
+            <div class="play-status" id="play-status" hidden>
+              <div class="line"><span id="ps-stage">Подготовка</span><span class="mono num" id="ps-count"></span></div>
+              <div class="progress" id="ps-bar"><i></i></div>
+            </div>
+            <button class="btn btn-icon btn-ghost" data-menu="menu-instance" data-tip="Действия со сборкой" data-id="instances.more" aria-label="Ещё">
+              <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg>
+            </button>
+          </div>
+
+          <div data-id="instances.shots" id="shots">
+            <div class="shots-empty"><b>Здесь будут ваши скриншоты</b>Нажмите F2 в игре — снимки этого мира появятся здесь.</div>
+          </div>
+
+          <dl class="facts" data-id="instances.facts">
+            <div class="fact"><dt>Версия</dt><dd class="mono" id="f-version">—</dd></div>
+            <div class="fact"><dt>Модов</dt><dd class="num" id="f-mods">0</dd></div>
+            <div class="fact"><dt>Сыграно</dt><dd class="num" id="f-played">—</dd></div>
+            <div class="fact"><dt>Память</dt><dd class="num" id="f-mem">Авто</dd></div>
+          </dl>
+          <div data-slot="instances.stage.end"></div>
+        </div>
+
+        <div class="empty-stage" id="stage-empty" data-id="instances.empty">
+          <h2>Создайте первую сборку</h2>
+          <p>Выберите версию Minecraft — лаунчер сам скачает игру и подходящую Java.</p>
+          <button class="btn btn-primary btn-lg" data-open="dlg-create"><span class="lbl">Новая сборка</span></button>
         </div>
       </section>
     </main>
 
-    <footer class="status"><span id="status-msg"></span><span id="startup"></span></footer>
+    <main class="view page" id="view-catalog" data-id="view.catalog">
+      <div class="page-inner">
+        <h1>Дополнения</h1>
+        <p class="lead">Темы меняют вид лаунчера, аддоны добавляют функции. Каталог появится в следующих версиях.</p>
+        <div class="card" data-id="catalog.providers">
+          <div class="set-row">
+            <div class="grow"><div>Провайдеры аккаунтов</div><div class="sub">Сторонние способы входа подключаются как аддоны уровня «Расширенный».</div></div>
+            <span class="badge">Скоро</span>
+          </div>
+        </div>
+        <div data-slot="catalog.end"></div>
+      </div>
+    </main>
+
+    <main class="view page" id="view-settings" data-id="view.settings">
+      <div class="page-inner">
+        <h1>Настройки</h1>
+        <p class="lead">Всё, что можно выключить, выключается здесь.</p>
+        <div class="set-group" data-id="settings.look">
+          <h2>Вид</h2>
+          <div class="card">
+            <div class="set-row">
+              <div class="grow"><div>Тема</div><div class="sub">Встроенная тема лаунчера</div></div>
+              <div class="seg" id="theme-seg"><button data-theme-set="dark" aria-selected="true">Тёмная</button><button data-theme-set="light">Светлая</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="set-group" data-id="settings.effects">
+          <h2>Эффекты</h2>
+          <div class="card">
+            <div class="set-row">
+              <div class="grow"><div>Анимации</div><div class="sub">Переходы, всплывающие меню, кнопки</div></div>
+              <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label>
+            </div>
+          </div>
+        </div>
+        <div data-slot="settings.end"></div>
+      </div>
+    </main>
   </div>
 
-  <div id="safe" class="safe" hidden>
+  <!-- Popovers -->
+  <div class="pop" id="menu-account" data-id="menu.account" role="menu">
+    <div class="menu-label">Аккаунты</div>
+    <div id="acc-list"></div>
+    <div class="menu-sep"></div>
+    <button class="menu-item" data-open="dlg-login"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>Войти через Microsoft</button>
+    <button class="menu-item" id="offline-open" data-open="dlg-offline" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="2.5"/><path d="M3.5 13c.8-2.2 2.5-3.3 4.5-3.3s3.7 1.1 4.5 3.3"/></svg>Офлайн-профиль</button>
+    <button class="menu-item" data-view="catalog"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="9" y="3" width="4" height="4" rx="1"/><rect x="3" y="9" width="4" height="4" rx="1"/><rect x="9" y="9" width="4" height="4" rx="1"/></svg>Сторонний сервис</button>
+  </div>
+
+  <div class="pop" id="menu-instance" data-id="menu.instance" role="menu">
+    <button class="menu-item" id="mi-install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v7m-3-3 3 3 3-3M3.5 13h9"/></svg>Проверить файлы</button>
+    <div data-slot="menu.instance"></div>
+  </div>
+
+  <!-- Dialogs -->
+  <div class="scrim" id="scrim"></div>
+  <form class="dialog" id="dlg-create" data-id="dialog.create" role="dialog" aria-label="Новая сборка">
+    <h2>Новая сборка</h2>
+    <div class="fields">
+      <div><label class="label" for="c-name">Название</label><input class="field" id="c-name" name="name" maxlength="64" required placeholder="Например, Выживание"></div>
+      <div><label class="label" for="c-version">Версия</label><select class="field mono" id="c-version" name="version" required><option value="">Загрузка…</option></select></div>
+      <label class="check"><input type="checkbox" id="c-snapshots"> Показать снапшоты</label>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+      <button type="submit" class="btn btn-primary" id="c-submit"><span class="lbl">Создать</span></button>
+    </div>
+  </form>
+
+  <div class="dialog" id="dlg-login" data-id="dialog.login" role="dialog" aria-label="Вход через Microsoft">
+    <h2>Вход через Microsoft</h2>
+    <p class="muted" id="ms-intro">Откроется страница Microsoft. Введите там этот код:</p>
+    <div class="ms-code mono" id="ms-code">· · · · · · · ·</div>
+    <p class="hint" id="ms-hint">Получаем код…</p>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" data-close>Закрыть</button>
+      <button type="button" class="btn" id="ms-copy"><span class="lbl">Скопировать код</span></button>
+      <button type="button" class="btn btn-primary" id="ms-open"><span class="lbl">Открыть страницу</span></button>
+    </div>
+  </div>
+
+  <form class="dialog" id="dlg-offline" data-id="dialog.offline" role="dialog" aria-label="Офлайн-профиль">
+    <h2>Офлайн-профиль</h2>
+    <div class="fields"><div><label class="label" for="o-name">Имя</label><input class="field" id="o-name" name="name" minlength="3" maxlength="16" pattern="[A-Za-z0-9_]{3,16}" required placeholder="3–16 символов: латиница, цифры, _"></div></div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+      <button type="submit" class="btn btn-primary" id="o-submit"><span class="lbl">Создать</span></button>
+    </div>
+  </form>
+
+  <div class="tip" id="tip" role="tooltip"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div class="startup" id="startup"></div>
+
+  <div id="safe" class="safe" data-id="safe" hidden>
     <div class="card">
       <h1>Безопасные настройки</h1>
-      <p>Темы и дополнения сейчас не загружены. Выберите, что восстановить, затем перезапустите лаунчер.</p>
+      <p class="muted">Темы и дополнения сейчас не загружены. Выберите, что восстановить, затем перезапустите лаунчер.</p>
       <div class="stack">
-        <button class="btn" data-action="safe.restore_theme">Вернуть стандартную тему</button>
-        <button class="btn" data-action="safe.disable_addons">Отключить все дополнения</button>
-        <button class="btn danger" data-action="safe.reset_settings">Сбросить настройки</button>
+        <button class="btn" data-action="safe.restore_theme"><span class="lbl">Вернуть стандартную тему</span></button>
+        <button class="btn" data-action="safe.disable_addons"><span class="lbl">Отключить все дополнения</span></button>
+        <button class="btn btn-danger" data-action="safe.reset_settings"><span class="lbl">Сбросить настройки</span></button>
       </div>
       <p class="hint" id="safe-msg"></p>
     </div>

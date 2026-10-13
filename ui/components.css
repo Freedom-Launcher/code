@@ -1,0 +1,91 @@
+/* Freedom Launcher — components. Every visual value comes from tokens.css. */
+
+/* ---------- Button ---------- */
+.btn {
+  --h: 32px;
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+  height: var(--h); padding: 0 var(--s-3);
+  border: 0; border-radius: var(--r-control);
+  background: var(--surface-2); color: var(--text);
+  box-shadow: var(--shadow-1);
+  font-weight: 500; white-space: nowrap; cursor: default;
+  transition: transform var(--d-1) var(--ease-out), background-color var(--d-2) var(--ease-out), opacity var(--d-2);
+}
+.btn:hover { background: var(--surface-3); }
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .45; pointer-events: none; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn-sm { --h: 26px; padding: 0 var(--s-2); font-size: var(--text-sm); border-radius: var(--r-chip); }
+.btn-lg { --h: 44px; padding: 0 var(--s-5); font-size: var(--text-lg); border-radius: 10px; }
+.btn-icon { width: var(--h); padding: 0; }
+.btn-ghost { background: transparent; box-shadow: none; color: var(--text-2); }
+.btn-ghost:hover { background: var(--hover); color: var(--text); }
+.btn-primary { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-accent); font-weight: 600; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { background: var(--accent-press); }
+.btn-danger { background: var(--danger-soft); color: var(--danger); box-shadow: none; }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+
+/* data-state from the action library: label swaps to spinner / check, never jumps size. */
+.btn > .lbl { display: inline-flex; align-items: center; gap: var(--s-2); transition: opacity var(--d-2), filter var(--d-2), transform var(--d-2) var(--ease-out); }
+.btn::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent;
+  opacity: 0; transform: scale(.6); transition: opacity var(--d-2), transform var(--d-3) var(--ease-out);
+}
+.btn[data-state="loading"] > .lbl, .btn[data-state="success"] > .lbl { opacity: 0; filter: blur(var(--blur-in)); transform: scale(.94); }
+.btn[data-state="loading"]::after { opacity: 1; transform: scale(1); animation: spin .7s linear infinite; }
+.btn[data-state="success"]::after {
+  opacity: 1; transform: rotate(45deg) scale(1); border-radius: 0; animation: none;
+  width: 6px; height: 11px; margin: -8px 0 0 -3px; border-width: 0 2px 2px 0; border-color: currentColor;
+}
+.btn[data-state="error"] { animation: shake 320ms var(--ease-out); }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shake { 20% { transform: translateX(-4px); } 45% { transform: translateX(4px); } 70% { transform: translateX(-2px); } }
+
+/* ---------- Kbd ---------- */
+kbd, .kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 5px; background: var(--surface-3); color: var(--text-2);
+  box-shadow: inset 0 -1px var(--line-strong), 0 0 0 1px var(--line);
+  font: 500 10.5px/1 var(--font-mono);
+}
+.btn-primary kbd { background: rgba(0, 0, 0, .14); color: inherit; box-shadow: none; }
+
+/* ---------- Field ---------- */
+.field {
+  height: 32px; width: 100%; padding: 0 var(--s-3);
+  border: 0; border-radius: var(--r-control);
+  background: var(--surface-1); color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: box-shadow var(--d-2) var(--ease-out);
+}
+.field::placeholder { color: var(--text-3); }
+.field:hover { box-shadow: inset 0 0 0 1px var(--text-3); }
+.field:focus { outline: none; box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-soft); }
+select.field { appearance: none; padding-right: 28px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%), linear-gradient(-45deg, transparent 50%, var(--text-2) 50%);
+  background-position: right 14px top 14px, right 10px top 14px; background-size: 4px 4px; background-repeat: no-repeat; }
+.field-wrap { position: relative; display: flex; align-items: center; }
+.field-wrap > svg { position: absolute; left: 10px; width: 15px; height: 15px; color: var(--text-3); pointer-events: none; }
+.field-wrap > .field { padding-left: 32px; }
+.field-wrap > kbd { position: absolute; right: 8px; }
+.label { display: block; margin-bottom: 6px; color: var(--text-2); font-size: var(--text-sm); font-weight: 500; }
+.hint { color: var(--text-3); font-size: var(--text-sm); margin: 6px 0 0; }
+
+/* ---------- Switch & checkbox ---------- */
+.switch { position: relative; display: inline-block; width: 30px; height: 18px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; }
+.switch i { position: absolute; inset: 0; border-radius: var(--r-pill); background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line); transition: background-color var(--d-3) var(--ease-out); }
+.switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); transition: transform var(--d-4) var(--ease-spring); }
+.switch input:checked + i { background: var(--accent); }
+.switch input:checked + i::after { transform: translateX(12px); }
+.switch input:focus-visible + i { box-shadow: var(--focus-ring); }
+
+.check { display: inline-flex; align-items: center; gap: var(--s-2); color: var(--text-2); }
+.check input { appearance: none; width: 16px; height: 16px; margin: 0; border-radius: 4px; background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--line-strong); display: grid; place-items: center; transition: background-color var(--d-2); }
+.check input::after { content: ""; width: 4px; height: 8px; margin-top: -2px; border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg) scale(0); transition: transform var(--d-3) var(--ease-spring); }
+.check input:checked { background: var(--accent); box-shadow: none; }
+.check input:checked::after { transform: rotate(45deg) scale(1); }
