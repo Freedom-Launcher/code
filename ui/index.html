@@ -13,119 +13,169 @@
 </head>
 <body>
   <div id="app" class="app" data-id="app" hidden>
+    <!-- Left icon rail: navigation, pinned instances, create, settings -->
+    <nav class="nav" data-id="nav">
+      <div class="nav-logo" data-id="nav.logo" aria-hidden="true">F</div>
+      <button class="nav-btn" data-view="home" aria-current="page" data-tip="Главная" data-id="nav.home" aria-label="Главная">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>
+      </button>
+      <button class="nav-btn" data-view="library" data-tip="Библиотека" data-id="nav.library" aria-label="Библиотека">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1.2"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1.2"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1.2"/><rect x="9" y="9" width="4.5" height="4.5" rx="1.2"/></svg>
+      </button>
+      <button class="nav-btn" data-view="discover" data-tip="Обзор дополнений" data-id="nav.discover" aria-label="Обзор">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="m10.2 5.8-1.4 3-3 1.4 1.4-3z"/></svg>
+      </button>
+      <div class="nav-sep"></div>
+      <div class="nav-pins" id="nav-pins" data-id="nav.pins"></div>
+      <div data-slot="nav.end"></div>
+      <div class="nav-grow"></div>
+      <button class="nav-btn" data-open="dlg-create" data-tip="Новая сборка" data-kbd="Ctrl N" data-id="nav.create" aria-label="Новая сборка">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3v10M3 8h10"/></svg>
+      </button>
+      <button class="nav-btn" data-view="settings" data-tip="Настройки" data-id="nav.settings" aria-label="Настройки">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.7M8 12.5v1.7M1.8 8h1.7M12.5 8h1.7M3.6 3.6l1.2 1.2M11.2 11.2l1.2 1.2M3.6 12.4l1.2-1.2M11.2 4.8l1.2-1.2"/></svg>
+      </button>
+    </nav>
+
+    <!-- Top bar: back + breadcrumb, running indicator, account -->
     <header class="top" data-id="topbar">
-      <div class="wordmark">Freedom <span>Launcher</span></div>
-      <nav class="seg" data-id="nav" id="nav">
-        <button data-view="instances" aria-selected="true">Сборки</button>
-        <button data-view="catalog">Дополнения</button>
-        <button data-view="settings">Настройки</button>
-      </nav>
+      <button class="btn btn-icon btn-ghost btn-sm" id="back" data-id="topbar.back" aria-label="Назад" disabled>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>
+      </button>
+      <div class="crumbs" id="crumbs" data-id="topbar.crumbs"></div>
       <div class="spacer"></div>
       <div data-slot="topbar.end"></div>
+      <div class="running" id="running" data-id="topbar.running"><i class="dot"></i><span id="running-text">Ничего не запущено</span></div>
       <button class="btn btn-ghost account-btn" id="account-btn" data-id="account-button" data-menu="menu-account">
         <span class="head inst-ico" id="account-head">?</span>
         <span class="lbl" id="account-name">Войти</span>
+        <svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg>
       </button>
     </header>
-
-    <main class="view is-active" id="view-instances" data-id="view.instances">
-      <aside class="rail" data-id="instances.rail">
-        <div class="rail-head">
-          <label class="field-wrap">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
-            <input class="field" id="inst-search" placeholder="Найти сборку" data-id="instances.search">
-          </label>
-          <button class="btn btn-icon" data-open="dlg-create" data-tip="Новая сборка" data-kbd="Ctrl N" data-id="instances.new" aria-label="Новая сборка">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3v10M3 8h10"/></svg>
-          </button>
+    <!-- Main area: one view at a time -->
+    <main class="main" data-id="main">
+      <section class="view is-active" id="view-home" data-id="view.home">
+        <div class="page-inner wide">
+          <div class="sec-head"><h2>Продолжить</h2></div>
+          <div class="jump" id="jump" data-id="home.jump"></div>
+          <div class="sec-head">
+            <h2>Библиотека</h2>
+            <div class="spacer"></div>
+            <button class="btn btn-sm btn-ghost" data-view="library" data-id="home.all">Все сборки</button>
+            <button class="btn btn-sm btn-primary" data-open="dlg-create" data-id="home.create"><span class="lbl">Новая сборка</span></button>
+          </div>
+          <div class="grid" id="home-grid" data-id="home.grid"></div>
+          <div data-slot="home.end"></div>
         </div>
-        <div class="rail-list" id="inst-list" role="listbox" data-id="instances.list"></div>
-        <div data-slot="instances.rail.end"></div>
-      </aside>
-
-      <section class="stage" data-id="instances.stage">
-        <div class="stage-inner" id="stage" hidden>
-          <div>
-            <div class="eyebrow"><span id="st-loader">Vanilla</span><span class="sep">·</span><span class="mono" id="st-version"></span></div>
-            <h1 class="inst-name" id="st-name"></h1>
-            <div class="inst-meta" id="st-meta"></div>
-          </div>
-
-          <div class="play-row" data-id="instances.play">
-            <button class="btn btn-primary play-btn" id="play" data-id="game.play">
-              <span class="lbl"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg><span id="play-label">Играть</span></span>
-            </button>
-            <div class="play-status" id="play-status" hidden>
-              <div class="line"><span id="ps-stage">Подготовка</span><span class="mono num" id="ps-count"></span></div>
-              <div class="progress" id="ps-bar"><i></i></div>
-            </div>
-            <button class="btn btn-icon btn-ghost" data-menu="menu-instance" data-tip="Действия со сборкой" data-id="instances.more" aria-label="Ещё">
-              <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg>
-            </button>
-          </div>
-
-          <div data-id="instances.shots" id="shots">
-            <div class="shots-empty"><b>Здесь будут ваши скриншоты</b>Нажмите F2 в игре — снимки этого мира появятся здесь.</div>
-          </div>
-
-          <dl class="facts" data-id="instances.facts">
-            <div class="fact"><dt>Версия</dt><dd class="mono" id="f-version">—</dd></div>
-            <div class="fact"><dt>Модов</dt><dd class="num" id="f-mods">0</dd></div>
-            <div class="fact"><dt>Сыграно</dt><dd class="num" id="f-played">—</dd></div>
-            <div class="fact"><dt>Память</dt><dd class="num" id="f-mem">Авто</dd></div>
-          </dl>
-          <div data-slot="instances.stage.end"></div>
-        </div>
-
-        <div class="empty-stage" id="stage-empty" data-id="instances.empty">
+        <div class="empty-stage" id="home-empty" data-id="home.empty" hidden>
           <h2>Создайте первую сборку</h2>
           <p>Выберите версию Minecraft — лаунчер сам скачает игру и подходящую Java.</p>
           <button class="btn btn-primary btn-lg" data-open="dlg-create"><span class="lbl">Новая сборка</span></button>
         </div>
       </section>
-    </main>
 
-    <main class="view page" id="view-catalog" data-id="view.catalog">
-      <div class="page-inner">
-        <h1>Дополнения</h1>
-        <p class="lead">Темы меняют вид лаунчера, аддоны добавляют функции. Каталог появится в следующих версиях.</p>
-        <div class="card" data-id="catalog.providers">
-          <div class="set-row">
-            <div class="grow"><div>Провайдеры аккаунтов</div><div class="sub">Сторонние способы входа подключаются как аддоны уровня «Расширенный».</div></div>
-            <span class="badge">Скоро</span>
+      <section class="view" id="view-library" data-id="view.library">
+        <div class="page-inner wide">
+          <div class="toolbar" data-id="library.toolbar">
+            <label class="field-wrap grow">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+              <input class="field" id="lib-search" placeholder="Найти сборку" data-id="library.search">
+            </label>
+            <div class="seg" id="lib-sort" data-id="library.sort"><button data-sort="recent" aria-selected="true">Недавние</button><button data-sort="name">По имени</button></div>
+            <button class="btn btn-primary" data-open="dlg-create" data-id="library.create"><span class="lbl">Новая сборка</span></button>
           </div>
+          <div class="grid" id="lib-grid" data-id="library.grid"></div>
+          <div data-slot="library.end"></div>
         </div>
-        <div data-slot="catalog.end"></div>
-      </div>
-    </main>
+      </section>
 
-    <main class="view page" id="view-settings" data-id="view.settings">
-      <div class="page-inner">
-        <h1>Настройки</h1>
-        <p class="lead">Всё, что можно выключить, выключается здесь.</p>
-        <div class="set-group" data-id="settings.look">
-          <h2>Вид</h2>
-          <div class="card">
-            <div class="set-row">
-              <div class="grow"><div>Тема</div><div class="sub">Встроенная тема лаунчера</div></div>
-              <div class="seg" id="theme-seg"><button data-theme-set="dark" aria-selected="true">Тёмная</button><button data-theme-set="light">Светлая</button></div>
+      <section class="view" id="view-instance" data-id="view.instance">
+        <div class="page-inner wide">
+          <header class="inst-head" data-id="instance.header">
+            <span class="inst-ico xl" id="ip-ico">?</span>
+            <div class="grow">
+              <h1 class="inst-title" id="ip-name"></h1>
+              <div class="inst-meta"><span>Vanilla</span><span class="mono" id="ip-version"></span><span id="ip-created"></span></div>
+            </div>
+            <div class="play-row" data-id="instance.play">
+              <button class="btn btn-icon btn-ghost" data-menu="menu-instance" data-tip="Действия со сборкой" data-id="instance.more" aria-label="Ещё">
+                <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg>
+              </button>
+              <button class="btn btn-primary play-btn" id="play" data-id="game.play">
+                <span class="lbl"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg><span id="play-label">Играть</span></span>
+              </button>
+            </div>
+          </header>
+          <div class="play-status" id="play-status" hidden>
+            <div class="line"><span id="ps-stage">Подготовка</span><span class="mono num" id="ps-count"></span></div>
+            <div class="progress" id="ps-bar"><i></i></div>
+          </div>
+          <nav class="tabs" id="ip-tabs" data-id="instance.tabs">
+            <button data-tab="content" aria-selected="true">Контент</button>
+            <button data-tab="worlds">Миры</button>
+            <button data-tab="logs">Логи</button>
+          </nav>
+          <div class="tab-body" id="tab-content" data-id="instance.content">
+            <div class="toolbar">
+              <label class="field-wrap grow">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+                <input class="field" placeholder="Найти в сборке" data-id="instance.content.search">
+              </label>
+              <button class="btn" data-view="discover" data-id="instance.content.add"><span class="lbl">Добавить контент</span></button>
+            </div>
+            <div class="table-empty"><b>Это ванильная сборка</b>Моды, ресурспаки и шейдеры появятся здесь, когда вы их добавите.</div>
+          </div>
+          <div class="tab-body" id="tab-worlds" data-id="instance.worlds" hidden>
+            <div class="table-empty"><b>Миров пока нет</b>Сыграйте — созданные миры и их скриншоты появятся здесь.</div>
+          </div>
+          <div class="tab-body" id="tab-logs" data-id="instance.logs" hidden>
+            <pre class="log mono" id="ip-log">Лог появится после первого запуска.</pre>
+          </div>
+          <div data-slot="instance.end"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-discover" data-id="view.discover">
+        <div class="page-inner wide">
+          <div class="toolbar" data-id="discover.toolbar">
+            <div class="seg" id="disc-type"><button aria-selected="true">Моды</button><button>Сборки</button><button>Ресурспаки</button><button>Шейдеры</button></div>
+            <div class="spacer"></div>
+            <label class="field-wrap">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+              <input class="field" placeholder="Поиск по Modrinth" data-id="discover.search">
+            </label>
+          </div>
+          <div class="table-empty tall"><b>Каталог подключается в M4</b>Поиск модов и сборок прямо в лаунчере. Сторонние способы входа тоже будут здесь — как аддоны уровня «Расширенный».</div>
+          <div data-slot="discover.end"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-settings" data-id="view.settings">
+        <div class="page-inner">
+          <div class="set-pane" id="set-game" data-id="settings.game">
+            <div class="set-group"><h2>Игра</h2>
+              <div class="card">
+                <div class="set-row"><div class="grow"><div>Память</div><div class="sub">По умолчанию зависит от объёма RAM</div></div><span class="badge">Авто</span></div>
+                <div class="set-row"><div class="grow"><div>Java</div><div class="sub">Скачивается автоматически под версию игры</div></div><span class="badge">Авто</span></div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="set-group" data-id="settings.effects">
-          <h2>Эффекты</h2>
-          <div class="card">
-            <div class="set-row">
-              <div class="grow"><div>Анимации</div><div class="sub">Переходы, всплывающие меню, кнопки</div></div>
-              <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label>
+          <div class="set-pane" id="set-launcher" data-id="settings.launcher" hidden>
+            <div class="set-group"><h2>Вид</h2>
+              <div class="card">
+                <div class="set-row"><div class="grow"><div>Тема</div><div class="sub">Встроенная тема лаунчера</div></div>
+                  <div class="seg" id="theme-seg"><button data-theme-set="dark" aria-selected="true">Тёмная</button><button data-theme-set="light">Светлая</button></div></div>
+                <div class="set-row"><div class="grow"><div>Анимации</div><div class="sub">Переходы, всплывающие меню, кнопки</div></div>
+                  <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
+              </div>
             </div>
           </div>
+          <div data-slot="settings.end"></div>
         </div>
-        <div data-slot="settings.end"></div>
-      </div>
+        <div class="seg float-seg" id="set-seg" data-id="settings.sections"><button data-pane="game" aria-selected="true">Игра</button><button data-pane="launcher">Лаунчер</button></div>
+      </section>
     </main>
   </div>
-
   <!-- Popovers -->
   <div class="pop" id="menu-account" data-id="menu.account" role="menu">
     <div class="menu-label">Аккаунты</div>
@@ -133,7 +183,7 @@
     <div class="menu-sep"></div>
     <button class="menu-item" data-open="dlg-login"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>Войти через Microsoft</button>
     <button class="menu-item" id="offline-open" data-open="dlg-offline" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="2.5"/><path d="M3.5 13c.8-2.2 2.5-3.3 4.5-3.3s3.7 1.1 4.5 3.3"/></svg>Офлайн-профиль</button>
-    <button class="menu-item" data-view="catalog"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="9" y="3" width="4" height="4" rx="1"/><rect x="3" y="9" width="4" height="4" rx="1"/><rect x="9" y="9" width="4" height="4" rx="1"/></svg>Сторонний сервис</button>
+    <button class="menu-item" data-view="discover"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="9" y="3" width="4" height="4" rx="1"/><rect x="3" y="9" width="4" height="4" rx="1"/><rect x="9" y="9" width="4" height="4" rx="1"/></svg>Сторонний сервис</button>
   </div>
 
   <div class="pop" id="menu-instance" data-id="menu.instance" role="menu">

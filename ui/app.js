@@ -4,14 +4,17 @@ const { invoke } = window.__TAURI__.core;
 const { $, $$, toast, progress, openDlg, closeDlg, closeMenu, swapText } = window.FUI;
 const call = (name, args = null) => invoke('action', { name, args });
 
-const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: false };
+const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, view: 'home', history: [], sort: 'recent' };
 const KIND = { microsoft: 'Microsoft', offline: 'Офлайн', provider: 'Сервис' };
 const STAGE = { idle: 'Подготовка', java: 'Java', version: 'Версия', libraries: 'Библиотеки', assets: 'Ресурсы', natives: 'Нативные файлы', launch: 'Запуск', done: 'Готово' };
+const TITLES = { home: 'Главная', library: 'Библиотека', discover: 'Обзор', settings: 'Настройки' };
+const PLAY_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>';
 
 function el(tag, attrs = {}, ...kids) {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (k === 'class') n.className = v;
+    else if (k === 'html') n.innerHTML = v;
     else if (k.startsWith('data-') || k.startsWith('aria-')) n.setAttribute(k, v);
     else n[k] = v;
   }
@@ -20,6 +23,14 @@ function el(tag, attrs = {}, ...kids) {
 }
 const fmtBytes = (b) => (b >= 1 << 30 ? `${(b / (1 << 30)).toFixed(1)} ГБ` : b >= 1 << 20 ? `${(b / (1 << 20)).toFixed(0)} МБ` : `${Math.round(b / 1024)} КБ`);
 const initials = (s) => (s.trim()[0] || '?').toUpperCase();
+const ago = (t) => {
+  const d = Math.max(0, Date.now() / 1000 - t);
+  if (d < 3600) return 'только что';
+  if (d < 86400) return `${Math.floor(d / 3600)} ч назад`;
+  const n = Math.floor(d / 86400);
+  return n === 1 ? 'вчера' : `${n} дн назад`;
+};
+const byId = (id) => S.instances.find((i) => i.id === id);
 
 // Runs an action for an element and reflects progress in data-state (the action-library contract).
 async function run(target, name, args = null) {
@@ -36,7 +47,7 @@ async function run(target, name, args = null) {
   }
 }
 
-// Declarative binding for themes: [data-action] + optional [data-args] JSON.
+// Declarative binding for themes: [data-view] navigates, [data-action] + optional [data-args] JSON calls the core.
 document.addEventListener('click', async (ev) => {
   const v = ev.target.closest('[data-view]');
   if (v) { show(v.dataset.view); closeMenu(); return; }
@@ -51,12 +62,40 @@ document.addEventListener('click', async (ev) => {
   if (name.startsWith('safe.')) $('#safe-msg').textContent = 'Готово. Перезапустите лаунчер.';
 });
 
-function show(view) {
+// ---------- Navigation: views, back history, breadcrumbs ----------
+function show(view, { push = true } = {}) {
+  if (push && view !== S.view) S.history.push({ view: S.view, current: S.current });
+  S.view = view;
   $$('.view').forEach((x) => x.classList.toggle('is-active', x.id === `view-${view}`));
-  $$('#nav button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.view === view)));
-  $('#nav')._place?.(false);
+  $$('.nav-btn[data-view]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.view === view));
+  $$('.nav-btn[aria-current]').forEach((b) => b.setAttribute('aria-current', 'page'));
+  $$('.nav-pin').forEach((p) => p.toggleAttribute('aria-current', view === 'instance' && p.dataset.inst === S.current));
+  $$('.nav-pin[aria-current]').forEach((p) => p.setAttribute('aria-current', 'page'));
+  $('#back').disabled = !S.history.length;
+  renderCrumbs();
+  if (view === 'settings') requestAnimationFrame(() => $('#set-seg')._place?.(false));
+  if (view === 'library') requestAnimationFrame(() => $('#lib-sort')._place?.(false));
 }
-
+function renderCrumbs() {
+  const c = $('#crumbs');
+  if (S.view === 'instance') {
+    const i = byId(S.current);
+    c.replaceChildren(el('button', { 'data-view': 'library' }, 'Библиотека'), el('span', { class: 'sep' }, '/'), el('b', {}, i ? i.name : ''));
+  } else c.replaceChildren(el('b', {}, TITLES[S.view] || ''));
+}
+$('#back').addEventListener('click', () => {
+  const prev = S.history.pop();
+  if (!prev) return;
+  S.current = prev.current;
+  if (prev.view === 'instance') renderInstancePage();
+  show(prev.view, { push: false });
+});
+function openInstance(id) {
+  S.current = id;
+  localStorage.setItem('fl.current', id);
+  renderInstancePage();
+  show('instance');
+}
 // ---------- Accounts ----------
 function renderAccounts(state) {
   S.accounts = state;
@@ -92,26 +131,65 @@ $('#dlg-offline').addEventListener('submit', async (ev) => {
   try { renderAccounts(await run($('#o-submit'), 'accounts.offline.create', { name: f.name.value })); f.reset(); closeDlg(); } catch { /* toast shown */ }
 });
 
-// ---------- Instances ----------
-function renderInstances() {
-  const q = $('#inst-search').value.trim().toLowerCase();
-  const list = S.instances.filter((i) => !q || i.name.toLowerCase().includes(q));
-  $('#inst-list').replaceChildren(...list.map((i) => el('div', {
-    class: 'row', role: 'option', 'aria-selected': String(i.id === S.current), 'data-id': `instance.${i.id}`, tabIndex: 0, onclick: () => select(i.id),
-  }, el('span', { class: 'inst-ico' }, initials(i.name)), el('div', { class: 'grow' }, el('div', { class: 'title' }, i.name), el('div', { class: 'sub mono' }, i.version)))));
-  if (S.instances.length && !list.length) $('#inst-list').append(el('div', { class: 'rail-group' }, 'Ничего не найдено'));
-  const cur = S.instances.find((i) => i.id === S.current);
-  $('#stage').hidden = !cur;
-  $('#stage-empty').hidden = !!cur;
-  if (!cur) return;
-  $('#st-name').textContent = cur.name;
-  $('#st-version').textContent = cur.version;
-  $('#f-version').textContent = cur.version;
-  $('#st-meta').textContent = `Создана ${new Date(cur.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`;
+// ---------- Instances: home rows, library grid, pinned icons, instance page ----------
+const recent = () => [...S.instances].sort((a, b) => b.created_at - a.created_at);
+function quickPlay(i, cls) {
+  return el('button', { class: cls, 'data-id': `instance.${i.id}.play`, 'aria-label': `Играть: ${i.name}`, html: PLAY_SVG, onclick: (e) => { e.stopPropagation(); play(i.id); } });
 }
-function select(id) { if (S.playing) return; S.current = id; localStorage.setItem('fl.current', id); renderInstances(); }
-$('#inst-search').addEventListener('input', renderInstances);
+function jumpRow(i) {
+  const busy = S.playing === i.id;
+  const b = el('button', { class: 'btn btn-primary btn-sm', 'data-id': `instance.${i.id}.play`, onclick: (e) => { e.stopPropagation(); play(i.id); } },
+    el('span', { class: 'lbl', html: `${PLAY_SVG}<span>${busy ? 'Запуск…' : 'Играть'}</span>` }));
+  if (busy) b.dataset.state = 'loading';
+  return el('div', { class: 'jump-row', 'data-id': `home.jump.${i.id}`, tabIndex: 0, onclick: () => openInstance(i.id) },
+    el('span', { class: 'inst-ico' }, initials(i.name)),
+    el('div', { class: 'grow' }, el('div', { class: 'title' }, i.name),
+      el('div', { class: 'sub' }, el('span', {}, 'Vanilla'), el('span', { class: 'mono' }, i.version), el('span', { class: 'sep' }, '·'), el('span', {}, `создана ${ago(i.created_at)}`))),
+    b);
+}
+function card(i) {
+  return el('div', { class: 'card-inst', 'data-id': `instance.${i.id}`, tabIndex: 0, onclick: () => openInstance(i.id) },
+    el('span', { class: 'inst-ico art' }, initials(i.name)),
+    el('div', {}, el('div', { class: 'title' }, i.name), el('div', { class: 'sub mono' }, `Vanilla ${i.version}`)),
+    quickPlay(i, 'quick'));
+}
+function renderInstances() {
+  const has = S.instances.length > 0;
+  $('#home-empty').hidden = has;
+  $('#view-home .page-inner').hidden = !has;
+  $('#jump').replaceChildren(...recent().slice(0, 3).map(jumpRow));
+  $('#home-grid').replaceChildren(...recent().slice(0, 6).map(card));
+  const q = $('#lib-search').value.trim().toLowerCase();
+  let list = S.instances.filter((i) => !q || i.name.toLowerCase().includes(q));
+  list = S.sort === 'name' ? list.sort((a, b) => a.name.localeCompare(b.name, 'ru')) : list.sort((a, b) => b.created_at - a.created_at);
+  $('#lib-grid').replaceChildren(...list.map(card));
+  if (!list.length) $('#lib-grid').append(el('div', { class: 'grid-empty' }, has ? 'Ничего не найдено' : 'Сборок пока нет'));
+  $('#nav-pins').replaceChildren(...recent().slice(0, 5).map((i) => el('button', {
+    class: 'nav-pin', 'data-inst': i.id, 'data-tip': i.name, 'data-id': `nav.pin.${i.id}`, 'aria-label': i.name, onclick: () => openInstance(i.id),
+  }, el('span', { class: 'inst-ico' }, initials(i.name)))));
+  if (S.view === 'instance') renderInstancePage();
+}
+function renderInstancePage() {
+  const i = byId(S.current);
+  if (!i) return;
+  $('#ip-ico').textContent = initials(i.name);
+  $('#ip-name').textContent = i.name;
+  $('#ip-version').textContent = i.version;
+  $('#ip-created').textContent = `создана ${new Date(i.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`;
+  const busy = S.playing === i.id;
+  $('#play').dataset.state = busy ? 'loading' : 'idle';
+  $('#play-status').hidden = !busy;
+}
+$('#lib-search').addEventListener('input', renderInstances);
+$('#lib-sort').addEventListener('seg:change', (e) => { S.sort = e.detail.dataset.sort; renderInstances(); });
+$('#ip-tabs').addEventListener('click', (e) => {
+  const t = e.target.closest('[data-tab]');
+  if (!t) return;
+  $$('#ip-tabs [data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b === t)));
+  $$('#view-instance .tab-body').forEach((b) => { b.hidden = b.id !== `tab-${t.dataset.tab}`; });
+});
 
+// ---------- Create instance ----------
 async function loadVersions() {
   const s = $('#c-version');
   try {
@@ -126,25 +204,34 @@ $('#dlg-create').addEventListener('submit', async (ev) => {
   try {
     const created = await run($('#c-submit'), 'instances.create', { name: f.name.value, version: f.version.value });
     S.instances = await call('instances.list');
-    S.current = created?.id || S.instances[S.instances.length - 1]?.id;
+    const id = created?.id || S.instances[S.instances.length - 1]?.id;
     f.name.value = '';
     closeDlg();
     renderInstances();
+    if (id) openInstance(id);
   } catch { /* toast shown */ }
 });
 
 // ---------- Play: install (with progress polling) → launch ----------
-async function play(launch = true) {
-  if (S.playing || !S.current) return;
+function setRunning(name) {
+  $('#running').classList.toggle('is-on', !!name);
+  $('#running-text').textContent = name ? `Запускается: ${name}` : 'Ничего не запущено';
+}
+async function play(id = S.current, launch = true) {
+  if (S.playing || !id) return;
   if (launch && !S.accounts.selected) { toast('Сначала войдите в аккаунт', { error: true }); $('#account-btn').click(); return; }
+  const inst = byId(id);
+  S.playing = id;
+  S.current = id;
+  if (S.view !== 'instance') openInstance(id); else renderInstancePage();
+  renderInstances();
+  setRunning(inst?.name);
   const btn = $('#play');
-  const instance = S.current;
-  S.playing = true;
   btn.dataset.state = 'loading';
   $('#play-status').hidden = false;
   progress($('#ps-bar'), null);
   const poll = setInterval(async () => {
-    const p = await call('game.progress', { instance }).catch(() => null);
+    const p = await call('game.progress', { instance: id }).catch(() => null);
     if (!p) return;
     $('#ps-stage').textContent = STAGE[p.stage] || p.stage;
     if (p.total_bytes > 0) {
@@ -156,9 +243,9 @@ async function play(launch = true) {
     }
   }, 250);
   try {
-    await call('game.install', { instance });
+    await call('game.install', { instance: id });
     progress($('#ps-bar'), 1);
-    if (launch) { $('#ps-stage').textContent = STAGE.launch; await call('game.launch', { instance }); }
+    if (launch) { $('#ps-stage').textContent = STAGE.launch; await call('game.launch', { instance: id }); }
     btn.dataset.state = 'success';
     toast(launch ? 'Игра запущена' : 'Файлы в порядке');
   } catch (e) {
@@ -166,20 +253,27 @@ async function play(launch = true) {
     toast(String(e), { error: true });
   } finally {
     clearInterval(poll);
-    S.playing = false;
+    S.playing = null;
+    setRunning(null);
+    renderInstances();
     setTimeout(() => { $('#play-status').hidden = true; $('#ps-count').textContent = ''; if (btn.dataset.state !== 'loading') btn.dataset.state = 'idle'; }, 1400);
   }
 }
-$('#play').addEventListener('click', () => play(true));
-$('#mi-install').addEventListener('click', () => play(false));
+$('#play').addEventListener('click', () => play(S.current, true));
+$('#mi-install').addEventListener('click', () => play(S.current, false));
 
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('input, select, textarea')) return;
   if (e.ctrlKey && e.key.toLowerCase() === 'n') { e.preventDefault(); openDlg('dlg-create'); }
-  if (e.key === 'Enter' && $('#view-instances').classList.contains('is-active') && !document.querySelector('.dialog[data-open]')) play(true);
+  if (e.key === 'Enter' && S.view === 'instance' && !document.querySelector('.dialog[data-open]')) play(S.current, true);
+  if (e.altKey && e.key === 'ArrowLeft') $('#back').click();
 });
 
-// ---------- Settings: theme + effects (saved locally until settings.set exists) ----------
+// ---------- Settings: sections, theme + effects (saved locally until settings.set exists) ----------
+$('#set-seg').addEventListener('seg:change', (e) => {
+  $$('#view-settings .set-pane').forEach((p) => { p.hidden = p.id !== `set-${e.detail.dataset.pane}`; });
+  requestAnimationFrame(() => $('#theme-seg')._place?.(false));
+});
 function applyLook() {
   document.documentElement.dataset.theme = localStorage.getItem('fl.theme') || document.documentElement.dataset.theme || 'dark';
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
@@ -203,6 +297,8 @@ async function start() {
     renderInstances();
     $('#app').hidden = false;
     window.FUI.initSegs();
+    show(location.hash === '#instance' && S.current ? 'instance' : 'home', { push: false });
+    if (location.hash === '#instance') renderInstancePage();
   }
   requestAnimationFrame(() => requestAnimationFrame(async () => {
     const r = await call('app.ready');
