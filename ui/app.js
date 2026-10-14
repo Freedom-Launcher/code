@@ -192,7 +192,7 @@ function quickPlay(i, cls) {
 function jumpRow(i) {
   const busy = S.playing === i.id;
   const on = isRunning(i.id);
-  const b = el('button', { class: on ? 'btn btn-sm btn-live' : 'btn btn-primary btn-sm', 'data-id': `instance.${i.id}.play`, onclick: (e) => { e.stopPropagation(); if (on) openInstance(i.id); else play(i.id); } },
+  const b = el('button', { class: on ? 'btn btn-sm btn-live' : 'btn btn-sm', 'data-id': `instance.${i.id}.play`, onclick: (e) => { e.stopPropagation(); if (on) openInstance(i.id); else play(i.id); } },
     el('span', { class: 'lbl', html: on ? '<i class="live"></i><span>Играет</span>' : `${PLAY_SVG}<span>${busy ? 'Запуск…' : 'Играть'}</span>` }));
   if (busy) b.dataset.state = 'loading';
   return el('div', { class: 'jump-row', 'data-id': `home.jump.${i.id}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, tabIndex: 0, onclick: () => openInstance(i.id) },
@@ -205,7 +205,7 @@ function card(i) {
   return el('div', { class: 'card-inst', 'data-id': `instance.${i.id}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, tabIndex: 0, onclick: () => openInstance(i.id) },
     el('span', { class: 'inst-ico art' }, initials(i.name)),
     el('div', {}, el('div', { class: 'title' }, i.name),
-      el('div', { class: 'badges' }, el('span', { class: 'badge-sm' }, 'Vanilla'), el('span', { class: 'badge-sm mono' }, i.version)),
+      el('div', { class: 'sub' }, el('span', {}, 'Vanilla '), el('span', { class: 'mono' }, i.version)),
       el('div', { class: 'sub' }, playedText(i))),
     quickPlay(i, 'quick'));
 }

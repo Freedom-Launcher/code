@@ -4,13 +4,13 @@
 /* ---------- Left icon rail ---------- */
 .nav {
   grid-row: 1 / 3; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: var(--s-3) 0; border-right: 1px solid var(--line); background: var(--surface-1);
+  padding: var(--s-3) 0; background: var(--bg);
   -webkit-app-region: drag; app-region: drag;
 }
 .nav > * { -webkit-app-region: no-drag; app-region: no-drag; }
 .nav-logo {
   width: 32px; height: 32px; margin-bottom: var(--s-3); display: grid; place-items: center; border-radius: 9px;
-  background: var(--accent); color: var(--on-accent); font: 700 var(--text-lg)/1 var(--font-display); letter-spacing: -.04em;
+  background: var(--surface-3); color: var(--text); box-shadow: inset 0 0 0 1px var(--line-strong); font: 700 var(--text-lg)/1 var(--font-display); letter-spacing: -.04em;
 }
 .nav-btn {
   position: relative; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 10px;
@@ -20,7 +20,7 @@
 .nav-btn svg { width: 18px; height: 18px; }
 .nav-btn:hover { background: var(--hover); color: var(--text); }
 .nav-btn:active { transform: scale(.94); }
-.nav-btn[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+.nav-btn[aria-current="page"] { background: var(--surface-3); color: var(--text); }
 .nav-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .nav-sep { width: 24px; height: 1px; margin: var(--s-2) 0; background: var(--line); }
 .nav-pins { display: flex; flex-direction: column; gap: 6px; }
@@ -34,7 +34,7 @@
 /* ---------- Top bar ---------- */
 .top {
   display: flex; align-items: center; gap: var(--s-2); padding: 0 var(--s-3) 0 var(--s-3);
-  border-bottom: 1px solid var(--line); -webkit-app-region: drag; app-region: drag;
+  -webkit-app-region: drag; app-region: drag;
 }
 .top button { -webkit-app-region: no-drag; app-region: no-drag; }
 .top .spacer { flex: 1; align-self: stretch; }
@@ -68,13 +68,14 @@
 .head-lg { width: 32px; height: 32px; border-radius: 7px; }
 
 /* ---------- Views ---------- */
-.main { position: relative; min-height: 0; min-width: 0; }
+/* Content sits in one calm inset panel; nav and top bar are the window chrome around it. */
+.main { position: relative; min-height: 0; min-width: 0; margin: 0 8px 8px 0; border-radius: 10px; background: var(--surface-1); box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
 .view { display: none; height: 100%; overflow: auto; }
 .view.is-active { display: block; }
 .page-inner { max-width: 720px; margin: 0 auto; padding: var(--s-7) var(--s-7) 96px; }
 .page-inner.wide { max-width: 1040px; }
 .sec-head { display: flex; align-items: center; gap: var(--s-2); margin: 0 0 var(--s-3); }
-.sec-head h2 { margin: 0; font: var(--w-semibold) var(--text-lg)/1.2 var(--font-display); letter-spacing: var(--tracking-title); }
+.sec-head h2 { margin: 0; font: var(--w-semibold) var(--text-md)/1.2 var(--font-display); letter-spacing: var(--tracking-title); }
 .sec-head .spacer, .toolbar .spacer { flex: 1; }
 .jump + .sec-head { margin-top: var(--s-7); }
 .toolbar { display: flex; align-items: center; gap: var(--s-2); margin-bottom: var(--s-4); }
@@ -86,14 +87,16 @@
 }
 .inst-ico img { width: 100%; height: 100%; object-fit: cover; }
 /* ---------- Home: «Продолжить» rows ---------- */
-.jump { display: grid; gap: 6px; }
+/* One list with hairline dividers instead of a stack of boxed cards. */
+.jump { display: grid; border-radius: var(--r-card); box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
 .jump-row {
-  display: flex; align-items: center; gap: var(--s-3); padding: 10px 10px 10px 12px; border-radius: var(--r-card);
-  background: var(--surface-1); box-shadow: var(--shadow-1); cursor: pointer;
+  display: flex; align-items: center; gap: var(--s-3); padding: 9px 10px 9px 12px;
+  background: transparent; cursor: pointer;
   transition: background var(--d-2) var(--ease-out);
 }
-.jump-row:hover { background: var(--surface-2); }
-.jump-row .inst-ico { width: 40px; height: 40px; border-radius: 10px; }
+.jump-row + .jump-row { box-shadow: inset 0 1px 0 var(--line); }
+.jump-row:hover { background: var(--hover); }
+.jump-row .inst-ico { width: 32px; height: 32px; border-radius: 8px; }
 .jump-row .grow { flex: 1; min-width: 0; }
 .jump-row .title { font-weight: var(--w-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .jump-row .sub { display: flex; gap: 6px; color: var(--text-3); font-size: var(--text-sm); }
@@ -103,13 +106,13 @@
 /* ---------- Library grid (instance cards) ---------- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--s-3); }
 .card-inst {
-  position: relative; display: flex; flex-direction: column; gap: 10px; padding: 10px; border-radius: var(--r-card);
-  background: var(--surface-1); box-shadow: var(--shadow-1); cursor: pointer; text-align: left;
+  position: relative; display: flex; flex-direction: column; gap: 10px; padding: 0; border-radius: var(--r-card);
+  background: transparent; cursor: pointer; text-align: left;
   transition: background var(--d-2) var(--ease-out), transform var(--d-2) var(--ease-out);
 }
-.card-inst:hover { background: var(--surface-2); }
+.card-inst:hover .art { background: var(--surface-3); }
 .card-inst:active { transform: scale(.985); }
-.card-inst .art { position: relative; aspect-ratio: 1; width: 100%; height: auto; border-radius: 8px; font-size: 32px; color: var(--text-3); }
+.card-inst .art { position: relative; aspect-ratio: 1; width: 100%; height: auto; border-radius: 8px; font-size: 28px; color: var(--text-3); background: var(--surface-2); transition: background var(--d-2) var(--ease-out); }
 .card-inst .title { font-weight: var(--w-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-inst .sub { color: var(--text-3); font-size: var(--text-sm); margin-top: 2px; }
 .card-inst .quick {
@@ -140,7 +143,7 @@
 }
 .tabs button:hover { color: var(--text); }
 .tabs button[aria-selected="true"] { color: var(--text); }
-.tabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
+.tabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--text); }
 .table-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: var(--s-7) var(--s-6);
   border-radius: var(--r-card); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-3); text-align: center; font-size: var(--text-sm);
@@ -212,3 +215,10 @@
 }
 .card-inst .quick.is-running .live { width: 6px; height: 6px; }
 .running.is-live .dot { animation: live-pulse 1.8s var(--ease-out) infinite; }
+
+/* v10: the accent appears only where the action is — on the row under the cursor. */
+.jump-row .btn:not(.btn-live) { background: transparent; box-shadow: none; color: var(--text-2); }
+.jump-row:hover .btn:not(.btn-live), .jump-row:focus-within .btn:not(.btn-live) { background: var(--accent); color: var(--on-accent); }
+
+/* v10: startup time sits inside the content panel, not on its edge. */
+.startup { left: 76px; bottom: 16px; opacity: .7; }
