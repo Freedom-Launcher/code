@@ -31,40 +31,41 @@
   --pop-scale: .97;  /* starting scale for popovers */
   --blur-in: 4px;    /* text/icon swap blur */
 
-  /* Dark (default): soft neutral greys, off-white text, faint hairlines, calm shadows —
-     the same restraint as the light theme instead of pure black + bright white. */
-  --bg: #111214;
-  --surface-1: #17181b;
-  --surface-2: #1c1d21;
-  --surface-3: #232428;
+  /* Dark (default): values measured from linear.app — near-black base, surfaces in small
+     ~5-unit steps, hairline borders instead of shadows, cool off-white text, soft blue accent. */
+  --bg: #08090a;
+  --surface-1: #0f1011;
+  --surface-2: #141516;
+  --surface-3: #191a1b;
   --hover: rgba(255, 255, 255, .04);
-  --press: rgba(255, 255, 255, .06);
-  --line: rgba(255, 255, 255, .06);
-  --line-strong: rgba(255, 255, 255, .1);
-  --text: #e4e4e7;
-  --text-2: #9b9ba4;
-  --text-3: #6b6b74;
-  --accent: #3fcf7f;
-  --accent-hover: #52da8e;
-  --accent-press: #33b96e;
-  --on-accent: #062a15;
-  --accent-soft: rgba(63, 207, 127, .12);
+  --press: rgba(255, 255, 255, .07);
+  --line: rgba(255, 255, 255, .08);
+  --line-strong: rgba(255, 255, 255, .12);
+  --text: #f7f8f8;
+  --text-2: #8a8f98;
+  --text-3: #62666d;
+  --accent: #8ab4ff;
+  --accent-hover: #a0c2ff;
+  --accent-press: #779fe8;
+  --on-accent: #0a1730;
+  --accent-soft: rgba(138, 180, 255, .12);
   --danger: #ff6b63;
   --danger-soft: rgba(255, 107, 99, .12);
   --warn: #f2b64b;
-  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(63, 207, 127, .5);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(138, 180, 255, .5);
   --shadow-1: 0 0 0 1px var(--line);
-  --shadow-2: 0 8px 24px -16px rgba(0, 0, 0, .5), 0 0 0 1px var(--line);
-  --shadow-pop: 0 20px 48px -20px rgba(0, 0, 0, .6), 0 0 0 1px var(--line-strong);
-  --shadow-accent: 0 1px 1px rgba(0, 0, 0, .2), 0 4px 12px -6px rgba(63, 207, 127, .4);
-  /* Light text on dark looks bolder than dark on light: dark uses slightly lighter weights. */
-  --w-regular: 400; --w-medium: 480; --w-semibold: 560;
-  --tracking-body: -.003em;
+  --shadow-2: 0 4px 24px rgba(0, 0, 0, .2), 0 0 0 1px var(--line);
+  --shadow-pop: 0 7px 32px rgba(0, 0, 0, .35), 0 0 0 1px var(--line-strong);
+  --shadow-accent: none;
+  /* Weights measured from linear.app (Inter variable): 510 / 590. */
+  --w-regular: 400; --w-medium: 510; --w-semibold: 590;
+  --tracking-body: -.006em;
+  --tracking-title: -.022em;
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --w-regular: 400; --w-medium: 500; --w-semibold: 600;
+  --w-regular: 400; --w-medium: 510; --w-semibold: 590;
   --tracking-body: -.006em;
   --bg: #f5f5f6;
   --surface-1: #ffffff;
@@ -77,19 +78,19 @@
   --text: #111113;
   --text-2: #5d5d66;
   --text-3: #9b9ba3;
-  --accent: #1e9e57;
-  --accent-hover: #22ad60;
-  --accent-press: #198a4b;
+  --accent: #2f6fde;
+  --accent-hover: #3a7ce8;
+  --accent-press: #275fc2;
   --on-accent: #ffffff;
-  --accent-soft: rgba(30, 158, 87, .11);
+  --accent-soft: rgba(47, 111, 222, .11);
   --danger: #e5484d;
   --danger-soft: rgba(229, 72, 77, .1);
   --warn: #c98a12;
-  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(30, 158, 87, .45);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(47, 111, 222, .45);
   --shadow-1: 0 1px 2px rgba(0, 0, 0, .05), 0 0 0 1px var(--line);
   --shadow-2: 0 4px 42px rgba(0, 0, 0, .06), 0 2px 6px rgba(0, 0, 0, .05), 0 0 0 1px rgba(0, 0, 0, .06);
   --shadow-pop: 0 18px 50px -12px rgba(0, 0, 0, .18), 0 2px 6px rgba(0, 0, 0, .06), 0 0 0 1px rgba(0, 0, 0, .07);
-  --shadow-accent: inset 0 .5px rgba(255, 255, 255, .4), 0 1px 1px rgba(0, 0, 0, .12), 0 4px 10px -4px rgba(30, 158, 87, .5);
+  --shadow-accent: inset 0 .5px rgba(255, 255, 255, .4), 0 1px 1px rgba(0, 0, 0, .12), 0 4px 10px -4px rgba(47, 111, 222, .5);
 }
 
 /* Reduced motion or "Настройки → Эффекты → Анимации: выкл": fade only, no travel. */

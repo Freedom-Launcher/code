@@ -74,7 +74,7 @@
 .page-inner { max-width: 720px; margin: 0 auto; padding: var(--s-7) var(--s-7) 96px; }
 .page-inner.wide { max-width: 1040px; }
 .sec-head { display: flex; align-items: center; gap: var(--s-2); margin: 0 0 var(--s-3); }
-.sec-head h2 { margin: 0; font: var(--w-semibold) var(--text-lg)/1.2 var(--font-display); letter-spacing: -.02em; }
+.sec-head h2 { margin: 0; font: var(--w-semibold) var(--text-lg)/1.2 var(--font-display); letter-spacing: var(--tracking-title); }
 .sec-head .spacer, .toolbar .spacer { flex: 1; }
 .jump + .sec-head { margin-top: var(--s-7); }
 .toolbar { display: flex; align-items: center; gap: var(--s-2); margin-bottom: var(--s-4); }
@@ -126,7 +126,7 @@
 .inst-head { display: flex; align-items: center; gap: var(--s-4); margin-bottom: var(--s-5); }
 .inst-head .grow { flex: 1; min-width: 0; }
 .inst-ico.xl { width: 64px; height: 64px; border-radius: 14px; font-size: 26px; }
-.inst-title { margin: 0; font: var(--w-semibold) var(--text-2xl)/1.1 var(--font-display); letter-spacing: -.025em; overflow-wrap: anywhere; }
+.inst-title { margin: 0; font: var(--w-semibold) var(--text-2xl)/1.1 var(--font-display); letter-spacing: var(--tracking-title); overflow-wrap: anywhere; }
 .inst-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; color: var(--text-3); font-size: var(--text-sm); }
 .play-row { display: flex; align-items: center; gap: var(--s-2); }
 .play-btn { --h: 44px; min-width: 148px; font-size: var(--text-md); border-radius: 11px; }
@@ -159,7 +159,7 @@
 .set-row .sub { color: var(--text-3); font-size: var(--text-sm); }
 
 .empty-stage { margin: 12vh auto 0; max-width: 360px; text-align: center; padding: var(--s-8); }
-.empty-stage h2 { margin: 0 0 var(--s-2); font: var(--w-semibold) var(--text-xl)/1.2 var(--font-display); letter-spacing: -.02em; }
+.empty-stage h2 { margin: 0 0 var(--s-2); font: var(--w-semibold) var(--text-xl)/1.2 var(--font-display); letter-spacing: var(--tracking-title); }
 .empty-stage p { margin: 0 0 var(--s-5); color: var(--text-2); }
 /* ---------- Dialog (create instance) ---------- */
 .scrim { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .45); opacity: 0; pointer-events: none; transition: opacity var(--d-3) var(--ease-out); }
@@ -171,7 +171,7 @@
   transition: opacity var(--d-3) var(--ease-out), transform var(--d-4) var(--ease-out);
 }
 .dialog[data-open] { opacity: 1; transform: translate(-50%, -50%); pointer-events: auto; }
-.dialog h2 { margin: 0 0 var(--s-5); font: var(--w-semibold) var(--text-xl)/1.2 var(--font-display); letter-spacing: -.02em; }
+.dialog h2 { margin: 0 0 var(--s-5); font: var(--w-semibold) var(--text-xl)/1.2 var(--font-display); letter-spacing: var(--tracking-title); }
 .dialog .fields { display: grid; gap: var(--s-4); }
 .dialog .actions { display: flex; justify-content: flex-end; gap: var(--s-2); margin-top: var(--s-6); }
 
