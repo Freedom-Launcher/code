@@ -196,16 +196,16 @@ function jumpRow(i) {
     el('span', { class: 'lbl', html: on ? '<i class="live"></i><span>Играет</span>' : `${PLAY_SVG}<span>${busy ? 'Запуск…' : 'Играть'}</span>` }));
   if (busy) b.dataset.state = 'loading';
   return el('div', { class: 'jump-row', 'data-id': `home.jump.${i.id}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, tabIndex: 0, onclick: () => openInstance(i.id) },
-    el('span', { class: 'inst-ico' }, initials(i.name)),
+    FI.paint(el('span', { class: 'inst-ico' }), i),
     el('div', { class: 'grow' }, el('div', { class: 'title' }, i.name),
-      el('div', { class: 'sub' }, el('span', {}, 'Vanilla'), el('span', { class: 'mono' }, i.version), el('span', { class: 'sep' }, '·'), el('span', {}, playedText(i)))),
+      el('div', { class: 'sub' }, el('span', { class: 'meta', html: FI.svg('cube') + 'Vanilla' }), el('span', { class: 'mono' }, i.version), el('span', { class: 'sep' }, '·'), el('span', { class: 'meta', html: FI.svg('clock') + playedText(i) }))),
     b);
 }
 function card(i) {
   return el('div', { class: 'card-inst', 'data-id': `instance.${i.id}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, tabIndex: 0, onclick: () => openInstance(i.id) },
-    el('span', { class: 'inst-ico art' }, initials(i.name)),
+    FI.paint(el('span', { class: 'inst-ico art' }), i),
     el('div', {}, el('div', { class: 'title' }, i.name),
-      el('div', { class: 'sub' }, el('span', {}, 'Vanilla '), el('span', { class: 'mono' }, i.version)),
+      el('div', { class: 'sub' }, el('span', { class: 'meta', html: FI.svg('cube') + 'Vanilla' }), el('span', { class: 'mono' }, i.version)),
       el('div', { class: 'sub' }, playedText(i))),
     quickPlay(i, 'quick'));
 }
@@ -222,13 +222,13 @@ function renderInstances() {
   if (!list.length) $('#lib-grid').append(el('div', { class: 'grid-empty' }, has ? 'Ничего не найдено' : 'Сборок пока нет'));
   $('#nav-pins').replaceChildren(...recent().slice(0, 5).map((i) => el('button', {
     class: 'nav-pin', 'data-inst': i.id, 'data-ctx': 'menu-ctx-instance', 'data-tip': i.name, 'data-id': `nav.pin.${i.id}`, 'aria-label': i.name, onclick: () => openInstance(i.id),
-  }, el('span', { class: 'inst-ico' }, initials(i.name)))));
+  }, FI.paint(el('span', { class: 'inst-ico' }), i))));
   if (S.view === 'instance') renderInstancePage();
 }
 function renderInstancePage() {
   const i = byId(S.current);
   if (!i) return;
-  $('#ip-ico').textContent = initials(i.name);
+  FI.paint($('#ip-ico'), i);
   $('#ip-name').textContent = i.name;
   $('#ip-version').textContent = i.version;
   $('#ip-created').textContent = `создана ${new Date(i.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`;

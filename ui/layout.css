@@ -222,3 +222,19 @@
 
 /* v10: startup time sits inside the content panel, not on its edge. */
 .startup { left: 76px; bottom: 16px; opacity: .7; }
+
+/* v11: icons. Line icons inherit text colour; instance glyphs carry a muted tint of their own. */
+.ico { width: 14px; height: 14px; flex: none; }
+.btn .ico, .tabs .ico { width: 15px; height: 15px; }
+[data-icon] { display: inline-flex; align-items: center; gap: 6px; }
+.tabs button[data-icon] { gap: 7px; }
+.tabs button .ico { opacity: .8; }
+.meta { display: inline-flex; align-items: center; gap: 5px; }
+.meta .ico { width: 13px; height: 13px; opacity: .75; }
+.card-inst .sub { display: flex; align-items: center; gap: 6px; }
+.inst-ico.glyph { color: var(--ic); background: color-mix(in srgb, var(--ic) 13%, var(--surface-2)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ic) 20%, transparent); }
+[data-theme="light"] .inst-ico.glyph { color: color-mix(in srgb, var(--ic) 72%, #1a1a1a); background: color-mix(in srgb, var(--ic) 14%, #fff); }
+.inst-ico.glyph .ico { width: 56%; height: 56%; stroke-width: 1.4; }
+.card-inst .art.glyph .ico { width: 34%; height: 34%; stroke-width: 1.2; }
+.card-inst:hover .art.glyph { background: color-mix(in srgb, var(--ic) 19%, var(--surface-2)); }
+.inst-ico.xl.glyph .ico { stroke-width: 1.3; }

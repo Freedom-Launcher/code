@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="components-2.css">
   <link rel="stylesheet" href="layout.css">
   <script src="ui.js" defer></script>
+  <script src="icons.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -66,8 +67,8 @@
           <div class="sec-head">
             <h2>Библиотека</h2>
             <div class="spacer"></div>
-            <button class="btn btn-sm btn-ghost" data-view="library" data-id="home.all">Все сборки</button>
-            <button class="btn btn-sm" data-open="dlg-create" data-id="home.create"><span class="lbl">Новая сборка</span></button>
+            <button class="btn btn-sm btn-ghost" data-view="library" data-id="home.all" data-icon="arrow" data-icon-at="end">Все сборки</button>
+            <button class="btn btn-sm" data-open="dlg-create" data-id="home.create"><span class="lbl" data-icon="plus">Новая сборка</span></button>
           </div>
           <div class="grid" id="home-grid" data-id="home.grid"></div>
           <div data-slot="home.end"></div>
@@ -100,7 +101,7 @@
             <span class="inst-ico xl" id="ip-ico">?</span>
             <div class="grow">
               <h1 class="inst-title" id="ip-name"></h1>
-              <div class="inst-meta"><span>Vanilla</span><span class="mono" id="ip-version"></span><span id="ip-created"></span><span class="sep">·</span><span id="ip-played"></span></div>
+              <div class="inst-meta"><span class="meta" data-icon="cube">Vanilla</span><span class="mono" id="ip-version"></span><span class="meta" data-icon="calendar"><span id="ip-created"></span></span><span class="sep">·</span><span class="meta" data-icon="clock"><span id="ip-played"></span></span></div>
             </div>
             <div class="play-row" data-id="instance.play">
               <button class="btn btn-icon btn-ghost" data-menu="menu-instance" data-tip="Действия со сборкой" data-id="instance.more" aria-label="Ещё">
@@ -116,9 +117,9 @@
             <div class="progress" id="ps-bar"><i></i></div>
           </div>
           <nav class="tabs" id="ip-tabs" data-id="instance.tabs">
-            <button data-tab="content" aria-selected="true">Контент</button>
-            <button data-tab="worlds">Миры</button>
-            <button data-tab="logs">Логи</button>
+            <button data-tab="content" aria-selected="true" data-icon="layers">Контент</button>
+            <button data-tab="worlds" data-icon="globe">Миры</button>
+            <button data-tab="logs" data-icon="terminal">Логи</button>
           </nav>
           <div class="tab-body" id="tab-content" data-id="instance.content">
             <div class="toolbar">
@@ -126,7 +127,7 @@
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
                 <input class="field" placeholder="Найти в сборке" data-id="instance.content.search">
               </label>
-              <button class="btn" data-view="discover" data-id="instance.content.add"><span class="lbl">Добавить контент</span></button>
+              <button class="btn" data-view="discover" data-id="instance.content.add"><span class="lbl" data-icon="plus">Добавить контент</span></button>
             </div>
             <div class="table-empty"><b>Это ванильная сборка</b>Моды, ресурспаки и шейдеры появятся здесь, когда вы их добавите.</div>
           </div>
