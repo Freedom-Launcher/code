@@ -4,10 +4,10 @@ const { invoke } = window.__TAURI__.core;
 const { $, $$, toast, progress, openDlg, closeDlg, closeMenu, swapText } = window.FUI;
 const call = (name, args = null) => invoke('action', { name, args });
 
-const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'home', history: [], sort: 'recent' };
+const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'empty' };
 const KIND = { microsoft: 'Microsoft', offline: 'Офлайн', provider: 'Сервис' };
 const STAGE = { idle: 'Подготовка', java: 'Java', version: 'Версия', libraries: 'Библиотеки', assets: 'Ресурсы', natives: 'Нативные файлы', launch: 'Запуск', done: 'Готово' };
-const TITLES = { home: 'Главная', library: 'Библиотека', discover: 'Обзор', settings: 'Настройки' };
+const TITLES = { instance: '', empty: '', create: 'Новая сборка', accounts: 'Аккаунты', discover: 'Дополнения', settings: 'Настройки' };
 const PLAY_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>';
 
 function el(tag, attrs = {}, ...kids) {
@@ -62,34 +62,17 @@ document.addEventListener('click', async (ev) => {
   if (name.startsWith('safe.')) $('#safe-msg').textContent = 'Готово. Перезапустите лаунчер.';
 });
 
-// ---------- Navigation: views, back history, breadcrumbs ----------
-function show(view, { push = true } = {}) {
-  if (push && view !== S.view) S.history.push({ view: S.view, current: S.current });
+// ---------- Navigation: views and the rail ----------
+function show(view) {
   S.view = view;
   $$('.view').forEach((x) => x.classList.toggle('is-active', x.id === `view-${view}`));
-  $$('.nav-btn[data-view]').forEach((b) => b.toggleAttribute('aria-current', b.dataset.view === view));
-  $$('.nav-btn[aria-current]').forEach((b) => b.setAttribute('aria-current', 'page'));
-  $$('.nav-pin').forEach((p) => p.toggleAttribute('aria-current', view === 'instance' && p.dataset.inst === S.current));
-  $$('.nav-pin[aria-current]').forEach((p) => p.setAttribute('aria-current', 'page'));
-  $('#back').disabled = !S.history.length;
-  renderCrumbs();
-  if (view === 'settings') requestAnimationFrame(() => $('#set-seg')._place?.(false));
-  if (view === 'library') requestAnimationFrame(() => $('#lib-sort')._place?.(false));
+  $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === view ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
+  $$('#rail-list .tile').forEach((t) => (view === 'instance' && t.dataset.inst === S.current ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
+  $('#top-title').textContent = TITLES[view] ?? '';
+  if (view === 'settings') requestAnimationFrame(() => { $('#set-seg')._place?.(false); $('#cover-seg')._place?.(false); });
+  if (view === 'create') prepareCreate();
+  if (view === 'accounts') renderAccountsPage();
 }
-function renderCrumbs() {
-  const c = $('#crumbs');
-  if (S.view === 'instance') {
-    const i = byId(S.current);
-    c.replaceChildren(el('button', { 'data-view': 'library' }, 'Библиотека'), el('span', { class: 'sep' }, '/'), el('b', {}, i ? i.name : ''));
-  } else c.replaceChildren(el('b', {}, TITLES[S.view] || ''));
-}
-$('#back').addEventListener('click', () => {
-  const prev = S.history.pop();
-  if (!prev) return;
-  S.current = prev.current;
-  if (prev.view === 'instance') renderInstancePage();
-  show(prev.view, { push: false });
-});
 function openInstance(id) {
   S.current = id;
   localStorage.setItem('fl.current', id);
@@ -156,6 +139,7 @@ function renderAccounts(state) {
   swapText($('#account-name'), sel ? sel.name : 'Войти');
   $('#account-head').replaceWith(Object.assign(headFor(sel), { id: 'account-head' }));
   $('#account-kind').textContent = sel ? (KIND[sel.kind.type] || '') : 'Нет аккаунта';
+  if (S.view === 'accounts') renderAccountsPage();
 }
 
 $('#dlg-login').addEventListener('dialog:open', async () => {
@@ -180,58 +164,41 @@ $('#dlg-offline').addEventListener('submit', async (ev) => {
   try { renderAccounts(await run($('#o-submit'), 'accounts.offline.create', { name: f.name.value })); f.reset(); closeDlg(); } catch { /* toast shown */ }
 });
 
-// ---------- Instances: home rows, library grid, pinned icons, instance page ----------
+// ---------- Instances: rail tiles, covers, instance page ----------
 const lastTs = (i) => i.last_played || i.created_at;
 const recent = () => [...S.instances].sort((a, b) => lastTs(b) - lastTs(a));
 const playedText = (i) => (i.last_played ? `играли ${ago(i.last_played)}` : 'ещё не запускали');
 const isRunning = (id) => S.running.includes(id);
-function quickPlay(i, cls) {
-  const on = isRunning(i.id);
-  return el('button', { class: cls + (on ? ' is-running' : ''), 'data-id': `instance.${i.id}.play`, 'aria-label': on ? `Играет: ${i.name}` : `Играть: ${i.name}`, html: on ? '<i class="live"></i><span>Играет</span>' : PLAY_SVG, onclick: (e) => { e.stopPropagation(); if (on) openInstance(i.id); else play(i.id); } });
+// Covers: bundled art for now; the choice is per instance (later: own screenshots).
+const COVERS = ['dawn', 'forest', 'ocean', 'nether', 'end'];
+const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+const coverName = (i) => localStorage.getItem(`fl.cover.${i.id}`) || COVERS[hash(i.id) % COVERS.length];
+const bg = (n, name) => { n.style.backgroundImage = `url("covers/${name}.jpg")`; return n; };
+function coverOpt(name, on, pick) {
+  return bg(el('button', { type: 'button', class: 'cover-opt', 'aria-pressed': String(on), 'aria-label': name, 'data-id': `cover.${name}`, onclick: () => pick(name) }), name);
 }
-function jumpRow(i) {
-  const busy = S.playing === i.id;
-  const on = isRunning(i.id);
-  const b = el('button', { class: on ? 'btn btn-sm btn-live' : 'btn btn-sm', 'data-id': `instance.${i.id}.play`, onclick: (e) => { e.stopPropagation(); if (on) openInstance(i.id); else play(i.id); } },
-    el('span', { class: 'lbl', html: on ? '<i class="live"></i><span>Играет</span>' : `${PLAY_SVG}<span>${busy ? 'Запуск…' : 'Играть'}</span>` }));
-  if (busy) b.dataset.state = 'loading';
-  return el('div', { class: 'jump-row', 'data-id': `home.jump.${i.id}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, tabIndex: 0, onclick: () => openInstance(i.id) },
-    FI.paint(el('span', { class: 'inst-ico' }), i),
-    el('div', { class: 'grow' }, el('div', { class: 'title' }, i.name),
-      el('div', { class: 'sub' }, el('span', { class: 'meta', html: FI.svg('cube') + 'Vanilla' }), el('span', { class: 'mono' }, i.version), el('span', { class: 'sep' }, '·'), el('span', { class: 'meta', html: FI.svg('clock') + playedText(i) }))),
-    b);
-}
-function card(i) {
-  return el('div', { class: 'card-inst', 'data-id': `instance.${i.id}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, tabIndex: 0, onclick: () => openInstance(i.id) },
-    FI.paint(el('span', { class: 'inst-ico art' }), i),
-    el('div', {}, el('div', { class: 'title' }, i.name),
-      el('div', { class: 'sub' }, el('span', { class: 'meta', html: FI.svg('cube') + 'Vanilla' }), el('span', { class: 'mono' }, i.version)),
-      el('div', { class: 'sub' }, playedText(i))),
-    quickPlay(i, 'quick'));
+function renderRail() {
+  const list = [...S.instances].sort((a, b) => a.created_at - b.created_at);
+  $('#rail-list').replaceChildren(...list.map((i) => {
+    const t = bg(el('button', {
+      class: 'tile', 'data-inst': i.id, 'data-ctx': 'menu-ctx-instance', 'data-tip': i.name,
+      'data-id': `rail.instance.${i.id}`, 'aria-label': i.name, onclick: () => openInstance(i.id),
+    }, isRunning(i.id) ? el('i', { class: 'live' }) : ''), coverName(i));
+    if (S.view === 'instance' && i.id === S.current) t.setAttribute('aria-current', 'page');
+    return t;
+  }));
 }
 function renderInstances() {
-  const has = S.instances.length > 0;
-  $('#home-empty').hidden = has;
-  $('#view-home .page-inner').hidden = !has;
-  $('#jump').replaceChildren(...recent().slice(0, 3).map(jumpRow));
-  $('#home-grid').replaceChildren(...recent().slice(0, 6).map(card));
-  const q = $('#lib-search').value.trim().toLowerCase();
-  let list = S.instances.filter((i) => !q || i.name.toLowerCase().includes(q));
-  list = S.sort === 'name' ? list.sort((a, b) => a.name.localeCompare(b.name, 'ru')) : list.sort((a, b) => b.created_at - a.created_at);
-  $('#lib-grid').replaceChildren(...list.map(card));
-  if (!list.length) $('#lib-grid').append(el('div', { class: 'grid-empty' }, has ? 'Ничего не найдено' : 'Сборок пока нет'));
-  $('#nav-pins').replaceChildren(...recent().slice(0, 5).map((i) => el('button', {
-    class: 'nav-pin', 'data-inst': i.id, 'data-ctx': 'menu-ctx-instance', 'data-tip': i.name, 'data-id': `nav.pin.${i.id}`, 'aria-label': i.name, onclick: () => openInstance(i.id),
-  }, FI.paint(el('span', { class: 'inst-ico' }), i))));
-  if (S.view === 'instance') renderInstancePage();
+  renderRail();
+  if (S.view === 'instance') { if (byId(S.current)) renderInstancePage(); else show(S.instances.length ? 'instance' : 'empty'); }
 }
 function renderInstancePage() {
   const i = byId(S.current);
   if (!i) return;
-  FI.paint($('#ip-ico'), i);
+  bg($('#ip-cover'), coverName(i));
   $('#ip-name').textContent = i.name;
   $('#ip-version').textContent = i.version;
-  $('#ip-created').textContent = `создана ${new Date(i.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`;
+  $('#ip-created').textContent = new Date(i.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
   $('#ip-played').textContent = playedText(i);
   const busy = S.playing === i.id;
   const on = isRunning(i.id);
@@ -244,8 +211,17 @@ function renderInstancePage() {
   pb.querySelector('svg').innerHTML = on ? '<rect x="4" y="4" width="8" height="8" rx="1.5"/>' : '<path d="M5 3.5v9l7-4.5z"/>';
   $('#play-status').hidden = !busy;
 }
-$('#lib-search').addEventListener('input', renderInstances);
-$('#lib-sort').addEventListener('seg:change', (e) => { S.sort = e.detail.dataset.sort; renderInstances(); });
+function renderCoverPick() {
+  const i = byId(S.current);
+  if (!i) return;
+  const cur = coverName(i);
+  $('#cover-pick').replaceChildren(...COVERS.map((n) => coverOpt(n, n === cur, (x) => {
+    localStorage.setItem(`fl.cover.${i.id}`, x);
+    closeMenu();
+    renderInstances();
+  })));
+}
+$('#ip-cover-btn').addEventListener('click', renderCoverPick);
 $('#ip-tabs').addEventListener('click', (e) => {
   const t = e.target.closest('[data-tab]');
   if (!t) return;
@@ -253,7 +229,17 @@ $('#ip-tabs').addEventListener('click', (e) => {
   $$('#view-instance .tab-body').forEach((b) => { b.hidden = b.id !== `tab-${t.dataset.tab}`; });
 });
 
-// ---------- Create instance ----------
+// ---------- Create instance (a page, not a dialog) ----------
+let createCover = COVERS[0];
+function paintCreateCovers() {
+  $('#c-covers').replaceChildren(...COVERS.map((n) => coverOpt(n, n === createCover, (x) => { createCover = x; paintCreateCovers(); })));
+}
+function prepareCreate() {
+  createCover = COVERS[Math.floor(Math.random() * COVERS.length)];
+  paintCreateCovers();
+  if (!$('#c-version').options.length) loadVersions();
+  requestAnimationFrame(() => $('#c-name').focus());
+}
 async function loadVersions() {
   const s = $('#c-version');
   try {
@@ -262,20 +248,33 @@ async function loadVersions() {
   } catch (e) { s.replaceChildren(el('option', { value: '' }, 'Нет списка версий')); toast(String(e), { error: true }); }
 }
 $('#c-snapshots').addEventListener('change', loadVersions);
-$('#dlg-create').addEventListener('submit', async (ev) => {
+$('#c-cancel').addEventListener('click', () => (byId(S.current) ? openInstance(S.current) : show('empty')));
+$('#create-form').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const f = ev.currentTarget;
   try {
     const created = await run($('#c-submit'), 'instances.create', { name: f.name.value, version: f.version.value });
     S.instances = await call('instances.list');
     const id = created?.id || S.instances[S.instances.length - 1]?.id;
+    if (id) localStorage.setItem(`fl.cover.${id}`, createCover);
     f.name.value = '';
-    closeDlg();
     renderInstances();
     if (id) openInstance(id);
   } catch { /* toast shown */ }
 });
 
+// ---------- Accounts page ----------
+function renderAccountsPage() {
+  const st = S.accounts;
+  const btn = (label, action, id) => el('button', { class: 'btn btn-sm btn-ghost', 'data-action': action, 'data-args': JSON.stringify({ id }) }, el('span', { class: 'lbl' }, label));
+  $('#acc-page').replaceChildren(...st.accounts.map((a) => el('div', { class: 'r', 'data-id': `accounts.${a.id}` },
+    headFor(a, 'head'),
+    el('div', { class: 'grow' }, el('div', { class: 't' }, a.name), el('div', { class: 's' }, KIND[a.kind.type] || '')),
+    a.id === st.selected ? el('span', { class: 'acc-tag on' }, 'Играю как') : btn('Играть как', 'accounts.select', a.id),
+    btn('Удалить', 'accounts.remove', a.id))));
+  if (!st.accounts.length) $('#acc-page').append(el('div', { class: 'r' }, el('div', { class: 's' }, 'Аккаунтов пока нет — войдите через Microsoft.')));
+  $('#acc-offline').hidden = !st.offline_available;
+}
 // ---------- Play: install (with progress polling) → launch ----------
 function setRunning() {
   const starting = S.playing && byId(S.playing);
@@ -374,9 +373,8 @@ $('#cx-verify').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(
 
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('input, select, textarea')) return;
-  if (e.ctrlKey && e.key.toLowerCase() === 'n') { e.preventDefault(); openDlg('dlg-create'); }
+  if (e.ctrlKey && e.key.toLowerCase() === 'n') { e.preventDefault(); show('create'); }
   if (e.key === 'Enter' && S.view === 'instance' && !document.querySelector('.dialog[data-open]')) play(S.current, true);
-  if (e.altKey && e.key === 'ArrowLeft') $('#back').click();
 });
 
 // ---------- Settings: sections, theme + effects (saved locally until settings.set exists) ----------
@@ -389,8 +387,11 @@ function applyLook() {
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $$('#theme-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.themeSet === document.documentElement.dataset.theme)));
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
+  document.documentElement.dataset.cover = localStorage.getItem('fl.cover-size') || 'big';
+  $$('#cover-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.coverSet === document.documentElement.dataset.cover)));
 }
 $('#theme-seg').addEventListener('seg:change', (e) => { localStorage.setItem('fl.theme', e.detail.dataset.themeSet); applyLook(); });
+$('#cover-seg').addEventListener('seg:change', (e) => { localStorage.setItem('fl.cover-size', e.detail.dataset.coverSet); applyLook(); });
 $('#fx-motion').addEventListener('change', (e) => { localStorage.setItem('fl.motion', e.target.checked ? 'on' : 'off'); applyLook(); });
 
 // ---------- Startup ----------
@@ -403,13 +404,14 @@ async function start() {
     renderAccounts(acc);
     S.instances = inst;
     const saved = localStorage.getItem('fl.current');
-    S.current = inst.some((i) => i.id === saved) ? saved : inst[0]?.id || null;
+    S.current = inst.some((i) => i.id === saved) ? saved : recent()[0]?.id || null;
     renderInstances();
     refreshRunning();
     $('#app').hidden = false;
     window.FUI.initSegs();
-    show(location.hash === '#instance' && S.current ? 'instance' : 'home', { push: false });
-    if (location.hash === '#instance') renderInstancePage();
+    const want = location.hash.slice(1);
+    if (S.current && (!want || want === 'instance')) openInstance(S.current);
+    else show(want && want !== 'instance' ? want : 'empty');
   }
   requestAnimationFrame(() => requestAnimationFrame(async () => {
     const r = await call('app.ready');

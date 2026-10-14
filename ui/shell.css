@@ -1,0 +1,69 @@
+/* Freedom Launcher — shell v12 (concept D): icon rail + inset panel + cover hero.
+   Loaded after layout.css and overrides its old nav/home/library rules. */
+.app { grid-template-columns: 64px 1fr; grid-template-rows: 36px 1fr; }
+
+/* ---------- Rail ---------- */
+.rail {
+  grid-row: 1 / 3; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 10px 0 12px; background: var(--bg); min-height: 0;
+  -webkit-app-region: drag; app-region: drag;
+}
+.rail > * { -webkit-app-region: no-drag; app-region: no-drag; }
+.rail-logo { width: 28px; height: 28px; margin-bottom: 10px; display: grid; place-items: center; border-radius: 8px;
+  background: var(--surface-3); color: var(--text); font: var(--w-semibold) 13px/1 var(--font-display); }
+.rail-list { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 3px 0; }
+.rail-list::-webkit-scrollbar { display: none; }
+.tile {
+  position: relative; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 10px; cursor: pointer; flex: none;
+  background: var(--surface-3) center / cover no-repeat; color: var(--text-2);
+  font: var(--w-semibold) 14px/1 var(--font-display);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); opacity: .62;
+  transition: opacity 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+.tile:hover { opacity: .9; }
+.tile:active { transform: scale(.96); }
+.tile[aria-current="page"] { opacity: 1; box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--accent); }
+.tile .live { position: absolute; right: -2px; bottom: -2px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+.rail-btn {
+  width: 38px; height: 38px; border: 0; border-radius: 10px; background: none; color: var(--text-3);
+  display: grid; place-items: center; cursor: pointer; flex: none; transition: background 120ms ease, color 120ms ease;
+}
+.rail-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+.rail-btn:hover { background: var(--hover); color: var(--text); }
+.rail-btn[aria-current="page"] { background: var(--surface-2); color: var(--text); }
+.rail-btn.add { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.rail-grow { flex: 1; min-height: 8px; }
+.rail-btn .head { width: 24px; height: 24px; border-radius: 6px; }
+
+/* ---------- Top bar ---------- */
+.top { padding-left: 4px; }
+.top-title { font-size: var(--text-sm); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-title b { color: var(--text-2); font-weight: var(--w-medium); }
+.top .spacer { flex: 1; }
+
+/* ---------- Hero (cover) ---------- */
+.hero { position: relative; height: 392px; flex: none; overflow: hidden; background: var(--surface-2); }
+.hero-img { position: absolute; inset: 0; background: center / cover no-repeat; }
+.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,0) 35%, color-mix(in srgb, var(--surface-1) 70%, transparent) 78%, var(--surface-1) 100%); }
+.hero-chip { position: absolute; z-index: 2; top: 14px; right: 14px; height: 30px; padding: 0 12px; border: 0; border-radius: 8px;
+  background: rgba(10,10,12,.55); color: #f2f2f3; font: var(--w-medium) var(--text-sm)/1 var(--font-ui); cursor: pointer;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); opacity: 0; transition: opacity 140ms ease; }
+.hero:hover .hero-chip, .hero-chip:focus-visible { opacity: 1; }
+.hero-chip:hover { background: rgba(10,10,12,.72); }
+.hero-body { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-end; gap: 24px; padding: 0 36px 28px; }
+.hero-body .grow { flex: 1; min-width: 0; }
+.hero h1 { margin: 0 0 8px; font: 680 38px/1.05 var(--font-display); letter-spacing: -.035em; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero .meta-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: var(--text-2); font-size: var(--text-sm); }
+.hero .meta-line .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--text-3); }
+.hero .play-btn { --h: 48px; min-width: 156px; font-size: 15px; border-radius: 12px; }
+[data-theme="dark"] .hero h1 { text-shadow: 0 1px 18px rgba(0,0,0,.35); }
+
+/* Cover size setting: html[data-cover="big|slim|none"] */
+[data-cover="slim"] .hero { height: 196px; }
+[data-cover="slim"] .hero h1 { font-size: 30px; }
+[data-cover="none"] .hero { height: auto; background: none; }
+[data-cover="none"] .hero-img, [data-cover="none"] .hero::after, [data-cover="none"] .hero-chip { display: none; }
+[data-cover="none"] .hero-body { position: static; padding-top: 36px; }

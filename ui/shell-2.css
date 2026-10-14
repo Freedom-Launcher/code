@@ -1,0 +1,51 @@
+/* Freedom Launcher — shell v12 part 2: instance body, rows, create, accounts, settings. */
+.view.is-active { display: flex; flex-direction: column; }
+.inst-body { padding: 4px 36px 64px; }
+.inst-body .tabs { margin-bottom: 8px; }
+.play-status { margin: 0 36px 4px; }
+
+/* Rows (Linear-like lists, hairline separators) */
+.rows { display: flex; flex-direction: column; }
+.r { display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 8px 4px; }
+.r + .r { border-top: 1px solid var(--line); }
+.r .grow { flex: 1; min-width: 0; }
+.r .t { color: var(--text); font-weight: var(--w-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r .s { color: var(--text-3); font-size: var(--text-sm); }
+.r .thumb { width: 54px; height: 34px; border-radius: 6px; flex: none; background: var(--surface-3) center / cover no-repeat; }
+.r .head { width: 32px; height: 32px; border-radius: 7px; }
+
+/* Narrow pages: create, accounts, settings */
+.narrow { width: 100%; max-width: 600px; margin: 0 auto; padding: 44px 36px 80px; }
+.page-h { margin: 0 0 6px; font: var(--w-semibold) 26px/1.15 var(--font-display); letter-spacing: -.028em; }
+.page-sub { margin: 0 0 28px; color: var(--text-3); font-size: var(--text-sm); }
+.label { display: block; margin: 22px 0 8px; color: var(--text-2); font-size: var(--text-sm); font-weight: var(--w-medium); }
+
+/* Create: cover strip + loader cards */
+.cover-strip { display: flex; gap: 8px; overflow-x: auto; padding: 3px; scrollbar-width: thin; }
+.cover-opt { width: 92px; height: 58px; flex: none; padding: 0; border: 0; border-radius: 8px; cursor: pointer;
+  background: var(--surface-3) center / cover no-repeat; opacity: .7; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+  transition: opacity 120ms ease, box-shadow 120ms ease; }
+.cover-opt:hover { opacity: 1; }
+.cover-opt[aria-pressed="true"] { opacity: 1; box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 3.5px var(--accent); }
+.cover-opt.upload { display: grid; place-items: center; background: none; color: var(--text-3); box-shadow: inset 0 0 0 1px var(--line-strong); font-size: 20px; }
+.pick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.pick button { height: 64px; border: 0; border-radius: 10px; background: var(--surface-2); color: var(--text-2); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  font: var(--w-medium) var(--text-sm)/1.1 var(--font-ui); box-shadow: inset 0 0 0 1px var(--line); }
+.pick button small { color: var(--text-3); font-size: 11px; font-weight: var(--w-regular); }
+.pick button:hover { background: var(--surface-3); color: var(--text); }
+.pick button[aria-pressed="true"] { color: var(--text); box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }
+.pick button:disabled { opacity: .45; cursor: default; }
+.form-foot { display: flex; align-items: center; gap: 8px; margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line); }
+.form-foot .spacer { flex: 1; }
+.check-line { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text-3); font-size: var(--text-sm); }
+
+/* Accounts page */
+.acc-tag { height: 22px; padding: 0 8px; border-radius: 6px; display: inline-flex; align-items: center; font-size: 11px;
+  color: var(--text-2); background: var(--surface-3); }
+.acc-tag.on { color: var(--accent); background: var(--accent-soft); }
+.acc-actions { display: flex; gap: 8px; margin-top: 18px; }
+
+/* Settings */
+.set-tabs { margin-bottom: 18px; }
+.set-pane[hidden] { display: none; }

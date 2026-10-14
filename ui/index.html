@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-theme="dark">
+<html lang="ru" data-theme="dark" data-cover="big">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,42 +8,33 @@
   <link rel="stylesheet" href="components.css">
   <link rel="stylesheet" href="components-2.css">
   <link rel="stylesheet" href="layout.css">
+  <link rel="stylesheet" href="shell.css">
+  <link rel="stylesheet" href="shell-2.css">
   <script src="ui.js" defer></script>
-  <script src="icons.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
   <div id="app" class="app" data-id="app" hidden>
-    <!-- Left icon rail: navigation, pinned instances, create, settings -->
-    <nav class="nav" data-id="nav">
-      <div class="nav-logo" data-id="nav.logo" aria-hidden="true">F</div>
-      <button class="nav-btn" data-view="home" aria-current="page" data-tip="Главная" data-id="nav.home" aria-label="Главная">
-        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>
+    <!-- Left rail: instances as cover tiles, create, settings -->
+    <nav class="rail" data-id="rail">
+      <div class="rail-logo" data-id="rail.logo" aria-hidden="true">F</div>
+      <div class="rail-list" id="rail-list" data-id="rail.instances"></div>
+      <button class="rail-btn add" data-view="create" data-tip="Новая сборка" data-kbd="Ctrl N" data-id="rail.create" aria-label="Новая сборка">
+        <svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg>
       </button>
-      <button class="nav-btn" data-view="library" data-tip="Библиотека" data-id="nav.library" aria-label="Библиотека">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1.2"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1.2"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1.2"/><rect x="9" y="9" width="4.5" height="4.5" rx="1.2"/></svg>
+      <div data-slot="rail.end"></div>
+      <div class="rail-grow"></div>
+      <button class="rail-btn" data-view="discover" data-tip="Дополнения" data-id="rail.discover" aria-label="Дополнения">
+        <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="m10.2 5.8-1.4 3-3 1.4 1.4-3z"/></svg>
       </button>
-      <button class="nav-btn" data-view="discover" data-tip="Обзор дополнений" data-id="nav.discover" aria-label="Обзор">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="m10.2 5.8-1.4 3-3 1.4 1.4-3z"/></svg>
-      </button>
-      <div class="nav-sep"></div>
-      <div class="nav-pins" id="nav-pins" data-id="nav.pins"></div>
-      <div data-slot="nav.end"></div>
-      <div class="nav-grow"></div>
-      <button class="nav-btn" data-open="dlg-create" data-tip="Новая сборка" data-kbd="Ctrl N" data-id="nav.create" aria-label="Новая сборка">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3v10M3 8h10"/></svg>
-      </button>
-      <button class="nav-btn" data-view="settings" data-tip="Настройки" data-id="nav.settings" aria-label="Настройки">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.7M8 12.5v1.7M1.8 8h1.7M12.5 8h1.7M3.6 3.6l1.2 1.2M11.2 11.2l1.2 1.2M3.6 12.4l1.2-1.2M11.2 4.8l1.2-1.2"/></svg>
+      <button class="rail-btn" data-view="settings" data-tip="Настройки" data-id="rail.settings" aria-label="Настройки">
+        <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.7M8 12.5v1.7M1.8 8h1.7M12.5 8h1.7M3.6 3.6l1.2 1.2M11.2 11.2l1.2 1.2M3.6 12.4l1.2-1.2M11.2 4.8l1.2-1.2"/></svg>
       </button>
     </nav>
 
-    <!-- Top bar: back + breadcrumb, running indicator, account -->
+    <!-- Top bar: title, running indicator, account, window controls -->
     <header class="top" data-id="topbar" data-tauri-drag-region>
-      <button class="btn btn-icon btn-ghost btn-sm" id="back" data-id="topbar.back" aria-label="Назад" disabled>
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>
-      </button>
-      <div class="crumbs" id="crumbs" data-id="topbar.crumbs" data-tauri-drag-region></div>
+      <div class="top-title" id="top-title" data-tauri-drag-region>Freedom Launcher</div>
       <div class="spacer" data-tauri-drag-region></div>
       <div data-slot="topbar.end"></div>
       <div class="running" id="running" data-id="topbar.running"><i class="dot"></i><span id="running-text">Ничего не запущено</span></div>
@@ -58,50 +49,16 @@
         <button class="win-btn win-close" id="win-close" data-id="window.close" aria-label="Закрыть"><svg viewBox="0 0 12 12"><path d="m2.5 2.5 7 7m0-7-7 7"/></svg></button>
       </div>
     </header>
-    <!-- Main area: one view at a time -->
+<!-- Main area: one view at a time. Home = the last played instance. -->
     <main class="main" data-id="main">
-      <section class="view is-active" id="view-home" data-id="view.home">
-        <div class="page-inner wide">
-          <div class="sec-head"><h2>Продолжить</h2></div>
-          <div class="jump" id="jump" data-id="home.jump"></div>
-          <div class="sec-head">
-            <h2>Библиотека</h2>
-            <div class="spacer"></div>
-            <button class="btn btn-sm btn-ghost" data-view="library" data-id="home.all" data-icon="arrow" data-icon-at="end">Все сборки</button>
-            <button class="btn btn-sm" data-open="dlg-create" data-id="home.create"><span class="lbl" data-icon="plus">Новая сборка</span></button>
-          </div>
-          <div class="grid" id="home-grid" data-id="home.grid"></div>
-          <div data-slot="home.end"></div>
-        </div>
-        <div class="empty-stage" id="home-empty" data-id="home.empty" hidden>
-          <h2>Создайте первую сборку</h2>
-          <p>Выберите версию Minecraft — лаунчер сам скачает игру и подходящую Java.</p>
-          <button class="btn btn-primary btn-lg" data-open="dlg-create"><span class="lbl">Новая сборка</span></button>
-        </div>
-      </section>
-
-      <section class="view" id="view-library" data-id="view.library">
-        <div class="page-inner wide">
-          <div class="toolbar" data-id="library.toolbar">
-            <label class="field-wrap grow">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
-              <input class="field" id="lib-search" placeholder="Найти сборку" data-id="library.search">
-            </label>
-            <div class="seg" id="lib-sort" data-id="library.sort"><button data-sort="recent" aria-selected="true">Недавние</button><button data-sort="name">По имени</button></div>
-            <button class="btn btn-primary" data-open="dlg-create" data-id="library.create"><span class="lbl">Новая сборка</span></button>
-          </div>
-          <div class="grid" id="lib-grid" data-id="library.grid"></div>
-          <div data-slot="library.end"></div>
-        </div>
-      </section>
-
       <section class="view" id="view-instance" data-id="view.instance">
-        <div class="page-inner wide">
-          <header class="inst-head" data-id="instance.header">
-            <span class="inst-ico xl" id="ip-ico">?</span>
+        <header class="hero" id="ip-hero" data-id="instance.hero">
+          <div class="hero-img" id="ip-cover"></div>
+          <button class="hero-chip" id="ip-cover-btn" data-menu="menu-cover" data-id="instance.cover.change">Сменить обложку</button>
+          <div class="hero-body">
             <div class="grow">
-              <h1 class="inst-title" id="ip-name"></h1>
-              <div class="inst-meta"><span class="meta" data-icon="cube">Vanilla</span><span class="mono" id="ip-version"></span><span class="meta" data-icon="calendar"><span id="ip-created"></span></span><span class="sep">·</span><span class="meta" data-icon="clock"><span id="ip-played"></span></span></div>
+              <h1 id="ip-name"></h1>
+              <div class="meta-line"><span id="ip-loader">Vanilla</span><span class="mono" id="ip-version"></span><i class="sep"></i><span id="ip-played"></span><i class="sep"></i><span>создана <span id="ip-created"></span></span></div>
             </div>
             <div class="play-row" data-id="instance.play">
               <button class="btn btn-icon btn-ghost" data-menu="menu-instance" data-tip="Действия со сборкой" data-id="instance.more" aria-label="Ещё">
@@ -111,28 +68,34 @@
                 <span class="lbl"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg><span id="play-label">Играть</span></span>
               </button>
             </div>
-          </header>
-          <div class="play-status" id="play-status" hidden>
-            <div class="line"><span id="ps-stage">Подготовка</span><span class="mono num" id="ps-count"></span></div>
-            <div class="progress" id="ps-bar"><i></i></div>
           </div>
+        </header>
+        <div class="play-status" id="play-status" hidden>
+          <div class="line"><span id="ps-stage">Подготовка</span><span class="mono num" id="ps-count"></span></div>
+          <div class="progress" id="ps-bar"><i></i></div>
+        </div>
+        <div class="inst-body">
           <nav class="tabs" id="ip-tabs" data-id="instance.tabs">
-            <button data-tab="content" aria-selected="true" data-icon="layers">Контент</button>
-            <button data-tab="worlds" data-icon="globe">Миры</button>
-            <button data-tab="logs" data-icon="terminal">Логи</button>
+            <button data-tab="worlds" aria-selected="true">Миры</button>
+            <button data-tab="content">Моды</button>
+            <button data-tab="shots">Скриншоты</button>
+            <button data-tab="logs">Логи</button>
           </nav>
-          <div class="tab-body" id="tab-content" data-id="instance.content">
+          <div class="tab-body" id="tab-worlds" data-id="instance.worlds">
+            <div class="table-empty"><b>Миров пока нет</b>Сыграйте — миры появятся здесь с названием, режимом и временем в игре.</div>
+          </div>
+          <div class="tab-body" id="tab-content" data-id="instance.content" hidden>
             <div class="toolbar">
               <label class="field-wrap grow">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
                 <input class="field" placeholder="Найти в сборке" data-id="instance.content.search">
               </label>
-              <button class="btn" data-view="discover" data-id="instance.content.add"><span class="lbl" data-icon="plus">Добавить контент</span></button>
+              <button class="btn" data-view="discover" data-id="instance.content.add"><span class="lbl">Добавить</span></button>
             </div>
             <div class="table-empty"><b>Это ванильная сборка</b>Моды, ресурспаки и шейдеры появятся здесь, когда вы их добавите.</div>
           </div>
-          <div class="tab-body" id="tab-worlds" data-id="instance.worlds" hidden>
-            <div class="table-empty"><b>Миров пока нет</b>Сыграйте — созданные миры и их скриншоты появятся здесь.</div>
+          <div class="tab-body" id="tab-shots" data-id="instance.shots" hidden>
+            <div class="table-empty"><b>Скриншотов пока нет</b>Нажмите F2 в игре — снимок появится здесь, и его можно сделать обложкой.</div>
           </div>
           <div class="tab-body" id="tab-logs" data-id="instance.logs" hidden>
             <pre class="log mono" id="ip-log">Лог появится после первого запуска.</pre>
@@ -141,44 +104,88 @@
         </div>
       </section>
 
-      <section class="view" id="view-discover" data-id="view.discover">
-        <div class="page-inner wide">
-          <div class="toolbar" data-id="discover.toolbar">
-            <div class="seg" id="disc-type"><button aria-selected="true">Моды</button><button>Сборки</button><button>Ресурспаки</button><button>Шейдеры</button></div>
-            <div class="spacer"></div>
-            <label class="field-wrap">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
-              <input class="field" placeholder="Поиск по Modrinth" data-id="discover.search">
-            </label>
+      <section class="view" id="view-empty" data-id="view.empty">
+        <div class="narrow">
+          <h1 class="page-h">Сборок пока нет</h1>
+          <p class="page-sub">Создайте первую — лаунчер сам скачает игру и Java.</p>
+          <button class="btn btn-primary btn-lg" data-view="create" data-id="empty.create"><span class="lbl">Новая сборка</span></button>
+        </div>
+      </section>
+      <section class="view" id="view-create" data-id="view.create">
+        <form class="narrow" id="create-form" data-id="create.form" autocomplete="off">
+          <h1 class="page-h">Новая сборка</h1>
+          <p class="page-sub">Обложку можно сменить в любой момент — например, на свой скриншот.</p>
+          <span class="label">Обложка</span>
+          <div class="cover-strip" id="c-covers" data-id="create.covers"></div>
+          <label class="label" for="c-name">Название</label>
+          <input class="field" id="c-name" name="name" placeholder="Моя сборка" required maxlength="64" data-id="create.name">
+          <span class="label">Загрузчик</span>
+          <div class="pick" id="c-loader" data-id="create.loader">
+            <button type="button" data-loader="vanilla" aria-pressed="true">Ванилла<small>чистая игра</small></button>
+            <button type="button" data-loader="fabric" disabled>Fabric<small>скоро</small></button>
+            <button type="button" data-loader="forge" disabled>Forge<small>скоро</small></button>
+            <button type="button" data-loader="neoforge" disabled>NeoForge<small>скоро</small></button>
+            <button type="button" data-loader="quilt" disabled>Quilt<small>скоро</small></button>
           </div>
-          <div class="table-empty tall"><b>Каталог подключается в M4</b>Поиск модов и сборок прямо в лаунчере. Сторонние способы входа тоже будут здесь — как аддоны уровня «Расширенный».</div>
+          <label class="label" for="c-version">Версия игры</label>
+          <select class="field" id="c-version" name="version" required data-id="create.version"></select>
+          <label class="check-line"><input type="checkbox" id="c-snapshots"> Показывать снапшоты</label>
+          <div class="form-foot">
+            <button type="button" class="btn btn-ghost" disabled data-tip="Скоро" data-id="create.import"><span class="lbl">Импорт .mrpack</span></button>
+            <div class="spacer"></div>
+            <button type="button" class="btn" id="c-cancel" data-id="create.cancel"><span class="lbl">Отмена</span></button>
+            <button type="submit" class="btn btn-primary" id="c-submit" data-id="create.submit"><span class="lbl">Создать</span></button>
+          </div>
+        </form>
+      </section>
+
+      <section class="view" id="view-accounts" data-id="view.accounts">
+        <div class="narrow">
+          <h1 class="page-h">Аккаунты</h1>
+          <p class="page-sub">Аккаунт, отмеченный «играю как», используется при запуске.</p>
+          <div class="rows" id="acc-page" data-id="accounts.list"></div>
+          <div class="acc-actions">
+            <button class="btn btn-primary" data-open="dlg-login" data-id="accounts.add.microsoft"><span class="lbl">Войти через Microsoft</span></button>
+            <button class="btn" data-open="dlg-offline" id="acc-offline" data-id="accounts.add.offline" hidden><span class="lbl">Офлайн-профиль</span></button>
+            <button class="btn btn-ghost" data-view="discover" data-id="accounts.add.provider"><span class="lbl">Сторонний сервис</span></button>
+          </div>
+          <div data-slot="accounts.end"></div>
+        </div>
+      </section>
+      <section class="view" id="view-discover" data-id="view.discover">
+        <div class="narrow">
+          <h1 class="page-h">Дополнения</h1>
+          <p class="page-sub">Моды, сборки, темы и аддоны. Каталог подключается в M4.</p>
+          <div class="toolbar" data-id="discover.toolbar">
+            <div class="seg" id="disc-type"><button aria-selected="true">Моды</button><button>Сборки</button><button>Темы</button><button>Аддоны</button></div>
+          </div>
+          <div class="table-empty tall"><b>Скоро</b>Поиск модов и сборок прямо в лаунчере. Сторонние способы входа тоже будут здесь — как аддоны уровня «Расширенный».</div>
           <div data-slot="discover.end"></div>
         </div>
       </section>
 
       <section class="view" id="view-settings" data-id="view.settings">
-        <div class="page-inner">
+        <div class="narrow">
+          <h1 class="page-h">Настройки</h1>
+          <div class="seg set-tabs" id="set-seg" data-id="settings.sections"><button data-pane="game" aria-selected="true">Игра</button><button data-pane="launcher">Лаунчер</button></div>
           <div class="set-pane" id="set-game" data-id="settings.game">
-            <div class="set-group"><h2>Игра</h2>
-              <div class="card">
-                <div class="set-row"><div class="grow"><div>Память</div><div class="sub">По умолчанию зависит от объёма RAM</div></div><span class="badge">Авто</span></div>
-                <div class="set-row"><div class="grow"><div>Java</div><div class="sub">Скачивается автоматически под версию игры</div></div><span class="badge">Авто</span></div>
-              </div>
+            <div class="rows">
+              <div class="r"><div class="grow"><div class="t">Память</div><div class="s">По умолчанию зависит от объёма RAM</div></div><span class="badge">Авто</span></div>
+              <div class="r"><div class="grow"><div class="t">Java</div><div class="s">Скачивается автоматически под версию игры</div></div><span class="badge">Авто</span></div>
             </div>
           </div>
           <div class="set-pane" id="set-launcher" data-id="settings.launcher" hidden>
-            <div class="set-group"><h2>Вид</h2>
-              <div class="card">
-                <div class="set-row"><div class="grow"><div>Тема</div><div class="sub">Встроенная тема лаунчера</div></div>
-                  <div class="seg" id="theme-seg"><button data-theme-set="dark" aria-selected="true">Тёмная</button><button data-theme-set="light">Светлая</button></div></div>
-                <div class="set-row"><div class="grow"><div>Анимации</div><div class="sub">Переходы, всплывающие меню, кнопки</div></div>
-                  <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
-              </div>
+            <div class="rows">
+              <div class="r"><div class="grow"><div class="t">Обложка сборки</div><div class="s">Размер картинки над сборкой</div></div>
+                <div class="seg" id="cover-seg"><button data-cover-set="big" aria-selected="true">Большая</button><button data-cover-set="slim">Узкая</button><button data-cover-set="none">Нет</button></div></div>
+              <div class="r"><div class="grow"><div class="t">Тема</div><div class="s">Встроенная тема лаунчера</div></div>
+                <div class="seg" id="theme-seg"><button data-theme-set="dark" aria-selected="true">Тёмная</button><button data-theme-set="light">Светлая</button></div></div>
+              <div class="r"><div class="grow"><div class="t">Анимации</div><div class="s">Переходы, всплывающие меню, кнопки</div></div>
+                <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
             </div>
           </div>
           <div data-slot="settings.end"></div>
         </div>
-        <div class="seg float-seg" id="set-seg" data-id="settings.sections"><button data-pane="game" aria-selected="true">Игра</button><button data-pane="launcher">Лаунчер</button></div>
       </section>
     </main>
   </div>
@@ -190,6 +197,8 @@
     <button class="menu-item" data-open="dlg-login"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>Войти через Microsoft</button>
     <button class="menu-item" id="offline-open" data-open="dlg-offline" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="2.5"/><path d="M3.5 13c.8-2.2 2.5-3.3 4.5-3.3s3.7 1.1 4.5 3.3"/></svg>Офлайн-профиль</button>
     <button class="menu-item" data-view="discover"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="9" y="3" width="4" height="4" rx="1"/><rect x="3" y="9" width="4" height="4" rx="1"/><rect x="9" y="9" width="4" height="4" rx="1"/></svg>Сторонний сервис</button>
+    <div class="menu-sep"></div>
+    <button class="menu-item" data-view="accounts" data-id="menu.account.manage"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4.5h10M3 8h10M3 11.5h6"/></svg>Управление аккаунтами</button>
   </div>
 
   <div class="pop" id="menu-ctx-instance" data-id="menu.ctx.instance" role="menu">
@@ -203,21 +212,13 @@
     <div data-slot="menu.instance"></div>
   </div>
 
+  <div class="pop" id="menu-cover" data-id="menu.cover" role="menu">
+    <div class="menu-label">Обложка</div>
+    <div class="cover-strip" id="cover-pick"></div>
+  </div>
+
   <!-- Dialogs -->
   <div class="scrim" id="scrim"></div>
-  <form class="dialog" id="dlg-create" data-id="dialog.create" role="dialog" aria-label="Новая сборка">
-    <h2>Новая сборка</h2>
-    <div class="fields">
-      <div><label class="label" for="c-name">Название</label><input class="field" id="c-name" name="name" maxlength="64" required placeholder="Например, Выживание"></div>
-      <div><label class="label" for="c-version">Версия</label><select class="field mono" id="c-version" name="version" required><option value="">Загрузка…</option></select></div>
-      <label class="check"><input type="checkbox" id="c-snapshots"> Показать снапшоты</label>
-    </div>
-    <div class="actions">
-      <button type="button" class="btn btn-ghost" data-close>Отмена</button>
-      <button type="submit" class="btn btn-primary" id="c-submit"><span class="lbl">Создать</span></button>
-    </div>
-  </form>
-
   <div class="dialog" id="dlg-login" data-id="dialog.login" role="dialog" aria-label="Вход через Microsoft">
     <h2>Вход через Microsoft</h2>
     <p class="muted" id="ms-intro">Откроется страница Microsoft. Введите там этот код:</p>
@@ -256,4 +257,3 @@
     </div>
   </div>
 </body>
-</html>
