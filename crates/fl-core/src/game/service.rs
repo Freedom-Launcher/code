@@ -141,10 +141,21 @@ fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
 pub async fn launch_instance(core: &Core, instance: &str) -> Result<Value, CoreError> {
     let auth = launch_auth(core)?;
     let inst = find_instance(core, instance)?;
+    if !core.game_running.begin(instance) {
+        return Ok(json!({ "instance": instance, "already_running": true }));
+    }
+    let res = start(core, &inst, auth).await;
+    if res.is_err() {
+        core.game_running.cancel(instance);
+    }
+    res
+}
+
+async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, CoreError> {
     let layout = Layout::new(core);
     // Full verification is `game.install`; a launch only installs when needed.
     if !layout.installed_marker(&inst.version).exists() {
-        install_instance(core, instance, false).await?;
+        install_instance(core, &inst.id, false).await?;
     }
     let v = install::load_version(core, &layout, &inst.version).await?;
     let java = java::ensure(core, v.java_version.as_ref(), Arc::new(Progress::default())).await?;
@@ -157,6 +168,19 @@ pub async fn launch_instance(core: &Core, instance: &str) -> Result<Value, CoreE
     };
     let args = launch::build_args(&v, &Env::current(), &layout, &auth, &opts);
     let child = launch::spawn(&java, &args, &opts.game_dir)?;
-    mark_played(core, instance).await?;
-    Ok(json!({ "instance": instance, "pid": child.id(), "memory_mb": opts.memory_mb }))
+    let pid = child.id();
+    core.game_running.started(&inst.id, child);
+    mark_played(core, &inst.id).await?;
+    Ok(json!({ "instance": inst.id, "pid": pid, "memory_mb": opts.memory_mb }))
+}
+
+/// Instances whose game is running, and those still being prepared.
+pub fn running(core: &Core) -> Value {
+    let (running, starting) = core.game_running.list();
+    json!({ "running": running, "starting": starting })
+}
+
+/// Closes the instance's game.
+pub fn stop(core: &Core, instance: &str) -> Value {
+    json!({ "instance": instance, "stopped": core.game_running.stop(instance) })
 }

@@ -44,6 +44,8 @@ pub struct Core {
     /// Install progress per instance id, polled by `game.progress`.
     pub(crate) game_progress:
         std::sync::Mutex<std::collections::HashMap<String, Arc<game::download::Progress>>>,
+    /// Game processes per instance (`game.running`, no double launches).
+    pub(crate) game_running: game::running::Running,
 }
 
 impl Core {
@@ -65,6 +67,7 @@ impl Core {
             state_lock: Default::default(),
             ms_pending: Default::default(),
             game_progress: Default::default(),
+            game_running: Default::default(),
         }))
     }
 

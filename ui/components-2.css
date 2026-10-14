@@ -8,7 +8,7 @@
 .seg > button {
   position: relative; z-index: 1; height: 26px; padding: 0 var(--s-3);
   border: 0; border-radius: 6px; background: transparent; color: var(--text-2);
-  font-weight: 500; cursor: default; transition: color var(--d-2);
+  font-weight: var(--w-medium); cursor: default; transition: color var(--d-2);
 }
 .seg > button:hover { color: var(--text); }
 .seg > button[aria-selected="true"] { color: var(--text); }
@@ -37,12 +37,12 @@
 .menu-item > kbd { margin-left: auto; }
 .menu-item.is-danger { color: var(--danger); }
 .menu-sep { height: 1px; margin: 4px -4px; background: var(--line); }
-.menu-label { padding: 6px var(--s-2) 4px; color: var(--text-3); font-size: var(--text-xs); font-weight: 500; }
+.menu-label { padding: 6px var(--s-2) 4px; color: var(--text-3); font-size: var(--text-xs); font-weight: var(--w-medium); }
 
 /* ---------- Tooltip (delayed in, instant out) ---------- */
 .tip {
   position: fixed; z-index: 60; padding: 4px 8px; border-radius: 6px;
-  background: var(--text); color: var(--bg); font-size: var(--text-sm); font-weight: 500;
+  background: var(--text); color: var(--bg); font-size: var(--text-sm); font-weight: var(--w-medium);
   pointer-events: none; white-space: nowrap; opacity: 0; transform: translateY(2px);
   transition: opacity 0ms, transform 0ms;
 }
@@ -80,12 +80,12 @@
 .row:hover { background: var(--hover); }
 .row[aria-selected="true"] { background: var(--press); }
 .row .grow { flex: 1; min-width: 0; }
-.row .title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .title { font-weight: var(--w-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .sub { color: var(--text-3); font-size: var(--text-sm); }
 .badge {
   display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px;
   border-radius: var(--r-chip); background: var(--surface-3); color: var(--text-2);
-  font-size: var(--text-xs); font-weight: 500;
+  font-size: var(--text-xs); font-weight: var(--w-medium);
 }
 .badge.is-accent { background: var(--accent-soft); color: var(--accent); }
 .badge.is-warn { background: rgba(242, 182, 75, .12); color: var(--warn); }

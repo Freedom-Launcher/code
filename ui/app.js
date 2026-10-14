@@ -4,7 +4,7 @@ const { invoke } = window.__TAURI__.core;
 const { $, $$, toast, progress, openDlg, closeDlg, closeMenu, swapText } = window.FUI;
 const call = (name, args = null) => invoke('action', { name, args });
 
-const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, view: 'home', history: [], sort: 'recent' };
+const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'home', history: [], sort: 'recent' };
 const KIND = { microsoft: 'Microsoft', offline: 'Офлайн', provider: 'Сервис' };
 const STAGE = { idle: 'Подготовка', java: 'Java', version: 'Версия', libraries: 'Библиотеки', assets: 'Ресурсы', natives: 'Нативные файлы', launch: 'Запуск', done: 'Готово' };
 const TITLES = { home: 'Главная', library: 'Библиотека', discover: 'Обзор', settings: 'Настройки' };
@@ -184,13 +184,16 @@ $('#dlg-offline').addEventListener('submit', async (ev) => {
 const lastTs = (i) => i.last_played || i.created_at;
 const recent = () => [...S.instances].sort((a, b) => lastTs(b) - lastTs(a));
 const playedText = (i) => (i.last_played ? `играли ${ago(i.last_played)}` : 'ещё не запускали');
+const isRunning = (id) => S.running.includes(id);
 function quickPlay(i, cls) {
-  return el('button', { class: cls, 'data-id': `instance.${i.id}.play`, 'aria-label': `Играть: ${i.name}`, html: PLAY_SVG, onclick: (e) => { e.stopPropagation(); play(i.id); } });
+  const on = isRunning(i.id);
+  return el('button', { class: cls + (on ? ' is-running' : ''), 'data-id': `instance.${i.id}.play`, 'aria-label': on ? `Играет: ${i.name}` : `Играть: ${i.name}`, html: on ? '<i class="live"></i><span>Играет</span>' : PLAY_SVG, onclick: (e) => { e.stopPropagation(); if (on) openInstance(i.id); else play(i.id); } });
 }
 function jumpRow(i) {
   const busy = S.playing === i.id;
-  const b = el('button', { class: 'btn btn-primary btn-sm', 'data-id': `instance.${i.id}.play`, onclick: (e) => { e.stopPropagation(); play(i.id); } },
-    el('span', { class: 'lbl', html: `${PLAY_SVG}<span>${busy ? 'Запуск…' : 'Играть'}</span>` }));
+  const on = isRunning(i.id);
+  const b = el('button', { class: on ? 'btn btn-sm btn-live' : 'btn btn-primary btn-sm', 'data-id': `instance.${i.id}.play`, onclick: (e) => { e.stopPropagation(); if (on) openInstance(i.id); else play(i.id); } },
+    el('span', { class: 'lbl', html: on ? '<i class="live"></i><span>Играет</span>' : `${PLAY_SVG}<span>${busy ? 'Запуск…' : 'Играть'}</span>` }));
   if (busy) b.dataset.state = 'loading';
   return el('div', { class: 'jump-row', 'data-id': `home.jump.${i.id}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, tabIndex: 0, onclick: () => openInstance(i.id) },
     el('span', { class: 'inst-ico' }, initials(i.name)),
@@ -231,7 +234,14 @@ function renderInstancePage() {
   $('#ip-created').textContent = `создана ${new Date(i.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`;
   $('#ip-played').textContent = playedText(i);
   const busy = S.playing === i.id;
-  $('#play').dataset.state = busy ? 'loading' : 'idle';
+  const on = isRunning(i.id);
+  const pb = $('#play');
+  if (busy) pb.dataset.state = 'loading';
+  else if (pb.dataset.state === 'loading') pb.dataset.state = 'idle';
+  pb.classList.toggle('is-running', on);
+  pb.classList.toggle('btn-primary', !on);
+  $('#play-label').textContent = on ? 'Остановить' : 'Играть';
+  pb.querySelector('svg').innerHTML = on ? '<rect x="4" y="4" width="8" height="8" rx="1.5"/>' : '<path d="M5 3.5v9l7-4.5z"/>';
   $('#play-status').hidden = !busy;
 }
 $('#lib-search').addEventListener('input', renderInstances);
@@ -267,19 +277,44 @@ $('#dlg-create').addEventListener('submit', async (ev) => {
 });
 
 // ---------- Play: install (with progress polling) → launch ----------
-function setRunning(name) {
-  $('#running').classList.toggle('is-on', !!name);
-  $('#running-text').textContent = name ? `Запускается: ${name}` : 'Ничего не запущено';
+function setRunning() {
+  const starting = S.playing && byId(S.playing);
+  const names = S.running.map((id) => byId(id)?.name).filter(Boolean);
+  const on = !!starting || names.length > 0;
+  $('#running').classList.toggle('is-on', on);
+  $('#running').classList.toggle('is-live', !starting && names.length > 0);
+  $('#running-text').textContent = starting ? `Запускается: ${starting.name}`
+    : names.length === 1 ? `Играет: ${names[0]}`
+    : names.length > 1 ? `Запущено сборок: ${names.length}` : 'Ничего не запущено';
+}
+// The core owns the truth about game processes; the UI just follows it.
+async function refreshRunning() {
+  const r = await call('game.running').catch(() => null);
+  if (!r) return;
+  const next = r.running || [];
+  if (next.join() === S.running.join()) return;
+  S.running = next;
+  setRunning();
+  renderInstances();
+  if (S.view === 'instance') renderInstancePage();
+}
+setInterval(() => { if (!document.hidden) refreshRunning(); }, 2000);
+async function stopGame(id = S.current) {
+  if (!id) return;
+  await call('game.stop', { instance: id }).catch((e) => toast(String(e), { error: true }));
+  await refreshRunning();
+  toast('Игра закрыта');
 }
 async function play(id = S.current, launch = true) {
   if (S.playing || !id) return;
+  if (launch && isRunning(id)) { toast('Эта сборка уже запущена'); return; }
   if (launch && !S.accounts.selected) { toast('Сначала войдите в аккаунт', { error: true }); $('#account-btn').click(); return; }
   const inst = byId(id);
   S.playing = id;
   S.current = id;
   if (S.view !== 'instance') openInstance(id); else renderInstancePage();
   renderInstances();
-  setRunning(inst?.name);
+  setRunning();
   const btn = $('#play');
   btn.dataset.state = 'loading';
   $('#play-status').hidden = false;
@@ -299,7 +334,12 @@ async function play(id = S.current, launch = true) {
   try {
     await call('game.install', { instance: id, verify: !launch });
     progress($('#ps-bar'), 1);
-    if (launch) { $('#ps-stage').textContent = STAGE.launch; await call('game.launch', { instance: id }); const it = byId(id); if (it) { it.last_played = Math.floor(Date.now() / 1000); renderInstances(); } }
+    if (launch) {
+      $('#ps-stage').textContent = STAGE.launch;
+      const r = await call('game.launch', { instance: id });
+      if (!r?.already_running) { const it = byId(id); if (it) it.last_played = Math.floor(Date.now() / 1000); }
+      if (!S.running.includes(id)) S.running = [...S.running, id];
+    }
     btn.dataset.state = 'success';
     toast(launch ? 'Игра запущена' : 'Файлы в порядке');
   } catch (e) {
@@ -308,8 +348,10 @@ async function play(id = S.current, launch = true) {
   } finally {
     clearInterval(poll);
     S.playing = null;
-    setRunning(null);
+    setRunning();
     renderInstances();
+    if (S.view === 'instance') renderInstancePage();
+    refreshRunning();
     setTimeout(() => { $('#play-status').hidden = true; $('#ps-count').textContent = ''; if (btn.dataset.state !== 'loading') btn.dataset.state = 'idle'; }, 1400);
   }
 }
@@ -322,7 +364,7 @@ async function play(id = S.current, launch = true) {
   $('#win-close').addEventListener('click', () => w.close());
 })();
 
-$('#play').addEventListener('click', () => play(S.current, true));
+$('#play').addEventListener('click', () => (isRunning(S.current) ? stopGame(S.current) : play(S.current, true)));
 $('#mi-install').addEventListener('click', () => play(S.current, false));
 // Right-click menu on instance cards/rows.
 const ctxInst = () => $('#menu-ctx-instance')._host?.dataset.inst;
@@ -363,6 +405,7 @@ async function start() {
     const saved = localStorage.getItem('fl.current');
     S.current = inst.some((i) => i.id === saved) ? saved : inst[0]?.id || null;
     renderInstances();
+    refreshRunning();
     $('#app').hidden = false;
     window.FUI.initSegs();
     show(location.hash === '#instance' && S.current ? 'instance' : 'home', { push: false });

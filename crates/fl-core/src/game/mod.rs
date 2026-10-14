@@ -5,5 +5,6 @@ pub mod install;
 pub mod java;
 pub mod launch;
 pub mod natives;
+pub mod running;
 pub mod service;
 pub mod version;

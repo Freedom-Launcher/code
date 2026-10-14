@@ -1,11 +1,17 @@
 /* Freedom Launcher — design tokens.
    Themes change only these variables; components never hardcode colors, radii or timing. */
+/* Local fonts (CSP: no network). Inter + JetBrains Mono, variable, latin + cyrillic. OFL. */
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: block; src: url("fonts/inter-cyrillic-wght-normal.woff2") format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: block; src: url("fonts/inter-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 100 800; font-display: block; src: url("fonts/jetbrains-mono-cyrillic-wght-normal.woff2") format("woff2"); unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 100 800; font-display: block; src: url("fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
 :root {
   color-scheme: dark;
 
   /* Type: one face for UI, mono for data (versions, sizes, paths). */
   --font-ui: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-display: "Inter Display", "Segoe UI Variable Display", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Inter", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Cascadia Mono", "Consolas", ui-monospace, monospace;
   --text-xs: 11px; --text-sm: 12px; --text-md: 13px; --text-lg: 15px;
   --text-xl: 20px; --text-2xl: 28px; --text-3xl: 44px;
@@ -25,35 +31,41 @@
   --pop-scale: .97;  /* starting scale for popovers */
   --blur-in: 4px;    /* text/icon swap blur */
 
-  /* Dark (default). */
-  --bg: #0d0e10;
-  --surface-1: #141518;
-  --surface-2: #1a1b1f;
-  --surface-3: #222328;
-  --hover: rgba(255, 255, 255, .045);
-  --press: rgba(255, 255, 255, .07);
-  --line: rgba(255, 255, 255, .07);
-  --line-strong: rgba(255, 255, 255, .12);
-  --text: #ececee;
-  --text-2: #a0a0a8;
-  --text-3: #66666e;
+  /* Dark (default): soft neutral greys, off-white text, faint hairlines, calm shadows —
+     the same restraint as the light theme instead of pure black + bright white. */
+  --bg: #111214;
+  --surface-1: #17181b;
+  --surface-2: #1c1d21;
+  --surface-3: #232428;
+  --hover: rgba(255, 255, 255, .04);
+  --press: rgba(255, 255, 255, .06);
+  --line: rgba(255, 255, 255, .06);
+  --line-strong: rgba(255, 255, 255, .1);
+  --text: #e4e4e7;
+  --text-2: #9b9ba4;
+  --text-3: #6b6b74;
   --accent: #3fcf7f;
   --accent-hover: #52da8e;
   --accent-press: #33b96e;
-  --on-accent: #052512;
-  --accent-soft: rgba(63, 207, 127, .13);
-  --danger: #ff5f57;
-  --danger-soft: rgba(255, 95, 87, .12);
+  --on-accent: #062a15;
+  --accent-soft: rgba(63, 207, 127, .12);
+  --danger: #ff6b63;
+  --danger-soft: rgba(255, 107, 99, .12);
   --warn: #f2b64b;
-  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(63, 207, 127, .55);
-  --shadow-1: inset 0 1px rgba(255, 255, 255, .04), 0 1px 2px rgba(0, 0, 0, .35), 0 0 0 1px var(--line);
-  --shadow-2: inset 0 1px rgba(255, 255, 255, .05), 0 10px 30px -14px rgba(0, 0, 0, .6), 0 0 0 1px var(--line);
-  --shadow-pop: inset 0 1px #ffffff0f, 0 24px 60px -24px #00000073, 0 8px 18px -10px #0000005c, 0 0 0 1px var(--line-strong);
-  --shadow-accent: inset 0 .5px rgba(255, 255, 255, .35), 0 1px 1px rgba(0, 0, 0, .25), 0 4px 10px -4px rgba(63, 207, 127, .45);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(63, 207, 127, .5);
+  --shadow-1: 0 0 0 1px var(--line);
+  --shadow-2: 0 8px 24px -16px rgba(0, 0, 0, .5), 0 0 0 1px var(--line);
+  --shadow-pop: 0 20px 48px -20px rgba(0, 0, 0, .6), 0 0 0 1px var(--line-strong);
+  --shadow-accent: 0 1px 1px rgba(0, 0, 0, .2), 0 4px 12px -6px rgba(63, 207, 127, .4);
+  /* Light text on dark looks bolder than dark on light: dark uses slightly lighter weights. */
+  --w-regular: 400; --w-medium: 480; --w-semibold: 560;
+  --tracking-body: -.003em;
 }
 
 [data-theme="light"] {
   color-scheme: light;
+  --w-regular: 400; --w-medium: 500; --w-semibold: 600;
+  --tracking-body: -.006em;
   --bg: #f5f5f6;
   --surface-1: #ffffff;
   --surface-2: #f2f2f4;
@@ -92,8 +104,12 @@ html, body { margin: 0; height: 100%; }
 body {
   background: var(--bg);
   color: var(--text);
-  font: 400 var(--text-md)/1.45 var(--font-ui);
-  font-feature-settings: "cv11", "ss01", "tnum" 0;
+  font: var(--w-regular) var(--text-md)/1.5 var(--font-ui);
+  letter-spacing: var(--tracking-body);
+  /* Inter: single-storey a, open digits, contextual alternates. */
+  font-feature-settings: "cv11", "ss01", "calt";
+  font-optical-sizing: auto;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   user-select: none;

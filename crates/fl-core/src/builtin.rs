@@ -244,6 +244,13 @@ fn register_game(r: &mut ActionRegistry) {
         let InstanceArg { instance } = args(a)?;
         service::launch_instance(&c, &instance).await
     });
+    r.register("game.running", P::InstancesRead, false, |c, _a| async move {
+        Ok(service::running(&c))
+    });
+    r.register("game.stop", P::GameLaunch, true, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        Ok(service::stop(&c, &instance))
+    });
 }
 
 async fn update_settings(c: &Core, f: impl FnOnce(&mut Settings)) -> Result<Value, CoreError> {
