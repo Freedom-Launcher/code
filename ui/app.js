@@ -97,16 +97,65 @@ function openInstance(id) {
   show('instance');
 }
 // ---------- Accounts ----------
+// Heads: face + hat layer cropped from the skin (8×8, drawn pixelated by CSS).
+// Offline/unknown skins get the default Steve face.
+const STEVE = ['HHHHHHHH', 'HHHHHHHH', 'HSSSSSSH', 'SSSSSSSS', 'SWBSSBWS', 'SSSNNSSS', 'SSMMMMSS', 'SSSSSSSS'];
+const STEVE_C = { H: '#2b1e0d', S: '#b78a6b', W: '#ffffff', B: '#4a3a8b', N: '#94634a', M: '#6a4030' };
+function steveHead() {
+  const c = Object.assign(document.createElement('canvas'), { width: 8, height: 8 });
+  const g = c.getContext('2d');
+  STEVE.forEach((row, y) => [...row].forEach((k, x) => { g.fillStyle = STEVE_C[k]; g.fillRect(x, y, 1, 1); }));
+  return c.toDataURL();
+}
+const HEADS = new Map();
+function cropHead(dataUrl) {
+  return new Promise((ok, bad) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = Object.assign(document.createElement('canvas'), { width: 8, height: 8 });
+      const g = c.getContext('2d');
+      g.imageSmoothingEnabled = false;
+      g.drawImage(img, 8, 8, 8, 8, 0, 0, 8, 8);
+      // Hat layer: old 64×32 skins often have it fully opaque (black) — the
+      // game ignores such a layer, so do we.
+      const h = Object.assign(document.createElement('canvas'), { width: 8, height: 8 });
+      const hg = h.getContext('2d');
+      hg.drawImage(img, 40, 8, 8, 8, 0, 0, 8, 8);
+      const a = hg.getImageData(0, 0, 8, 8).data;
+      let clear = false;
+      for (let k = 3; k < a.length; k += 4) if (a[k] < 255) { clear = true; break; }
+      if (clear) g.drawImage(h, 0, 0);
+      ok(c.toDataURL());
+    };
+    img.onerror = bad;
+    img.src = dataUrl;
+  });
+}
+/** Head image for an account; starts as Steve and swaps to the real skin. */
+function headFor(acc, cls = 'head') {
+  const im = el('img', { class: cls, alt: '', draggable: 'false' });
+  im.src = HEADS.get(acc?.id) || steveHead();
+  if (acc && acc.kind?.type === 'microsoft' && !HEADS.has(acc.id)) {
+    HEADS.set(acc.id, im.src);
+    call('accounts.skin', { id: acc.id })
+      .then((r) => (r?.data_url ? cropHead(r.data_url) : null))
+      .then((url) => { if (!url) return; HEADS.set(acc.id, url); $$(`img[data-acc="${acc.id}"]`).forEach((x) => { x.src = url; }); })
+      .catch(() => {});
+  }
+  if (acc) im.dataset.acc = acc.id;
+  return im;
+}
 function renderAccounts(state) {
   S.accounts = state;
   $('#acc-list').replaceChildren(...state.accounts.map((a) => el('button', {
     class: 'menu-item acc-row', 'data-action': 'accounts.select', 'data-args': JSON.stringify({ id: a.id }), 'aria-selected': String(a.id === state.selected),
-  }, el('span', { class: 'inst-ico head' }, initials(a.name)), a.name, el('span', { class: 'sub' }, a.id === state.selected ? '✓ ' + (KIND[a.kind.type] || '') : KIND[a.kind.type] || ''))));
+  }, headFor(a, 'head head-lg'), el('span', { class: 'acc-txt' }, el('b', {}, a.name), el('span', { class: 'sub' }, KIND[a.kind.type] || '')), a.id === state.selected ? el('span', { class: 'acc-check' }, '✓') : '')));
   if (!state.accounts.length) $('#acc-list').append(el('div', { class: 'menu-item faint' }, 'Нет аккаунтов'));
   $('#offline-open').hidden = !state.offline_available;
   const sel = state.accounts.find((a) => a.id === state.selected);
   swapText($('#account-name'), sel ? sel.name : 'Войти');
-  $('#account-head').textContent = sel ? initials(sel.name) : '?';
+  $('#account-head').replaceWith(Object.assign(headFor(sel), { id: 'account-head' }));
+  $('#account-kind').textContent = sel ? (KIND[sel.kind.type] || '') : 'Нет аккаунта';
 }
 
 $('#dlg-login').addEventListener('dialog:open', async () => {
@@ -132,7 +181,9 @@ $('#dlg-offline').addEventListener('submit', async (ev) => {
 });
 
 // ---------- Instances: home rows, library grid, pinned icons, instance page ----------
-const recent = () => [...S.instances].sort((a, b) => b.created_at - a.created_at);
+const lastTs = (i) => i.last_played || i.created_at;
+const recent = () => [...S.instances].sort((a, b) => lastTs(b) - lastTs(a));
+const playedText = (i) => (i.last_played ? `играли ${ago(i.last_played)}` : 'ещё не запускали');
 function quickPlay(i, cls) {
   return el('button', { class: cls, 'data-id': `instance.${i.id}.play`, 'aria-label': `Играть: ${i.name}`, html: PLAY_SVG, onclick: (e) => { e.stopPropagation(); play(i.id); } });
 }
@@ -141,16 +192,18 @@ function jumpRow(i) {
   const b = el('button', { class: 'btn btn-primary btn-sm', 'data-id': `instance.${i.id}.play`, onclick: (e) => { e.stopPropagation(); play(i.id); } },
     el('span', { class: 'lbl', html: `${PLAY_SVG}<span>${busy ? 'Запуск…' : 'Играть'}</span>` }));
   if (busy) b.dataset.state = 'loading';
-  return el('div', { class: 'jump-row', 'data-id': `home.jump.${i.id}`, tabIndex: 0, onclick: () => openInstance(i.id) },
+  return el('div', { class: 'jump-row', 'data-id': `home.jump.${i.id}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, tabIndex: 0, onclick: () => openInstance(i.id) },
     el('span', { class: 'inst-ico' }, initials(i.name)),
     el('div', { class: 'grow' }, el('div', { class: 'title' }, i.name),
-      el('div', { class: 'sub' }, el('span', {}, 'Vanilla'), el('span', { class: 'mono' }, i.version), el('span', { class: 'sep' }, '·'), el('span', {}, `создана ${ago(i.created_at)}`))),
+      el('div', { class: 'sub' }, el('span', {}, 'Vanilla'), el('span', { class: 'mono' }, i.version), el('span', { class: 'sep' }, '·'), el('span', {}, playedText(i)))),
     b);
 }
 function card(i) {
-  return el('div', { class: 'card-inst', 'data-id': `instance.${i.id}`, tabIndex: 0, onclick: () => openInstance(i.id) },
+  return el('div', { class: 'card-inst', 'data-id': `instance.${i.id}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, tabIndex: 0, onclick: () => openInstance(i.id) },
     el('span', { class: 'inst-ico art' }, initials(i.name)),
-    el('div', {}, el('div', { class: 'title' }, i.name), el('div', { class: 'sub mono' }, `Vanilla ${i.version}`)),
+    el('div', {}, el('div', { class: 'title' }, i.name),
+      el('div', { class: 'badges' }, el('span', { class: 'badge-sm' }, 'Vanilla'), el('span', { class: 'badge-sm mono' }, i.version)),
+      el('div', { class: 'sub' }, playedText(i))),
     quickPlay(i, 'quick'));
 }
 function renderInstances() {
@@ -165,7 +218,7 @@ function renderInstances() {
   $('#lib-grid').replaceChildren(...list.map(card));
   if (!list.length) $('#lib-grid').append(el('div', { class: 'grid-empty' }, has ? 'Ничего не найдено' : 'Сборок пока нет'));
   $('#nav-pins').replaceChildren(...recent().slice(0, 5).map((i) => el('button', {
-    class: 'nav-pin', 'data-inst': i.id, 'data-tip': i.name, 'data-id': `nav.pin.${i.id}`, 'aria-label': i.name, onclick: () => openInstance(i.id),
+    class: 'nav-pin', 'data-inst': i.id, 'data-ctx': 'menu-ctx-instance', 'data-tip': i.name, 'data-id': `nav.pin.${i.id}`, 'aria-label': i.name, onclick: () => openInstance(i.id),
   }, el('span', { class: 'inst-ico' }, initials(i.name)))));
   if (S.view === 'instance') renderInstancePage();
 }
@@ -176,6 +229,7 @@ function renderInstancePage() {
   $('#ip-name').textContent = i.name;
   $('#ip-version').textContent = i.version;
   $('#ip-created').textContent = `создана ${new Date(i.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`;
+  $('#ip-played').textContent = playedText(i);
   const busy = S.playing === i.id;
   $('#play').dataset.state = busy ? 'loading' : 'idle';
   $('#play-status').hidden = !busy;
@@ -243,9 +297,9 @@ async function play(id = S.current, launch = true) {
     }
   }, 250);
   try {
-    await call('game.install', { instance: id });
+    await call('game.install', { instance: id, verify: !launch });
     progress($('#ps-bar'), 1);
-    if (launch) { $('#ps-stage').textContent = STAGE.launch; await call('game.launch', { instance: id }); }
+    if (launch) { $('#ps-stage').textContent = STAGE.launch; await call('game.launch', { instance: id }); const it = byId(id); if (it) { it.last_played = Math.floor(Date.now() / 1000); renderInstances(); } }
     btn.dataset.state = 'success';
     toast(launch ? 'Игра запущена' : 'Файлы в порядке');
   } catch (e) {
@@ -259,8 +313,22 @@ async function play(id = S.current, launch = true) {
     setTimeout(() => { $('#play-status').hidden = true; $('#ps-count').textContent = ''; if (btn.dataset.state !== 'loading') btn.dataset.state = 'idle'; }, 1400);
   }
 }
+// ---------- Window: our top bar is the only title bar ----------
+(() => {
+  const w = window.__TAURI__?.window?.getCurrentWindow?.();
+  if (!w) return;
+  $('#win-min').addEventListener('click', () => w.minimize());
+  $('#win-max').addEventListener('click', () => w.toggleMaximize());
+  $('#win-close').addEventListener('click', () => w.close());
+})();
+
 $('#play').addEventListener('click', () => play(S.current, true));
 $('#mi-install').addEventListener('click', () => play(S.current, false));
+// Right-click menu on instance cards/rows.
+const ctxInst = () => $('#menu-ctx-instance')._host?.dataset.inst;
+$('#cx-play').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(), true); });
+$('#cx-open').addEventListener('click', () => { FUI.closeMenu(); openInstance(ctxInst()); });
+$('#cx-verify').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(), false); });
 
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('input, select, textarea')) return;

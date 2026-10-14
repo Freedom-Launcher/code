@@ -38,19 +38,24 @@
     </nav>
 
     <!-- Top bar: back + breadcrumb, running indicator, account -->
-    <header class="top" data-id="topbar">
+    <header class="top" data-id="topbar" data-tauri-drag-region>
       <button class="btn btn-icon btn-ghost btn-sm" id="back" data-id="topbar.back" aria-label="Назад" disabled>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>
       </button>
-      <div class="crumbs" id="crumbs" data-id="topbar.crumbs"></div>
-      <div class="spacer"></div>
+      <div class="crumbs" id="crumbs" data-id="topbar.crumbs" data-tauri-drag-region></div>
+      <div class="spacer" data-tauri-drag-region></div>
       <div data-slot="topbar.end"></div>
       <div class="running" id="running" data-id="topbar.running"><i class="dot"></i><span id="running-text">Ничего не запущено</span></div>
       <button class="btn btn-ghost account-btn" id="account-btn" data-id="account-button" data-menu="menu-account">
-        <span class="head inst-ico" id="account-head">?</span>
-        <span class="lbl" id="account-name">Войти</span>
+        <img class="head" id="account-head" alt="">
+        <span class="acc-txt"><b class="lbl" id="account-name">Войти</b><span class="sub" id="account-kind">Нет аккаунта</span></span>
         <svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg>
       </button>
+      <div class="win-ctl" data-id="topbar.window">
+        <button class="win-btn" id="win-min" data-id="window.minimize" aria-label="Свернуть"><svg viewBox="0 0 12 12"><path d="M2 6h8"/></svg></button>
+        <button class="win-btn" id="win-max" data-id="window.maximize" aria-label="Развернуть"><svg viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" rx="1"/></svg></button>
+        <button class="win-btn win-close" id="win-close" data-id="window.close" aria-label="Закрыть"><svg viewBox="0 0 12 12"><path d="m2.5 2.5 7 7m0-7-7 7"/></svg></button>
+      </div>
     </header>
     <!-- Main area: one view at a time -->
     <main class="main" data-id="main">
@@ -95,7 +100,7 @@
             <span class="inst-ico xl" id="ip-ico">?</span>
             <div class="grow">
               <h1 class="inst-title" id="ip-name"></h1>
-              <div class="inst-meta"><span>Vanilla</span><span class="mono" id="ip-version"></span><span id="ip-created"></span></div>
+              <div class="inst-meta"><span>Vanilla</span><span class="mono" id="ip-version"></span><span id="ip-created"></span><span class="sep">·</span><span id="ip-played"></span></div>
             </div>
             <div class="play-row" data-id="instance.play">
               <button class="btn btn-icon btn-ghost" data-menu="menu-instance" data-tip="Действия со сборкой" data-id="instance.more" aria-label="Ещё">
@@ -186,6 +191,12 @@
     <button class="menu-item" data-view="discover"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="9" y="3" width="4" height="4" rx="1"/><rect x="3" y="9" width="4" height="4" rx="1"/><rect x="9" y="9" width="4" height="4" rx="1"/></svg>Сторонний сервис</button>
   </div>
 
+  <div class="pop" id="menu-ctx-instance" data-id="menu.ctx.instance" role="menu">
+    <button class="menu-item" id="cx-play"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>Играть</button>
+    <button class="menu-item" id="cx-open"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3.5h-2.5v9h9V10M9 3.5h3.5V7M12.5 3.5 7.5 8.5"/></svg>Открыть сборку</button>
+    <button class="menu-item" id="cx-verify"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>Проверить файлы</button>
+    <div data-slot="menu.ctx.instance"></div>
+  </div>
   <div class="pop" id="menu-instance" data-id="menu.instance" role="menu">
     <button class="menu-item" id="mi-install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v7m-3-3 3 3 3-3M3.5 13h9"/></svg>Проверить файлы</button>
     <div data-slot="menu.instance"></div>

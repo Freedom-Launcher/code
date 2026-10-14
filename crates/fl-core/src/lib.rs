@@ -22,6 +22,7 @@ pub mod instances;
 pub mod msauth;
 pub mod permissions;
 pub mod settings;
+pub mod skins;
 pub mod store;
 pub mod versions;
 

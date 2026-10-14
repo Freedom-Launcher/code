@@ -18,6 +18,13 @@ struct InstanceArg {
     instance: String,
 }
 
+#[derive(Deserialize)]
+struct InstallArg {
+    instance: String,
+    #[serde(default)]
+    verify: bool,
+}
+
 fn args<T: DeserializeOwned>(v: Value) -> Result<T, CoreError> {
     let v = if v.is_null() { json!({}) } else { v };
     serde_json::from_value(v).map_err(|e| CoreError::BadArgs(e.to_string()))
@@ -72,6 +79,24 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     r.register("accounts.list", P::AccountsRead, true, |c, _| async move {
         let s: AccountStore = store::load(&c.path(ACCOUNTS))?;
         Ok(s.public_view())
+    });
+    // Skin PNG of an account as a data URL (`null` → UI draws the default head).
+    r.register("accounts.skin", P::AccountsRead, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            id: String,
+        }
+        let A { id } = args(a)?;
+        let s: AccountStore = store::load(&c.path(ACCOUNTS))?;
+        let acc = s
+            .accounts
+            .iter()
+            .find(|x| x.id == id)
+            .ok_or_else(|| CoreError::BadArgs("unknown account".into()))?;
+        let png = crate::skins::skin_png(&c, acc).await?;
+        Ok(json!({
+            "data_url": png.map(|p| format!("data:image/png;base64,{}", crate::skins::b64_encode(&p)))
+        }))
     });
     r.register(
         "accounts.select",
@@ -189,6 +214,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 name: name.trim().to_owned(),
                 version,
                 created_at: unix_now(),
+                last_played: 0,
             };
             std::fs::create_dir_all(c.data_dir.join("instances").join(&inst.id))?;
             s.instances.push(inst.clone());
@@ -202,8 +228,8 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
 fn register_game(r: &mut ActionRegistry) {
     // `game.install` resolves when done; the UI polls `game.progress` meanwhile.
     r.register("game.install", P::GameLaunch, true, |c, a| async move {
-        let InstanceArg { instance } = args(a)?;
-        service::install_instance(&c, &instance).await
+        let InstallArg { instance, verify } = args(a)?;
+        service::install_instance(&c, &instance, verify).await
     });
     r.register(
         "game.progress",

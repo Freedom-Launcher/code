@@ -37,7 +37,14 @@
   border-bottom: 1px solid var(--line); -webkit-app-region: drag; app-region: drag;
 }
 .top button { -webkit-app-region: no-drag; app-region: no-drag; }
-.top .spacer { flex: 1; }
+.top .spacer { flex: 1; align-self: stretch; }
+/* Custom window controls: the app draws its only title bar. */
+.top { padding-right: 0; }
+.win-ctl { display: flex; align-self: stretch; margin-left: var(--s-2); }
+.win-btn { width: 46px; border: 0; background: none; color: var(--text-3); display: grid; place-items: center; cursor: default; transition: background 120ms ease, color 120ms ease; }
+.win-btn svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.2; }
+.win-btn:hover { background: var(--surface-3); color: var(--text); }
+.win-close:hover { background: #c42b1c; color: #fff; }
 .crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--text-sm); color: var(--text-3); }
 .crumbs b { color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .crumbs .sep { opacity: .6; }
@@ -48,6 +55,14 @@
 .running.is-on { color: var(--text); }
 .running.is-on .dot { background: var(--accent); opacity: 1; box-shadow: 0 0 0 3px var(--accent-soft); }
 .account-btn { gap: var(--s-2); padding: 0 6px 0 4px; }
+.account-btn { height: 34px; padding: 0 8px 0 5px; }
+.acc-txt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; min-width: 0; }
+.acc-txt b { font-weight: 500; font-size: var(--text-sm); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+.acc-txt .sub { font-size: 11px; color: var(--text-3); }
+.head { box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.3); }
+.head-lg { width: 28px; height: 28px; border-radius: 6px; }
+.acc-row { gap: var(--s-3); padding-top: 6px; padding-bottom: 6px; }
+.acc-row .acc-check { margin-left: auto; color: var(--accent); }
 .account-btn .caret { width: 14px; height: 14px; color: var(--text-3); }
 .head { width: 22px; height: 22px; border-radius: 5px; background: var(--surface-3); image-rendering: pixelated; flex: none; object-fit: cover; }
 .head-lg { width: 32px; height: 32px; border-radius: 7px; }
@@ -177,3 +192,7 @@
   .page-inner { padding: var(--s-6) var(--s-5) 96px; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); }
 }
+
+/* Instance details: loader/version badges, last played. */
+.badges { display: flex; gap: 4px; margin: 4px 0 3px; flex-wrap: wrap; }
+.badge-sm { height: 18px; padding: 0 6px; display: inline-flex; align-items: center; border-radius: var(--r-chip, 6px); font-size: 11px; color: var(--text-2); background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line); }

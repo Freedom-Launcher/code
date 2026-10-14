@@ -1,7 +1,17 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Main window: core IPC only. Everything else goes through the `action` command and the core's permission checks.",
-  "windows": ["main"],
-  "permissions": ["core:default"]
+  "description": "Main window: core IPC plus the custom title bar (drag, minimize, maximize, close). Everything else goes through the `action` command and the core's permission checks.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-internal-toggle-maximize",
+    "core:window:allow-is-maximized",
+    "core:window:allow-close"
+  ]
 }

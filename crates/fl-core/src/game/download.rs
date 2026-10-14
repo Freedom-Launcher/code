@@ -89,9 +89,10 @@ pub fn is_valid(path: &Path, sha1: &str, size: u64) -> bool {
     sha1_file(path).is_ok_and(|h| h.eq_ignore_ascii_case(sha1))
 }
 
-async fn fetch_one(http: &reqwest::Client, t: &Task) -> Result<u64, CoreError> {
+/// Downloads one file. `Ok(None)` means it was already valid and skipped.
+async fn fetch_one(http: &reqwest::Client, t: &Task) -> Result<Option<u64>, CoreError> {
     if is_valid(&t.path, &t.sha1, t.size) {
-        return Ok(t.size);
+        return Ok(None);
     }
     let mut last = None;
     for attempt in 0..ATTEMPTS {
@@ -99,7 +100,7 @@ async fn fetch_one(http: &reqwest::Client, t: &Task) -> Result<u64, CoreError> {
             tokio::time::sleep(Duration::from_millis(500 * u64::from(attempt))).await;
         }
         match try_fetch(http, t).await {
-            Ok(n) => return Ok(n),
+            Ok(n) => return Ok(Some(n)),
             Err(e) => last = Some(e),
         }
     }
@@ -149,9 +150,13 @@ pub async fn fetch_all(
         .map(|t| {
             let progress = Arc::clone(&progress);
             async move {
-                let n = fetch_one(http, &t).await?;
+                // Skipped files leave the byte totals, so the bar shows only
+                // what is really downloaded (not a fake "re-download").
+                match fetch_one(http, &t).await? {
+                    Some(n) => progress.done_bytes.fetch_add(n, Ordering::Relaxed),
+                    None => progress.total_bytes.fetch_sub(t.size, Ordering::Relaxed),
+                };
                 progress.done_files.fetch_add(1, Ordering::Relaxed);
-                progress.done_bytes.fetch_add(n, Ordering::Relaxed);
                 Ok::<_, CoreError>(())
             }
         })
@@ -180,6 +185,28 @@ mod tests {
         assert!(!is_valid(&p, "0000000000000000000000000000000000000000", 3));
         assert!(!is_valid(&p, "", 4));
         assert!(is_valid(&p, "", 0));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[tokio::test]
+    async fn valid_files_are_not_downloaded_again() {
+        let dir = std::env::temp_dir().join(format!("fl-dl-{}", uuid::Uuid::new_v4()));
+        let p = dir.join("x.txt");
+        write_atomic(&p, b"abc").unwrap();
+        let progress = Arc::new(Progress::default());
+        let task = Task {
+            // Unreachable on purpose: a skipped file must not touch the network.
+            url: "http://127.0.0.1:9/never".into(),
+            path: p,
+            sha1: "a9993e364706816aba3e25717850c26c9cd0d89d".into(),
+            size: 3,
+        };
+        fetch_all(&reqwest::Client::new(), vec![task], Arc::clone(&progress))
+            .await
+            .unwrap();
+        assert_eq!(progress.done_files.load(Ordering::Relaxed), 1);
+        assert_eq!(progress.total_bytes.load(Ordering::Relaxed), 0);
+        assert_eq!(progress.done_bytes.load(Ordering::Relaxed), 0);
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

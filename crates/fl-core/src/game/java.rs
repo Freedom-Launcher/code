@@ -101,19 +101,27 @@ pub fn component_for(java: Option<&JavaVersion>) -> (String, u32) {
     }
 }
 
+/// The Java executable if this runtime is already fully installed (no network).
+pub fn installed(core: &Core, java: Option<&JavaVersion>) -> Option<PathBuf> {
+    let (component, _) = component_for(java);
+    let dir = runtime_dir(core, &component);
+    let exe = java_exe(&dir, &Env::current());
+    (exe.exists() && dir.join(".version").exists()).then_some(exe)
+}
+
 /// Ensures the runtime is installed and returns the Java executable.
 pub async fn ensure(
     core: &Core,
     java: Option<&JavaVersion>,
     progress: Arc<Progress>,
 ) -> Result<PathBuf, CoreError> {
+    if let Some(exe) = installed(core, java) {
+        return Ok(exe);
+    }
     let env = Env::current();
     let (component, major) = component_for(java);
     let dir = runtime_dir(core, &component);
     let exe = java_exe(&dir, &env);
-    if exe.exists() && dir.join(".version").exists() {
-        return Ok(exe);
-    }
     match from_mojang(core, &env, &component, &dir, Arc::clone(&progress)).await {
         Ok(()) => {}
         Err(mojang_err) => {

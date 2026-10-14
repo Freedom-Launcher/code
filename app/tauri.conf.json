@@ -16,7 +16,9 @@
         "height": 700,
         "minWidth": 820,
         "minHeight": 540,
-        "backgroundColor": "#0f1115"
+        "backgroundColor": "#0f1115",
+        "decorations": false,
+        "shadow": true
       }
     ],
     "security": {
@@ -26,6 +28,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/icon.png", "icons/icon.ico"]
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ]
   }
 }

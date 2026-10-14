@@ -8,6 +8,9 @@ pub struct Instance {
     pub name: String,
     pub version: String,
     pub created_at: u64,
+    /// Unix time of the last successful launch (0 = never played).
+    #[serde(default)]
+    pub last_played: u64,
 }
 
 #[derive(Default, Serialize, Deserialize)]

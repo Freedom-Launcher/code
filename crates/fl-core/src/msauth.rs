@@ -16,7 +16,7 @@ const SCOPE: &str = "XboxLive.signin offline_access";
 const XBL_URL: &str = "https://user.auth.xboxlive.com/user/authenticate";
 const XSTS_URL: &str = "https://xsts.auth.xboxlive.com/xsts/authorize";
 const MC_LOGIN_URL: &str = "https://api.minecraftservices.com/authentication/login_with_xbox";
-const MC_PROFILE_URL: &str = "https://api.minecraftservices.com/minecraft/profile";
+pub const MC_PROFILE_URL: &str = "https://api.minecraftservices.com/minecraft/profile";
 
 pub struct Pending {
     device_code: String,

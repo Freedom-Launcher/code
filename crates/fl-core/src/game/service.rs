@@ -21,6 +21,17 @@ use crate::{
 pub(crate) const ACCOUNTS: &str = "accounts.json";
 pub(crate) const INSTANCES: &str = "instances.json";
 
+/// Records the launch time («Играли 2 ч назад», order of «Продолжить»).
+async fn mark_played(core: &Core, id: &str) -> Result<(), CoreError> {
+    let _g = core.state_lock.lock().await;
+    let mut s: InstanceStore = store::load(&core.path(INSTANCES))?;
+    if let Some(i) = s.instances.iter_mut().find(|i| i.id == id) {
+        i.last_played = crate::unix_now();
+        store::save(&core.path(INSTANCES), &s, false)?;
+    }
+    Ok(())
+}
+
 fn find_instance(core: &Core, id: &str) -> Result<Instance, CoreError> {
     let s: InstanceStore = store::load(&core.path(INSTANCES))?;
     s.instances
@@ -44,10 +55,34 @@ pub fn progress(core: &Core, instance: &str) -> Value {
         .unwrap_or(Value::Null)
 }
 
-/// Installs the game files and the matching Java runtime.
-pub async fn install_instance(core: &Core, instance: &str) -> Result<Value, CoreError> {
+/// Already installed (marker + local version JSON + Java)? Checked without
+/// network or hashing, so pressing «Играть» again is instant.
+fn ready(core: &Core, layout: &Layout, version: &str) -> Option<(String, std::path::PathBuf)> {
+    if !layout.installed_marker(version).exists() {
+        return None;
+    }
+    let bytes = std::fs::read(layout.version_json(version)).ok()?;
+    let v: super::version::VersionJson = serde_json::from_slice(&bytes).ok()?;
+    let exe = java::installed(core, v.java_version.as_ref())?;
+    Some((v.id, exe))
+}
+
+/// Installs the game files and the matching Java runtime. With `verify`
+/// every file is re-hashed (the «Проверить файлы» menu item); otherwise an
+/// installed version returns at once.
+pub async fn install_instance(
+    core: &Core,
+    instance: &str,
+    verify: bool,
+) -> Result<Value, CoreError> {
     let inst = find_instance(core, instance)?;
     let p = progress_for(core, instance);
+    if !verify {
+        if let Some((id, exe)) = ready(core, &Layout::new(core), &inst.version) {
+            p.set_stage("done");
+            return Ok(json!({ "instance": instance, "version": id, "java": exe, "skipped": true }));
+        }
+    }
     p.set_stage("game");
     let v = install::install(core, &inst.version, Arc::clone(&p)).await?;
     p.set_stage("java");
@@ -109,7 +144,7 @@ pub async fn launch_instance(core: &Core, instance: &str) -> Result<Value, CoreE
     let layout = Layout::new(core);
     // Full verification is `game.install`; a launch only installs when needed.
     if !layout.installed_marker(&inst.version).exists() {
-        install_instance(core, instance).await?;
+        install_instance(core, instance, false).await?;
     }
     let v = install::load_version(core, &layout, &inst.version).await?;
     let java = java::ensure(core, v.java_version.as_ref(), Arc::new(Progress::default())).await?;
@@ -122,5 +157,6 @@ pub async fn launch_instance(core: &Core, instance: &str) -> Result<Value, CoreE
     };
     let args = launch::build_args(&v, &Env::current(), &layout, &auth, &opts);
     let child = launch::spawn(&java, &args, &opts.game_dir)?;
+    mark_played(core, instance).await?;
     Ok(json!({ "instance": instance, "pid": child.id(), "memory_mb": opts.memory_mb }))
 }

@@ -142,6 +142,38 @@
     return missing.length;
   }
 
-  window.FUI = { $, $$, initSegs, toggleMenu, closeMenu, openDlg, closeDlg, toast, progress, swapText, devCheck };
+  /** Opens a menu at the pointer (custom context menu), kept inside the window. */
+  function openMenuAt(m, x, y) {
+    closeMenu();
+    m.style.right = '';
+    m.style.left = `${x}px`; m.style.top = `${y}px`;
+    m.style.setProperty('--origin', 'top left');
+    m.setAttribute('data-instant', '');
+    m.setAttribute('data-open', '');
+    openMenu = m;
+    const r = m.getBoundingClientRect();
+    if (r.right > innerWidth - 8) m.style.left = `${Math.max(8, x - r.width)}px`;
+    if (r.bottom > innerHeight - 8) m.style.top = `${Math.max(8, y - r.height)}px`;
+  }
+  // No browser context menu (Печать, Проверить…): this is an app, not a page.
+  // Text fields keep the native one for copy/paste; elements with
+  // `data-ctx="<menu id>"` get our own menu.
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.closest('input, textarea, [contenteditable]')) return;
+    e.preventDefault();
+    const host = e.target.closest('[data-ctx]');
+    const m = host && document.getElementById(host.dataset.ctx);
+    if (!m) { closeMenu(); return; }
+    m._host = host;
+    m.dispatchEvent(new CustomEvent('ctx-open', { detail: host }));
+    openMenuAt(m, e.clientX, e.clientY);
+  });
+  // Release builds: no reload / print / devtools shortcuts.
+  document.addEventListener('keydown', (e) => {
+    if (location.search.includes('dev')) return;
+    const k = e.key.toLowerCase();
+    if (k === 'f5' || k === 'f12' || ((e.ctrlKey || e.metaKey) && (k === 'r' || k === 'p' || (e.shiftKey && (k === 'i' || k === 'j'))))) e.preventDefault();
+  });
+  window.FUI = { $, $$, initSegs, toggleMenu, closeMenu, openMenuAt, openDlg, closeDlg, toast, progress, swapText, devCheck };
   document.addEventListener('DOMContentLoaded', () => initSegs());
 })();
