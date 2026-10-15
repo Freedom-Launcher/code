@@ -29,7 +29,7 @@ Example: [`docs/addons/example`](addons/example). Copy it into the addons folder
 | `entry` | HTML file inside the folder, default `index.html` |
 | `permissions` | what the addon needs, see below |
 | `slots` | where it appears: `rail.end`, `topbar.end`, `instance.end`, `accounts.end`, `discover.end`, `settings.end`, `menu.ctx.instance`, `menu.instance` |
-| `hosts` | hosts reachable through the core's network action; needs `network` |
+| `hosts` | hosts the addon will reach through the core's network action (next M3 step); needs `network` |
 
 ## Permissions
 
@@ -40,7 +40,7 @@ Example: [`docs/addons/example`](addons/example). Copy it into the addons folder
 | Расширенный | `accounts_provide`, `process` — «Официальный» and «Проверено» packages only |
 
 Nothing runs until the user approves. A new version that asks for more
-permissions runs with the old ones until the user approves again. Launcher
+permissions stays off until the user approves again. Launcher
 self-management (themes, addons, safe settings) is never available to addons.
 
 ## SDK
