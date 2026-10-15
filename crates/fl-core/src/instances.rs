@@ -24,13 +24,15 @@ fn vanilla() -> String {
 }
 
 /// Loaders an instance can be created with.
-pub const LOADERS: &[&str] = &["vanilla", "fabric"];
+pub const LOADERS: &[&str] = &["vanilla", "fabric", "forge", "neoforge"];
 
 impl Instance {
     /// Id of the version this instance launches (its `versions/<id>/` dir).
     pub fn version_id(&self) -> String {
         match self.loader.as_str() {
             "fabric" => format!("fabric-loader-{}-{}", self.loader_version, self.version),
+            "forge" => format!("{}-forge-{}", self.version, self.loader_version),
+            "neoforge" => format!("neoforge-{}", self.loader_version),
             _ => self.version.clone(),
         }
     }

@@ -218,7 +218,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             let loader_version = match (loader.as_str(), loader_version) {
                 ("vanilla", _) => String::new(),
                 (_, Some(v)) if !v.trim().is_empty() => v,
-                _ => crate::game::loader::fabric_latest(&c, &version).await?,
+                _ => crate::game::loader::latest(&c, &loader, &version).await?,
             };
             let _g = c.state_lock.lock().await;
             let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;

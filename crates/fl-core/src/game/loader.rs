@@ -18,7 +18,7 @@ use crate::{instances::Instance, Core, CoreError};
 
 const FABRIC_META: &str = "https://meta.fabricmc.net/v2";
 
-async fn get(core: &Core, url: &str) -> Result<Vec<u8>, CoreError> {
+pub(super) async fn get(core: &Core, url: &str) -> Result<Vec<u8>, CoreError> {
     Ok(core
         .http()
         .get(url)
@@ -39,6 +39,14 @@ pub async fn fabric_latest(core: &Core, game: &str) -> Result<String, CoreError>
         .ok_or_else(|| CoreError::msg(format!("Fabric is not available for {game}")))
 }
 
+/// Default loader version for a new instance.
+pub async fn latest(core: &Core, loader: &str, game: &str) -> Result<String, CoreError> {
+    match loader {
+        "fabric" => fabric_latest(core, game).await,
+        _ => super::forge::latest(core, loader, game).await,
+    }
+}
+
 fn pick_loader(list: &Value) -> Option<String> {
     let arr = list.as_array()?;
     arr.iter()
@@ -56,18 +64,22 @@ pub async fn resolve(
     inst: &Instance,
 ) -> Result<VersionJson, CoreError> {
     let base = install::load_version(core, layout, &inst.version).await?;
-    if inst.loader != "fabric" {
+    if inst.loader == "vanilla" {
         return Ok(base);
     }
     let path = layout.version_json(&inst.version_id());
     let bytes = match fs::read(&path) {
         Ok(b) => b,
         Err(_) => {
-            let url = format!(
-                "{FABRIC_META}/versions/loader/{}/{}/profile/json",
-                inst.version, inst.loader_version
-            );
-            let b = get(core, &url).await?;
+            let b = if inst.loader == "fabric" {
+                let url = format!(
+                    "{FABRIC_META}/versions/loader/{}/{}/profile/json",
+                    inst.version, inst.loader_version
+                );
+                get(core, &url).await?
+            } else {
+                super::forge::version_json(core, layout, inst).await?
+            };
             download::write_atomic(&path, &b)?;
             b
         }
@@ -83,7 +95,7 @@ pub fn resolve_local(layout: &Layout, inst: &Instance) -> Option<VersionJson> {
         serde_json::from_slice(&fs::read(layout.version_json(id)).ok()?).ok()
     };
     let base = read(&inst.version)?;
-    if inst.loader != "fabric" {
+    if inst.loader == "vanilla" {
         return Some(base);
     }
     Some(read(&inst.version_id())?.merge_onto(base))

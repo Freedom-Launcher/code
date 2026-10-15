@@ -3,6 +3,7 @@
 pub mod download;
 pub mod install;
 pub mod java;
+pub mod forge;
 pub mod launch;
 pub mod loader;
 pub mod natives;

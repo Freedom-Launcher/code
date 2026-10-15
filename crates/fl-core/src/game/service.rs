@@ -86,6 +86,15 @@ pub async fn install_instance(
     p.set_stage("game");
     let v = loader::resolve(core, &Layout::new(core), &inst).await?;
     let v = install::install(core, v, Arc::clone(&p)).await?;
+    if matches!(inst.loader.as_str(), "forge" | "neoforge") {
+        // The marker is only valid once the processors have patched the jar.
+        p.set_stage("loader");
+        let layout = Layout::new(core);
+        if let Err(e) = super::forge::post_install(core, &layout, &inst, &v, Arc::clone(&p)).await {
+            let _ = std::fs::remove_file(layout.installed_marker(&v.id));
+            return Err(e);
+        }
+    }
     p.set_stage("java");
     let exe = java::ensure(core, v.java_version.as_ref(), Arc::clone(&p)).await?;
     p.set_stage("done");
