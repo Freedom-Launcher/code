@@ -230,6 +230,8 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 loader_version,
                 created_at: unix_now(),
                 last_played: 0,
+                playtime_secs: 0,
+                settings: Default::default(),
             };
             std::fs::create_dir_all(c.data_dir.join("instances").join(&inst.id))?;
             s.instances.push(inst.clone());

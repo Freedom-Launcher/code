@@ -61,6 +61,7 @@ async fn main() {
         memory_mb: launch::default_memory_mb(launch::total_ram_mb()),
         extra_jvm_args: vec![],
         client_id: String::new(),
+        resolution: None,
     };
     let args = launch::build_args(&v, &env, &layout, &auth, &opts);
     let mut child = launch::spawn(&exe, &args, &opts.game_dir).expect("spawn");

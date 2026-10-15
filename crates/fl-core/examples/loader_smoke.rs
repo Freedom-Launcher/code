@@ -26,6 +26,8 @@ async fn main() {
         loader_version: lv,
         created_at: 0,
         last_played: 0,
+        playtime_secs: 0,
+        settings: Default::default(),
     };
     let t = Instant::now();
     let v = loader::resolve(&core, &layout, &inst).await.expect("resolve");

@@ -116,6 +116,8 @@ mod tests {
             loader_version: lv.into(),
             created_at: 0,
             last_played: 0,
+            playtime_secs: 0,
+            settings: Default::default(),
         }
     }
 

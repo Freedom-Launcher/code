@@ -196,20 +196,41 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
         install_instance(core, &inst.id, false).await?;
     }
     let v = loader::resolve(core, &layout, inst).await?;
-    let java = java::ensure(core, v.java_version.as_ref(), Arc::new(Progress::default())).await?;
+    let set = &inst.settings;
+    let java = match set.java_path.as_deref().map(str::trim).filter(|p| !p.is_empty()) {
+        Some(p) if std::path::Path::new(p).is_file() => std::path::PathBuf::from(p),
+        Some(p) => return Err(CoreError::msg(format!("Java not found: {p}"))),
+        None => java::ensure(core, v.java_version.as_ref(), Arc::new(Progress::default())).await?,
+    };
     let opts = LaunchOptions {
         java: java.clone(),
         game_dir: core.data_dir.join("instances").join(&inst.id),
-        memory_mb: launch::default_memory_mb(launch::total_ram_mb()),
-        extra_jvm_args: Vec::new(),
+        memory_mb: set
+            .memory_mb
+            .unwrap_or_else(|| launch::default_memory_mb(launch::total_ram_mb())),
+        extra_jvm_args: set
+            .jvm_args
+            .as_deref()
+            .map(|a| a.split_whitespace().map(str::to_owned).collect())
+            .unwrap_or_default(),
         client_id: std::env::var("FREEDOM_MSA_CLIENT_ID").unwrap_or_default(),
+        resolution: set.resolution(),
     };
-    let args = launch::build_args(&v, &Env::current(), &layout, &auth, &opts);
+    let mut env = Env::current();
+    if opts.resolution.is_some() {
+        env.features.insert("has_custom_resolution".into(), true);
+    }
+    let args = launch::build_args(&v, &env, &layout, &auth, &opts);
     let child = launch::spawn(&java, &args, &opts.game_dir)?;
     let pid = child.id();
     core.game_running.started(&inst.id, child);
     mark_played(core, &inst.id).await?;
-    Ok(json!({ "instance": inst.id, "pid": pid, "memory_mb": opts.memory_mb }))
+    Ok(json!({
+        "instance": inst.id,
+        "pid": pid,
+        "memory_mb": opts.memory_mb,
+        "after_launch": set.after_launch.as_deref().unwrap_or("keep"),
+    }))
 }
 
 /// Instances whose game is running, and those still being prepared.

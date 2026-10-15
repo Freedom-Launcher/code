@@ -31,6 +31,7 @@ pub struct LaunchOptions {
     pub memory_mb: u32,
     pub extra_jvm_args: Vec<String>,
     pub client_id: String,
+    pub resolution: Option<(u32, u32)>,
 }
 
 /// Default heap from total RAM: under 8 GB → 2 GB, 24 GB or more → 6 GB,
@@ -131,6 +132,8 @@ pub fn build_args(
         ("library_directory", p(&layout.libraries())),
         ("classpath", classpath),
         ("classpath_separator", sep.into()),
+        ("resolution_width", opts.resolution.map_or(String::new(), |r| r.0.to_string())),
+        ("resolution_height", opts.resolution.map_or(String::new(), |r| r.1.to_string())),
         ("launcher_name", "freedom-launcher".into()),
         ("launcher_version", env!("CARGO_PKG_VERSION").into()),
     ]);
@@ -175,6 +178,12 @@ pub fn build_args(
         }
         (Some(legacy), _) => args.extend(legacy.split_whitespace().map(|s| fill(s, &vars))),
         _ => {}
+    }
+    // Old versions have no resolution rule; the game still reads the flags.
+    if v.arguments.as_ref().map_or(true, |a| a.game.is_empty()) {
+        if let Some((w, h)) = opts.resolution {
+            args.extend(["--width".into(), w.to_string(), "--height".into(), h.to_string()]);
+        }
     }
     args
 }
@@ -230,6 +239,7 @@ mod tests {
             java: "/j/javaw.exe".into(),
             game_dir: "/g".into(),
             memory_mb: 4096,
+            resolution: None,
             extra_jvm_args: vec![],
             client_id: String::new(),
         }
