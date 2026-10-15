@@ -262,11 +262,11 @@ fn register_game(r: &mut ActionRegistry) {
         service::launch_instance(&c, &instance).await
     });
     r.register("game.running", P::InstancesRead, false, |c, _a| async move {
-        Ok(service::running(&c))
+        Ok(service::running(&c).await)
     });
     r.register("game.stop", P::GameLaunch, true, |c, a| async move {
         let InstanceArg { instance } = args(a)?;
-        Ok(service::stop(&c, &instance))
+        Ok(service::stop(&c, &instance).await)
     });
 }
 

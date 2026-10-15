@@ -33,6 +33,22 @@ async fn mark_played(core: &Core, id: &str) -> Result<(), CoreError> {
     Ok(())
 }
 
+/// Adds ended game sessions to each instance's playtime.
+async fn record_playtime(core: &Core) -> Result<(), CoreError> {
+    let done = core.game_running.take_finished();
+    if done.is_empty() {
+        return Ok(());
+    }
+    let _g = core.state_lock.lock().await;
+    let mut s: InstanceStore = store::load(&core.path(INSTANCES))?;
+    for (id, secs) in done {
+        if let Some(i) = s.instances.iter_mut().find(|i| i.id == id) {
+            i.playtime_secs += secs;
+        }
+    }
+    store::save(&core.path(INSTANCES), &s, false)
+}
+
 fn find_instance(core: &Core, id: &str) -> Result<Instance, CoreError> {
     let s: InstanceStore = store::load(&core.path(INSTANCES))?;
     s.instances
@@ -234,12 +250,15 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
 }
 
 /// Instances whose game is running, and those still being prepared.
-pub fn running(core: &Core) -> Value {
+pub async fn running(core: &Core) -> Value {
     let (running, starting) = core.game_running.list();
+    let _ = record_playtime(core).await;
     json!({ "running": running, "starting": starting })
 }
 
 /// Closes the instance's game.
-pub fn stop(core: &Core, instance: &str) -> Value {
-    json!({ "instance": instance, "stopped": core.game_running.stop(instance) })
+pub async fn stop(core: &Core, instance: &str) -> Value {
+    let stopped = core.game_running.stop(instance);
+    let _ = record_playtime(core).await;
+    json!({ "instance": instance, "stopped": stopped })
 }

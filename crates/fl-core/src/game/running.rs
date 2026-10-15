@@ -4,6 +4,7 @@
 use std::collections::{HashMap, HashSet};
 use std::process::Child;
 use std::sync::Mutex;
+use std::time::Instant;
 
 #[derive(Default)]
 pub struct Running {
@@ -12,14 +13,24 @@ pub struct Running {
 
 #[derive(Default)]
 struct Inner {
-    children: HashMap<String, Child>,
+    children: HashMap<String, (Child, Instant)>,
+    /// Sessions that ended and are not yet added to playtime: (id, seconds).
+    finished: Vec<(String, u64)>,
     /// Instances between «Играть» and a spawned process (install, Java).
     starting: HashSet<String>,
 }
 
 /// Drops processes that have exited.
 fn reap(g: &mut Inner) {
-    g.children.retain(|_, c| matches!(c.try_wait(), Ok(None)));
+    let mut done = Vec::new();
+    g.children.retain(|id, (c, t)| {
+        let alive = matches!(c.try_wait(), Ok(None));
+        if !alive {
+            done.push((id.clone(), t.elapsed().as_secs()));
+        }
+        alive
+    });
+    g.finished.extend(done);
 }
 
 impl Running {
@@ -46,7 +57,20 @@ impl Running {
     pub fn started(&self, id: &str, child: Child) {
         let mut g = self.lock();
         g.starting.remove(id);
-        g.children.insert(id.to_owned(), child);
+        g.children.insert(id.to_owned(), (child, Instant::now()));
+    }
+
+    /// Ended sessions since the last call, for playtime bookkeeping.
+    pub fn take_finished(&self) -> Vec<(String, u64)> {
+        let mut g = self.lock();
+        reap(&mut g);
+        std::mem::take(&mut g.finished)
+    }
+
+    pub fn is_busy(&self, id: &str) -> bool {
+        let mut g = self.lock();
+        reap(&mut g);
+        g.children.contains_key(id) || g.starting.contains(id)
     }
 
     /// `(running, starting)` instance ids.
@@ -62,11 +86,12 @@ impl Running {
 
     /// Kills the instance's game; `false` if it was not running.
     pub fn stop(&self, id: &str) -> bool {
-        let child = self.lock().children.remove(id);
-        match child {
-            Some(mut c) => {
+        let mut g = self.lock();
+        match g.children.remove(id) {
+            Some((mut c, t)) => {
                 let _ = c.kill();
                 let _ = c.wait();
+                g.finished.push((id.to_owned(), t.elapsed().as_secs()));
                 true
             }
             None => false,
@@ -90,6 +115,8 @@ mod tests {
         assert_eq!(r.list(), (vec!["i1".to_string()], vec![]));
         assert!(r.stop("i1"));
         assert_eq!(r.list(), (vec![], vec![]));
+        assert_eq!(r.take_finished().len(), 1);
+        assert!(r.take_finished().is_empty());
         assert!(r.begin("i1"));
         r.cancel("i1");
         assert!(r.begin("i1"));
