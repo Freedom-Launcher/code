@@ -74,12 +74,14 @@ function show(view) {
   if (view === 'home') renderHome();
   if (view === 'create') prepareCreate();
   if (view === 'accounts') renderAccountsPage();
+  if (view === 'discover') window.FMods?.discover();
 }
 function openInstance(id) {
   S.current = id;
   localStorage.setItem('fl.current', id);
   applyWall();
   renderInstancePage();
+  window.FMods?.instance(byId(id));
   show('instance');
 }
 // ---------- Accounts ----------

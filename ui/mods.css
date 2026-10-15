@@ -1,0 +1,39 @@
+/* Mods: the instance list and the Modrinth browser. */
+.mod-ico {
+  width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 10px;
+  background: var(--surface-3) center / cover no-repeat; box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text-3); font-style: normal; font-weight: var(--w-semibold);
+}
+.mod-list { display: flex; flex-direction: column; border-radius: var(--r-card); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.mod-row { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 8px 0 10px; transition: background-color var(--d-2) var(--ease-out); }
+.mod-row + .mod-row { box-shadow: inset 0 1px 0 var(--line); }
+.mod-row:hover { background: var(--surface-2); }
+.mod-row .t { flex: 1; min-width: 0; }
+.mod-row .t b, .mod-card .t b { display: block; color: var(--text); font-weight: var(--w-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mod-row .t span, .mod-card .t span { display: block; margin-top: 3px; color: var(--text-3); font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mod-row .switch { margin: 0 6px; }
+.mod-row .btn-icon { --h: 30px; color: var(--text-3); }
+.mod-row .btn-icon svg { width: 15px; height: 15px; }
+.mod-row .btn-icon:hover { color: var(--danger, #ff6b6b); }
+.mod-row.is-off .mod-ico, .mod-row.is-off .t { opacity: .45; }
+
+.disc-target { width: auto; max-width: 300px; flex: none; }
+.disc-target[hidden] { display: none; }
+.mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 12px; transition: opacity var(--d-2) var(--ease-out); }
+.mod-grid[data-state="loading"] { opacity: .45; }
+.mod-grid > .table-empty { grid-column: 1 / -1; min-height: 240px; }
+.mod-card {
+  display: grid; grid-template-columns: 48px minmax(0, 1fr); grid-template-rows: auto 1fr auto; gap: 12px 14px; align-items: center;
+  padding: 14px; border-radius: var(--r-card); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line);
+}
+.mod-card .mod-ico { width: 48px; height: 48px; border-radius: 12px; }
+.mod-card p {
+  grid-column: 1 / -1; align-self: start; margin: 0; color: var(--text-2); font-size: var(--text-sm); line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.mod-card .foot { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mod-card .dl { color: var(--text-3); font-size: var(--text-sm); }
+.mod-card .btn { --h: 30px; }
+.disc-more { display: flex; margin: 18px auto 0; }
+.disc-more[hidden] { display: none; }/* The browser is a grid of cards: give it room for three columns on wide windows. */
+#view-discover .narrow { max-width: clamp(600px, 78vw, 1240px); }

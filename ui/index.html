@@ -11,11 +11,13 @@
   <link rel="stylesheet" href="shell.css">
   <link rel="stylesheet" href="shell-2.css">
   <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="mods.css">
   <link rel="stylesheet" href="glass.css">
   <script src="ui.js" defer></script>
   <script src="themes.js" defer></script>
   <script src="addons.js" defer></script>
   <script src="app.js" defer></script>
+  <script src="mods.js" defer></script>
 </head>
 <body>
   <div id="app" class="app" data-id="app" hidden>
@@ -107,14 +109,14 @@
             <div class="table-empty"><b>Миров пока нет</b></div>
           </div>
           <div class="tab-body" id="tab-content" data-id="instance.content">
-            <div class="toolbar">
+            <div class="toolbar" id="mods-tools">
               <label class="field-wrap grow">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
-                <input class="field" placeholder="Найти в сборке" data-id="instance.content.search">
+                <input class="field" id="mods-filter" placeholder="Найти в сборке" data-id="instance.content.search">
               </label>
               <button class="btn" data-view="discover" data-id="instance.content.add"><span class="lbl">Добавить</span></button>
             </div>
-            <div class="table-empty"><b>Модов нет</b></div>
+            <div id="mods-list" data-id="instance.mods"></div>
           </div>
           <div class="tab-body" id="tab-shots" data-id="instance.shots" hidden>
             <div class="table-empty"><b>Скриншотов пока нет</b>F2 в игре</div>
@@ -175,9 +177,14 @@
         <div class="narrow">
           <h1 class="page-h">Дополнения</h1>
           <div class="toolbar" data-id="discover.toolbar">
-            <div class="seg" id="disc-type"><button aria-selected="true">Моды</button><button>Сборки</button><button>Темы</button><button>Аддоны</button></div>
+            <label class="field-wrap grow">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+              <input class="field" id="disc-q" placeholder="Моды на Modrinth" data-id="discover.search">
+            </label>
+            <select class="field disc-target" id="disc-target" aria-label="Сборка" data-id="discover.target"></select>
           </div>
-          <div class="table-empty tall"><b>Скоро</b>Поиск модов и сборок прямо в лаунчере. Сторонние способы входа тоже будут здесь — как аддоны уровня «Расширенный».</div>
+          <div class="mod-grid" id="disc-results" data-id="discover.results"></div>
+          <button class="btn disc-more" id="disc-more" data-id="discover.more" hidden><span class="lbl">Ещё</span></button>
           <div data-slot="discover.end"></div>
         </div>
       </section>
