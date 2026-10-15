@@ -89,3 +89,7 @@
 .addon-perms .chip.tier-extended { color: var(--danger); }
 .addon-perms .chip.is-new { box-shadow: inset 0 0 0 1px var(--line-strong); }
 .r .s.is-error { color: var(--danger); }
+@media (min-width: 1440px) {
+  /* Column labels need air under the page title once the tabs are gone. */
+  #view-settings .page-h { margin-bottom: 26px; }
+}

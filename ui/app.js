@@ -7,7 +7,7 @@ const call = (name, args = null) => invoke('action', { name, args });
 const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'empty' };
 const KIND = { microsoft: 'Microsoft', offline: 'Офлайн', provider: 'Сервис' };
 const STAGE = { idle: 'Подготовка', loader: 'Готовим загрузчик…', java: 'Java', version: 'Версия', libraries: 'Библиотеки', assets: 'Ресурсы', natives: 'Нативные файлы', launch: 'Запуск', done: 'Готово' };
-const TITLES = { home: '', instance: '', empty: '', create: 'Новая сборка', accounts: 'Аккаунты', discover: 'Дополнения', settings: 'Настройки' };
+const TITLES = {}; // Pages carry their own H1; the top bar stays clean.
 const PLAY_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>';
 
 function el(tag, attrs = {}, ...kids) {
