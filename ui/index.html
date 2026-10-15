@@ -207,6 +207,12 @@
                 <button class="btn" id="theme-folder" data-id="settings.theme.folder"><span class="lbl">Открыть</span></button></div>
               <div class="r"><div class="grow"><div class="t">Анимации</div><div class="s">Переходы, всплывающие меню, кнопки</div></div>
                 <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
+              <div class="r"><div class="grow"><div class="t">Обои</div><div class="s">Обложка текущей сборки, размытая за стеклом</div></div>
+                <div class="seg" id="wall-seg" data-id="settings.wall"><button data-wall-set="cover" aria-selected="true">Обложка</button><button data-wall-set="off">Нет</button></div></div>
+              <div class="r" id="wall-blur-row"><div class="grow"><div class="t">Размытие обоев</div><div class="s" id="wall-blur-val"></div></div>
+                <input class="range" type="range" id="wall-blur" min="0" max="40" step="2" data-id="settings.wall.blur"></div>
+              <div class="r" id="wall-glass-row"><div class="grow"><div class="t">Плотность стекла</div><div class="s" id="wall-glass-val"></div></div>
+                <input class="range" type="range" id="wall-glass" min="15" max="85" step="5" data-id="settings.wall.glass"></div>
             </div>
           </div>
           <div class="set-pane" id="set-addons" data-id="settings.addons" hidden>

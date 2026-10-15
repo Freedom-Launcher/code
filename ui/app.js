@@ -70,7 +70,7 @@ function show(view) {
   $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === view ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   $$('#rail-list .tile').forEach((t) => (view === 'instance' && t.dataset.inst === S.current ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
   $('#top-title').textContent = TITLES[view] ?? '';
-  if (view === 'settings') requestAnimationFrame(() => { $('#set-seg')._place?.(false); $('#cover-seg')._place?.(false); });
+  if (view === 'settings') requestAnimationFrame(() => { $('#set-seg')._place?.(false); $('#cover-seg')._place?.(false); $('#wall-seg')._place?.(false); });
   if (view === 'home') renderHome();
   if (view === 'create') prepareCreate();
   if (view === 'accounts') renderAccountsPage();
@@ -554,7 +554,19 @@ function applyWall() {
   const root = document.documentElement;
   root.dataset.wall = on ? 'on' : 'off';
   if (on) root.style.setProperty('--wall', `url("covers/${coverName(i)}.jpg")`);
+  const blur = +(localStorage.getItem('fl.wall-blur') ?? 22);
+  const glass = +(localStorage.getItem('fl.wall-glass') ?? 45);
+  root.style.setProperty('--wall-blur', `${blur}px`);
+  root.style.setProperty('--glass-a', String(glass / 100));
+  $('#wall-blur').value = blur; $('#wall-blur-val').textContent = blur ? `${blur} px` : 'Чёткие';
+  $('#wall-glass').value = glass; $('#wall-glass-val').textContent = `${glass}%`;
+  const mode = localStorage.getItem('fl.wall') || 'cover';
+  $$('#wall-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.wallSet === mode)));
+  $('#wall-blur-row').hidden = $('#wall-glass-row').hidden = mode === 'off';
 }
+$('#wall-seg').addEventListener('seg:change', (e) => { localStorage.setItem('fl.wall', e.detail.dataset.wallSet); applyWall(); });
+$('#wall-blur').addEventListener('input', (e) => { localStorage.setItem('fl.wall-blur', e.target.value); applyWall(); });
+$('#wall-glass').addEventListener('input', (e) => { localStorage.setItem('fl.wall-glass', e.target.value); applyWall(); });
 function applyLook() {
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';

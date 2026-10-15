@@ -56,3 +56,22 @@
   .hb-mid { display: none; }
   .hb-open { max-width: none; flex: 1; }
 }
+/* ---------- Settings: sliders ---------- */
+.range { width: 180px; height: 4px; accent-color: var(--accent); cursor: pointer; }
+
+/* ---------- Motion (off with data-motion="off" or reduced-motion) ---------- */
+@keyframes fl-view-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes fl-card-in { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+html[data-motion="on"] .view.is-active { animation: fl-view-in 220ms var(--ease-out, ease) both; }
+html[data-motion="on"] #view-home.is-active .rc,
+html[data-motion="on"] #view-home.is-active .hcard { animation: fl-card-in 360ms var(--ease-out, ease) both; }
+html[data-motion="on"] #view-home .rc:nth-child(2), html[data-motion="on"] #view-home .hcard:nth-child(2) { animation-delay: 30ms; }
+html[data-motion="on"] #view-home .rc:nth-child(3), html[data-motion="on"] #view-home .hcard:nth-child(3) { animation-delay: 60ms; }
+html[data-motion="on"] #view-home .rc:nth-child(4), html[data-motion="on"] #view-home .hcard:nth-child(4) { animation-delay: 90ms; }
+html[data-motion="on"] #view-home .rc:nth-child(5), html[data-motion="on"] #view-home .hcard:nth-child(5) { animation-delay: 120ms; }
+html[data-motion="on"] #view-home .rc:nth-child(n+6), html[data-motion="on"] #view-home .hcard:nth-child(n+6) { animation-delay: 150ms; }
+html[data-wall="on"] body::before { transition: filter 300ms ease; }
+@media (prefers-reduced-motion: reduce) {
+  .view.is-active, #view-home .rc, #view-home .hcard { animation: none !important; }
+}
+html[data-motion="off"] .hcard > i, html[data-motion="off"] .rc .pl { transition: none; }
