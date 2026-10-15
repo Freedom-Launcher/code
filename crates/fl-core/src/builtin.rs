@@ -204,15 +204,30 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             struct A {
                 name: String,
                 version: String,
+                #[serde(default)]
+                loader: Option<String>,
+                #[serde(default)]
+                loader_version: Option<String>,
             }
-            let A { name, version } = args(a)?;
+            let A { name, version, loader, loader_version } = args(a)?;
             instances::validate(&name, &version)?;
+            let loader = loader.unwrap_or_else(|| "vanilla".into());
+            if !instances::LOADERS.contains(&loader.as_str()) {
+                return Err(CoreError::BadArgs(format!("unknown loader: {loader}")));
+            }
+            let loader_version = match (loader.as_str(), loader_version) {
+                ("vanilla", _) => String::new(),
+                (_, Some(v)) if !v.trim().is_empty() => v,
+                _ => crate::game::loader::fabric_latest(&c, &version).await?,
+            };
             let _g = c.state_lock.lock().await;
             let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
             let inst = Instance {
                 id: uuid::Uuid::new_v4().to_string(),
                 name: name.trim().to_owned(),
                 version,
+                loader,
+                loader_version,
                 created_at: unix_now(),
                 last_played: 0,
             };

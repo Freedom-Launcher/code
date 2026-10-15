@@ -20,8 +20,11 @@ async fn main() {
     let dir = a.next().unwrap_or_else(|| "/tmp/fl-smoke".into());
     let core = Core::new(dir.into(), Instant::now(), false).expect("core");
     let p = Arc::new(Progress::default());
+    let base = install::load_version(&core, &install::Layout::new(&core), &id)
+        .await
+        .expect("version json");
     let t = Instant::now();
-    let v = install::install(&core, &id, Arc::clone(&p))
+    let v = install::install(&core, base.clone(), Arc::clone(&p))
         .await
         .expect("install");
     println!(
@@ -36,7 +39,7 @@ async fn main() {
         .expect("java");
     println!("java at {} in {:?}", exe.display(), t.elapsed());
     let t = Instant::now();
-    install::install(&core, &id, Arc::new(Progress::default()))
+    install::install(&core, base, Arc::new(Progress::default()))
         .await
         .expect("reinstall");
     println!("re-install (full verify) took {:?}", t.elapsed());

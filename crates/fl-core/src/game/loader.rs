@@ -1,0 +1,155 @@
+//! Mod loaders on top of vanilla.
+//!
+//! Fabric's meta API serves a ready loader profile: a partial version JSON
+//! with `inheritsFrom` that is merged onto the vanilla JSON
+//! ([`VersionJson::merge_onto`]). The merged version installs and launches
+//! like any other; its client jar and assets come from vanilla.
+
+use std::fs;
+
+use serde_json::Value;
+
+use super::{
+    download,
+    install::{self, Layout},
+    version::VersionJson,
+};
+use crate::{instances::Instance, Core, CoreError};
+
+const FABRIC_META: &str = "https://meta.fabricmc.net/v2";
+
+async fn get(core: &Core, url: &str) -> Result<Vec<u8>, CoreError> {
+    Ok(core
+        .http()
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .bytes()
+        .await?
+        .to_vec())
+}
+
+/// Newest stable Fabric loader for a game version (the newest of any kind
+/// when none is stable).
+pub async fn fabric_latest(core: &Core, game: &str) -> Result<String, CoreError> {
+    let url = format!("{FABRIC_META}/versions/loader/{game}");
+    let list: Value = serde_json::from_slice(&get(core, &url).await?)?;
+    pick_loader(&list)
+        .ok_or_else(|| CoreError::msg(format!("Fabric is not available for {game}")))
+}
+
+fn pick_loader(list: &Value) -> Option<String> {
+    let arr = list.as_array()?;
+    arr.iter()
+        .find(|e| e["loader"]["stable"] == true)
+        .or(arr.first())
+        .and_then(|e| e["loader"]["version"].as_str())
+        .map(str::to_owned)
+}
+
+/// The instance's full version JSON. Downloads what is missing; the loader
+/// profile is fetched once and then read from disk.
+pub async fn resolve(
+    core: &Core,
+    layout: &Layout,
+    inst: &Instance,
+) -> Result<VersionJson, CoreError> {
+    let base = install::load_version(core, layout, &inst.version).await?;
+    if inst.loader != "fabric" {
+        return Ok(base);
+    }
+    let path = layout.version_json(&inst.version_id());
+    let bytes = match fs::read(&path) {
+        Ok(b) => b,
+        Err(_) => {
+            let url = format!(
+                "{FABRIC_META}/versions/loader/{}/{}/profile/json",
+                inst.version, inst.loader_version
+            );
+            let b = get(core, &url).await?;
+            download::write_atomic(&path, &b)?;
+            b
+        }
+    };
+    let child: VersionJson = serde_json::from_slice(&bytes)?;
+    Ok(child.merge_onto(base))
+}
+
+/// Same as [`resolve`] from local files only (no network), `None` when
+/// anything is missing.
+pub fn resolve_local(layout: &Layout, inst: &Instance) -> Option<VersionJson> {
+    let read = |id: &str| -> Option<VersionJson> {
+        serde_json::from_slice(&fs::read(layout.version_json(id)).ok()?).ok()
+    };
+    let base = read(&inst.version)?;
+    if inst.loader != "fabric" {
+        return Some(base);
+    }
+    Some(read(&inst.version_id())?.merge_onto(base))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game::{install::library_plan, version::Env};
+    use serde_json::json;
+
+    fn inst(loader: &str, lv: &str) -> Instance {
+        Instance {
+            id: "i".into(),
+            name: "n".into(),
+            version: "1.21.4".into(),
+            loader: loader.into(),
+            loader_version: lv.into(),
+            created_at: 0,
+            last_played: 0,
+        }
+    }
+
+    #[test]
+    fn picks_stable_loader() {
+        let l = json!([
+            { "loader": { "version": "0.17.0-beta.1", "stable": false } },
+            { "loader": { "version": "0.16.10", "stable": true } }
+        ]);
+        assert_eq!(pick_loader(&l).as_deref(), Some("0.16.10"));
+        assert_eq!(pick_loader(&json!([])), None);
+        assert_eq!(inst("fabric", "0.16.10").version_id(), "fabric-loader-0.16.10-1.21.4");
+        assert_eq!(inst("vanilla", "").version_id(), "1.21.4");
+    }
+
+    #[test]
+    fn resolves_fabric_from_disk() {
+        let root = std::env::temp_dir().join(format!("fl-loader-{}", std::process::id()));
+        let layout = Layout { root: root.clone() };
+        let i = inst("fabric", "0.16.10");
+        let vanilla = json!({
+            "id": "1.21.4", "mainClass": "net.minecraft.client.main.Main", "type": "release",
+            "javaVersion": { "component": "java-runtime-delta", "majorVersion": 21 },
+            "arguments": { "game": ["--username", "${auth_player_name}"], "jvm": ["-cp", "${classpath}"] },
+            "libraries": []
+        });
+        let fabric = json!({
+            "id": i.version_id(), "inheritsFrom": "1.21.4",
+            "mainClass": "net.fabricmc.loader.impl.launch.knot.KnotClient",
+            "arguments": { "game": [], "jvm": ["-DFabricMcEmu= net.minecraft.client.main.Main "] },
+            "libraries": [{ "name": "net.fabricmc:fabric-loader:0.16.10",
+                            "url": "https://maven.fabricmc.net/", "sha1": "ab", "size": 1 }]
+        });
+        for (id, v) in [("1.21.4", &vanilla), (i.version_id().as_str(), &fabric)] {
+            download::write_atomic(&layout.version_json(id), v.to_string().as_bytes()).unwrap();
+        }
+        let v = resolve_local(&layout, &i).expect("resolved");
+        let _ = fs::remove_dir_all(&root);
+
+        assert_eq!(v.main_class, "net.fabricmc.loader.impl.launch.knot.KnotClient");
+        assert_eq!(v.jar_id(), "1.21.4");
+        assert_eq!(v.java_version.as_ref().map(|j| j.major_version), Some(21));
+        let plan = library_plan(&v, &Env::current(), std::path::Path::new("/l"));
+        assert_eq!(
+            plan.tasks[0].url,
+            "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.16.10/fabric-loader-0.16.10.jar"
+        );
+    }
+}

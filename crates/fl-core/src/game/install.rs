@@ -214,14 +214,15 @@ pub async fn load_version(
 
 /// Installs everything a vanilla version needs. Safe to re-run: valid files
 /// are skipped.
+/// `v` is already resolved (vanilla, or a loader merged onto vanilla, see
+/// `loader::resolve`).
 pub async fn install(
     core: &Core,
-    id: &str,
+    v: VersionJson,
     progress: Arc<Progress>,
 ) -> Result<VersionJson, CoreError> {
     let layout = Layout::new(core);
     let env = Env::current();
-    let v = load_version(core, &layout, id).await?;
     let http = core.http();
 
     // Step 1: small metadata files (asset index, log config) and the client jar.

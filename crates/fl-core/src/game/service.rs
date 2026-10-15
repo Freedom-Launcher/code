@@ -10,6 +10,7 @@ use super::{
     install::{self, Layout},
     java,
     launch::{self, LaunchAuth, LaunchOptions},
+    loader,
     version::Env,
 };
 use crate::{
@@ -57,12 +58,11 @@ pub fn progress(core: &Core, instance: &str) -> Value {
 
 /// Already installed (marker + local version JSON + Java)? Checked without
 /// network or hashing, so pressing «Играть» again is instant.
-fn ready(core: &Core, layout: &Layout, version: &str) -> Option<(String, std::path::PathBuf)> {
-    if !layout.installed_marker(version).exists() {
+fn ready(core: &Core, layout: &Layout, inst: &Instance) -> Option<(String, std::path::PathBuf)> {
+    if !layout.installed_marker(&inst.version_id()).exists() {
         return None;
     }
-    let bytes = std::fs::read(layout.version_json(version)).ok()?;
-    let v: super::version::VersionJson = serde_json::from_slice(&bytes).ok()?;
+    let v = loader::resolve_local(layout, inst)?;
     let exe = java::installed(core, v.java_version.as_ref())?;
     Some((v.id, exe))
 }
@@ -78,13 +78,14 @@ pub async fn install_instance(
     let inst = find_instance(core, instance)?;
     let p = progress_for(core, instance);
     if !verify {
-        if let Some((id, exe)) = ready(core, &Layout::new(core), &inst.version) {
+        if let Some((id, exe)) = ready(core, &Layout::new(core), &inst) {
             p.set_stage("done");
             return Ok(json!({ "instance": instance, "version": id, "java": exe, "skipped": true }));
         }
     }
     p.set_stage("game");
-    let v = install::install(core, &inst.version, Arc::clone(&p)).await?;
+    let v = loader::resolve(core, &Layout::new(core), &inst).await?;
+    let v = install::install(core, v, Arc::clone(&p)).await?;
     p.set_stage("java");
     let exe = java::ensure(core, v.java_version.as_ref(), Arc::clone(&p)).await?;
     p.set_stage("done");
@@ -154,10 +155,10 @@ pub async fn launch_instance(core: &Core, instance: &str) -> Result<Value, CoreE
 async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, CoreError> {
     let layout = Layout::new(core);
     // Full verification is `game.install`; a launch only installs when needed.
-    if !layout.installed_marker(&inst.version).exists() {
+    if !layout.installed_marker(&inst.version_id()).exists() {
         install_instance(core, &inst.id, false).await?;
     }
-    let v = install::load_version(core, &layout, &inst.version).await?;
+    let v = loader::resolve(core, &layout, inst).await?;
     let java = java::ensure(core, v.java_version.as_ref(), Arc::new(Progress::default())).await?;
     let opts = LaunchOptions {
         java: java.clone(),
