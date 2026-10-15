@@ -140,7 +140,10 @@ fn theme_protocol(
         .header("Content-Type", mime)
         .header("X-Content-Type-Options", "nosniff")
         // SVGs are images only: no script even if opened directly.
-        .header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:")
+        .header(
+            "Content-Security-Policy",
+            "default-src 'none'; style-src 'unsafe-inline'; img-src data:",
+        )
         .header("Cache-Control", "no-store")
         .body(bytes)
         .unwrap()

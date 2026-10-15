@@ -91,9 +91,11 @@ impl Caller {
     pub fn check(&self, action: &str, spec: &ActionSpec) -> Result<(), CoreError> {
         let ok = match self {
             Caller::BuiltinUi => true,
-            Caller::Theme { .. } => spec.bindable,
+            Caller::Theme { .. } => spec.bindable && spec.permission != Permission::Internal,
             Caller::Addon { granted, .. } => {
-                spec.permission == Permission::Public || granted.contains(&spec.permission)
+                spec.permission == Permission::Public
+                    || (spec.permission != Permission::Internal
+                        && granted.contains(&spec.permission))
             }
         };
         if ok {

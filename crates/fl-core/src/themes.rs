@@ -107,9 +107,16 @@ pub fn check_token(k: &str, v: &str) -> R<()> {
     let bad_char = v
         .chars()
         .any(|c| matches!(c, ';' | '{' | '}' | '<' | '>' | '\\') || c.is_control());
-    let bad_word = ["url(", "image-set(", "src(", "expression", "javascript:", "@"]
-        .iter()
-        .any(|b| l.contains(b));
+    let bad_word = [
+        "url(",
+        "image-set(",
+        "src(",
+        "expression",
+        "javascript:",
+        "@",
+    ]
+    .iter()
+    .any(|b| l.contains(b));
     if v.len() > 200 || bad_char || bad_word {
         return Err(format!("токен {k}: недопустимое значение"));
     }
@@ -125,8 +132,15 @@ pub fn check_css(css: &str) -> R<()> {
     let l = strip_comments(&css.to_ascii_lowercase());
     // Backslash is banned outright: CSS escapes could spell `url(` invisibly.
     for bad in [
-        "\\", "@import", "expression(", "javascript:", "behavior:", "-moz-binding",
-        "image-set(", "src(", "</",
+        "\\",
+        "@import",
+        "expression(",
+        "javascript:",
+        "behavior:",
+        "-moz-binding",
+        "image-set(",
+        "src(",
+        "</",
     ] {
         if l.contains(bad) {
             return Err(format!("CSS: запрещено «{bad}»"));
@@ -144,8 +158,6 @@ pub fn check_css(css: &str) -> R<()> {
     }
     Ok(())
 }
-
-
 
 /// Removes `/* … */`; an unterminated comment runs to the end, as in browsers.
 fn strip_comments(s: &str) -> String {
@@ -168,14 +180,34 @@ pub fn check_template(html: &str) -> R<()> {
     }
     let l = html.to_ascii_lowercase();
     for tag in [
-        "<script", "<iframe", "<frame", "<object", "<embed", "<link", "<meta", "<base",
-        "<style", "<form", "<foreignobject", "<animate", "<set", "<math", "<portal",
+        "<script",
+        "<iframe",
+        "<frame",
+        "<object",
+        "<embed",
+        "<link",
+        "<meta",
+        "<base",
+        "<style",
+        "<form",
+        "<foreignobject",
+        "<animate",
+        "<set",
+        "<math",
+        "<portal",
     ] {
         if l.contains(tag) {
             return Err(format!("шаблон: тег {tag}> запрещён"));
         }
     }
-    for bad in ["javascript:", "vbscript:", "srcdoc", "srcset", "formaction", "xlink:href"] {
+    for bad in [
+        "javascript:",
+        "vbscript:",
+        "srcdoc",
+        "srcset",
+        "formaction",
+        "xlink:href",
+    ] {
         if l.contains(bad) {
             return Err(format!("шаблон: «{bad}» запрещено"));
         }
@@ -255,7 +287,10 @@ fn check_attr(name: &str, val: &str) -> R<()> {
     if name == "style" {
         return Err("шаблон: атрибут style запрещён — стили только в CSS темы".into());
     }
-    if matches!(name, "href" | "src" | "action" | "background" | "poster" | "data") {
+    if matches!(
+        name,
+        "href" | "src" | "action" | "background" | "poster" | "data"
+    ) {
         let v = val.trim();
         if !(v.is_empty() || v.starts_with('#') || safe_rel(v, &ASSETS)) {
             return Err(format!("шаблон: {name}=\"{v}\" — только файлы темы или #"));

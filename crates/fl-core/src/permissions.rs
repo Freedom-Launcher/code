@@ -16,6 +16,9 @@ pub enum Permission {
     AccountsProvide,
     /// Spawning arbitrary processes, raw filesystem access.
     Process,
+    /// Launcher self-management (switching themes, approving addons, safe
+    /// recovery). Built-in UI only; never grantable to an addon.
+    Internal,
 }
 
 /// Permission tiers shown to the user when installing an extension.
@@ -48,7 +51,7 @@ impl Permission {
             Public => Tier::Theme,
             AccountsRead | InstancesRead => Tier::Interface,
             AccountsManage | InstancesManage | Network | GameLaunch => Tier::Function,
-            AccountsProvide | Process => Tier::Extended,
+            AccountsProvide | Process | Internal => Tier::Extended,
         }
     }
 }

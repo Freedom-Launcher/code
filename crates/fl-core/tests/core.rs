@@ -24,17 +24,32 @@ async fn themes_set_and_safe_mode() {
     let ui = Caller::BuiltinUi;
     let l = c.dispatch(&ui, "themes.list", json!(null)).await.unwrap();
     assert_eq!(l.as_array().unwrap().len(), 2);
-    assert!(c.dispatch(&ui, "themes.set", json!({"theme": "nope"})).await.is_err());
-    let v = c.dispatch(&ui, "themes.set", json!({"theme": "light"})).await.unwrap();
+    assert!(c
+        .dispatch(&ui, "themes.set", json!({"theme": "nope"}))
+        .await
+        .is_err());
+    let v = c
+        .dispatch(&ui, "themes.set", json!({"theme": "light"}))
+        .await
+        .unwrap();
     assert_eq!(v["base"], "light");
-    let cur = c.dispatch(&ui, "themes.current", json!(null)).await.unwrap();
+    let cur = c
+        .dispatch(&ui, "themes.current", json!(null))
+        .await
+        .unwrap();
     assert_eq!(cur["id"], "light");
     // Themes can never switch themes themselves.
     let t = Caller::Theme { id: "x".into() };
-    assert!(c.dispatch(&t, "themes.set", json!({"theme": "default"})).await.is_err());
+    assert!(c
+        .dispatch(&t, "themes.set", json!({"theme": "default"}))
+        .await
+        .is_err());
     // Safe mode loads no themes at all.
     let s = temp_core(true);
-    assert!(s.dispatch(&ui, "themes.current", json!(null)).await.is_err());
+    assert!(s
+        .dispatch(&ui, "themes.current", json!(null))
+        .await
+        .is_err());
 }
 
 #[tokio::test]

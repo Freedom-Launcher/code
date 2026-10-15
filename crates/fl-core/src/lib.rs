@@ -15,6 +15,7 @@ use serde_json::{json, Value};
 
 pub mod accounts;
 pub mod actions;
+pub mod addons;
 mod builtin;
 pub mod error;
 pub mod game;
@@ -86,6 +87,20 @@ impl Core {
             .ok_or_else(|| CoreError::UnknownAction(name.to_owned()))?;
         caller.check(name, spec)?;
         (spec.handler)(Arc::clone(self), args).await
+    }
+
+    /// Caller for a running addon, or `None` (unknown, not approved, disabled,
+    /// addons switched off, or safe mode).
+    pub fn addon_caller(&self, id: &str) -> Option<Caller> {
+        if self.safe_mode {
+            return None;
+        }
+        let s: settings::Settings = store::load(&self.path("settings.json")).ok()?;
+        if !s.addons_enabled {
+            return None;
+        }
+        let st: addons::State = store::load(&self.path(addons::STATE)).ok()?;
+        addons::caller(&self.data_dir, &st, id)
     }
 
     pub fn http(&self) -> &reqwest::Client {

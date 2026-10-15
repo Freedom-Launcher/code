@@ -16,7 +16,11 @@ fn tmp(files: &[(&str, &str)]) -> PathBuf {
 fn uuid_like() -> String {
     use std::sync::atomic::{AtomicU32, Ordering};
     static N: AtomicU32 = AtomicU32::new(0);
-    format!("{}-{}", std::process::id(), N.fetch_add(1, Ordering::SeqCst))
+    format!(
+        "{}-{}",
+        std::process::id(),
+        N.fetch_add(1, Ordering::SeqCst)
+    )
 }
 
 const GOOD: &str = r##"{"id":"night","name":"Ночь","base":"dark",
@@ -28,7 +32,10 @@ fn good_theme_loads_and_lists() {
     let d = tmp(&[
         ("night/theme.json", GOOD),
         ("night/theme.css", ".hero{background:url(img/bg.webp)}"),
-        ("night/t/instance.html", r##"<div data-slot="hero"><button data-action="game.launch">Играть</button><a href="#x">x</a></div>"##),
+        (
+            "night/t/instance.html",
+            r##"<div data-slot="hero"><button data-action="game.launch">Играть</button><a href="#x">x</a></div>"##,
+        ),
     ]);
     let m = themes::load(&d, "night").unwrap();
     assert_eq!(m.tokens["--accent"], "#9ecbff");
@@ -37,8 +44,12 @@ fn good_theme_loads_and_lists() {
     assert!(l[2].get("error").is_none(), "{:?}", l[2]);
     let cur = themes::current(&d, "night");
     assert_eq!(cur["templates"][0], "view.instance");
-    assert!(themes::template(&d, "night", "view.instance").unwrap().is_some());
-    assert!(themes::template(&d, "night", "view.create").unwrap().is_none());
+    assert!(themes::template(&d, "night", "view.instance")
+        .unwrap()
+        .is_some());
+    assert!(themes::template(&d, "night", "view.create")
+        .unwrap()
+        .is_none());
 }
 
 #[test]
@@ -74,7 +85,10 @@ fn bad_templates_are_rejected() {
     ] {
         assert!(themes::check_template(html).is_err(), "{html}");
     }
-    assert!(themes::check_template(r#"<img src="img/a.png" alt="one = two"><button data-action="x.y">Да</button>"#).is_ok());
+    assert!(themes::check_template(
+        r#"<img src="img/a.png" alt="one = two"><button data-action="x.y">Да</button>"#
+    )
+    .is_ok());
 }
 
 #[test]
@@ -89,14 +103,19 @@ fn tokens_are_checked() {
 fn broken_or_mismatched_theme_falls_back() {
     let d = tmp(&[
         ("other/theme.json", GOOD), // id "night" in folder "other"
-        ("bad/theme.json", r#"{"id":"bad","name":"B","css":["x.css"]}"#),
+        (
+            "bad/theme.json",
+            r#"{"id":"bad","name":"B","css":["x.css"]}"#,
+        ),
         ("bad/x.css", "@import 'y.css';"),
     ]);
     assert!(themes::load(&d, "other").is_err());
     let cur = themes::current(&d, "bad");
     assert_eq!(cur["id"], "default");
     assert_eq!(cur["fallback"]["theme"], "bad");
-    assert!(themes::list(&d).iter().all(|t| t["builtin"] == true || t.get("error").is_some()));
+    assert!(themes::list(&d)
+        .iter()
+        .all(|t| t["builtin"] == true || t.get("error").is_some()));
     assert!(themes::file(&d, "bad", "../other/theme.json").is_none());
 }
 #[test]

@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use crate::{
     accounts::{self, Account, AccountKind, AccountStore},
     actions::ActionRegistry,
+    addons,
     game::service,
     instances::{self, Instance, InstanceStore},
     msauth,
@@ -16,6 +17,11 @@ use crate::{
 #[derive(Deserialize)]
 struct InstanceArg {
     instance: String,
+}
+
+#[derive(Deserialize)]
+struct IdArg {
+    id: String,
 }
 
 #[derive(Deserialize)]
@@ -53,15 +59,21 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         let s: Settings = store::load(&c.path(SETTINGS))?;
         Ok(serde_json::to_value(s)?)
     });
-    r.register("safe.restore_theme", P::Public, true, |c, _| async move {
+    r.register("safe.restore_theme", P::Internal, true, |c, _| async move {
         update_settings(&c, |s| s.theme = "default".into()).await
     });
-    r.register("safe.disable_addons", P::Public, true, |c, _| async move {
-        update_settings(&c, |s| s.addons_enabled = false).await
-    });
-    r.register("safe.reset_settings", P::Public, true, |c, _| async move {
-        update_settings(&c, |s| *s = Settings::default()).await
-    });
+    r.register(
+        "safe.disable_addons",
+        P::Internal,
+        true,
+        |c, _| async move { update_settings(&c, |s| s.addons_enabled = false).await },
+    );
+    r.register(
+        "safe.reset_settings",
+        P::Internal,
+        true,
+        |c, _| async move { update_settings(&c, |s| *s = Settings::default()).await },
+    );
     if safe_mode {
         return;
     }
@@ -74,7 +86,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         let s: Settings = store::load(&c.path(SETTINGS))?;
         Ok(themes::current(&c.data_dir, &s.theme))
     });
-    r.register("themes.set", P::Public, false, |c, a| async move {
+    r.register("themes.set", P::Internal, false, |c, a| async move {
         #[derive(Deserialize)]
         struct A {
             theme: String,
@@ -98,8 +110,60 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         let html = themes::template(&c.data_dir, &s.theme, &screen).unwrap_or(None);
         Ok(json!({ "screen": screen, "html": html }))
     });
-    r.register("themes.folder", P::Public, false, |c, _| async move {
+    r.register("themes.folder", P::Internal, false, |c, _| async move {
         let d = themes::dir(&c.data_dir);
+        std::fs::create_dir_all(&d)?;
+        Ok(json!({ "path": d }))
+    });
+
+    // Addons (M3): checked in `addons.rs`; the user approves permissions here.
+    r.register("addons.list", P::Internal, false, |c, _| async move {
+        let st: addons::State = store::load(&c.path(addons::STATE))?;
+        Ok(json!(addons::list(&c.data_dir, &st)))
+    });
+    r.register("addons.approve", P::Internal, false, |c, a| async move {
+        let IdArg { id } = args(a)?;
+        let m = addons::load(&c.data_dir, &id).map_err(CoreError::BadArgs)?;
+        update_addons(&c, |st| {
+            let e = st.addons.entry(id).or_default();
+            e.granted = m
+                .permissions
+                .iter()
+                .copied()
+                .filter(|p| *p != P::Public)
+                .collect();
+            e.enabled = true;
+        })
+        .await
+    });
+    r.register(
+        "addons.set_enabled",
+        P::Internal,
+        false,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                id: String,
+                enabled: bool,
+            }
+            let A { id, enabled } = args(a)?;
+            update_addons(&c, |st| {
+                if let Some(e) = st.addons.get_mut(&id) {
+                    e.enabled = enabled;
+                }
+            })
+            .await
+        },
+    );
+    r.register("addons.revoke", P::Internal, false, |c, a| async move {
+        let IdArg { id } = args(a)?;
+        update_addons(&c, |st| {
+            st.addons.remove(&id);
+        })
+        .await
+    });
+    r.register("addons.folder", P::Internal, false, |c, _| async move {
+        let d = addons::dir(&c.data_dir);
         std::fs::create_dir_all(&d)?;
         Ok(json!({ "path": d }))
     });
@@ -554,4 +618,12 @@ async fn update_settings(c: &Core, f: impl FnOnce(&mut Settings)) -> Result<Valu
     f(&mut s);
     store::save(&c.path(SETTINGS), &s, false)?;
     Ok(serde_json::to_value(s)?)
+}
+
+async fn update_addons(c: &Core, f: impl FnOnce(&mut addons::State)) -> Result<Value, CoreError> {
+    let _g = c.state_lock.lock().await;
+    let mut st: addons::State = store::load(&c.path(addons::STATE))?;
+    f(&mut st);
+    store::save(&c.path(addons::STATE), &st, false)?;
+    Ok(json!(addons::list(&c.data_dir, &st)))
 }
