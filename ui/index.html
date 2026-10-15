@@ -209,6 +209,11 @@
   </div>
   <div class="pop" id="menu-instance" data-id="menu.instance" role="menu">
     <button class="menu-item" id="mi-install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v7m-3-3 3 3 3-3M3.5 13h9"/></svg>Проверить файлы</button>
+    <button class="menu-item" id="mi-settings" data-id="instance.settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 2.5v1.5M8 12v1.5M2.5 8H4M12 8h1.5M4.1 4.1l1 1M10.9 10.9l1 1M4.1 11.9l1-1M10.9 5.1l1-1"/></svg>Настройки сборки</button>
+    <button class="menu-item" id="mi-folder" data-id="instance.folder"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg>Открыть папку</button>
+    <button class="menu-item" id="mi-dup" data-id="instance.duplicate"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5.5" y="5.5" width="7" height="7" rx="1"/><path d="M3.5 10.5v-7h7"/></svg>Дублировать</button>
+    <div class="menu-sep"></div>
+    <button class="menu-item is-danger" id="mi-del" data-id="instance.delete"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 4.5h9M6.5 4.5V3h3v1.5M4.5 4.5l.5 8.5h6l.5-8.5"/></svg>Удалить</button>
     <div data-slot="menu.instance"></div>
   </div>
 
@@ -237,6 +242,31 @@
     <div class="actions">
       <button type="button" class="btn btn-ghost" data-close>Отмена</button>
       <button type="submit" class="btn btn-primary" id="o-submit"><span class="lbl">Создать</span></button>
+    </div>
+  </form>
+
+  <form class="dialog" id="dlg-inst" data-id="dialog.instance.settings" role="dialog" aria-label="Настройки сборки">
+    <h2>Настройки сборки</h2>
+    <div class="fields">
+      <div><label class="label" for="is-name">Название</label><input class="field" id="is-name" name="name" maxlength="64" required></div>
+      <div><label class="label" for="is-mem">Память <b class="mem-val" id="is-mem-val">Авто</b></label><input class="range" id="is-mem" name="memory" type="range" min="0" max="16384" step="512" value="0"><p class="hint">Влево до упора — по объёму RAM</p></div>
+      <div><label class="label" for="is-w">Разрешение окна игры</label><div class="field-pair"><input class="field" id="is-w" name="width" type="number" min="320" max="7680" placeholder="Ширина"><input class="field" id="is-h" name="height" type="number" min="320" max="7680" placeholder="Высота"></div></div>
+      <div><label class="label" for="is-java">Java</label><input class="field mono" id="is-java" name="java" placeholder="Авто — скачивается под версию"></div>
+      <div><label class="label" for="is-jvm">Аргументы JVM</label><input class="field mono" id="is-jvm" name="jvm" placeholder="Например -XX:+UseG1GC"></div>
+      <div><label class="label" for="is-after">Когда игра запустилась</label><select class="field" id="is-after" name="after"><option value="keep">Оставить лаунчер</option><option value="minimize">Свернуть лаунчер</option><option value="close">Закрыть лаунчер</option></select></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+      <button type="submit" class="btn btn-primary" id="is-submit"><span class="lbl">Сохранить</span></button>
+    </div>
+  </form>
+
+  <form class="dialog" id="dlg-del" data-id="dialog.instance.delete" role="dialog" aria-label="Удалить сборку">
+    <h2>Удалить «<span id="del-name"></span>»?</h2>
+    <p class="hint">Миры, моды и настройки этой сборки удалятся с диска.</p>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+      <button type="submit" class="btn btn-danger" id="del-submit"><span class="lbl">Удалить</span></button>
     </div>
   </form>
 

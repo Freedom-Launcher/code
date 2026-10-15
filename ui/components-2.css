@@ -104,3 +104,8 @@
 .acc { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--d-4) var(--ease-out); }
 .acc > * { overflow: hidden; }
 .acc[data-open] { grid-template-rows: 1fr; }
+/* Instance settings */
+.field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mem-val { float: right; color: var(--text); font-weight: var(--w-medium); }
+.range { width: 100%; accent-color: var(--accent); }
+.menu-item.is-danger { color: var(--danger, #e5484d); }

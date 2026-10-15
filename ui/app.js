@@ -167,7 +167,8 @@ $('#dlg-offline').addEventListener('submit', async (ev) => {
 // ---------- Instances: rail tiles, covers, instance page ----------
 const lastTs = (i) => i.last_played || i.created_at;
 const recent = () => [...S.instances].sort((a, b) => lastTs(b) - lastTs(a));
-const playedText = (i) => (i.last_played ? `играли ${ago(i.last_played)}` : 'ещё не запускали');
+const fmtPlay = (s) => (s < 3600 ? `${Math.max(1, Math.round(s / 60))} мин` : `${Math.floor(s / 3600)} ч${s % 3600 >= 60 ? ` ${Math.floor((s % 3600) / 60)} мин` : ''}`);
+const playedText = (i) => (i.last_played ? `играли ${ago(i.last_played)}${i.playtime_secs > 0 ? ` · ${fmtPlay(i.playtime_secs)} в игре` : ''}` : 'ещё не запускали');
 const isRunning = (id) => S.running.includes(id);
 // Covers: bundled art for now; the choice is per instance (later: own screenshots).
 const COVERS = ['dawn', 'forest', 'ocean', 'nether', 'end'];
@@ -347,6 +348,9 @@ async function play(id = S.current, launch = true) {
       const r = await call('game.launch', { instance: id });
       if (!r?.already_running) { const it = byId(id); if (it) it.last_played = Math.floor(Date.now() / 1000); }
       if (!S.running.includes(id)) S.running = [...S.running, id];
+      const w = window.__TAURI__?.window?.getCurrentWindow?.();
+      if (w && r?.after_launch === 'minimize') w.minimize();
+      if (w && r?.after_launch === 'close') setTimeout(() => w.close(), 800);
     }
     btn.dataset.state = 'success';
     toast(launch ? 'Игра запущена' : 'Файлы в порядке');
@@ -374,6 +378,79 @@ async function play(id = S.current, launch = true) {
 
 $('#play').addEventListener('click', () => (isRunning(S.current) ? stopGame(S.current) : play(S.current, true)));
 $('#mi-install').addEventListener('click', () => play(S.current, false));
+
+// ---------- Instance management: settings, folder, duplicate, delete ----------
+async function reloadInstances() { S.instances = await call('instances.list'); renderInstances(); }
+const memLabel = (v) => (+v ? `${(+v / 1024).toFixed(1).replace('.0', '')} ГБ` : 'Авто');
+$('#is-mem').addEventListener('input', (e) => { $('#is-mem-val').textContent = memLabel(e.target.value); });
+$('#mi-settings').addEventListener('click', () => {
+  const i = byId(S.current);
+  if (!i) return;
+  const s = i.settings || {};
+  const f = $('#dlg-inst');
+  f.name.value = i.name;
+  f.memory.value = s.memory_mb || 0;
+  $('#is-mem-val').textContent = memLabel(f.memory.value);
+  f.width.value = s.width || '';
+  f.height.value = s.height || '';
+  f.java.value = s.java_path || '';
+  f.jvm.value = s.jvm_args || '';
+  f.after.value = s.after_launch || 'keep';
+  openDlg('dlg-inst');
+});
+$('#dlg-inst').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const f = ev.currentTarget;
+  const num = (v) => (v.trim() ? parseInt(v, 10) : undefined);
+  const str = (v) => v.trim() || undefined;
+  const settings = {
+    memory_mb: +f.memory.value || undefined,
+    width: num(f.width.value),
+    height: num(f.height.value),
+    java_path: str(f.java.value),
+    jvm_args: str(f.jvm.value),
+    after_launch: f.after.value === 'keep' ? undefined : f.after.value,
+  };
+  try {
+    await run($('#is-submit'), 'instances.update', { instance: S.current, name: f.name.value, settings });
+    await reloadInstances();
+    closeDlg();
+  } catch { /* toast shown */ }
+});
+$('#mi-folder').addEventListener('click', () => {
+  closeMenu();
+  invoke('open_instance_folder', { instance: S.current }).catch((e) => toast(String(e), { error: true }));
+});
+$('#mi-dup').addEventListener('click', async () => {
+  closeMenu();
+  const src = S.current;
+  try {
+    const copy = await call('instances.duplicate', { instance: src });
+    const cover = localStorage.getItem(`fl.cover.${src}`);
+    if (cover) localStorage.setItem(`fl.cover.${copy.id}`, cover);
+    await reloadInstances();
+    openInstance(copy.id);
+    toast('Сборка скопирована');
+  } catch (e) { toast(String(e), { error: true }); }
+});
+$('#mi-del').addEventListener('click', () => {
+  const i = byId(S.current);
+  if (!i) return;
+  $('#del-name').textContent = i.name;
+  openDlg('dlg-del');
+});
+$('#dlg-del').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const id = S.current;
+  try {
+    await run($('#del-submit'), 'instances.delete', { instance: id });
+    localStorage.removeItem(`fl.cover.${id}`);
+    closeDlg();
+    S.instances = await call('instances.list');
+    const next = recent()[0];
+    if (next) openInstance(next.id); else { renderInstances(); show('empty'); }
+  } catch { /* toast shown */ }
+});
 // Right-click menu on instance cards/rows.
 const ctxInst = () => $('#menu-ctx-instance')._host?.dataset.inst;
 $('#cx-play').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(), true); });

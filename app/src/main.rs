@@ -45,6 +45,24 @@ fn open_login_page(app: tauri::AppHandle, url: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+/// Opens an instance folder in the system file manager.
+#[tauri::command]
+async fn open_instance_folder(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+    instance: String,
+) -> Result<(), String> {
+    let core = Arc::clone(&state.0);
+    let v = core
+        .dispatch(&Caller::BuiltinUi, "instances.folder", serde_json::json!({ "instance": instance }))
+        .await
+        .map_err(|e| e.to_string())?;
+    let path = v["path"].as_str().ok_or("no folder")?.to_owned();
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 fn main() {
     let started = Instant::now();
     let safe_mode = std::env::args().any(|a| a == "--safe");
@@ -62,7 +80,7 @@ fn main() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![action, open_login_page])
+        .invoke_handler(tauri::generate_handler![action, open_login_page, open_instance_folder])
         .run(tauri::generate_context!())
         .expect("failed to start Freedom Launcher");
 }
