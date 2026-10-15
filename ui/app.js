@@ -6,7 +6,7 @@ const call = (name, args = null) => invoke('action', { name, args });
 
 const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'empty' };
 const KIND = { microsoft: 'Microsoft', offline: 'Офлайн', provider: 'Сервис' };
-const STAGE = { idle: 'Подготовка', java: 'Java', version: 'Версия', libraries: 'Библиотеки', assets: 'Ресурсы', natives: 'Нативные файлы', launch: 'Запуск', done: 'Готово' };
+const STAGE = { idle: 'Подготовка', loader: 'Готовим загрузчик…', java: 'Java', version: 'Версия', libraries: 'Библиотеки', assets: 'Ресурсы', natives: 'Нативные файлы', launch: 'Запуск', done: 'Готово' };
 const TITLES = { instance: '', empty: '', create: 'Новая сборка', accounts: 'Аккаунты', discover: 'Дополнения', settings: 'Настройки' };
 const PLAY_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>';
 
@@ -231,7 +231,7 @@ $('#ip-tabs').addEventListener('click', (e) => {
 });
 
 // ---------- Create instance (a page, not a dialog) ----------
-const LOADER_NAMES = { vanilla: 'Vanilla', fabric: 'Fabric' };
+const LOADER_NAMES = { vanilla: 'Vanilla', fabric: 'Fabric', forge: 'Forge', neoforge: 'NeoForge' };
 let createCover = COVERS[0];
 function paintCreateCovers() {
   $('#c-covers').replaceChildren(...COVERS.map((n) => coverOpt(n, n === createCover, (x) => { createCover = x; paintCreateCovers(); })));
