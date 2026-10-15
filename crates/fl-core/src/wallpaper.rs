@@ -28,7 +28,8 @@ pub fn save(data_dir: &Path, bytes: &[u8]) -> Result<(), CoreError> {
     if bytes.len() > MAX_BYTES {
         return Err(CoreError::msg("Картинка больше 16 МБ"));
     }
-    let (ext, _) = kind(bytes).ok_or_else(|| CoreError::msg("Нужна картинка PNG, JPEG, WebP или GIF"))?;
+    let (ext, _) =
+        kind(bytes).ok_or_else(|| CoreError::msg("Нужна картинка PNG, JPEG, WebP или GIF"))?;
     std::fs::create_dir_all(data_dir)?;
     let tmp = data_dir.join("wallpaper.tmp");
     std::fs::write(&tmp, bytes)?;

@@ -9,7 +9,7 @@ use crate::{
     addons,
     game::service,
     instances::{self, Instance, InstanceStore},
-    msauth,
+    modrinth, mods, msauth,
     settings::Settings,
     store, themes, unix_now, versions, Core, CoreError, Permission as P,
 };
@@ -354,6 +354,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     );
     register_instance_manage(r);
     register_game(r);
+    register_mods(r);
 }
 
 fn copy_dir(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
@@ -626,4 +627,95 @@ async fn update_addons(c: &Core, f: impl FnOnce(&mut addons::State)) -> Result<V
     f(&mut st);
     store::save(&c.path(addons::STATE), &st, false)?;
     Ok(json!(addons::list(&c.data_dir, &st)))
+}
+
+fn instance_by_id(c: &Core, id: &str) -> Result<Instance, CoreError> {
+    let s: InstanceStore = store::load(&c.path(INSTANCES))?;
+    s.instances
+        .into_iter()
+        .find(|i| i.id == id)
+        .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {id}")))
+}
+
+#[derive(Deserialize)]
+struct ModArg {
+    instance: String,
+    file: String,
+    #[serde(default)]
+    enabled: bool,
+}
+
+fn register_mods(r: &mut ActionRegistry) {
+    // Modrinth search, already filtered to the instance's game version and loader.
+    r.register("mods.search", P::Network, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            #[serde(default)]
+            query: String,
+            #[serde(default)]
+            offset: u32,
+        }
+        let A {
+            instance,
+            query,
+            offset,
+        } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let Some(loader) = modrinth::loader_name(&i.loader) else {
+            return Ok(json!({ "supported": false, "hits": [], "total_hits": 0 }));
+        };
+        let page = modrinth::search(&c, &query, &i.version, loader, offset, 20).await?;
+        Ok(json!({ "supported": true, "hits": page.hits, "total_hits": page.total_hits }))
+    });
+    r.register("mods.list", P::InstancesRead, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        Ok(serde_json::to_value(mods::list(&i.game_dir(&c.data_dir))?)?)
+    });
+    // Installs a project plus its required dependencies; resolves when done.
+    r.register(
+        "mods.install",
+        P::InstancesManage,
+        true,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                instance: String,
+                project: String,
+            }
+            let A { instance, project } = args(a)?;
+            let i = instance_by_id(&c, &instance)?;
+            let loader = modrinth::loader_name(&i.loader)
+                .ok_or_else(|| CoreError::BadArgs("vanilla instances take no mods".into()))?;
+            if c.game_running.is_busy(&i.id) {
+                return Err(CoreError::msg("Сначала закройте игру"));
+            }
+            let added =
+                mods::install(&c, &i.game_dir(&c.data_dir), &i.version, loader, &project).await?;
+            Ok(json!({ "added": added }))
+        },
+    );
+    r.register("mods.toggle", P::InstancesManage, true, |c, a| async move {
+        let ModArg {
+            instance,
+            file,
+            enabled,
+        } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        if c.game_running.is_busy(&i.id) {
+            return Err(CoreError::msg("Сначала закройте игру"));
+        }
+        mods::set_enabled(&i.game_dir(&c.data_dir), &file, enabled)?;
+        Ok(json!({ "file": file, "enabled": enabled }))
+    });
+    r.register("mods.remove", P::InstancesManage, true, |c, a| async move {
+        let ModArg { instance, file, .. } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        if c.game_running.is_busy(&i.id) {
+            return Err(CoreError::msg("Сначала закройте игру"));
+        }
+        mods::remove(&i.game_dir(&c.data_dir), &file)?;
+        Ok(json!({ "file": file }))
+    });
 }
