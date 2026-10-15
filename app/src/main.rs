@@ -27,6 +27,25 @@ async fn action(
     out
 }
 
+/// A `data-action` click inside markup written by a theme. Runs with theme rights:
+/// only `bindable` actions, attributed to the active theme.
+#[tauri::command]
+async fn theme_action(
+    state: tauri::State<'_, AppCore>,
+    name: String,
+    args: Option<Value>,
+) -> Result<Value, String> {
+    let core = Arc::clone(&state.0);
+    let cur = core
+        .dispatch(&Caller::BuiltinUi, "themes.current", Value::Null)
+        .await
+        .map_err(|e| e.to_string())?;
+    let id = cur["id"].as_str().unwrap_or("default").to_owned();
+    core.dispatch(&Caller::Theme { id }, &name, args.unwrap_or(Value::Null))
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Opens the Microsoft sign-in page in the system browser. Only fixed Microsoft URLs are allowed.
 #[tauri::command]
 fn open_login_page(app: tauri::AppHandle, url: String) -> Result<(), String> {
@@ -240,6 +259,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             action,
+            theme_action,
             open_login_page,
             open_instance_folder,
             open_themes_folder

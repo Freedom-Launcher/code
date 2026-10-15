@@ -33,10 +33,10 @@ const ago = (t) => {
 const byId = (id) => S.instances.find((i) => i.id === id);
 
 // Runs an action for an element and reflects progress in data-state (the action-library contract).
-async function run(target, name, args = null) {
+async function run(target, name, args = null, fromTheme = false) {
   target.dataset.state = 'loading';
   try {
-    const r = await call(name, args);
+    const r = await (fromTheme ? invoke('theme_action', { name, args }) : call(name, args));
     target.dataset.state = 'success';
     setTimeout(() => { if (target.dataset.state === 'success') target.dataset.state = 'idle'; }, 1100);
     return r;
@@ -54,8 +54,9 @@ document.addEventListener('click', async (ev) => {
   const a = ev.target.closest('[data-action]');
   if (!a) return;
   ev.preventDefault();
-  const args = a.dataset.args ? JSON.parse(a.dataset.args) : null;
-  const result = await run(a, a.dataset.action, args).catch(() => null);
+  let args = null;
+  try { args = a.dataset.args ? JSON.parse(a.dataset.args) : null; } catch { toast('Неверный data-args', { error: true }); return; }
+  const result = await run(a, a.dataset.action, args, a.hasAttribute('data-from-theme')).catch(() => null);
   if (result === null) return;
   const name = a.dataset.action;
   if (name.startsWith('accounts.')) renderAccounts(result);
@@ -473,15 +474,43 @@ $('#set-seg').addEventListener('seg:change', (e) => {
   $$('#view-settings .set-pane').forEach((p) => { p.hidden = p.id !== `set-${e.detail.dataset.pane}`; });
   requestAnimationFrame(() => $('#theme-seg')._place?.(false));
 });
+// ---------- Themes: the core owns the choice; tokens/CSS switch live, templates on reload ----------
+async function applyTheme(cur, first = false) {
+  FTheme.apply(cur);
+  if (cur.fallback) toast(`Тема «${cur.fallback.theme}» не загрузилась: ${cur.fallback.error}. Включена стандартная.`, { error: true });
+  if (!first) return;
+  for (const screen of cur.templates || []) {
+    const t = await call('themes.template', { screen }).catch(() => null);
+    if (t?.html) FTheme.mount(cur.id, screen, t.html);
+  }
+}
+function renderThemes(list, cur) {
+  S.theme = cur;
+  $('#theme-seg').replaceChildren(...list.map((t) => {
+    const b = el('button', { 'data-theme-set': t.id, 'aria-selected': String(t.id === cur.id) }, t.name);
+    if (t.error) { b.disabled = true; b.dataset.tip = t.error; }
+    return b;
+  }));
+}
+$('#theme-seg').addEventListener('seg:change', async (e) => {
+  const prev = S.theme;
+  const cur = await call('themes.set', { theme: e.detail.dataset.themeSet }).catch((err) => { toast(String(err), { error: true }); return null; });
+  if (!cur) return;
+  S.theme = cur;
+  // Templates restructure screens, so switching to or from them reloads the UI (local, under a second).
+  if ((prev?.templates?.length || 0) + (cur.templates?.length || 0) > 0) { location.hash = 'settings'; location.reload(); return; }
+  applyTheme(cur);
+});
+$('#theme-folder').addEventListener('click', () => invoke('open_themes_folder').catch((e) => toast(String(e), { error: true })));
+$('#theme-reload').addEventListener('click', () => { location.hash = 'settings'; location.reload(); });
+
 function applyLook() {
-  document.documentElement.dataset.theme = localStorage.getItem('fl.theme') || document.documentElement.dataset.theme || 'dark';
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
-  $$('#theme-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.themeSet === document.documentElement.dataset.theme)));
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
   document.documentElement.dataset.cover = localStorage.getItem('fl.cover-size') || 'big';
   $$('#cover-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.coverSet === document.documentElement.dataset.cover)));
 }
-$('#theme-seg').addEventListener('seg:change', (e) => { localStorage.setItem('fl.theme', e.detail.dataset.themeSet); applyLook(); });
+
 $('#cover-seg').addEventListener('seg:change', (e) => { localStorage.setItem('fl.cover-size', e.detail.dataset.coverSet); applyLook(); });
 $('#fx-motion').addEventListener('change', (e) => { localStorage.setItem('fl.motion', e.target.checked ? 'on' : 'off'); applyLook(); });
 
@@ -491,7 +520,9 @@ async function start() {
   const info = await call('app.info');
   if (info.safe_mode) { $('#safe').hidden = false; }
   else {
-    const [acc, inst] = await Promise.all([call('accounts.list'), call('instances.list')]);
+    const [acc, inst, theme, themeList] = await Promise.all([call('accounts.list'), call('instances.list'), call('themes.current'), call('themes.list')]);
+    await applyTheme(theme, true);
+    renderThemes(themeList, theme);
     renderAccounts(acc);
     S.instances = inst;
     const saved = localStorage.getItem('fl.current');
