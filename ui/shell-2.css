@@ -49,3 +49,29 @@
 /* Settings */
 .set-tabs { margin-bottom: 18px; }
 .set-pane[hidden] { display: none; }
+/* ---------- Fluid layout: use the window when it grows (maximized / large screens) ---------- */
+/* One gutter for every page, from 36px at 1100px up to 64px on wide screens. */
+:root { --gutter: clamp(28px, 3.2vw, 64px); }
+.inst-body { padding: 4px var(--gutter) 64px; }
+.play-status { margin: 0 var(--gutter) 4px; }
+.hero { height: clamp(300px, 46vh, 560px); }
+[data-cover="slim"] .hero { height: clamp(180px, 24vh, 280px); }
+.hero-body { padding: 0 var(--gutter) clamp(24px, 3.5vh, 40px); }
+.hero h1 { font-size: clamp(38px, 2.7vw, 54px); }
+.narrow { max-width: clamp(600px, 62vw, 1160px); padding: clamp(36px, 5vh, 64px) var(--gutter) 80px; }
+.page-h { font-size: clamp(26px, 1.7vw, 34px); }
+/* Forms keep a readable line length; lists and catalogs take the full width. */
+#create-form.narrow { max-width: clamp(600px, 48vw, 880px); }
+.cover-strip { flex-wrap: wrap; }
+.cover-opt { width: clamp(92px, 7vw, 132px); height: auto; aspect-ratio: 92 / 58; }
+.pick button { height: clamp(64px, 7vh, 84px); }
+@media (min-width: 1440px) {
+  /* Settings: both panes side by side instead of switching tabs. */
+  #view-settings .set-tabs { display: none; }
+  #view-settings .narrow { display: grid; grid-template-columns: 1fr 1fr; column-gap: 48px; align-content: start; }
+  #view-settings .page-h, #view-settings [data-slot] { grid-column: 1 / -1; }
+  #view-settings .set-pane[hidden] { display: block !important; }
+  #view-settings .set-pane::before { display: block; margin: 0 0 6px; color: var(--text-3); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em; }
+  #set-game::before { content: "Игра"; }
+  #set-launcher::before { content: "Лаунчер"; }
+}
