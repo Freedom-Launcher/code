@@ -166,6 +166,109 @@ async fn open_themes_folder(
         .map_err(|e| e.to_string())
 }
 
+/// An addon's call. The UI relays it from the addon's sandboxed iframe; the core
+/// checks it against exactly the permissions the user approved for that addon.
+#[tauri::command]
+async fn addon_action(
+    state: tauri::State<'_, AppCore>,
+    id: String,
+    name: String,
+    args: Option<Value>,
+) -> Result<Value, String> {
+    let core = Arc::clone(&state.0);
+    let caller = core
+        .addon_caller(&id)
+        .ok_or("дополнение не включено или не одобрено")?;
+    core.dispatch(&caller, &name, args.unwrap_or(Value::Null))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+const ADDON_SDK: &str = include_str!("../../ui/addon-sdk.js");
+
+/// `addon://localhost/<id>/<rel>` (Windows: `http://addon.localhost/<id>/<rel>`).
+/// Files of enabled, approved addons only. The page may load files of its own
+/// addon and nothing else: no network, no other addons, no launcher.
+fn addon_protocol(
+    app: &tauri::AppHandle,
+    req: &tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Vec<u8>> {
+    use fl_core::addons;
+    use tauri::http::Response;
+    let deny = |code: u16| Response::builder().status(code).body(Vec::new()).unwrap();
+    let Some(state) = app.try_state::<AppCore>() else {
+        return deny(503);
+    };
+    let core = &state.0;
+    let path = req.uri().path().trim_start_matches('/');
+    let Some((id, rel)) = path.split_once('/') else {
+        return deny(404);
+    };
+    if core.addon_caller(id).is_none() {
+        return deny(403);
+    }
+    let bytes = if rel == "fl-sdk.js" {
+        ADDON_SDK.as_bytes().to_vec()
+    } else {
+        let Some(file) = addons::file(&core.data_dir, id, rel) else {
+            return deny(404);
+        };
+        let Ok(b) = std::fs::read(&file) else {
+            return deny(404);
+        };
+        b
+    };
+    let ext = rel.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    let mime = match ext.as_str() {
+        "html" => "text/html; charset=utf-8",
+        "js" => "text/javascript; charset=utf-8",
+        "css" => "text/css; charset=utf-8",
+        "json" => "application/json",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        "svg" => "image/svg+xml",
+        "woff2" => "font/woff2",
+        "woff" => "font/woff",
+        _ => return deny(403),
+    };
+    let own = format!("addon://localhost/{id}/ http://addon.localhost/{id}/");
+    let csp = if ext == "html" {
+        format!(
+            "default-src 'none'; script-src {own}; style-src {own} 'unsafe-inline'; \
+             img-src {own} data:; font-src {own}; connect-src 'none'; form-action 'none'; \
+             base-uri 'none'; frame-ancestors tauri://localhost http://tauri.localhost"
+        )
+    } else {
+        "default-src 'none'; style-src 'unsafe-inline'; img-src data:".to_owned()
+    };
+    Response::builder()
+        .status(200)
+        .header("Content-Type", mime)
+        .header("X-Content-Type-Options", "nosniff")
+        .header("Content-Security-Policy", csp)
+        .header("Cache-Control", "no-store")
+        .body(bytes)
+        .unwrap()
+}
+
+/// Opens the addons folder in the system file manager.
+#[tauri::command]
+async fn open_addons_folder(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+) -> Result<(), String> {
+    let core = Arc::clone(&state.0);
+    let v = core
+        .dispatch(&Caller::BuiltinUi, "addons.folder", Value::Null)
+        .await
+        .map_err(|e| e.to_string())?;
+    let path = v["path"].as_str().ok_or("no folder")?.to_owned();
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 /// Shift held while the launcher starts opens safe settings.
 #[cfg(windows)]
 fn shift_held() -> bool {
@@ -248,6 +351,7 @@ fn main() {
     builder
         .plugin(tauri_plugin_opener::init())
         .register_uri_scheme_protocol("theme", |ctx, req| theme_protocol(ctx.app_handle(), &req))
+        .register_uri_scheme_protocol("addon", |ctx, req| addon_protocol(ctx.app_handle(), &req))
         .setup(move |app| {
             tray(app)?;
             let data_dir = app.path().app_data_dir()?;
@@ -265,7 +369,9 @@ fn main() {
             theme_action,
             open_login_page,
             open_instance_folder,
-            open_themes_folder
+            open_themes_folder,
+            addon_action,
+            open_addons_folder
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Freedom Launcher");

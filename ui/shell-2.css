@@ -75,3 +75,15 @@
   #set-game::before { content: "Игра"; }
   #set-launcher::before { content: "Лаунчер"; }
 }
+
+/* ---------- Addons (M3) ---------- */
+.addon-frame { display: block; width: 100%; height: 0; border: 0; background: transparent; color-scheme: normal; }
+#set-addons .rows + .rows { margin-top: var(--s-4); }
+.addon-row { align-items: flex-start; }
+.addon-row .t .badge { margin-left: var(--s-1); vertical-align: 1px; }
+.addon-perms { display: flex; flex-wrap: wrap; gap: var(--s-1); margin-top: var(--s-2); }
+.addon-perms .chip { padding: 2px 8px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-2); font-size: var(--text-xs); }
+.addon-perms .chip.tier-function { color: var(--warn); }
+.addon-perms .chip.tier-extended { color: var(--danger); }
+.addon-perms .chip.is-new { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.r .s.is-error { color: var(--danger); }

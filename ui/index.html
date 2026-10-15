@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="shell-2.css">
   <script src="ui.js" defer></script>
   <script src="themes.js" defer></script>
+  <script src="addons.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -168,7 +169,7 @@
       <section class="view" id="view-settings" data-id="view.settings">
         <div class="narrow">
           <h1 class="page-h">Настройки</h1>
-          <div class="seg set-tabs" id="set-seg" data-id="settings.sections"><button data-pane="game" aria-selected="true">Игра</button><button data-pane="launcher">Лаунчер</button></div>
+          <div class="seg set-tabs" id="set-seg" data-id="settings.sections"><button data-pane="game" aria-selected="true">Игра</button><button data-pane="launcher">Лаунчер</button><button data-pane="addons">Дополнения</button></div>
           <div class="set-pane" id="set-game" data-id="settings.game">
             <div class="rows">
               <div class="r"><div class="grow"><div class="t">Память</div><div class="s">По умолчанию зависит от объёма RAM</div></div><span class="badge">Авто</span></div>
@@ -186,6 +187,14 @@
                 <button class="btn" id="theme-folder" data-id="settings.theme.folder"><span class="lbl">Открыть</span></button></div>
               <div class="r"><div class="grow"><div class="t">Анимации</div><div class="s">Переходы, всплывающие меню, кнопки</div></div>
                 <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
+            </div>
+          </div>
+          <div class="set-pane" id="set-addons" data-id="settings.addons" hidden>
+            <div class="rows" id="addon-list"></div>
+            <div class="rows">
+              <div class="r"><div class="grow"><div class="t">Папка дополнений</div><div class="s">Дополнение работает в изоляции и получает только те права, что вы разрешили</div></div>
+                <button class="btn btn-ghost" id="addon-reload" data-id="settings.addons.reload"><span class="lbl">Обновить</span></button>
+                <button class="btn" id="addon-folder" data-id="settings.addons.folder"><span class="lbl">Открыть</span></button></div>
             </div>
           </div>
           <div data-slot="settings.end"></div>

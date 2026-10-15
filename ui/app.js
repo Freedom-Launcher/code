@@ -500,6 +500,7 @@ $('#theme-seg').addEventListener('seg:change', async (e) => {
   // Templates restructure screens, so switching to or from them reloads the UI (local, under a second).
   if ((prev?.templates?.length || 0) + (cur.templates?.length || 0) > 0) { location.hash = 'settings'; location.reload(); return; }
   applyTheme(cur);
+  window.FAddons.retheme();
 });
 $('#theme-folder').addEventListener('click', () => invoke('open_themes_folder').catch((e) => toast(String(e), { error: true })));
 $('#theme-reload').addEventListener('click', () => { location.hash = 'settings'; location.reload(); });
@@ -523,6 +524,7 @@ async function start() {
     const [acc, inst, theme, themeList] = await Promise.all([call('accounts.list'), call('instances.list'), call('themes.current'), call('themes.list')]);
     await applyTheme(theme, true);
     renderThemes(themeList, theme);
+    window.FAddons.start();
     renderAccounts(acc);
     S.instances = inst;
     const saved = localStorage.getItem('fl.current');
