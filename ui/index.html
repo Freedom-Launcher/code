@@ -104,7 +104,7 @@
             <button data-tab="logs">Логи</button>
           </nav>
           <div class="tab-body" id="tab-worlds" data-id="instance.worlds" hidden>
-            <div class="table-empty"><b>Миров пока нет</b>Сыграйте — миры появятся здесь с названием, режимом и временем в игре.</div>
+            <div class="table-empty"><b>Миров пока нет</b></div>
           </div>
           <div class="tab-body" id="tab-content" data-id="instance.content">
             <div class="toolbar">
@@ -114,10 +114,10 @@
               </label>
               <button class="btn" data-view="discover" data-id="instance.content.add"><span class="lbl">Добавить</span></button>
             </div>
-            <div class="table-empty"><b>Это ванильная сборка</b>Моды, ресурспаки и шейдеры появятся здесь, когда вы их добавите.</div>
+            <div class="table-empty"><b>Модов нет</b></div>
           </div>
           <div class="tab-body" id="tab-shots" data-id="instance.shots" hidden>
-            <div class="table-empty"><b>Скриншотов пока нет</b>Нажмите F2 в игре — снимок появится здесь, и его можно сделать обложкой.</div>
+            <div class="table-empty"><b>Скриншотов пока нет</b>F2 в игре</div>
           </div>
           <div class="tab-body" id="tab-logs" data-id="instance.logs" hidden>
             <pre class="log mono" id="ip-log">Лог появится после первого запуска.</pre>
@@ -129,14 +129,12 @@
       <section class="view" id="view-empty" data-id="view.empty">
         <div class="narrow">
           <h1 class="page-h">Сборок пока нет</h1>
-          <p class="page-sub">Создайте первую — лаунчер сам скачает игру и Java.</p>
           <button class="btn btn-primary btn-lg" data-view="create" data-id="empty.create"><span class="lbl">Новая сборка</span></button>
         </div>
       </section>
       <section class="view" id="view-create" data-id="view.create">
         <form class="narrow" id="create-form" data-id="create.form" autocomplete="off">
           <h1 class="page-h">Новая сборка</h1>
-          <p class="page-sub">Обложку можно сменить в любой момент — например, на свой скриншот.</p>
           <span class="label">Обложка</span>
           <div class="cover-strip" id="c-covers" data-id="create.covers"></div>
           <label class="label" for="c-name">Название</label>
@@ -164,7 +162,6 @@
       <section class="view" id="view-accounts" data-id="view.accounts">
         <div class="narrow">
           <h1 class="page-h">Аккаунты</h1>
-          <p class="page-sub">Аккаунт, отмеченный «играю как», используется при запуске.</p>
           <div class="rows" id="acc-page" data-id="accounts.list"></div>
           <div class="acc-actions">
             <button class="btn btn-primary" data-open="dlg-login" data-id="accounts.add.microsoft"><span class="lbl">Войти через Microsoft</span></button>
@@ -177,7 +174,6 @@
       <section class="view" id="view-discover" data-id="view.discover">
         <div class="narrow">
           <h1 class="page-h">Дополнения</h1>
-          <p class="page-sub">Моды, сборки, темы и аддоны. Каталог подключается в M4.</p>
           <div class="toolbar" data-id="discover.toolbar">
             <div class="seg" id="disc-type"><button aria-selected="true">Моды</button><button>Сборки</button><button>Темы</button><button>Аддоны</button></div>
           </div>
@@ -192,22 +188,22 @@
           <div class="seg set-tabs" id="set-seg" data-id="settings.sections"><button data-pane="game" aria-selected="true">Игра</button><button data-pane="launcher">Лаунчер</button><button data-pane="addons">Дополнения</button></div>
           <div class="set-pane" id="set-game" data-id="settings.game">
             <div class="rows">
-              <div class="r"><div class="grow"><div class="t">Память</div><div class="s">По умолчанию зависит от объёма RAM</div></div><span class="badge">Авто</span></div>
-              <div class="r"><div class="grow"><div class="t">Java</div><div class="s">Скачивается автоматически под версию игры</div></div><span class="badge">Авто</span></div>
+              <div class="r"><div class="grow"><div class="t">Память</div></div><span class="badge">Авто</span></div>
+              <div class="r"><div class="grow"><div class="t">Java</div></div><span class="badge">Авто</span></div>
             </div>
           </div>
           <div class="set-pane" id="set-launcher" data-id="settings.launcher" hidden>
             <div class="rows">
-              <div class="r"><div class="grow"><div class="t">Обложка сборки</div><div class="s">Размер картинки над сборкой</div></div>
+              <div class="r"><div class="grow"><div class="t">Обложка сборки</div></div>
                 <div class="seg" id="cover-seg"><button data-cover-set="big" aria-selected="true">Большая</button><button data-cover-set="slim">Узкая</button><button data-cover-set="none">Нет</button></div></div>
-              <div class="r"><div class="grow"><div class="t">Тема</div><div class="s">Встроенные и свои</div></div>
+              <div class="r"><div class="grow"><div class="t">Тема</div></div>
                 <div class="seg" id="theme-seg" data-id="settings.theme"><button data-theme-set="default" aria-selected="true">Тёмная</button><button data-theme-set="light">Светлая</button></div></div>
-              <div class="r"><div class="grow"><div class="t">Папка тем</div><div class="s">Тема — это theme.json, CSS и шаблоны, без кода</div></div>
+              <div class="r"><div class="grow"><div class="t">Папка тем</div></div>
                 <button class="btn btn-ghost" id="theme-reload" data-id="settings.theme.reload"><span class="lbl">Обновить</span></button>
                 <button class="btn" id="theme-folder" data-id="settings.theme.folder"><span class="lbl">Открыть</span></button></div>
-              <div class="r"><div class="grow"><div class="t">Анимации</div><div class="s">Переходы, всплывающие меню, кнопки</div></div>
+              <div class="r"><div class="grow"><div class="t">Анимации</div></div>
                 <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
-              <div class="r"><div class="grow"><div class="t">Обои</div><div class="s">Обложка текущей сборки, размытая за стеклом</div></div>
+              <div class="r"><div class="grow"><div class="t">Обои</div></div>
                 <div class="seg" id="wall-seg" data-id="settings.wall"><button data-wall-set="cover" aria-selected="true">Обложка</button><button data-wall-set="off">Нет</button></div></div>
               <div class="r" id="wall-blur-row"><div class="grow"><div class="t">Размытие обоев</div><div class="s" id="wall-blur-val"></div></div>
                 <input class="range" type="range" id="wall-blur" min="0" max="40" step="2" data-id="settings.wall.blur"></div>
@@ -218,7 +214,7 @@
           <div class="set-pane" id="set-addons" data-id="settings.addons" hidden>
             <div class="rows" id="addon-list"></div>
             <div class="rows">
-              <div class="r"><div class="grow"><div class="t">Папка дополнений</div><div class="s">Дополнение работает в изоляции и получает только те права, что вы разрешили</div></div>
+              <div class="r"><div class="grow"><div class="t">Папка дополнений</div></div>
                 <button class="btn btn-ghost" id="addon-reload" data-id="settings.addons.reload"><span class="lbl">Обновить</span></button>
                 <button class="btn" id="addon-folder" data-id="settings.addons.folder"><span class="lbl">Открыть</span></button></div>
             </div>

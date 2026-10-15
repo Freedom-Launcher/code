@@ -288,7 +288,7 @@ function renderAccountsPage() {
     el('div', { class: 'grow' }, el('div', { class: 't' }, a.name), el('div', { class: 's' }, KIND[a.kind.type] || '')),
     a.id === st.selected ? el('span', { class: 'acc-tag on' }, 'Играю как') : btn('Играть как', 'accounts.select', a.id),
     btn('Удалить', 'accounts.remove', a.id))));
-  if (!st.accounts.length) $('#acc-page').append(el('div', { class: 'r' }, el('div', { class: 's' }, 'Аккаунтов пока нет — войдите через Microsoft.')));
+  if (!st.accounts.length) $('#acc-page').append(el('div', { class: 'r' }, el('div', { class: 's' }, 'Аккаунтов пока нет')));
   $('#acc-offline').hidden = !st.offline_available;
 }
 // ---------- Home: greeting, recent builds, all builds, glass play bar ----------
@@ -304,7 +304,7 @@ function renderHome() {
   const rc = recent().slice(0, 5).map((i) => el('button', { class: 'rc', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.recent.${i.id}`, onclick: () => openInstance(i.id) },
     bg(el('i'), coverName(i)), el('span', { class: 't' }, el('b', {}, i.name), el('span', {}, instMeta(i))),
     el('span', { class: `pl${isRunning(i.id) ? ' on' : ''}`, role: 'button', 'aria-label': `Играть: ${i.name}`, onclick: (e) => { e.stopPropagation(); togglePlay(i.id); } }, svgIco(isRunning(i.id) ? STOP_D : PLAY_D))));
-  rc.push(el('button', { class: 'rc add', 'data-view': 'create', 'data-id': 'home.create' }, el('i', {}, '+'), el('span', { class: 't' }, el('b', {}, 'Новая сборка'), el('span', {}, 'Игра и Java скачаются сами'))));
+  rc.push(el('button', { class: 'rc add', 'data-view': 'create', 'data-id': 'home.create' }, el('i', {}, '+'), el('span', { class: 't' }, el('b', {}, 'Новая сборка'))));
   $('#home-recent').replaceChildren(...rc);
   const all = [...S.instances].sort((a, b) => a.created_at - b.created_at);
   $('#home-all').replaceChildren(...all.map((i) => el('button', { class: 'hcard', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
