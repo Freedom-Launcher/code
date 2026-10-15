@@ -198,6 +198,7 @@ function renderInstancePage() {
   bg($('#ip-cover'), coverName(i));
   $('#ip-name').textContent = i.name;
   $('#ip-version').textContent = i.version;
+  $('#ip-loader').textContent = LOADER_NAMES[i.loader] || 'Vanilla';
   $('#ip-created').textContent = new Date(i.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
   $('#ip-played').textContent = playedText(i);
   const busy = S.playing === i.id;
@@ -230,6 +231,7 @@ $('#ip-tabs').addEventListener('click', (e) => {
 });
 
 // ---------- Create instance (a page, not a dialog) ----------
+const LOADER_NAMES = { vanilla: 'Vanilla', fabric: 'Fabric' };
 let createCover = COVERS[0];
 function paintCreateCovers() {
   $('#c-covers').replaceChildren(...COVERS.map((n) => coverOpt(n, n === createCover, (x) => { createCover = x; paintCreateCovers(); })));
@@ -248,12 +250,19 @@ async function loadVersions() {
   } catch (e) { s.replaceChildren(el('option', { value: '' }, 'Нет списка версий')); toast(String(e), { error: true }); }
 }
 $('#c-snapshots').addEventListener('change', loadVersions);
+let createLoader = 'vanilla';
+$('#c-loader').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-loader]');
+  if (!b || b.disabled) return;
+  createLoader = b.dataset.loader;
+  $$('#c-loader [data-loader]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+});
 $('#c-cancel').addEventListener('click', () => (byId(S.current) ? openInstance(S.current) : show('empty')));
 $('#create-form').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const f = ev.currentTarget;
   try {
-    const created = await run($('#c-submit'), 'instances.create', { name: f.name.value, version: f.version.value });
+    const created = await run($('#c-submit'), 'instances.create', { name: f.name.value, version: f.version.value, loader: createLoader });
     S.instances = await call('instances.list');
     const id = created?.id || S.instances[S.instances.length - 1]?.id;
     if (id) localStorage.setItem(`fl.cover.${id}`, createCover);
