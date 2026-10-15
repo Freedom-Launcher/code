@@ -1,0 +1,75 @@
+/* Freedom Launcher — glass layer: a wallpaper behind the whole window, frosted panels on top.
+   Active only with <html data-wall="on">. JS sets --wall (an image url) via element.style;
+   themes may override any token below. Loaded last so it wins over layout/shell rules. */
+:root {
+  --wall: none;
+  --wall-blur: 22px;
+  --wall-dim: rgba(0, 0, 0, .30);
+  --glass-a: .45;
+  --glass: rgba(14, 16, 22, var(--glass-a));
+  --glass-strong: rgba(18, 20, 28, .78);
+  --glass-blur: 28px;
+  --glass-border: rgba(255, 255, 255, .12);
+  --glass-shadow: 0 24px 70px rgba(0, 0, 0, .35);
+}
+[data-theme="light"] {
+  --wall-dim: rgba(255, 255, 255, .22);
+  --glass: rgba(255, 255, 255, calc(var(--glass-a) + .12));
+  --glass-strong: rgba(255, 255, 255, .86);
+  --glass-border: rgba(255, 255, 255, .65);
+  --glass-shadow: 0 24px 70px rgba(20, 30, 60, .18);
+}
+
+/* ---------- Wallpaper ---------- */
+html[data-wall="on"], html[data-wall="on"] body { background: #05060a; }
+html[data-theme="light"][data-wall="on"], html[data-theme="light"][data-wall="on"] body { background: #dfe3ea; }
+html[data-wall="on"] body::before {
+  content: ""; position: fixed; z-index: 0; pointer-events: none;
+  inset: calc(var(--wall-blur) * -2 - 4px);
+  background: var(--wall) center / cover no-repeat;
+  filter: blur(var(--wall-blur)) saturate(1.2);
+}
+html[data-wall="on"] body::after {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0), var(--wall-dim));
+}
+html[data-wall="on"] .app { position: relative; z-index: 1; }
+
+/* Surfaces become tints over glass instead of solid greys. */
+html[data-wall="on"][data-theme="dark"] {
+  --bg: rgba(8, 9, 12, .55);
+  --surface-1: var(--glass);
+  --surface-2: rgba(255, 255, 255, .07);
+  --surface-3: rgba(255, 255, 255, .11);
+  --hover: rgba(255, 255, 255, .07);
+  --press: rgba(255, 255, 255, .11);
+  --line: rgba(255, 255, 255, .10);
+  --line-strong: rgba(255, 255, 255, .17);
+  --text-2: rgba(238, 242, 252, .72);
+  --text-3: rgba(238, 242, 252, .50);
+}
+html[data-wall="on"][data-theme="light"] {
+  --bg: rgba(255, 255, 255, .6);
+  --surface-1: var(--glass);
+  --surface-2: rgba(255, 255, 255, .45);
+  --surface-3: rgba(255, 255, 255, .62);
+  --hover: rgba(0, 0, 0, .05);
+  --line: rgba(0, 0, 0, .07);
+}
+
+/* ---------- Chrome ---------- */
+html[data-wall="on"] .rail, html[data-wall="on"] .top { background: transparent; }
+html[data-wall="on"] .tile { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2); }
+html[data-wall="on"] .tile[aria-current="page"] { box-shadow: 0 0 0 2px rgba(0, 0, 0, .35), 0 0 0 3.5px var(--accent); }
+html[data-wall="on"] .main {
+  background: var(--glass); border-radius: 16px;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.45);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.45);
+  box-shadow: inset 0 0 0 1px var(--glass-border), var(--glass-shadow);
+}
+html[data-wall="on"] .hero { margin: 10px 10px 0; border-radius: 12px; }
+html[data-wall="on"] .btn:not(.btn-primary):not(.btn-ghost) { background: rgba(255, 255, 255, .08); }
+html[data-wall="on"] .menu, html[data-wall="on"] .toast {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4);
+}

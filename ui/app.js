@@ -77,6 +77,7 @@ function show(view) {
 function openInstance(id) {
   S.current = id;
   localStorage.setItem('fl.current', id);
+  applyWall();
   renderInstancePage();
   show('instance');
 }
@@ -220,6 +221,7 @@ function renderCoverPick() {
   const cur = coverName(i);
   $('#cover-pick').replaceChildren(...COVERS.map((n) => coverOpt(n, n === cur, (x) => {
     localStorage.setItem(`fl.cover.${i.id}`, x);
+    applyWall();
     closeMenu();
     renderInstances();
   })));
@@ -505,6 +507,14 @@ $('#theme-seg').addEventListener('seg:change', async (e) => {
 $('#theme-folder').addEventListener('click', () => invoke('open_themes_folder').catch((e) => toast(String(e), { error: true })));
 $('#theme-reload').addEventListener('click', () => { location.hash = 'settings'; location.reload(); });
 
+// Wallpaper behind the glass: the current build's cover, blurred. fl.wall = 'cover' | 'off'.
+function applyWall() {
+  const i = byId(S.current);
+  const on = (localStorage.getItem('fl.wall') || 'cover') !== 'off' && !!i;
+  const root = document.documentElement;
+  root.dataset.wall = on ? 'on' : 'off';
+  if (on) root.style.setProperty('--wall', `url("covers/${coverName(i)}.jpg")`);
+}
 function applyLook() {
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
@@ -530,6 +540,7 @@ async function start() {
     const saved = localStorage.getItem('fl.current');
     S.current = inst.some((i) => i.id === saved) ? saved : recent()[0]?.id || null;
     renderInstances();
+    applyWall();
     refreshRunning();
     $('#app').hidden = false;
     window.FUI.initSegs();
