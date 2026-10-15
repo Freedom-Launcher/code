@@ -23,7 +23,10 @@ const MC_STORE_URL: &str = "https://api.minecraftservices.com/entitlements/mcsto
 pub fn has_game(entitlements: &Value) -> bool {
     entitlements["items"].as_array().is_some_and(|items| {
         items.iter().any(|i| {
-            matches!(i["name"].as_str(), Some("game_minecraft" | "product_minecraft"))
+            matches!(
+                i["name"].as_str(),
+                Some("game_minecraft" | "product_minecraft")
+            )
         })
     })
 }
@@ -259,9 +262,12 @@ mod tests {
 
     #[test]
     fn entitlements() {
-        let yes = json!({ "items": [{ "name": "product_minecraft" }, { "name": "game_minecraft" }] });
+        let yes =
+            json!({ "items": [{ "name": "product_minecraft" }, { "name": "game_minecraft" }] });
         assert!(has_game(&yes));
         assert!(!has_game(&json!({ "items": [] })));
-        assert!(!has_game(&json!({ "items": [{ "name": "product_dungeons" }] })));
+        assert!(!has_game(
+            &json!({ "items": [{ "name": "product_dungeons" }] })
+        ));
     }
 }

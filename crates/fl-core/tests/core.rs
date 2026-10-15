@@ -139,32 +139,88 @@ async fn instance_manage_roundtrip() {
     let c = temp_core(false);
     let ui = Caller::BuiltinUi;
     let a = c
-        .dispatch(&ui, "instances.create", json!({"name": "Main", "version": "1.21.4"}))
+        .dispatch(
+            &ui,
+            "instances.create",
+            json!({"name": "Main", "version": "1.21.4"}),
+        )
         .await
         .unwrap();
     let id = a["id"].as_str().unwrap().to_owned();
-    std::fs::write(c.data_dir.join("instances").join(&id).join("options.txt"), "x").unwrap();
+    assert_eq!(a["dir"], "Main");
+    let inst_dir = |d: &str| c.data_dir.join("instances").join(d);
+    std::fs::write(inst_dir("Main").join("options.txt"), "x").unwrap();
 
     let u = c
-        .dispatch(&ui, "instances.update", json!({"instance": id, "name": "Renamed",
-            "settings": {"memory_mb": 3072, "width": 1280, "height": 720}}))
+        .dispatch(
+            &ui,
+            "instances.update",
+            json!({"instance": id, "name": "Renamed",
+            "settings": {"memory_mb": 3072, "width": 1280, "height": 720}}),
+        )
         .await
         .unwrap();
     assert_eq!(u["name"], "Renamed");
+    assert_eq!(u["dir"], "Renamed");
+    assert!(inst_dir("Renamed").join("options.txt").exists());
+    assert!(!inst_dir("Main").exists());
     assert_eq!(u["settings"]["memory_mb"], 3072);
     assert!(c
-        .dispatch(&ui, "instances.update", json!({"instance": id, "settings": {"memory_mb": 10}}))
+        .dispatch(
+            &ui,
+            "instances.update",
+            json!({"instance": id, "settings": {"memory_mb": 10}})
+        )
         .await
         .is_err());
 
-    let d = c.dispatch(&ui, "instances.duplicate", json!({"instance": id})).await.unwrap();
-    let copy = d["id"].as_str().unwrap().to_owned();
+    let d = c
+        .dispatch(&ui, "instances.duplicate", json!({"instance": id}))
+        .await
+        .unwrap();
+    assert_ne!(d["id"], id.as_str());
     assert_eq!(d["name"], "Renamed (2)");
     assert_eq!(d["settings"]["width"], 1280);
-    assert!(c.data_dir.join("instances").join(&copy).join("options.txt").exists());
+    assert_eq!(d["dir"], "Renamed (2)");
+    assert!(inst_dir("Renamed (2)").join("options.txt").exists());
 
-    c.dispatch(&ui, "instances.delete", json!({"instance": id})).await.unwrap();
-    assert!(!c.data_dir.join("instances").join(&id).exists());
-    let list = c.dispatch(&ui, "instances.list", json!(null)).await.unwrap();
+    c.dispatch(&ui, "instances.delete", json!({"instance": id}))
+        .await
+        .unwrap();
+    assert!(!inst_dir("Renamed").exists());
+    assert!(inst_dir("Renamed (2)").exists());
+    let list = c
+        .dispatch(&ui, "instances.list", json!(null))
+        .await
+        .unwrap();
     assert_eq!(list.as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn legacy_folders_migrate_to_names() {
+    let c = temp_core(false);
+    let id = "0b9c7a52-legacy";
+    std::fs::create_dir_all(c.data_dir.join("instances").join(id)).unwrap();
+    std::fs::write(
+        c.data_dir.join("instances").join(id).join("options.txt"),
+        "x",
+    )
+    .unwrap();
+    std::fs::write(
+        c.data_dir.join("instances.json"),
+        json!({"instances": [{"id": id, "name": "Old: one", "version": "1.21.4", "created_at": 1}]}).to_string(),
+    )
+    .unwrap();
+    let list = c
+        .dispatch(&Caller::BuiltinUi, "instances.list", json!(null))
+        .await
+        .unwrap();
+    assert_eq!(list[0]["dir"], "Old one");
+    assert!(c
+        .data_dir
+        .join("instances")
+        .join("Old one")
+        .join("options.txt")
+        .exists());
+    assert!(!c.data_dir.join("instances").join(id).exists());
 }

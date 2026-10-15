@@ -35,8 +35,7 @@ pub(super) async fn get(core: &Core, url: &str) -> Result<Vec<u8>, CoreError> {
 pub async fn fabric_latest(core: &Core, game: &str) -> Result<String, CoreError> {
     let url = format!("{FABRIC_META}/versions/loader/{game}");
     let list: Value = serde_json::from_slice(&get(core, &url).await?)?;
-    pick_loader(&list)
-        .ok_or_else(|| CoreError::msg(format!("Fabric is not available for {game}")))
+    pick_loader(&list).ok_or_else(|| CoreError::msg(format!("Fabric is not available for {game}")))
 }
 
 /// Default loader version for a new instance.
@@ -111,6 +110,7 @@ mod tests {
         Instance {
             id: "i".into(),
             name: "n".into(),
+            dir: String::new(),
             version: "1.21.4".into(),
             loader: loader.into(),
             loader_version: lv.into(),
@@ -129,7 +129,10 @@ mod tests {
         ]);
         assert_eq!(pick_loader(&l).as_deref(), Some("0.16.10"));
         assert_eq!(pick_loader(&json!([])), None);
-        assert_eq!(inst("fabric", "0.16.10").version_id(), "fabric-loader-0.16.10-1.21.4");
+        assert_eq!(
+            inst("fabric", "0.16.10").version_id(),
+            "fabric-loader-0.16.10-1.21.4"
+        );
         assert_eq!(inst("vanilla", "").version_id(), "1.21.4");
     }
 
@@ -157,7 +160,10 @@ mod tests {
         let v = resolve_local(&layout, &i).expect("resolved");
         let _ = fs::remove_dir_all(&root);
 
-        assert_eq!(v.main_class, "net.fabricmc.loader.impl.launch.knot.KnotClient");
+        assert_eq!(
+            v.main_class,
+            "net.fabricmc.loader.impl.launch.knot.KnotClient"
+        );
         assert_eq!(v.jar_id(), "1.21.4");
         assert_eq!(v.java_version.as_ref().map(|j| j.major_version), Some(21));
         let plan = library_plan(&v, &Env::current(), std::path::Path::new("/l"));

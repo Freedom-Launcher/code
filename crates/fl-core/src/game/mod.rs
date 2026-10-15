@@ -1,9 +1,9 @@
 //! Everything needed to install and launch the game (milestone M1).
 
 pub mod download;
+pub mod forge;
 pub mod install;
 pub mod java;
-pub mod forge;
 pub mod launch;
 pub mod loader;
 pub mod natives;

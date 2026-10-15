@@ -14,12 +14,12 @@ use std::{
 use serde_json::{json, Value};
 
 pub mod accounts;
-pub mod keychain;
 pub mod actions;
 mod builtin;
 pub mod error;
 pub mod game;
 pub mod instances;
+pub mod keychain;
 pub mod msauth;
 pub mod permissions;
 pub mod settings;

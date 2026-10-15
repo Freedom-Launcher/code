@@ -50,7 +50,14 @@ async fn fetch(core: &Core, acc: &Account) -> Result<Option<Vec<u8>>, CoreError>
         return Ok(None);
     };
     let url = url.replacen("http://", "https://", 1);
-    let png = core.http().get(&url).send().await?.error_for_status()?.bytes().await?;
+    let png = core
+        .http()
+        .get(&url)
+        .send()
+        .await?
+        .error_for_status()?
+        .bytes()
+        .await?;
     if !png.starts_with(b"\x89PNG") {
         return Err(CoreError::msg("skin is not a PNG"));
     }
@@ -59,7 +66,11 @@ async fn fetch(core: &Core, acc: &Account) -> Result<Option<Vec<u8>>, CoreError>
 
 async fn skin_url(core: &Core, acc: &Account) -> Result<Option<String>, CoreError> {
     let http = core.http();
-    if let Some(sec) = acc.secrets.as_ref().filter(|s| s.mc_expires_at > unix_now() + 60) {
+    if let Some(sec) = acc
+        .secrets
+        .as_ref()
+        .filter(|s| s.mc_expires_at > unix_now() + 60)
+    {
         let r = http
             .get(msauth::MC_PROFILE_URL)
             .bearer_auth(&sec.mc_access_token)
@@ -83,7 +94,10 @@ async fn skin_url(core: &Core, acc: &Account) -> Result<Option<String>, CoreErro
 /// `skins[]` entry with `state: ACTIVE` from the Minecraft profile.
 pub fn active_skin(profile: &Value) -> Option<String> {
     let skins = profile["skins"].as_array()?;
-    let s = skins.iter().find(|s| s["state"] == "ACTIVE").or(skins.first())?;
+    let s = skins
+        .iter()
+        .find(|s| s["state"] == "ACTIVE")
+        .or(skins.first())?;
     s["url"].as_str().map(str::to_owned)
 }
 

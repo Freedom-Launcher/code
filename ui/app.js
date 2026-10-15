@@ -446,9 +446,14 @@ $('#dlg-del').addEventListener('submit', async (ev) => {
     await run($('#del-submit'), 'instances.delete', { instance: id });
     localStorage.removeItem(`fl.cover.${id}`);
     closeDlg();
+    $('#del-submit').dataset.state = 'idle';
     S.instances = await call('instances.list');
     const next = recent()[0];
-    if (next) openInstance(next.id); else { renderInstances(); show('empty'); }
+    if (next) { S.current = next.id; localStorage.setItem('fl.current', next.id); } else localStorage.removeItem('fl.current');
+    // The rail must be rebuilt, otherwise the deleted tile stays and leads nowhere.
+    renderRail();
+    if (next) openInstance(next.id); else show('empty');
+    toast('Сборка удалена');
   } catch { /* toast shown */ }
 });
 // Right-click menu on instance cards/rows.

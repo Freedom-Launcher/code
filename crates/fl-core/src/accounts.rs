@@ -137,7 +137,10 @@ pub fn load_store(path: &std::path::Path) -> Result<AccountStore, crate::CoreErr
 pub fn save_store(path: &std::path::Path, s: &AccountStore) -> Result<(), crate::CoreError> {
     let mut disk = s.clone();
     for a in &mut disk.accounts {
-        if a.secrets.as_ref().is_some_and(|sec| crate::keychain::set(&a.id, sec)) {
+        if a.secrets
+            .as_ref()
+            .is_some_and(|sec| crate::keychain::set(&a.id, sec))
+        {
             a.secrets = None;
         }
     }

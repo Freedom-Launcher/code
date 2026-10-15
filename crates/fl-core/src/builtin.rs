@@ -191,7 +191,11 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         P::InstancesRead,
         true,
         |c, _| async move {
-            let s: InstanceStore = store::load(&c.path(INSTANCES))?;
+            let _g = c.state_lock.lock().await;
+            let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+            if migrate_dirs(&c, &mut s) {
+                store::save(&c.path(INSTANCES), &s, false)?;
+            }
             Ok(serde_json::to_value(s.instances)?)
         },
     );
@@ -209,7 +213,12 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 #[serde(default)]
                 loader_version: Option<String>,
             }
-            let A { name, version, loader, loader_version } = args(a)?;
+            let A {
+                name,
+                version,
+                loader,
+                loader_version,
+            } = args(a)?;
             instances::validate(&name, &version)?;
             let loader = loader.unwrap_or_else(|| "vanilla".into());
             if !instances::LOADERS.contains(&loader.as_str()) {
@@ -222,9 +231,11 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             };
             let _g = c.state_lock.lock().await;
             let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+            let name = name.trim().to_owned();
             let inst = Instance {
                 id: uuid::Uuid::new_v4().to_string(),
-                name: name.trim().to_owned(),
+                dir: free_dir(&c, &s, &name, None),
+                name,
                 version,
                 loader,
                 loader_version,
@@ -233,7 +244,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 playtime_secs: 0,
                 settings: Default::default(),
             };
-            std::fs::create_dir_all(c.data_dir.join("instances").join(&inst.id))?;
+            std::fs::create_dir_all(inst.game_dir(&c.data_dir))?;
             s.instances.push(inst.clone());
             store::save(&c.path(INSTANCES), &s, false)?;
             Ok(serde_json::to_value(inst)?)
@@ -257,6 +268,58 @@ fn copy_dir(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()>
     Ok(())
 }
 
+/// A readable folder name for `name` that no other instance or existing folder uses.
+fn free_dir(c: &Core, s: &InstanceStore, name: &str, own: Option<&str>) -> String {
+    let root = c.data_dir.join("instances");
+    let mut taken: Vec<String> = s
+        .instances
+        .iter()
+        .filter(|i| Some(i.id.as_str()) != own)
+        .map(|i| i.dir_name().to_lowercase())
+        .collect();
+    if let Ok(rd) = std::fs::read_dir(&root) {
+        let own_dir = own
+            .and_then(|id| s.instances.iter().find(|i| i.id == id))
+            .map(|i| i.dir_name().to_lowercase());
+        taken.extend(
+            rd.flatten()
+                .map(|e| e.file_name().to_string_lossy().to_lowercase())
+                .filter(|n| Some(n) != own_dir.as_ref()),
+        );
+    }
+    // Windows folders are case-insensitive, so compare lowercased.
+    instances::unique_folder(&instances::folder_base(name), |d| {
+        taken.contains(&d.to_lowercase())
+    })
+}
+
+/// Gives a folder its new name; on failure (folder open elsewhere) keeps the old one.
+fn move_dir(c: &Core, inst: &mut Instance, new_dir: String) {
+    if new_dir == inst.dir_name() {
+        return;
+    }
+    let from = inst.game_dir(&c.data_dir);
+    let to = c.data_dir.join("instances").join(&new_dir);
+    if !from.exists() || std::fs::rename(&from, &to).is_ok() {
+        inst.dir = new_dir;
+    }
+}
+
+/// Older instances live in `instances/<uuid>`; move them to readable names once.
+fn migrate_dirs(c: &Core, s: &mut InstanceStore) -> bool {
+    let mut changed = false;
+    for k in 0..s.instances.len() {
+        if !s.instances[k].dir.is_empty() || c.game_running.is_busy(&s.instances[k].id) {
+            continue;
+        }
+        let (id, name) = (s.instances[k].id.clone(), s.instances[k].name.clone());
+        let dir = free_dir(c, s, &name, Some(&id));
+        move_dir(c, &mut s.instances[k], dir);
+        changed |= !s.instances[k].dir.is_empty();
+    }
+    changed
+}
+
 fn busy(c: &Core, id: &str) -> Result<(), CoreError> {
     if c.game_running.is_busy(id) {
         return Err(CoreError::msg("close the game first"));
@@ -266,96 +329,154 @@ fn busy(c: &Core, id: &str) -> Result<(), CoreError> {
 
 fn register_instance_manage(r: &mut ActionRegistry) {
     // Rename and/or replace per-instance settings.
-    r.register("instances.update", P::InstancesManage, true, |c, a| async move {
-        #[derive(Deserialize)]
-        struct A {
-            instance: String,
-            #[serde(default)]
-            name: Option<String>,
-            #[serde(default)]
-            settings: Option<instances::InstanceSettings>,
-        }
-        let A { instance, name, settings } = args(a)?;
-        if let Some(s) = &settings {
-            s.validate()?;
-        }
-        let _g = c.state_lock.lock().await;
-        let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
-        let i = s
-            .instances
-            .iter_mut()
-            .find(|i| i.id == instance)
-            .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
-        if let Some(n) = name {
-            instances::validate(&n, &i.version)?;
-            i.name = n.trim().to_owned();
-        }
-        if let Some(set) = settings {
-            i.settings = set;
-        }
-        let out = serde_json::to_value(&*i)?;
-        store::save(&c.path(INSTANCES), &s, false)?;
-        Ok(out)
-    });
-    r.register("instances.delete", P::InstancesManage, false, |c, a| async move {
-        let InstanceArg { instance } = args(a)?;
-        busy(&c, &instance)?;
-        let _g = c.state_lock.lock().await;
-        let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
-        let before = s.instances.len();
-        s.instances.retain(|i| i.id != instance);
-        if s.instances.len() == before {
-            return Err(CoreError::BadArgs(format!("no such instance: {instance}")));
-        }
-        store::save(&c.path(INSTANCES), &s, false)?;
-        let _ = std::fs::remove_dir_all(c.data_dir.join("instances").join(&instance));
-        Ok(json!({ "instance": instance, "deleted": true }))
-    });
+    r.register(
+        "instances.update",
+        P::InstancesManage,
+        true,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                instance: String,
+                #[serde(default)]
+                name: Option<String>,
+                #[serde(default)]
+                settings: Option<instances::InstanceSettings>,
+            }
+            let A {
+                instance,
+                name,
+                settings,
+            } = args(a)?;
+            if let Some(s) = &settings {
+                s.validate()?;
+            }
+            let _g = c.state_lock.lock().await;
+            let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+            let i = s
+                .instances
+                .iter_mut()
+                .find(|i| i.id == instance)
+                .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
+            if let Some(n) = &name {
+                instances::validate(n, &i.version)?;
+                i.name = n.trim().to_owned();
+            }
+            if let Some(set) = settings {
+                i.settings = set;
+            }
+            let k = s
+                .instances
+                .iter()
+                .position(|i| i.id == instance)
+                .expect("found above");
+            // Renaming also renames the folder, unless the game is using it right now.
+            if name.is_some() && !c.game_running.is_busy(&instance) {
+                let dir = free_dir(&c, &s, &s.instances[k].name.clone(), Some(&instance));
+                move_dir(&c, &mut s.instances[k], dir);
+            }
+            let out = serde_json::to_value(&s.instances[k])?;
+            store::save(&c.path(INSTANCES), &s, false)?;
+            Ok(out)
+        },
+    );
+    r.register(
+        "instances.delete",
+        P::InstancesManage,
+        false,
+        |c, a| async move {
+            let InstanceArg { instance } = args(a)?;
+            busy(&c, &instance)?;
+            let _g = c.state_lock.lock().await;
+            let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+            let k = s
+                .instances
+                .iter()
+                .position(|i| i.id == instance)
+                .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
+            let dir = s.instances[k].game_dir(&c.data_dir);
+            // Move the folder aside first: if a file is locked, nothing is lost and the
+            // instance stays. Only then forget it and remove the files.
+            let trash = c
+                .data_dir
+                .join("instances")
+                .join(format!(".deleting-{instance}"));
+            if dir.exists() {
+                std::fs::rename(&dir, &trash).map_err(|e| {
+                    CoreError::msg(format!(
+                        "can't delete the folder (is it open in another program?): {e}"
+                    ))
+                })?;
+            }
+            s.instances.remove(k);
+            store::save(&c.path(INSTANCES), &s, false)?;
+            let cleaned = !trash.exists() || std::fs::remove_dir_all(&trash).is_ok();
+            Ok(json!({ "instance": instance, "deleted": true, "files_removed": cleaned }))
+        },
+    );
     // Copies settings and the game folder (worlds, mods, configs).
-    r.register("instances.duplicate", P::InstancesManage, true, |c, a| async move {
-        #[derive(Deserialize)]
-        struct A {
-            instance: String,
-            #[serde(default)]
-            name: Option<String>,
-        }
-        let A { instance, name } = args(a)?;
-        busy(&c, &instance)?;
-        let _g = c.state_lock.lock().await;
-        let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
-        let src = s
-            .instances
-            .iter()
-            .find(|i| i.id == instance)
-            .cloned()
-            .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
-        let name = name.unwrap_or_else(|| format!("{} (2)", src.name));
-        instances::validate(&name, &src.version)?;
-        let copy = Instance {
-            id: uuid::Uuid::new_v4().to_string(),
-            name: name.trim().to_owned(),
-            created_at: unix_now(),
-            last_played: 0,
-            playtime_secs: 0,
-            ..src
-        };
-        let dirs = c.data_dir.join("instances");
-        if dirs.join(&instance).is_dir() {
-            copy_dir(&dirs.join(&instance), &dirs.join(&copy.id))?;
-        } else {
-            std::fs::create_dir_all(dirs.join(&copy.id))?;
-        }
-        s.instances.push(copy.clone());
-        store::save(&c.path(INSTANCES), &s, false)?;
-        Ok(serde_json::to_value(copy)?)
-    });
+    r.register(
+        "instances.duplicate",
+        P::InstancesManage,
+        true,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                instance: String,
+                #[serde(default)]
+                name: Option<String>,
+            }
+            let A { instance, name } = args(a)?;
+            busy(&c, &instance)?;
+            let _g = c.state_lock.lock().await;
+            let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+            let src = s
+                .instances
+                .iter()
+                .find(|i| i.id == instance)
+                .cloned()
+                .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
+            let src_dir = src.game_dir(&c.data_dir);
+            let name = name.unwrap_or_else(|| format!("{} (2)", src.name));
+            instances::validate(&name, &src.version)?;
+            let name = name.trim().to_owned();
+            let copy = Instance {
+                id: uuid::Uuid::new_v4().to_string(),
+                dir: free_dir(&c, &s, &name, None),
+                name,
+                created_at: unix_now(),
+                last_played: 0,
+                playtime_secs: 0,
+                ..src
+            };
+            let from = src_dir;
+            if from.is_dir() {
+                copy_dir(&from, &copy.game_dir(&c.data_dir))?;
+            } else {
+                std::fs::create_dir_all(copy.game_dir(&c.data_dir))?;
+            }
+            s.instances.push(copy.clone());
+            store::save(&c.path(INSTANCES), &s, false)?;
+            Ok(serde_json::to_value(copy)?)
+        },
+    );
     // The UI opens it with the shell (Tauri opener).
-    r.register("instances.folder", P::InstancesRead, true, |c, a| async move {
-        let InstanceArg { instance } = args(a)?;
-        let dir = c.data_dir.join("instances").join(&instance);
-        std::fs::create_dir_all(&dir)?;
-        Ok(json!({ "instance": instance, "path": dir }))
-    });
+    r.register(
+        "instances.folder",
+        P::InstancesRead,
+        true,
+        |c, a| async move {
+            let InstanceArg { instance } = args(a)?;
+            let s: InstanceStore = store::load(&c.path(INSTANCES))?;
+            let dir = s
+                .instances
+                .iter()
+                .find(|i| i.id == instance)
+                .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?
+                .game_dir(&c.data_dir);
+            std::fs::create_dir_all(&dir)?;
+            Ok(json!({ "instance": instance, "path": dir }))
+        },
+    );
 }
 
 fn register_game(r: &mut ActionRegistry) {
@@ -377,9 +498,12 @@ fn register_game(r: &mut ActionRegistry) {
         let InstanceArg { instance } = args(a)?;
         service::launch_instance(&c, &instance).await
     });
-    r.register("game.running", P::InstancesRead, false, |c, _a| async move {
-        Ok(service::running(&c).await)
-    });
+    r.register(
+        "game.running",
+        P::InstancesRead,
+        false,
+        |c, _a| async move { Ok(service::running(&c).await) },
+    );
     r.register("game.stop", P::GameLaunch, true, |c, a| async move {
         let InstanceArg { instance } = args(a)?;
         Ok(service::stop(&c, &instance).await)

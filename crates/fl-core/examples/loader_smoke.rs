@@ -17,10 +17,13 @@ async fn main() {
     let dir = a.next().unwrap_or_else(|| "/tmp/fl-loader".into());
     let core = Core::new(dir.into(), Instant::now(), false).expect("core");
     let layout = install::Layout::new(&core);
-    let lv = loader::latest(&core, &kind, &game).await.expect("loader list");
+    let lv = loader::latest(&core, &kind, &game)
+        .await
+        .expect("loader list");
     let inst = Instance {
         id: "smoke".into(),
         name: "smoke".into(),
+        dir: String::new(),
         version: game,
         loader: kind.clone(),
         loader_version: lv,
@@ -30,9 +33,13 @@ async fn main() {
         settings: Default::default(),
     };
     let t = Instant::now();
-    let v = loader::resolve(&core, &layout, &inst).await.expect("resolve");
+    let v = loader::resolve(&core, &layout, &inst)
+        .await
+        .expect("resolve");
     let p = Arc::new(Progress::default());
-    let v = install::install(&core, v, Arc::clone(&p)).await.expect("install");
+    let v = install::install(&core, v, Arc::clone(&p))
+        .await
+        .expect("install");
     if kind != "fabric" {
         fl_core::game::forge::post_install(&core, &layout, &inst, &v, p)
             .await
@@ -42,6 +49,13 @@ async fn main() {
     println!("main class: {}  jar: {}", v.main_class, v.jar_id());
     let plan = install::library_plan(&v, &Env::current(), &layout.libraries());
     let missing: Vec<_> = plan.classpath.iter().filter(|p| !p.exists()).collect();
-    println!("classpath: {} jars, missing: {:?}", plan.classpath.len(), missing);
-    println!("local resolve ok: {}", loader::resolve_local(&layout, &inst).is_some());
+    println!(
+        "classpath: {} jars, missing: {:?}",
+        plan.classpath.len(),
+        missing
+    );
+    println!(
+        "local resolve ok: {}",
+        loader::resolve_local(&layout, &inst).is_some()
+    );
 }

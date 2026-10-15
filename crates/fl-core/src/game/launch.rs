@@ -132,8 +132,14 @@ pub fn build_args(
         ("library_directory", p(&layout.libraries())),
         ("classpath", classpath),
         ("classpath_separator", sep.into()),
-        ("resolution_width", opts.resolution.map_or(String::new(), |r| r.0.to_string())),
-        ("resolution_height", opts.resolution.map_or(String::new(), |r| r.1.to_string())),
+        (
+            "resolution_width",
+            opts.resolution.map_or(String::new(), |r| r.0.to_string()),
+        ),
+        (
+            "resolution_height",
+            opts.resolution.map_or(String::new(), |r| r.1.to_string()),
+        ),
         ("launcher_name", "freedom-launcher".into()),
         ("launcher_version", env!("CARGO_PKG_VERSION").into()),
     ]);
@@ -182,7 +188,12 @@ pub fn build_args(
     // Old versions have no resolution rule; the game still reads the flags.
     if v.arguments.as_ref().map_or(true, |a| a.game.is_empty()) {
         if let Some((w, h)) = opts.resolution {
-            args.extend(["--width".into(), w.to_string(), "--height".into(), h.to_string()]);
+            args.extend([
+                "--width".into(),
+                w.to_string(),
+                "--height".into(),
+                h.to_string(),
+            ]);
         }
     }
     args

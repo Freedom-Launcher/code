@@ -55,15 +55,25 @@ fn pick_neoforge(xml: &str, mc: &str) -> Option<String> {
         .filter_map(|s| s.split('<').next())
         .filter(|v| v.starts_with(&prefix))
         .collect();
-    all.iter().rev().find(|v| !v.contains('-')).or(all.last()).map(|v| v.to_string())
+    all.iter()
+        .rev()
+        .find(|v| !v.contains('-'))
+        .or(all.last())
+        .map(|v| v.to_string())
 }
 
 fn installer(layout: &Layout, inst: &Instance) -> (String, PathBuf) {
     let (base, coords) = if inst.loader == "forge" {
         let v = format!("{}-{}", inst.version, inst.loader_version);
-        (FORGE_MAVEN, format!("net.minecraftforge:forge:{v}:installer"))
+        (
+            FORGE_MAVEN,
+            format!("net.minecraftforge:forge:{v}:installer"),
+        )
     } else {
-        (NEO_MAVEN, format!("net.neoforged:neoforge:{}:installer", inst.loader_version))
+        (
+            NEO_MAVEN,
+            format!("net.neoforged:neoforge:{}:installer", inst.loader_version),
+        )
     };
     let rel = maven_path(&coords).unwrap_or_default();
     (format!("{base}{rel}"), layout.libraries().join(rel))
@@ -94,8 +104,15 @@ fn entry<R: Read + Seek>(z: &mut zip::ZipArchive<R>, name: &str) -> Result<Vec<u
 }
 
 /// The loader's `version.json` (child of vanilla) from the installer.
-pub async fn version_json(core: &Core, layout: &Layout, inst: &Instance) -> Result<Vec<u8>, CoreError> {
-    entry(&mut installer_zip(core, layout, inst).await?, "version.json")
+pub async fn version_json(
+    core: &Core,
+    layout: &Layout,
+    inst: &Instance,
+) -> Result<Vec<u8>, CoreError> {
+    entry(
+        &mut installer_zip(core, layout, inst).await?,
+        "version.json",
+    )
 }
 
 #[derive(Deserialize)]
@@ -153,14 +170,25 @@ pub async fn post_install(
     let profile: Profile = serde_json::from_slice(&entry(&mut z, "install_profile.json")?)?;
     let libs = layout.libraries();
     let mut tasks = Vec::new();
-    let all = profile.libraries.iter().map(|l| (l, true)).chain(v.libraries.iter().map(|l| (l, false)));
+    let all = profile
+        .libraries
+        .iter()
+        .map(|l| (l, true))
+        .chain(v.libraries.iter().map(|l| (l, false)));
     for (lib, fetch) in all {
         let Some(a) = lib.artifact() else { continue };
-        let Some(rel) = a.path.as_deref() else { continue };
+        let Some(rel) = a.path.as_deref() else {
+            continue;
+        };
         let path = libs.join(rel);
         if !a.url.is_empty() {
             if fetch {
-                tasks.push(Task { url: a.url.clone(), path, sha1: a.sha1.clone(), size: a.size });
+                tasks.push(Task {
+                    url: a.url.clone(),
+                    path,
+                    sha1: a.sha1.clone(),
+                    size: a.size,
+                });
             }
         } else if !path.exists() {
             // Shipped inside the installer (or produced by a processor).
@@ -196,13 +224,23 @@ pub async fn post_install(
     }
 
     let java = java::ensure(core, v.java_version.as_ref(), progress).await?;
-    let client = |p: &&Processor| p.sides.as_ref().map_or(true, |s| s.iter().any(|x| x == "client"));
+    let client = |p: &&Processor| {
+        p.sides
+            .as_ref()
+            .map_or(true, |s| s.iter().any(|x| x == "client"))
+    };
     for pr in profile.processors.iter().filter(client) {
         let mut outputs = Vec::new();
         for (f, sha) in &pr.outputs {
-            outputs.push((resolve_arg(f, &vars, &libs)?, resolve_arg(sha, &vars, &libs)?));
+            outputs.push((
+                resolve_arg(f, &vars, &libs)?,
+                resolve_arg(sha, &vars, &libs)?,
+            ));
         }
-        let done = |o: &[(String, String)]| o.iter().all(|(f, h)| download::is_valid(Path::new(f), h, 0));
+        let done = |o: &[(String, String)]| {
+            o.iter()
+                .all(|(f, h)| download::is_valid(Path::new(f), h, 0))
+        };
         if !outputs.is_empty() && done(&outputs) {
             continue;
         }
@@ -210,11 +248,17 @@ pub async fn post_install(
         for c in std::iter::once(&pr.jar).chain(&pr.classpath) {
             cp.push(libs.join(maven_path(c).ok_or_else(|| err(format!("bad coordinates: {c}")))?));
         }
-        let args: Vec<String> =
-            pr.args.iter().map(|a| resolve_arg(a, &vars, &libs)).collect::<Result<_, _>>()?;
+        let args: Vec<String> = pr
+            .args
+            .iter()
+            .map(|a| resolve_arg(a, &vars, &libs))
+            .collect::<Result<_, _>>()?;
         run_java(&java, &cp, &main_class(&cp[0])?, &args)?;
         if !done(&outputs) {
-            return Err(err(format!("{} produced a file with a wrong checksum", pr.jar)));
+            return Err(err(format!(
+                "{} produced a file with a wrong checksum",
+                pr.jar
+            )));
         }
     }
     let _ = fs::remove_dir_all(&tmp);
@@ -232,7 +276,10 @@ fn main_class(jar: &Path) -> Result<String, CoreError> {
 
 fn run_java(java: &Path, cp: &[PathBuf], main: &str, args: &[String]) -> Result<(), CoreError> {
     let mut cmd = std::process::Command::new(java);
-    cmd.arg("-cp").arg(std::env::join_paths(cp).map_err(err)?).arg(main).args(args);
+    cmd.arg("-cp")
+        .arg(std::env::join_paths(cp).map_err(err)?)
+        .arg(main)
+        .args(args);
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -242,9 +289,13 @@ fn run_java(java: &Path, cp: &[PathBuf], main: &str, args: &[String]) -> Result<
     if out.status.success() {
         return Ok(());
     }
-    let text = String::from_utf8_lossy(&out.stderr).into_owned() + &String::from_utf8_lossy(&out.stdout);
+    let text =
+        String::from_utf8_lossy(&out.stderr).into_owned() + &String::from_utf8_lossy(&out.stdout);
     let tail: Vec<&str> = text.lines().rev().take(4).collect();
-    Err(err(format!("{main} failed: {}", tail.into_iter().rev().collect::<Vec<_>>().join(" | "))))
+    Err(err(format!(
+        "{main} failed: {}",
+        tail.into_iter().rev().collect::<Vec<_>>().join(" | ")
+    )))
 }
 
 #[cfg(test)]

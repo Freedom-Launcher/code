@@ -96,7 +96,9 @@ pub async fn install_instance(
     if !verify {
         if let Some((id, exe)) = ready(core, &Layout::new(core), &inst) {
             p.set_stage("done");
-            return Ok(json!({ "instance": instance, "version": id, "java": exe, "skipped": true }));
+            return Ok(
+                json!({ "instance": instance, "version": id, "java": exe, "skipped": true }),
+            );
         }
     }
     p.set_stage("game");
@@ -128,7 +130,9 @@ async fn refresh_selected(core: &Core) -> Result<(), CoreError> {
     else {
         return Ok(());
     };
-    let Some(sec) = acc.secrets.as_ref() else { return Ok(()) };
+    let Some(sec) = acc.secrets.as_ref() else {
+        return Ok(());
+    };
     if !matches!(acc.kind, AccountKind::Microsoft) || sec.mc_expires_at > unix_now() + 60 {
         return Ok(());
     }
@@ -213,14 +217,19 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
     }
     let v = loader::resolve(core, &layout, inst).await?;
     let set = &inst.settings;
-    let java = match set.java_path.as_deref().map(str::trim).filter(|p| !p.is_empty()) {
+    let java = match set
+        .java_path
+        .as_deref()
+        .map(str::trim)
+        .filter(|p| !p.is_empty())
+    {
         Some(p) if std::path::Path::new(p).is_file() => std::path::PathBuf::from(p),
         Some(p) => return Err(CoreError::msg(format!("Java not found: {p}"))),
         None => java::ensure(core, v.java_version.as_ref(), Arc::new(Progress::default())).await?,
     };
     let opts = LaunchOptions {
         java: java.clone(),
-        game_dir: core.data_dir.join("instances").join(&inst.id),
+        game_dir: inst.game_dir(&core.data_dir),
         memory_mb: set
             .memory_mb
             .unwrap_or_else(|| launch::default_memory_mb(launch::total_ram_mb())),

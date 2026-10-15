@@ -54,7 +54,11 @@ async fn open_instance_folder(
 ) -> Result<(), String> {
     let core = Arc::clone(&state.0);
     let v = core
-        .dispatch(&Caller::BuiltinUi, "instances.folder", serde_json::json!({ "instance": instance }))
+        .dispatch(
+            &Caller::BuiltinUi,
+            "instances.folder",
+            serde_json::json!({ "instance": instance }),
+        )
         .await
         .map_err(|e| e.to_string())?;
     let path = v["path"].as_str().ok_or("no folder")?.to_owned();
@@ -86,7 +90,11 @@ fn show_main(app: &tauri::AppHandle) {
 /// Starts a separate copy in safe settings and quits this one.
 fn restart_safe(app: &tauri::AppHandle) {
     if let Ok(exe) = std::env::current_exe() {
-        if std::process::Command::new(exe).arg("--safe").spawn().is_ok() {
+        if std::process::Command::new(exe)
+            .arg("--safe")
+            .spawn()
+            .is_ok()
+        {
             app.exit(0);
         }
     }
@@ -111,7 +119,12 @@ fn tray(app: &tauri::App) -> tauri::Result<()> {
             _ => {}
         })
         .on_tray_icon_event(|t, e| {
-            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = e {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = e
+            {
                 show_main(t.app_handle());
             }
         });
@@ -129,7 +142,9 @@ fn main() {
     let mut builder = tauri::Builder::default();
     // Safe settings may run next to a stuck copy, so only the normal mode is single-instance.
     if !safe_mode {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)));
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            show_main(app)
+        }));
     }
     builder
         .plugin(tauri_plugin_opener::init())
@@ -145,7 +160,11 @@ fn main() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![action, open_login_page, open_instance_folder])
+        .invoke_handler(tauri::generate_handler![
+            action,
+            open_login_page,
+            open_instance_folder
+        ])
         .run(tauri::generate_context!())
         .expect("failed to start Freedom Launcher");
 }
