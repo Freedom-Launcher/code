@@ -23,6 +23,7 @@ pub mod instances;
 pub mod keychain;
 pub mod modrinth;
 pub mod mods;
+pub mod mrpack;
 pub mod msauth;
 pub mod permissions;
 pub mod settings;
