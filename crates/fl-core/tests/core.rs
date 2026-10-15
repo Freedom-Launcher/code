@@ -133,3 +133,38 @@ fn addon_namespace() {
     assert!(!addon_may_register("skins", "accounts.list"));
     assert!(!addon_may_register("skins", "skinsx.upload"));
 }
+
+#[tokio::test]
+async fn instance_manage_roundtrip() {
+    let c = temp_core(false);
+    let ui = Caller::BuiltinUi;
+    let a = c
+        .dispatch(&ui, "instances.create", json!({"name": "Main", "version": "1.21.4"}))
+        .await
+        .unwrap();
+    let id = a["id"].as_str().unwrap().to_owned();
+    std::fs::write(c.data_dir.join("instances").join(&id).join("options.txt"), "x").unwrap();
+
+    let u = c
+        .dispatch(&ui, "instances.update", json!({"instance": id, "name": "Renamed",
+            "settings": {"memory_mb": 3072, "width": 1280, "height": 720}}))
+        .await
+        .unwrap();
+    assert_eq!(u["name"], "Renamed");
+    assert_eq!(u["settings"]["memory_mb"], 3072);
+    assert!(c
+        .dispatch(&ui, "instances.update", json!({"instance": id, "settings": {"memory_mb": 10}}))
+        .await
+        .is_err());
+
+    let d = c.dispatch(&ui, "instances.duplicate", json!({"instance": id})).await.unwrap();
+    let copy = d["id"].as_str().unwrap().to_owned();
+    assert_eq!(d["name"], "Renamed (2)");
+    assert_eq!(d["settings"]["width"], 1280);
+    assert!(c.data_dir.join("instances").join(&copy).join("options.txt").exists());
+
+    c.dispatch(&ui, "instances.delete", json!({"instance": id})).await.unwrap();
+    assert!(!c.data_dir.join("instances").join(&id).exists());
+    let list = c.dispatch(&ui, "instances.list", json!(null)).await.unwrap();
+    assert_eq!(list.as_array().unwrap().len(), 1);
+}
