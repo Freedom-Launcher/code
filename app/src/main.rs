@@ -63,13 +63,78 @@ async fn open_instance_folder(
         .map_err(|e| e.to_string())
 }
 
+/// Shift held while the launcher starts opens safe settings.
+#[cfg(windows)]
+fn shift_held() -> bool {
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_SHIFT};
+    // SAFETY: plain Win32 query with no pointers.
+    unsafe { (GetAsyncKeyState(VK_SHIFT as i32) as u16 & 0x8000) != 0 }
+}
+#[cfg(not(windows))]
+fn shift_held() -> bool {
+    false
+}
+
+fn show_main(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+    }
+}
+
+/// Starts a separate copy in safe settings and quits this one.
+fn restart_safe(app: &tauri::AppHandle) {
+    if let Ok(exe) = std::env::current_exe() {
+        if std::process::Command::new(exe).arg("--safe").spawn().is_ok() {
+            app.exit(0);
+        }
+    }
+}
+
+fn tray(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+    use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+    let open = MenuItem::with_id(app, "open", "Открыть", true, None::<&str>)?;
+    let safe = MenuItem::with_id(app, "safe", "Безопасные настройки", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;
+    let sep = PredefinedMenuItem::separator(app)?;
+    let menu = Menu::with_items(app, &[&open, &safe, &sep, &quit])?;
+    let mut b = TrayIconBuilder::with_id("main")
+        .tooltip("Freedom Launcher")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, e| match e.id.as_ref() {
+            "open" => show_main(app),
+            "safe" => restart_safe(app),
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|t, e| {
+            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = e {
+                show_main(t.app_handle());
+            }
+        });
+    if let Some(icon) = app.default_window_icon() {
+        b = b.icon(icon.clone());
+    }
+    b.build(app)?;
+    Ok(())
+}
+
 fn main() {
     let started = Instant::now();
-    let safe_mode = std::env::args().any(|a| a == "--safe");
+    let safe_mode = std::env::args().any(|a| a == "--safe") || shift_held();
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+    // Safe settings may run next to a stuck copy, so only the normal mode is single-instance.
+    if !safe_mode {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)));
+    }
+    builder
         .plugin(tauri_plugin_opener::init())
         .setup(move |app| {
+            tray(app)?;
             let data_dir = app.path().app_data_dir()?;
             let core = Core::new(data_dir, started, safe_mode)?;
             app.manage(AppCore(core));
