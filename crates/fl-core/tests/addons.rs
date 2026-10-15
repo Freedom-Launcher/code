@@ -112,3 +112,16 @@ async fn approval_gates_the_caller() {
     let s = Core::new(d, Instant::now(), true).unwrap();
     assert!(s.addon_caller("stats").is_none());
 }
+
+#[test]
+fn example_addon_is_valid() {
+    let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../docs/addons/example");
+    let d = tmp(&[]);
+    let dst = d.join("addons/example");
+    fs::create_dir_all(&dst).unwrap();
+    for f in fs::read_dir(&src).unwrap().flatten() {
+        fs::copy(f.path(), dst.join(f.file_name())).unwrap();
+    }
+    let m = addons::load(&d, "example").unwrap();
+    assert!(m.permissions.contains(&Permission::InstancesRead));
+}

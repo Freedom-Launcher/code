@@ -1,0 +1,10 @@
+{
+  "id": "example",
+  "name": "Пример дополнения",
+  "version": "0.1.0",
+  "author": "Freedom Launcher",
+  "description": "Показывает число сборок на странице сборки",
+  "entry": "index.html",
+  "permissions": ["instances_read"],
+  "slots": ["instance.end"]
+}

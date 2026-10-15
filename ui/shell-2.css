@@ -74,6 +74,8 @@
   #view-settings .set-pane::before { display: block; margin: 0 0 6px; color: var(--text-3); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em; }
   #set-game::before { content: "Игра"; }
   #set-launcher::before { content: "Лаунчер"; }
+  #set-addons { grid-column: 1 / -1; margin-top: var(--s-6); }
+  #set-addons::before { content: "Дополнения"; }
 }
 
 /* ---------- Addons (M3) ---------- */
