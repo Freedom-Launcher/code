@@ -17,6 +17,9 @@ sha1.workspace = true
 futures-util.workspace = true
 zip.workspace = true
 
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+keyring = { version = "3", features = ["windows-native", "apple-native"] }
+
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 [target.'cfg(windows)'.dependencies]

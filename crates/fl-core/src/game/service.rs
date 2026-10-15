@@ -104,7 +104,7 @@ pub async fn install_instance(
 /// Refreshes an expired Microsoft session in place (same account id).
 async fn refresh_selected(core: &Core) -> Result<(), CoreError> {
     let path = core.path(ACCOUNTS);
-    let mut s: AccountStore = store::load(&path)?;
+    let mut s: AccountStore = crate::accounts::load_store(&path)?;
     let Some(acc) = s
         .selected
         .clone()
@@ -120,12 +120,12 @@ async fn refresh_selected(core: &Core) -> Result<(), CoreError> {
     acc.name = fresh.name;
     acc.owns_game = fresh.owns_game;
     acc.secrets = fresh.secrets;
-    store::save(&path, &s, true)
+    crate::accounts::save_store(&path, &s)
 }
 
 async fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
     refresh_selected(core).await?;
-    let s: AccountStore = store::load(&core.path(ACCOUNTS))?;
+    let s: AccountStore = crate::accounts::load_store(&core.path(ACCOUNTS))?;
     let acc = s
         .selected
         .as_deref()

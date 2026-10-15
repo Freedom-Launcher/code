@@ -28,7 +28,7 @@ pub struct Account {
     pub secrets: Option<Secrets>,
 }
 
-/// Never leaves the core. TODO(M1): move to the OS keychain.
+/// Never leaves the core. Kept in the OS keychain where available (see `keychain`).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Secrets {
     pub refresh_token: String,
@@ -36,7 +36,7 @@ pub struct Secrets {
     pub mc_expires_at: u64,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct AccountStore {
     pub selected: Option<String>,
     pub accounts: Vec<Account>,
@@ -73,6 +73,7 @@ impl AccountStore {
     pub fn remove(&mut self, id: &str) -> bool {
         let before = self.accounts.len();
         self.accounts.retain(|a| a.id != id);
+        crate::keychain::delete(id);
         if self.selected.as_deref() == Some(id) {
             self.selected = self.accounts.first().map(|a| a.id.clone());
         }
@@ -114,4 +115,31 @@ pub fn offline_uuid(name: &str) -> String {
     b[6] = (b[6] & 0x0f) | 0x30;
     b[8] = (b[8] & 0x3f) | 0x80;
     uuid::Uuid::from_bytes(b).hyphenated().to_string()
+}
+
+/// Loads accounts, filling secrets from the keychain; secrets still in the
+/// file (older versions) are moved there.
+pub fn load_store(path: &std::path::Path) -> Result<AccountStore, crate::CoreError> {
+    let mut s: AccountStore = crate::store::load(path)?;
+    let migrate = crate::keychain::AVAILABLE && s.accounts.iter().any(|a| a.secrets.is_some());
+    for a in &mut s.accounts {
+        if a.secrets.is_none() {
+            a.secrets = crate::keychain::get(&a.id);
+        }
+    }
+    if migrate {
+        save_store(path, &s)?;
+    }
+    Ok(s)
+}
+
+/// Saves accounts; secrets go to the keychain, the file keeps the rest.
+pub fn save_store(path: &std::path::Path, s: &AccountStore) -> Result<(), crate::CoreError> {
+    let mut disk = s.clone();
+    for a in &mut disk.accounts {
+        if a.secrets.as_ref().is_some_and(|sec| crate::keychain::set(&a.id, sec)) {
+            a.secrets = None;
+        }
+    }
+    crate::store::save(path, &disk, true)
 }

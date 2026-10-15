@@ -77,7 +77,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     });
 
     r.register("accounts.list", P::AccountsRead, true, |c, _| async move {
-        let s: AccountStore = store::load(&c.path(ACCOUNTS))?;
+        let s: AccountStore = crate::accounts::load_store(&c.path(ACCOUNTS))?;
         Ok(s.public_view())
     });
     // Skin PNG of an account as a data URL (`null` → UI draws the default head).
@@ -87,7 +87,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             id: String,
         }
         let A { id } = args(a)?;
-        let s: AccountStore = store::load(&c.path(ACCOUNTS))?;
+        let s: AccountStore = crate::accounts::load_store(&c.path(ACCOUNTS))?;
         let acc = s
             .accounts
             .iter()
@@ -109,12 +109,12 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             }
             let A { id } = args(a)?;
             let _g = c.state_lock.lock().await;
-            let mut s: AccountStore = store::load(&c.path(ACCOUNTS))?;
+            let mut s: AccountStore = crate::accounts::load_store(&c.path(ACCOUNTS))?;
             if !s.accounts.iter().any(|x| x.id == id) {
                 return Err(CoreError::BadArgs("unknown account".into()));
             }
             s.selected = Some(id);
-            store::save(&c.path(ACCOUNTS), &s, true)?;
+            crate::accounts::save_store(&c.path(ACCOUNTS), &s)?;
             Ok(s.public_view())
         },
     );
@@ -129,9 +129,9 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             }
             let A { id } = args(a)?;
             let _g = c.state_lock.lock().await;
-            let mut s: AccountStore = store::load(&c.path(ACCOUNTS))?;
+            let mut s: AccountStore = crate::accounts::load_store(&c.path(ACCOUNTS))?;
             s.remove(&id);
-            store::save(&c.path(ACCOUNTS), &s, true)?;
+            crate::accounts::save_store(&c.path(ACCOUNTS), &s)?;
             Ok(s.public_view())
         },
     );
@@ -148,10 +148,10 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         |c, _| async move {
             let acc = msauth::wait(&c).await?;
             let _g = c.state_lock.lock().await;
-            let mut s: AccountStore = store::load(&c.path(ACCOUNTS))?;
+            let mut s: AccountStore = crate::accounts::load_store(&c.path(ACCOUNTS))?;
             let id = s.upsert(acc);
             s.selected = Some(id);
-            store::save(&c.path(ACCOUNTS), &s, true)?;
+            crate::accounts::save_store(&c.path(ACCOUNTS), &s)?;
             Ok(s.public_view())
         },
     );
@@ -163,7 +163,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         let A { name } = args(a)?;
         accounts::validate_profile_name(&name)?;
         let _g = c.state_lock.lock().await;
-        let mut s: AccountStore = store::load(&c.path(ACCOUNTS))?;
+        let mut s: AccountStore = crate::accounts::load_store(&c.path(ACCOUNTS))?;
         if !s.offline_available() {
             return Err(CoreError::Denied(
                 "offline profiles become available after signing in with a Microsoft account that has Minecraft: Java Edition".into(),
@@ -178,7 +178,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             secrets: None,
         });
         s.selected = Some(id);
-        store::save(&c.path(ACCOUNTS), &s, true)?;
+        crate::accounts::save_store(&c.path(ACCOUNTS), &s)?;
         Ok(s.public_view())
     });
     // Account providers are contributed by addons (Extended tier). The core has none.
