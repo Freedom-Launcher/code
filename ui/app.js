@@ -547,13 +547,17 @@ $('#theme-seg').addEventListener('seg:change', async (e) => {
 $('#theme-folder').addEventListener('click', () => invoke('open_themes_folder').catch((e) => toast(String(e), { error: true })));
 $('#theme-reload').addEventListener('click', () => { location.hash = 'settings'; location.reload(); });
 
-// Wallpaper behind the glass: the current build's cover, blurred. fl.wall = 'cover' | 'off'.
+// Wallpaper behind the glass. fl.wall = 'cover' | 'custom' | 'off'; fl.wall-v stamps the user's image.
+const WALL_URL = navigator.userAgent.includes('Windows') ? 'http://wall.localhost/w' : 'wall://localhost/w';
 function applyWall() {
   const i = byId(S.current);
-  const on = (localStorage.getItem('fl.wall') || 'cover') !== 'off' && !!i;
+  const mode = localStorage.getItem('fl.wall') || 'cover';
+  const v = localStorage.getItem('fl.wall-v');
+  const url = mode === 'custom' && v ? `${WALL_URL}?v=${v}` : mode === 'cover' && i ? `covers/${coverName(i)}.jpg` : '';
   const root = document.documentElement;
-  root.dataset.wall = on ? 'on' : 'off';
-  if (on) root.style.setProperty('--wall', `url("covers/${coverName(i)}.jpg")`);
+  root.dataset.wall = url ? 'on' : 'off';
+  if (url) root.style.setProperty('--wall', `url("${url}")`);
+  $('#wall-file-row').hidden = mode !== 'custom';
   const blur = +(localStorage.getItem('fl.wall-blur') ?? 22);
   const glass = +(localStorage.getItem('fl.wall-glass') ?? 45);
   root.style.setProperty('--wall-blur', `${blur}px`);
@@ -563,11 +567,25 @@ function applyWall() {
   $('#glass-blur').value = gblur; $('#glass-blur-val').textContent = gblur ? `${gblur} px` : 'Прозрачное';
   $('#wall-blur').value = blur; $('#wall-blur-val').textContent = blur ? `${blur} px` : 'Чёткие';
   $('#wall-glass').value = glass; $('#wall-glass-val').textContent = `${glass}%`;
-  const mode = localStorage.getItem('fl.wall') || 'cover';
   $$('#wall-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.wallSet === mode)));
   $('#wall-blur-row').hidden = $('#wall-glass-row').hidden = $('#glass-blur-row').hidden = mode === 'off';
 }
-$('#wall-seg').addEventListener('seg:change', (e) => { localStorage.setItem('fl.wall', e.detail.dataset.wallSet); applyWall(); });
+$('#wall-seg').addEventListener('seg:change', (e) => {
+  const mode = e.detail.dataset.wallSet;
+  localStorage.setItem('fl.wall', mode); applyWall();
+  if (mode === 'custom' && !localStorage.getItem('fl.wall-v')) $('#wall-file').click();
+});
+$('#wall-pick').addEventListener('click', () => $('#wall-file').click());
+$('#wall-file').addEventListener('change', async (e) => {
+  const f = e.target.files?.[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    await invoke('set_wallpaper', new Uint8Array(await f.arrayBuffer()));
+    localStorage.setItem('fl.wall-v', String(Date.now()));
+    localStorage.setItem('fl.wall', 'custom');
+    applyWall();
+  } catch (err) { toast(String(err), { error: true }); }
+});
 $('#wall-blur').addEventListener('input', (e) => { localStorage.setItem('fl.wall-blur', e.target.value); applyWall(); });
 $('#glass-blur').addEventListener('input', (e) => { localStorage.setItem('fl.glass-blur', e.target.value); applyWall(); });
 $('#wall-glass').addEventListener('input', (e) => { localStorage.setItem('fl.wall-glass', e.target.value); applyWall(); });

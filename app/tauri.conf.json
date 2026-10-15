@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' theme: http://theme.localhost; img-src 'self' data: theme: http://theme.localhost; font-src 'self' theme: http://theme.localhost; connect-src ipc: http://ipc.localhost; frame-src addon: http://addon.localhost"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' theme: http://theme.localhost; img-src 'self' data: theme: http://theme.localhost wall: http://wall.localhost; font-src 'self' theme: http://theme.localhost; connect-src ipc: http://ipc.localhost; frame-src addon: http://addon.localhost"
     }
   },
   "bundle": {

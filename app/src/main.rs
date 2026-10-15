@@ -86,6 +86,41 @@ async fn open_instance_folder(
         .map_err(|e| e.to_string())
 }
 
+/// Saves the user's wallpaper. The body is the raw image; its type comes from the bytes.
+#[tauri::command]
+async fn set_wallpaper(
+    request: tauri::ipc::Request<'_>,
+    state: tauri::State<'_, AppCore>,
+) -> Result<(), String> {
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err("Нужна картинка".into());
+    };
+    fl_core::wallpaper::save(&state.0.data_dir, bytes).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn clear_wallpaper(state: tauri::State<'_, AppCore>) -> Result<(), String> {
+    fl_core::wallpaper::clear(&state.0.data_dir).map_err(|e| e.to_string())
+}
+
+/// Serves the user's wallpaper: `wall://localhost/w` (Windows: `http://wall.localhost/w`).
+fn wall_protocol(app: &tauri::AppHandle) -> tauri::http::Response<Vec<u8>> {
+    use tauri::http::Response;
+    let found = app
+        .try_state::<AppCore>()
+        .and_then(|state| fl_core::wallpaper::read(&state.0.data_dir));
+    let Some((bytes, mime)) = found else {
+        return Response::builder().status(404).body(Vec::new()).unwrap();
+    };
+    Response::builder()
+        .status(200)
+        .header("Content-Type", mime)
+        .header("X-Content-Type-Options", "nosniff")
+        .header("Cache-Control", "no-store")
+        .body(bytes)
+        .unwrap()
+}
+
 /// Serves files of installed themes: `theme://localhost/<id>/<path>` (Windows:
 /// `http://theme.localhost/<id>/<path>`). Only checked asset types inside the theme
 /// folder; CSS is re-checked on every request, so editing a file cannot sneak code in.
@@ -352,6 +387,7 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .register_uri_scheme_protocol("theme", |ctx, req| theme_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("addon", |ctx, req| addon_protocol(ctx.app_handle(), &req))
+        .register_uri_scheme_protocol("wall", |ctx, _req| wall_protocol(ctx.app_handle()))
         .setup(move |app| {
             tray(app)?;
             let data_dir = app.path().app_data_dir()?;
@@ -371,7 +407,9 @@ fn main() {
             open_instance_folder,
             open_themes_folder,
             addon_action,
-            open_addons_folder
+            open_addons_folder,
+            set_wallpaper,
+            clear_wallpaper
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Freedom Launcher");

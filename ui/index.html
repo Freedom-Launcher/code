@@ -204,7 +204,10 @@
               <div class="r"><div class="grow"><div class="t">Анимации</div></div>
                 <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
               <div class="r"><div class="grow"><div class="t">Обои</div></div>
-                <div class="seg" id="wall-seg" data-id="settings.wall"><button data-wall-set="cover" aria-selected="true">Обложка</button><button data-wall-set="off">Нет</button></div></div>
+                <div class="seg" id="wall-seg" data-id="settings.wall"><button data-wall-set="cover" aria-selected="true">Обложка</button><button data-wall-set="custom">Своя</button><button data-wall-set="off">Нет</button></div></div>
+              <div class="r" id="wall-file-row" hidden><div class="grow"><div class="t">Картинка</div></div>
+                <input type="file" id="wall-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+                <button class="btn" id="wall-pick" data-id="settings.wall.pick"><span class="lbl">Выбрать…</span></button></div>
               <div class="r" id="wall-blur-row"><div class="grow"><div class="t">Размытие обоев</div><div class="s" id="wall-blur-val"></div></div>
                 <input class="range" type="range" id="wall-blur" min="0" max="40" step="2" data-id="settings.wall.blur"></div>
               <div class="r" id="glass-blur-row"><div class="grow"><div class="t">Размытие стекла</div><div class="s" id="glass-blur-val"></div></div>
