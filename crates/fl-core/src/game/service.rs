@@ -101,7 +101,30 @@ pub async fn install_instance(
     Ok(json!({ "instance": instance, "version": v.id, "java": exe }))
 }
 
-fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
+/// Refreshes an expired Microsoft session in place (same account id).
+async fn refresh_selected(core: &Core) -> Result<(), CoreError> {
+    let path = core.path(ACCOUNTS);
+    let mut s: AccountStore = store::load(&path)?;
+    let Some(acc) = s
+        .selected
+        .clone()
+        .and_then(|id| s.accounts.iter_mut().find(|a| a.id == id))
+    else {
+        return Ok(());
+    };
+    let Some(sec) = acc.secrets.as_ref() else { return Ok(()) };
+    if !matches!(acc.kind, AccountKind::Microsoft) || sec.mc_expires_at > unix_now() + 60 {
+        return Ok(());
+    }
+    let fresh = crate::msauth::refresh(core, &sec.refresh_token).await?;
+    acc.name = fresh.name;
+    acc.owns_game = fresh.owns_game;
+    acc.secrets = fresh.secrets;
+    store::save(&path, &s, true)
+}
+
+async fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
+    refresh_selected(core).await?;
     let s: AccountStore = store::load(&core.path(ACCOUNTS))?;
     let acc = s
         .selected
@@ -114,6 +137,11 @@ fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
                 .secrets
                 .as_ref()
                 .ok_or_else(|| CoreError::msg("sign in to Microsoft again"))?;
+            if !acc.owns_game {
+                return Err(CoreError::msg(
+                    "this Microsoft account does not own Minecraft: Java Edition",
+                ));
+            }
             if sec.mc_expires_at <= unix_now() + 60 {
                 return Err(CoreError::msg(
                     "session expired, sign in to Microsoft again",
@@ -149,7 +177,7 @@ fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
 
 /// Makes sure everything is installed, then starts the game.
 pub async fn launch_instance(core: &Core, instance: &str) -> Result<Value, CoreError> {
-    let auth = launch_auth(core)?;
+    let auth = launch_auth(core).await?;
     let inst = find_instance(core, instance)?;
     if !core.game_running.begin(instance) {
         return Ok(json!({ "instance": instance, "already_running": true }));

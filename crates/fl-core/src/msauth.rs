@@ -17,6 +17,39 @@ const XBL_URL: &str = "https://user.auth.xboxlive.com/user/authenticate";
 const XSTS_URL: &str = "https://xsts.auth.xboxlive.com/xsts/authorize";
 const MC_LOGIN_URL: &str = "https://api.minecraftservices.com/authentication/login_with_xbox";
 pub const MC_PROFILE_URL: &str = "https://api.minecraftservices.com/minecraft/profile";
+const MC_STORE_URL: &str = "https://api.minecraftservices.com/entitlements/mcstore";
+
+/// Whether an `entitlements/mcstore` response includes Java Edition.
+pub fn has_game(entitlements: &Value) -> bool {
+    entitlements["items"].as_array().is_some_and(|items| {
+        items.iter().any(|i| {
+            matches!(i["name"].as_str(), Some("game_minecraft" | "product_minecraft"))
+        })
+    })
+}
+
+/// New tokens for a saved Microsoft account (same account id and profile).
+pub async fn refresh(core: &Core, refresh_token: &str) -> Result<Account, CoreError> {
+    let cid = client_id()?;
+    let v: Value = core
+        .http()
+        .post(TOKEN_URL)
+        .form(&[
+            ("grant_type", "refresh_token"),
+            ("client_id", cid.as_str()),
+            ("refresh_token", refresh_token),
+            ("scope", SCOPE),
+        ])
+        .send()
+        .await?
+        .json()
+        .await?;
+    if v.get("access_token").is_none() {
+        return Err(CoreError::msg("sign in to Microsoft again"));
+    }
+    let next = field(&v, "refresh_token").unwrap_or_else(|_| refresh_token.to_owned());
+    minecraft_login(core, &field(&v, "access_token")?, next).await
+}
 
 pub struct Pending {
     device_code: String,
@@ -173,6 +206,12 @@ async fn minecraft_login(
     let mc_token = field(&mc, "access_token")?;
     let expires_in = mc["expires_in"].as_u64().unwrap_or(86_400);
 
+    // Ownership check; a network hiccup here must not block sign-in.
+    let owns_game = match http.get(MC_STORE_URL).bearer_auth(&mc_token).send().await {
+        Ok(r) if r.status().is_success() => has_game(&r.json().await.unwrap_or_default()),
+        _ => true,
+    };
+
     let resp = http
         .get(MC_PROFILE_URL)
         .bearer_auth(&mc_token)
@@ -190,7 +229,7 @@ async fn minecraft_login(
         kind: AccountKind::Microsoft,
         name: field(&profile, "name")?,
         uuid: field(&profile, "id")?,
-        owns_game: true,
+        owns_game,
         secrets: Some(Secrets {
             refresh_token,
             mc_access_token: mc_token,
@@ -211,5 +250,18 @@ fn xsts_error(code: Option<u64>) -> String {
         Some(2148916238) => "child account: an adult must add it to a Microsoft family".into(),
         Some(c) => format!("Xbox sign-in failed (XErr {c})"),
         None => "Xbox sign-in failed".into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn entitlements() {
+        let yes = json!({ "items": [{ "name": "product_minecraft" }, { "name": "game_minecraft" }] });
+        assert!(has_game(&yes));
+        assert!(!has_game(&json!({ "items": [] })));
+        assert!(!has_game(&json!({ "items": [{ "name": "product_dungeons" }] })));
     }
 }
