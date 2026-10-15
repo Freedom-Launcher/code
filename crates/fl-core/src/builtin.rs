@@ -718,4 +718,33 @@ fn register_mods(r: &mut ActionRegistry) {
         mods::remove(&i.game_dir(&c.data_dir), &file)?;
         Ok(json!({ "file": file }))
     });
+    // Newer fitting versions of installed Modrinth mods.
+    r.register("mods.updates", P::Network, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let Some(loader) = modrinth::loader_name(&i.loader) else {
+            return Ok(json!([]));
+        };
+        let u = mods::updates(&c, &i.game_dir(&c.data_dir), &i.version, loader).await?;
+        Ok(serde_json::to_value(u)?)
+    });
+    // Updates one mod (`file`) or, without it, every mod that has an update.
+    r.register("mods.update", P::InstancesManage, true, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            #[serde(default)]
+            file: Option<String>,
+        }
+        let A { instance, file } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let loader = modrinth::loader_name(&i.loader)
+            .ok_or_else(|| CoreError::BadArgs("vanilla instances take no mods".into()))?;
+        if c.game_running.is_busy(&i.id) {
+            return Err(CoreError::msg("Сначала закройте игру"));
+        }
+        let gd = i.game_dir(&c.data_dir);
+        let done = mods::apply_updates(&c, &gd, &i.version, loader, file.as_deref()).await?;
+        Ok(json!({ "updated": done }))
+    });
 }

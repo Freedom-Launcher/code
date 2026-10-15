@@ -156,20 +156,7 @@ pub async fn install(
             CoreError::msg(format!("{}: нет версии для {mc} ({loader})", project.title))
         })?;
         let f = v.primary_file().expect("pick keeps versions with files");
-        check_name(&f.filename)?;
-        let bytes = core
-            .http()
-            .get(&f.url)
-            .send()
-            .await?
-            .error_for_status()?
-            .bytes()
-            .await?;
-        if !f.hashes.sha1.is_empty()
-            && !download::sha1_hex(&bytes).eq_ignore_ascii_case(&f.hashes.sha1)
-        {
-            return Err(CoreError::msg(format!("checksum mismatch: {}", f.filename)));
-        }
+        let bytes = fetch_checked(core, f).await?;
         download::write_atomic(&mods_dir(game_dir).join(&f.filename), &bytes)?;
         idx.insert(
             f.filename.clone(),
@@ -188,6 +175,172 @@ pub async fn install(
         queue.extend(v.required().map(str::to_owned));
     }
     Ok(added)
+}
+
+/// Downloads a version file, refusing bad names and checksum mismatches.
+async fn fetch_checked(core: &Core, f: &modrinth::VersionFile) -> Result<Vec<u8>, CoreError> {
+    check_name(&f.filename)?;
+    let bytes = core
+        .http()
+        .get(&f.url)
+        .send()
+        .await?
+        .error_for_status()?
+        .bytes()
+        .await?;
+    if !f.hashes.sha1.is_empty() && !download::sha1_hex(&bytes).eq_ignore_ascii_case(&f.hashes.sha1)
+    {
+        return Err(CoreError::msg(format!("checksum mismatch: {}", f.filename)));
+    }
+    Ok(bytes.to_vec())
+}
+
+/// A newer version available for an installed mod.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct Update {
+    pub file: String,
+    pub title: String,
+    pub version_id: String,
+    pub version_number: String,
+}
+
+/// Where to move from `current` (the installed version and file hash): the
+/// newest release, else the newest of any type. Never offers a beta over a
+/// release, and nothing when the installed file already is the newest.
+pub fn choose_update<'a>(
+    current: &str,
+    hash: &str,
+    any: Option<&'a modrinth::Version>,
+    release: Option<&'a modrinth::Version>,
+) -> Option<&'a modrinth::Version> {
+    let same = |v: &modrinth::Version| {
+        v.id == current
+            || v.primary_file()
+                .is_some_and(|f| f.hashes.sha1.eq_ignore_ascii_case(hash))
+    };
+    if any.is_some_and(same) {
+        return None;
+    }
+    release
+        .or(any)
+        .filter(|v| !same(v) && v.primary_file().is_some())
+}
+
+/// Indexed mods as (file id, path on disk incl. `.disabled`, sha1).
+async fn hashed(game_dir: &Path) -> Result<Vec<(String, PathBuf, String)>, CoreError> {
+    let entries = list(game_dir)?;
+    let dir = mods_dir(game_dir);
+    tokio::task::spawn_blocking(move || {
+        entries
+            .into_iter()
+            .filter(|m| m.source.is_some())
+            .map(|m| {
+                let name = if m.enabled {
+                    m.file.clone()
+                } else {
+                    format!("{}{OFF}", m.file)
+                };
+                let path = dir.join(name);
+                let sha1 = download::sha1_hex(&std::fs::read(&path)?);
+                Ok((m.file, path, sha1))
+            })
+            .collect::<Result<Vec<_>, CoreError>>()
+    })
+    .await
+    .map_err(|e| CoreError::msg(e.to_string()))?
+}
+
+/// Mods with a newer fitting version: (file id, path, new version).
+async fn pending(
+    core: &Core,
+    game_dir: &Path,
+    mc: &str,
+    loader: &str,
+) -> Result<Vec<(String, PathBuf, modrinth::Version)>, CoreError> {
+    let idx = load_index(game_dir)?;
+    let files = hashed(game_dir).await?;
+    let hashes: Vec<String> = files.iter().map(|f| f.2.clone()).collect();
+    let (any, rel) = futures_util::future::try_join(
+        modrinth::latest_by_hash(core, &hashes, mc, loader, false),
+        modrinth::latest_by_hash(core, &hashes, mc, loader, true),
+    )
+    .await?;
+    let mut out = Vec::new();
+    for (file, path, h) in files {
+        let Some(src) = idx.get(&file) else { continue };
+        if let Some(v) = choose_update(&src.version_id, &h, any.get(&h), rel.get(&h)) {
+            if v.project_id == src.project_id {
+                out.push((file, path, v.clone()));
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// Updates one mod (`only`) or all of them. A disabled mod stays disabled.
+/// The new jar is written before the old one is removed, so a failed
+/// download never leaves the instance without the mod. Returns titles.
+pub async fn apply_updates(
+    core: &Core,
+    game_dir: &Path,
+    mc: &str,
+    loader: &str,
+    only: Option<&str>,
+) -> Result<Vec<String>, CoreError> {
+    if let Some(f) = only {
+        check_name(f)?;
+    }
+    let mut todo = pending(core, game_dir, mc, loader).await?;
+    todo.retain(|(file, ..)| only.is_none_or(|o| o == file));
+    let mut idx = load_index(game_dir)?;
+    let mut done = Vec::new();
+    for (file, old_path, v) in todo {
+        let f = v.primary_file().expect("pending keeps versions with files");
+        let new_name = f.filename.clone();
+        if new_name != file && idx.contains_key(&new_name) {
+            continue; // another indexed mod already uses that name
+        }
+        let disabled = old_path.to_string_lossy().ends_with(OFF);
+        let bytes = fetch_checked(core, f).await?;
+        let on_disk = if disabled {
+            format!("{new_name}{OFF}")
+        } else {
+            new_name.clone()
+        };
+        let new_path = mods_dir(game_dir).join(on_disk);
+        download::write_atomic(&new_path, &bytes)?;
+        if new_path != old_path {
+            std::fs::remove_file(&old_path)?;
+        }
+        let Some(mut src) = idx.remove(&file) else {
+            continue;
+        };
+        src.version_id = v.id.clone();
+        src.version_number = v.version_number.clone();
+        done.push(src.title.clone());
+        idx.insert(new_name, src);
+        save_index(game_dir, &idx)?;
+    }
+    Ok(done)
+}
+
+pub async fn updates(
+    core: &Core,
+    game_dir: &Path,
+    mc: &str,
+    loader: &str,
+) -> Result<Vec<Update>, CoreError> {
+    let idx = load_index(game_dir)?;
+    Ok(pending(core, game_dir, mc, loader)
+        .await?
+        .into_iter()
+        .map(|(file, _, v)| Update {
+            title: idx.get(&file).map(|s| s.title.clone()).unwrap_or_default(),
+            file,
+            version_id: v.id,
+            version_number: v.version_number,
+        })
+        .collect())
 }
 #[cfg(test)]
 mod tests {
@@ -248,6 +401,42 @@ mod tests {
         assert!(load_index(&d).unwrap().is_empty());
         assert_eq!(list(&d).unwrap().len(), 1);
         std::fs::remove_dir_all(d).unwrap();
+    }
+
+    fn ver(id: &str, ty: &str, sha1: &str) -> modrinth::Version {
+        serde_json::from_value(serde_json::json!({
+            "id": id, "project_id": "p", "version_number": id, "version_type": ty,
+            "files": [{ "url": "u", "filename": format!("{id}.jar"), "primary": true,
+                        "hashes": { "sha1": sha1 } }]
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn update_choice() {
+        let (rel, beta, cur) = (
+            ver("rel", "release", "aa"),
+            ver("beta", "beta", "bb"),
+            ver("cur", "release", "cc"),
+        );
+        // Newer release wins over a newer beta.
+        assert_eq!(
+            choose_update("cur", "cc", Some(&beta), Some(&rel))
+                .unwrap()
+                .id,
+            "rel"
+        );
+        // Only betas exist: offer the beta.
+        assert_eq!(
+            choose_update("cur", "cc", Some(&beta), None).unwrap().id,
+            "beta"
+        );
+        // Already newest (by id or by hash): nothing.
+        assert!(choose_update("cur", "cc", Some(&cur), Some(&cur)).is_none());
+        assert!(choose_update("old-id", "cc", Some(&cur), None).is_none());
+        // Installed a beta that is newer than the newest release: no downgrade.
+        assert!(choose_update("beta", "bb", Some(&beta), Some(&rel)).is_none());
+        assert!(choose_update("cur", "cc", None, None).is_none());
     }
 
     #[test]

@@ -209,6 +209,39 @@ pub async fn versions(
         .json()
         .await?)
 }
+
+/// For each sha1, the newest version of the same project that fits `mc` and
+/// `loader` (releases only when `release_only`). Hashes Modrinth does not
+/// know are simply missing from the map.
+pub async fn latest_by_hash(
+    core: &Core,
+    hashes: &[String],
+    mc: &str,
+    loader: &str,
+    release_only: bool,
+) -> Result<std::collections::HashMap<String, Version>, CoreError> {
+    if hashes.is_empty() {
+        return Ok(Default::default());
+    }
+    let mut body = json!({
+        "hashes": hashes,
+        "algorithm": "sha1",
+        "loaders": [loader],
+        "game_versions": [mc],
+    });
+    if release_only {
+        body["version_types"] = json!(["release"]);
+    }
+    Ok(core
+        .http()
+        .post(format!("{API}/version_files/update"))
+        .json(&body)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
