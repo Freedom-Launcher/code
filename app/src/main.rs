@@ -67,6 +67,83 @@ async fn open_instance_folder(
         .map_err(|e| e.to_string())
 }
 
+/// Serves files of installed themes: `theme://localhost/<id>/<path>` (Windows:
+/// `http://theme.localhost/<id>/<path>`). Only checked asset types inside the theme
+/// folder; CSS is re-checked on every request, so editing a file cannot sneak code in.
+fn theme_protocol(
+    app: &tauri::AppHandle,
+    req: &tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Vec<u8>> {
+    use fl_core::themes;
+    use tauri::http::Response;
+    let deny = |code: u16| Response::builder().status(code).body(Vec::new()).unwrap();
+    let Some(state) = app.try_state::<AppCore>() else {
+        return deny(503);
+    };
+    let core = &state.0;
+    if core.safe_mode {
+        return deny(403);
+    }
+    let path = req.uri().path().trim_start_matches('/');
+    let Some((id, rel)) = path.split_once('/') else {
+        return deny(404);
+    };
+    if !themes::safe_rel(rel, &themes::ASSETS) {
+        return deny(403);
+    }
+    let Some(file) = themes::file(&core.data_dir, id, rel) else {
+        return deny(404);
+    };
+    let Ok(bytes) = std::fs::read(&file) else {
+        return deny(404);
+    };
+    let ext = rel.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    if ext == "css" {
+        let ok = std::str::from_utf8(&bytes).is_ok_and(|s| themes::check_css(s).is_ok());
+        if !ok {
+            return deny(403);
+        }
+    }
+    let mime = match ext.as_str() {
+        "css" => "text/css; charset=utf-8",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        "svg" => "image/svg+xml",
+        "woff2" => "font/woff2",
+        "woff" => "font/woff",
+        "ttf" => "font/ttf",
+        _ => return deny(403),
+    };
+    Response::builder()
+        .status(200)
+        .header("Content-Type", mime)
+        .header("X-Content-Type-Options", "nosniff")
+        // SVGs are images only: no script even if opened directly.
+        .header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:")
+        .header("Cache-Control", "no-store")
+        .body(bytes)
+        .unwrap()
+}
+
+/// Opens the themes folder in the system file manager.
+#[tauri::command]
+async fn open_themes_folder(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+) -> Result<(), String> {
+    let core = Arc::clone(&state.0);
+    let v = core
+        .dispatch(&Caller::BuiltinUi, "themes.folder", Value::Null)
+        .await
+        .map_err(|e| e.to_string())?;
+    let path = v["path"].as_str().ok_or("no folder")?.to_owned();
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 /// Shift held while the launcher starts opens safe settings.
 #[cfg(windows)]
 fn shift_held() -> bool {
@@ -148,6 +225,7 @@ fn main() {
     }
     builder
         .plugin(tauri_plugin_opener::init())
+        .register_uri_scheme_protocol("theme", |ctx, req| theme_protocol(ctx.app_handle(), &req))
         .setup(move |app| {
             tray(app)?;
             let data_dir = app.path().app_data_dir()?;
@@ -163,7 +241,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             action,
             open_login_page,
-            open_instance_folder
+            open_instance_folder,
+            open_themes_folder
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Freedom Launcher");

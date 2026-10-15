@@ -1,0 +1,97 @@
+use std::{fs, path::PathBuf};
+
+use fl_core::themes;
+
+fn tmp(files: &[(&str, &str)]) -> PathBuf {
+    let d = std::env::temp_dir().join(format!("fl-themes-{}", uuid_like()));
+    for (p, c) in files {
+        let p = d.join("themes").join(p);
+        fs::create_dir_all(p.parent().unwrap()).unwrap();
+        fs::write(p, c).unwrap();
+    }
+    fs::create_dir_all(&d).unwrap();
+    d
+}
+
+fn uuid_like() -> String {
+    use std::sync::atomic::{AtomicU32, Ordering};
+    static N: AtomicU32 = AtomicU32::new(0);
+    format!("{}-{}", std::process::id(), N.fetch_add(1, Ordering::SeqCst))
+}
+
+const GOOD: &str = r##"{"id":"night","name":"Ночь","base":"dark",
+  "tokens":{"--accent":"#9ecbff","--font-ui":"\"Inter\", sans-serif"},
+  "css":["theme.css"],"templates":{"view.instance":"t/instance.html"}}"##;
+
+#[test]
+fn good_theme_loads_and_lists() {
+    let d = tmp(&[
+        ("night/theme.json", GOOD),
+        ("night/theme.css", ".hero{background:url(img/bg.webp)}"),
+        ("night/t/instance.html", r##"<div data-slot="hero"><button data-action="game.launch">Играть</button><a href="#x">x</a></div>"##),
+    ]);
+    let m = themes::load(&d, "night").unwrap();
+    assert_eq!(m.tokens["--accent"], "#9ecbff");
+    let l = themes::list(&d);
+    assert_eq!(l.len(), 3);
+    assert!(l[2].get("error").is_none(), "{:?}", l[2]);
+    let cur = themes::current(&d, "night");
+    assert_eq!(cur["templates"][0], "view.instance");
+    assert!(themes::template(&d, "night", "view.instance").unwrap().is_some());
+    assert!(themes::template(&d, "night", "view.create").unwrap().is_none());
+}
+
+#[test]
+fn bad_css_is_rejected() {
+    for css in [
+        "a{background:url(https://evil.example/x.png)}",
+        "@import 'x.css';",
+        "a{background:url(../../secret.png)}",
+        "a{b\\61 ckground:u\\72l(http://x)}",
+        "a{background:image-set('https://x/y.png' 1x)}",
+    ] {
+        assert!(themes::check_css(css).is_err(), "{css}");
+    }
+    assert!(themes::check_css("a{background:url('img/a.png');color:red}").is_ok());
+}
+
+#[test]
+fn bad_templates_are_rejected() {
+    for html in [
+        "<script>alert(1)</script>",
+        r#"<img src="x.png" onerror="alert(1)">"#,
+        r#"<a href="javascript:alert(1)">x</a>"#,
+        r#"<a href="https://example.com">x</a>"#,
+        r#"<div/onclick=alert(1)>"#,
+        "<iframe src=x.html>",
+        r#"<svg><animate attributeName="href" to="x"/></svg>"#,
+        r#"<a title='x>' onclick=alert(1)>x</a>"#,
+        r#"<div style="background:url(https://x)">"#,
+    ] {
+        assert!(themes::check_template(html).is_err(), "{html}");
+    }
+    assert!(themes::check_template(r#"<img src="img/a.png" alt="one = two"><button data-action="x.y">Да</button>"#).is_ok());
+}
+
+#[test]
+fn tokens_are_checked() {
+    assert!(themes::check_token("--accent", "#fff").is_ok());
+    assert!(themes::check_token("accent", "#fff").is_err());
+    assert!(themes::check_token("--bg", "url(x.png)").is_err());
+    assert!(themes::check_token("--bg", "red; } body { display:none").is_err());
+}
+
+#[test]
+fn broken_or_mismatched_theme_falls_back() {
+    let d = tmp(&[
+        ("other/theme.json", GOOD), // id "night" in folder "other"
+        ("bad/theme.json", r#"{"id":"bad","name":"B","css":["x.css"]}"#),
+        ("bad/x.css", "@import 'y.css';"),
+    ]);
+    assert!(themes::load(&d, "other").is_err());
+    let cur = themes::current(&d, "bad");
+    assert_eq!(cur["id"], "default");
+    assert_eq!(cur["fallback"]["theme"], "bad");
+    assert!(themes::list(&d).iter().all(|t| t["builtin"] == true || t.get("error").is_some()));
+    assert!(themes::file(&d, "bad", "../other/theme.json").is_none());
+}

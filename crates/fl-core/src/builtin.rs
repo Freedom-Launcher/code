@@ -10,7 +10,7 @@ use crate::{
     instances::{self, Instance, InstanceStore},
     msauth,
     settings::Settings,
-    store, unix_now, versions, Core, CoreError, Permission as P,
+    store, themes, unix_now, versions, Core, CoreError, Permission as P,
 };
 
 #[derive(Deserialize)]
@@ -65,6 +65,44 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     if safe_mode {
         return;
     }
+
+    // Themes (M2): tokens + CSS + templates, checked in `themes.rs`. Not available in safe mode.
+    r.register("themes.list", P::Public, false, |c, _| async move {
+        Ok(json!(themes::list(&c.data_dir)))
+    });
+    r.register("themes.current", P::Public, false, |c, _| async move {
+        let s: Settings = store::load(&c.path(SETTINGS))?;
+        Ok(themes::current(&c.data_dir, &s.theme))
+    });
+    r.register("themes.set", P::Public, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            theme: String,
+        }
+        let A { theme } = args(a)?;
+        if themes::builtin(&theme).is_none() {
+            themes::load(&c.data_dir, &theme).map_err(CoreError::BadArgs)?;
+        }
+        update_settings(&c, |s| s.theme = theme).await?;
+        let s: Settings = store::load(&c.path(SETTINGS))?;
+        Ok(themes::current(&c.data_dir, &s.theme))
+    });
+    r.register("themes.template", P::Public, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            screen: String,
+        }
+        let A { screen } = args(a)?;
+        let s: Settings = store::load(&c.path(SETTINGS))?;
+        // A broken template must never break the screen: fall back to the built-in one.
+        let html = themes::template(&c.data_dir, &s.theme, &screen).unwrap_or(None);
+        Ok(json!({ "screen": screen, "html": html }))
+    });
+    r.register("themes.folder", P::Public, false, |c, _| async move {
+        let d = themes::dir(&c.data_dir);
+        std::fs::create_dir_all(&d)?;
+        Ok(json!({ "path": d }))
+    });
 
     r.register("versions.list", P::Public, true, |c, a| async move {
         #[derive(Deserialize, Default)]

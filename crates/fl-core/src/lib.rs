@@ -25,6 +25,7 @@ pub mod permissions;
 pub mod settings;
 pub mod skins;
 pub mod store;
+pub mod themes;
 pub mod versions;
 
 pub use actions::{ActionRegistry, ActionSpec, Caller};
