@@ -18,17 +18,42 @@
   // ---------- Instance tab ----------
   let inst = null;
   let installed = [];
+  let updates = new Map();
 
   async function instance(i) {
     inst = i?.id || null;
     installed = [];
+    updates = new Map();
+    paintAll();
     $('#mods-filter').value = '';
     $('#mods-tools').hidden = !modded(i);
     paintList();
     if (!modded(i)) return;
     try { installed = await call('mods.list', { instance: i.id }); } catch (e) { fail(e); }
-    if (inst === i.id) paintList();
+    if (inst !== i.id) return;
+    paintList();
+    // Network check after the list is on screen; silent when offline.
+    const u = await call('mods.updates', { instance: i.id }).catch(() => []);
+    if (inst !== i.id) return;
+    updates = new Map(u.map((x) => [x.file, x]));
+    paintList();
+    paintAll();
   }
+
+  function paintAll() {
+    const b = $('#mods-update-all');
+    b.hidden = !updates.size;
+    b.querySelector('.lbl').textContent = `Обновить все · ${updates.size}`;
+  }
+
+  async function update(btn, file) {
+    const r = await run(btn, 'mods.update', file ? { instance: inst, file } : { instance: inst }).catch(() => null);
+    if (!r) return;
+    const n = r.updated.length;
+    toast(n === 0 ? 'Обновлений нет' : n === 1 ? `${r.updated[0]} обновлён` : `Обновлено модов: ${n}`);
+    instance(byId(inst));
+  }
+  $('#mods-update-all').addEventListener('click', (e) => update(e.currentTarget));
 
   function paintList() {
     const box = $('#mods-list');
@@ -61,8 +86,16 @@
         paintList();
       } catch (e) { fail(e); }
     });
-    r.append(icon(m.icon_url, m.title), el('div', { class: 't' }, el('b', {}, m.title), el('span', { class: 'mono' }, m.version_number || m.file)),
-      el('label', { class: 'switch' }, sw, el('i')), del);
+    const u = updates.get(m.file);
+    const ver = el('span', { class: 'mono' }, m.version_number || m.file);
+    if (u) ver.append(el('em', { class: 'upd' }, ` → ${u.version_number}`));
+    r.append(icon(m.icon_url, m.title), el('div', { class: 't' }, el('b', {}, m.title), ver));
+    if (u) {
+      const ub = el('button', { class: 'btn btn-sm', 'data-id': `mod.${m.file}.update` }, el('span', { class: 'lbl' }, 'Обновить'));
+      ub.addEventListener('click', () => update(ub, m.file));
+      r.append(ub);
+    }
+    r.append(el('label', { class: 'switch' }, sw, el('i')), del);
     return r;
   }
   $('#mods-filter').addEventListener('input', paintList);

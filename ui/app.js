@@ -281,6 +281,58 @@ $('#create-form').addEventListener('submit', async (ev) => {
   } catch { /* toast shown */ }
 });
 
+// ---------- Import .mrpack: the app stages the bytes, the core builds the instance ----------
+const IMPORT_STAGE = { prepare: 'Читаем сборку', files: 'Скачиваем файлы', overrides: 'Копируем настройки', done: 'Готово' };
+$('#c-import').addEventListener('click', () => $('#c-import-file').click());
+$('#c-import-file').addEventListener('change', async (ev) => {
+  const f = ev.target.files?.[0];
+  ev.target.value = '';
+  if (!f) return;
+  const btn = $('#c-import');
+  const box = $('#c-import-status');
+  const form = $('#create-form');
+  form.classList.add('is-importing');
+  $$('#create-form button').forEach((b) => { b.disabled = true; });
+  btn.dataset.state = 'loading';
+  box.hidden = false;
+  $('#ci-stage').textContent = IMPORT_STAGE.prepare;
+  $('#ci-count').textContent = '';
+  progress($('#ci-bar'), null);
+  let poll = 0;
+  try {
+    const token = await invoke('stage_mrpack', new Uint8Array(await f.arrayBuffer()));
+    poll = setInterval(async () => {
+      const p = await call('game.progress', { instance: token }).catch(() => null);
+      if (!p) return;
+      $('#ci-stage').textContent = IMPORT_STAGE[p.stage] || IMPORT_STAGE.prepare;
+      if (p.total_bytes > 0) {
+        progress($('#ci-bar'), p.done_bytes / p.total_bytes);
+        $('#ci-count').textContent = `${fmtBytes(p.done_bytes)} / ${fmtBytes(p.total_bytes)}`;
+      } else if (p.total_files > 0) {
+        progress($('#ci-bar'), p.done_files / p.total_files);
+        $('#ci-count').textContent = `${p.done_files} / ${p.total_files}`;
+      }
+    }, 250);
+    const created = await call('instances.import_mrpack', { token });
+    clearInterval(poll);
+    progress($('#ci-bar'), 1);
+    localStorage.setItem(`fl.cover.${created.id}`, createCover);
+    S.instances = await call('instances.list');
+    renderInstances();
+    btn.dataset.state = 'success';
+    toast(`${created.name} импортирована`);
+    openInstance(created.id);
+  } catch (e) {
+    btn.dataset.state = 'error';
+    toast(String(e), { error: true });
+  } finally {
+    clearInterval(poll);
+    box.hidden = true;
+    form.classList.remove('is-importing');
+    $$('#create-form button').forEach((b) => { b.disabled = b.dataset.loader === 'quilt'; });
+  }
+});
+
 // ---------- Accounts page ----------
 function renderAccountsPage() {
   const st = S.accounts;
@@ -627,8 +679,10 @@ async function start() {
   }
   requestAnimationFrame(() => requestAnimationFrame(async () => {
     const r = await call('app.ready');
-    $('#startup').textContent = `запуск ${r.startup_ms} мс`;
-    if (!info.safe_mode) { loadVersions(); if (location.search.includes('dev')) window.FUI.devCheck(); }
+    // Dev-only: the fixed label overlapped lists near the bottom edge.
+    const dev = location.search.includes('dev');
+    if (dev) $('#startup').textContent = `запуск ${r.startup_ms} мс`;
+    if (!info.safe_mode) { loadVersions(); if (dev) window.FUI.devCheck(); }
   }));
 }
 start().catch((e) => toast(String(e), { error: true }));

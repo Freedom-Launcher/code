@@ -114,6 +114,7 @@
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
                 <input class="field" id="mods-filter" placeholder="Найти в сборке" data-id="instance.content.search">
               </label>
+              <button class="btn" id="mods-update-all" data-id="instance.content.update-all" hidden><span class="lbl">Обновить все</span></button>
               <button class="btn" data-view="discover" data-id="instance.content.add"><span class="lbl">Добавить</span></button>
             </div>
             <div id="mods-list" data-id="instance.mods"></div>
@@ -152,8 +153,13 @@
           <label class="label" for="c-version">Версия игры</label>
           <select class="field" id="c-version" name="version" required data-id="create.version"></select>
           <label class="check-line"><input type="checkbox" id="c-snapshots"> Показывать снапшоты</label>
+          <div class="play-status" id="c-import-status" hidden>
+            <div class="line"><span id="ci-stage"></span><span class="mono num" id="ci-count"></span></div>
+            <div class="progress" id="ci-bar"><i></i></div>
+          </div>
           <div class="form-foot">
-            <button type="button" class="btn btn-ghost" disabled data-tip="Скоро" data-id="create.import"><span class="lbl">Импорт .mrpack</span></button>
+            <button type="button" class="btn btn-ghost" id="c-import" data-id="create.import"><span class="lbl">Импорт .mrpack</span></button>
+            <input type="file" id="c-import-file" accept=".mrpack" hidden>
             <div class="spacer"></div>
             <button type="button" class="btn" id="c-cancel" data-id="create.cancel"><span class="lbl">Отмена</span></button>
             <button type="submit" class="btn btn-primary" id="c-submit" data-id="create.submit"><span class="lbl">Создать</span></button>
