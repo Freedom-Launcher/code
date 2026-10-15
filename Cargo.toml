@@ -5,7 +5,7 @@ members = ["crates/fl-core", "app"]
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.80"
+rust-version = "1.90"
 repository = "https://github.com/Freedom-Launcher/code"
 
 [workspace.dependencies]
