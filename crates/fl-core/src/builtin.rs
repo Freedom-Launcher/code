@@ -9,7 +9,7 @@ use crate::{
     addons,
     game::service,
     instances::{self, Instance, InstanceStore},
-    modrinth, mods, msauth,
+    modrinth, mods, mrpack, msauth,
     settings::Settings,
     store, themes, unix_now, versions, Core, CoreError, Permission as P,
 };
@@ -355,6 +355,104 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     register_instance_manage(r);
     register_game(r);
     register_mods(r);
+    register_import(r);
+}
+
+fn register_import(r: &mut ActionRegistry) {
+    // Creates an instance from a pack staged by the app (`stage_mrpack`).
+    // Progress is polled with `game.progress { instance: <token> }`.
+    r.register(
+        "instances.import_mrpack",
+        P::InstancesManage,
+        false,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                token: String,
+            }
+            let A { token } = args(a)?;
+            let path = mrpack::staged(&c.data_dir, &token)?;
+            let res = import_mrpack(&c, &token, &path).await;
+            let _ = std::fs::remove_file(&path);
+            res
+        },
+    );
+}
+
+async fn import_mrpack(c: &Core, token: &str, path: &std::path::Path) -> Result<Value, CoreError> {
+    let file = std::fs::File::open(path)
+        .map_err(|_| CoreError::BadArgs("Файл сборки не найден, выберите его снова".into()))?;
+    let mut z = zip::ZipArchive::new(file)
+        .map_err(|_| CoreError::BadArgs("Это не сборка Modrinth (.mrpack)".into()))?;
+    let p = service::progress_for(c, token);
+    p.set_stage("prepare");
+    // Paths stay relative until the folder is known.
+    let mut plan = mrpack::plan(mrpack::read_index(&mut z)?, std::path::Path::new(""))?;
+    instances::validate(&plan.name, &plan.mc)?;
+    if plan.loader != "vanilla" && plan.loader_version.is_empty() {
+        plan.loader_version = crate::game::loader::latest(c, &plan.loader, &plan.mc).await?;
+    }
+    let dir = {
+        let _g = c.state_lock.lock().await;
+        let s: InstanceStore = store::load(&c.path(INSTANCES))?;
+        let dir = free_dir(c, &s, &plan.name, None);
+        std::fs::create_dir_all(c.data_dir.join("instances").join(&dir))?;
+        dir
+    };
+    let game_dir = c.data_dir.join("instances").join(&dir);
+    if let Err(e) = fill_from_pack(c, &mut z, &mut plan, &game_dir, &p).await {
+        p.set_stage("error");
+        let _ = std::fs::remove_dir_all(&game_dir);
+        return Err(e);
+    }
+    let _g = c.state_lock.lock().await;
+    let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+    let inst = Instance {
+        id: uuid::Uuid::new_v4().to_string(),
+        dir,
+        name: plan.name,
+        version: plan.mc,
+        loader: plan.loader,
+        loader_version: plan.loader_version,
+        created_at: unix_now(),
+        last_played: 0,
+        playtime_secs: 0,
+        settings: Default::default(),
+    };
+    s.instances.push(inst.clone());
+    store::save(&c.path(INSTANCES), &s, false)?;
+    p.set_stage("done");
+    Ok(serde_json::to_value(inst)?)
+}
+
+async fn fill_from_pack(
+    c: &Core,
+    z: &mut zip::ZipArchive<std::fs::File>,
+    plan: &mut mrpack::Plan,
+    game_dir: &std::path::Path,
+    p: &std::sync::Arc<crate::game::download::Progress>,
+) -> Result<(), CoreError> {
+    let mut jars = Vec::new();
+    let tasks: Vec<_> = std::mem::take(&mut plan.tasks)
+        .into_iter()
+        .map(|mut t| {
+            let name = t.path.file_name().map(|n| n.to_string_lossy().into_owned());
+            if let Some(name) = name.filter(|n| {
+                t.path.parent() == Some(std::path::Path::new("mods")) && mods::check_name(n).is_ok()
+            }) {
+                jars.push((name, t.sha1.clone()));
+            }
+            t.path = game_dir.join(&t.path);
+            t
+        })
+        .collect();
+    p.set_stage("files");
+    crate::game::download::fetch_all(c.http(), tasks, std::sync::Arc::clone(p)).await?;
+    p.set_stage("overrides");
+    mrpack::extract_overrides(z, game_dir)?;
+    // Best effort: without it the mods still work, just without icons/updates.
+    let _ = mods::index_known(c, game_dir, &jars).await;
+    Ok(())
 }
 
 fn copy_dir(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {

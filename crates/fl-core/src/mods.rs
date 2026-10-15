@@ -177,6 +177,40 @@ pub async fn install(
     Ok(added)
 }
 
+/// Records the Modrinth origin of jars that arrived another way (a modpack),
+/// so they get titles, icons and updates. `files` is (jar name, sha1);
+/// jars Modrinth does not know stay unindexed.
+pub async fn index_known(
+    core: &Core,
+    game_dir: &Path,
+    files: &[(String, String)],
+) -> Result<(), CoreError> {
+    let hashes: Vec<String> = files.iter().map(|f| f.1.clone()).collect();
+    let by_hash = modrinth::versions_by_hash(core, &hashes).await?;
+    let mut ids: Vec<String> = by_hash.values().map(|v| v.project_id.clone()).collect();
+    ids.sort();
+    ids.dedup();
+    let projects = modrinth::projects(core, &ids).await?;
+    let mut idx = load_index(game_dir)?;
+    for (file, h) in files {
+        let Some(v) = by_hash.get(h) else { continue };
+        let Some(p) = projects.iter().find(|p| p.id == v.project_id) else {
+            continue;
+        };
+        idx.insert(
+            file.clone(),
+            Source {
+                project_id: p.id.clone(),
+                version_id: v.id.clone(),
+                title: p.title.clone(),
+                version_number: v.version_number.clone(),
+                icon_url: p.icon_url.clone(),
+            },
+        );
+    }
+    save_index(game_dir, &idx)
+}
+
 /// Downloads a version file, refusing bad names and checksum mismatches.
 async fn fetch_checked(core: &Core, f: &modrinth::VersionFile) -> Result<Vec<u8>, CoreError> {
     check_name(&f.filename)?;

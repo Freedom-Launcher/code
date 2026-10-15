@@ -57,7 +57,7 @@ fn find_instance(core: &Core, id: &str) -> Result<Instance, CoreError> {
         .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {id}")))
 }
 
-fn progress_for(core: &Core, instance: &str) -> Arc<Progress> {
+pub(crate) fn progress_for(core: &Core, instance: &str) -> Arc<Progress> {
     let mut map = core.game_progress.lock().expect("progress lock");
     let p = Arc::new(Progress::default());
     map.insert(instance.to_owned(), Arc::clone(&p));

@@ -98,6 +98,18 @@ async fn set_wallpaper(
     fl_core::wallpaper::save(&state.0.data_dir, bytes).map_err(|e| e.to_string())
 }
 
+/// Keeps an uploaded `.mrpack` for `instances.import_mrpack`; returns its token.
+#[tauri::command]
+async fn stage_mrpack(
+    request: tauri::ipc::Request<'_>,
+    state: tauri::State<'_, AppCore>,
+) -> Result<String, String> {
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err("Нужен файл .mrpack".into());
+    };
+    fl_core::mrpack::stage(&state.0.data_dir, bytes).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 async fn clear_wallpaper(state: tauri::State<'_, AppCore>) -> Result<(), String> {
     fl_core::wallpaper::clear(&state.0.data_dir).map_err(|e| e.to_string())
@@ -409,7 +421,8 @@ fn main() {
             addon_action,
             open_addons_folder,
             set_wallpaper,
-            clear_wallpaper
+            clear_wallpaper,
+            stage_mrpack
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Freedom Launcher");

@@ -210,6 +210,43 @@ pub async fn versions(
         .await?)
 }
 
+/// The exact version each sha1 belongs to; unknown hashes are missing.
+pub async fn versions_by_hash(
+    core: &Core,
+    hashes: &[String],
+) -> Result<std::collections::HashMap<String, Version>, CoreError> {
+    if hashes.is_empty() {
+        return Ok(Default::default());
+    }
+    Ok(core
+        .http()
+        .post(format!("{API}/version_files"))
+        .json(&json!({ "hashes": hashes, "algorithm": "sha1" }))
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?)
+}
+
+/// Several projects at once, in chunks so the URL stays short.
+pub async fn projects(core: &Core, ids: &[String]) -> Result<Vec<Project>, CoreError> {
+    let mut out = Vec::new();
+    for chunk in ids.chunks(100) {
+        let url = format!("{API}/projects?ids={}", encode(&json!(chunk).to_string()));
+        let page: Vec<Project> = core
+            .http()
+            .get(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        out.extend(page);
+    }
+    Ok(out)
+}
+
 /// For each sha1, the newest version of the same project that fits `mc` and
 /// `loader` (releases only when `release_only`). Hashes Modrinth does not
 /// know are simply missing from the map.
