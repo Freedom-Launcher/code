@@ -95,3 +95,15 @@ fn broken_or_mismatched_theme_falls_back() {
     assert!(themes::list(&d).iter().all(|t| t["builtin"] == true || t.get("error").is_some()));
     assert!(themes::file(&d, "bad", "../other/theme.json").is_none());
 }
+#[test]
+fn shipped_example_theme_is_valid() {
+    let d = std::env::temp_dir().join(format!("fl-themes-ex-{}", uuid_like()));
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/themes/example");
+    let dst = d.join("themes/example");
+    fs::create_dir_all(&dst).unwrap();
+    for f in ["theme.json", "theme.css", "empty.html"] {
+        fs::copy(src.join(f), dst.join(f)).unwrap();
+    }
+    let m = themes::load(&d, "example").unwrap();
+    assert_eq!(m.templates["view.empty"], "empty.html");
+}

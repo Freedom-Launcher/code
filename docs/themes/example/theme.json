@@ -1,0 +1,17 @@
+{
+  "id": "example",
+  "name": "Пример",
+  "version": "1.0.0",
+  "author": "Freedom Launcher",
+  "base": "dark",
+  "tokens": {
+    "--accent": "#ffb86b",
+    "--accent-hover": "#ffc78a",
+    "--accent-press": "#e8a257",
+    "--on-accent": "#2a1500",
+    "--accent-soft": "rgba(255, 184, 107, .12)",
+    "--r-card": "16px"
+  },
+  "css": ["theme.css"],
+  "templates": { "view.empty": "empty.html" }
+}

@@ -1,0 +1,4 @@
+/* Theme CSS: any selectors; url() only to theme files or data:image. No imports, no escapes. */
+.ex-empty { display: grid; place-items: center; min-height: 100%; text-align: center; gap: var(--s-4); }
+.ex-empty h1 { font-size: var(--text-3xl); letter-spacing: var(--tracking-title); margin: 0; }
+.ex-empty p { color: var(--text-2); margin: 0; }
