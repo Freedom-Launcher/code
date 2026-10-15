@@ -120,7 +120,9 @@ pub fn check_css(css: &str) -> R<()> {
     if css.len() > 256 * 1024 {
         return Err("CSS больше 256 КБ".into());
     }
-    let l = css.to_ascii_lowercase();
+    // Comments are dropped first (to nothing, so `u/**/rl(` turns into `url(` and is checked:
+    // stricter than the browser, never looser).
+    let l = strip_comments(&css.to_ascii_lowercase());
     // Backslash is banned outright: CSS escapes could spell `url(` invisibly.
     for bad in [
         "\\", "@import", "expression(", "javascript:", "behavior:", "-moz-binding",
@@ -144,6 +146,21 @@ pub fn check_css(css: &str) -> R<()> {
 }
 
 
+
+/// Removes `/* … */`; an unterminated comment runs to the end, as in browsers.
+fn strip_comments(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(i) = rest.find("/*") {
+        out.push_str(&rest[..i]);
+        match rest[i + 2..].find("*/") {
+            Some(e) => rest = &rest[i + 2 + e + 2..],
+            None => return out,
+        }
+    }
+    out.push_str(rest);
+    out
+}
 
 pub fn check_template(html: &str) -> R<()> {
     if html.len() > 128 * 1024 {

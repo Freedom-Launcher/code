@@ -53,6 +53,10 @@ fn bad_css_is_rejected() {
         assert!(themes::check_css(css).is_err(), "{css}");
     }
     assert!(themes::check_css("a{background:url('img/a.png');color:red}").is_ok());
+    // Comments are ignored, but cannot be used to split a forbidden word.
+    assert!(themes::check_css("/* url() and @import in a comment */ a{color:red}").is_ok());
+    assert!(themes::check_css("a{background:u/**/rl(https://x/y.png)}").is_err());
+    assert!(themes::check_css("@im/**/port 'x.css';").is_err());
 }
 
 #[test]
