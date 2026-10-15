@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="layout.css">
   <link rel="stylesheet" href="shell.css">
   <link rel="stylesheet" href="shell-2.css">
+  <link rel="stylesheet" href="home.css">
   <link rel="stylesheet" href="glass.css">
   <script src="ui.js" defer></script>
   <script src="themes.js" defer></script>
@@ -21,6 +22,9 @@
     <!-- Left rail: instances as cover tiles, create, settings -->
     <nav class="rail" data-id="rail">
       <div class="rail-logo" data-id="rail.logo" aria-hidden="true">F</div>
+      <button class="rail-btn" data-view="home" data-tip="Главная" data-id="rail.home" aria-label="Главная">
+        <svg viewBox="0 0 16 16"><path d="M2.5 7 8 2.5 13.5 7v6.5h-11z"/></svg>
+      </button>
       <div class="rail-list" id="rail-list" data-id="rail.instances"></div>
       <button class="rail-btn add" data-view="create" data-tip="Новая сборка" data-kbd="Ctrl N" data-id="rail.create" aria-label="Новая сборка">
         <svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg>
@@ -54,6 +58,21 @@
     </header>
 <!-- Main area: one view at a time. Home = the last played instance. -->
     <main class="main" data-id="main">
+      <section class="view" id="view-home" data-id="view.home">
+        <div class="home">
+          <h1 class="home-h" id="home-greet">Привет</h1>
+          <div class="home-recent" id="home-recent" data-id="home.recent"></div>
+          <div class="sec-head home-sec"><h2>Все сборки</h2></div>
+          <div class="home-row" id="home-all" data-id="home.all"></div>
+          <div data-slot="home.end"></div>
+        </div>
+        <footer class="home-bar" id="home-bar" data-id="home.bar" hidden>
+          <button class="hb-open" id="hb-open" data-id="home.bar.open"><i id="hb-cover"></i><span class="t"><b id="hb-name"></b><span id="hb-meta"></span></span></button>
+          <div class="hb-mid"><span class="chip" id="hb-played"></span></div>
+          <div data-slot="home.bar.end"></div>
+          <button class="btn btn-primary play-btn home-play" id="home-play" data-id="home.play"><svg viewBox="0 0 16 16" fill="currentColor" stroke="none"></svg><span class="lbl" id="hp-label">Играть</span></button>
+        </footer>
+      </section>
       <section class="view" id="view-instance" data-id="view.instance">
         <header class="hero" id="ip-hero" data-id="instance.hero">
           <div class="hero-img" id="ip-cover"></div>

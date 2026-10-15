@@ -7,7 +7,7 @@ const call = (name, args = null) => invoke('action', { name, args });
 const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'empty' };
 const KIND = { microsoft: 'Microsoft', offline: 'Офлайн', provider: 'Сервис' };
 const STAGE = { idle: 'Подготовка', loader: 'Готовим загрузчик…', java: 'Java', version: 'Версия', libraries: 'Библиотеки', assets: 'Ресурсы', natives: 'Нативные файлы', launch: 'Запуск', done: 'Готово' };
-const TITLES = { instance: '', empty: '', create: 'Новая сборка', accounts: 'Аккаунты', discover: 'Дополнения', settings: 'Настройки' };
+const TITLES = { home: '', instance: '', empty: '', create: 'Новая сборка', accounts: 'Аккаунты', discover: 'Дополнения', settings: 'Настройки' };
 const PLAY_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>';
 
 function el(tag, attrs = {}, ...kids) {
@@ -71,6 +71,7 @@ function show(view) {
   $$('#rail-list .tile').forEach((t) => (view === 'instance' && t.dataset.inst === S.current ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
   $('#top-title').textContent = TITLES[view] ?? '';
   if (view === 'settings') requestAnimationFrame(() => { $('#set-seg')._place?.(false); $('#cover-seg')._place?.(false); });
+  if (view === 'home') renderHome();
   if (view === 'create') prepareCreate();
   if (view === 'accounts') renderAccountsPage();
 }
@@ -138,6 +139,7 @@ function renderAccounts(state) {
   if (!state.accounts.length) $('#acc-list').append(el('div', { class: 'menu-item faint' }, 'Нет аккаунтов'));
   $('#offline-open').hidden = !state.offline_available;
   const sel = state.accounts.find((a) => a.id === state.selected);
+  if (S.view === 'home') renderHome();
   swapText($('#account-name'), sel ? sel.name : 'Войти');
   $('#account-head').replaceWith(Object.assign(headFor(sel), { id: 'account-head' }));
   $('#account-kind').textContent = sel ? (KIND[sel.kind.type] || '') : 'Нет аккаунта';
@@ -193,6 +195,7 @@ function renderRail() {
 }
 function renderInstances() {
   renderRail();
+  if (S.view === 'home') renderHome();
   if (S.view === 'instance') { if (byId(S.current)) renderInstancePage(); else show(S.instances.length ? 'instance' : 'empty'); }
 }
 function renderInstancePage() {
@@ -288,6 +291,43 @@ function renderAccountsPage() {
   if (!st.accounts.length) $('#acc-page').append(el('div', { class: 'r' }, el('div', { class: 's' }, 'Аккаунтов пока нет — войдите через Microsoft.')));
   $('#acc-offline').hidden = !st.offline_available;
 }
+// ---------- Home: greeting, recent builds, all builds, glass play bar ----------
+const greet = (h) => (h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : h < 23 ? 'Добрый вечер' : 'Доброй ночи');
+const instMeta = (i) => `${LOADER_NAMES[i.loader] || 'Vanilla'} · ${i.version}`;
+const PLAY_D = '<path d="M5 3.5v9l7-4.5z"/>';
+const STOP_D = '<rect x="4" y="4" width="8" height="8" rx="1.5"/>';
+function svgIco(d) { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 16 16'); s.innerHTML = d; return s; }
+const togglePlay = (id) => (isRunning(id) ? stopGame(id) : play(id));
+function renderHome() {
+  const acc = S.accounts.accounts.find((a) => a.id === S.accounts.selected);
+  $('#home-greet').textContent = `${greet(new Date().getHours())}${acc ? `, ${acc.name}` : ''}`;
+  const rc = recent().slice(0, 5).map((i) => el('button', { class: 'rc', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.recent.${i.id}`, onclick: () => openInstance(i.id) },
+    bg(el('i'), coverName(i)), el('span', { class: 't' }, el('b', {}, i.name), el('span', {}, instMeta(i))),
+    el('span', { class: `pl${isRunning(i.id) ? ' on' : ''}`, role: 'button', 'aria-label': `Играть: ${i.name}`, onclick: (e) => { e.stopPropagation(); togglePlay(i.id); } }, svgIco(isRunning(i.id) ? STOP_D : PLAY_D))));
+  rc.push(el('button', { class: 'rc add', 'data-view': 'create', 'data-id': 'home.create' }, el('i', {}, '+'), el('span', { class: 't' }, el('b', {}, 'Новая сборка'), el('span', {}, 'Игра и Java скачаются сами'))));
+  $('#home-recent').replaceChildren(...rc);
+  const all = [...S.instances].sort((a, b) => a.created_at - b.created_at);
+  $('#home-all').replaceChildren(...all.map((i) => el('button', { class: 'hcard', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
+    bg(el('i'), coverName(i)), el('b', {}, i.name), el('span', {}, instMeta(i)))));
+  const c = byId(S.current) || recent()[0];
+  const bar = $('#home-bar');
+  bar.hidden = !c;
+  if (!c) return;
+  bar.dataset.inst = c.id;
+  bg($('#hb-cover'), coverName(c));
+  $('#hb-name').textContent = c.name;
+  $('#hb-meta').textContent = instMeta(c);
+  $('#hb-played').textContent = playedText(c);
+  const on = isRunning(c.id);
+  const hp = $('#home-play');
+  hp.classList.toggle('is-running', on);
+  hp.classList.toggle('btn-primary', !on);
+  hp.dataset.state = S.playing === c.id ? 'loading' : 'idle';
+  $('#hp-label').textContent = on ? 'Остановить' : 'Играть';
+  hp.querySelector('svg').innerHTML = on ? STOP_D : PLAY_D;
+}
+$('#home-play').addEventListener('click', () => togglePlay($('#home-bar').dataset.inst));
+$('#hb-open').addEventListener('click', () => openInstance($('#home-bar').dataset.inst));
 // ---------- Play: install (with progress polling) → launch ----------
 function setRunning() {
   const starting = S.playing && byId(S.playing);
@@ -545,8 +585,9 @@ async function start() {
     $('#app').hidden = false;
     window.FUI.initSegs();
     const want = location.hash.slice(1);
-    if (S.current && (!want || want === 'instance')) openInstance(S.current);
-    else show(want && want !== 'instance' ? want : 'empty');
+    if (want === 'instance' && S.current) openInstance(S.current);
+    else if (!want || want === 'home' || want === 'instance') show(S.instances.length ? 'home' : 'empty');
+    else show(want);
   }
   requestAnimationFrame(() => requestAnimationFrame(async () => {
     const r = await call('app.ready');
