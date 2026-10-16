@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="glass.css">
   <link rel="stylesheet" href="palette.css">
   <link rel="stylesheet" href="welcome.css">
+  <link rel="stylesheet" href="media.css">
   <link rel="stylesheet" href="editor.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
   <script src="ui.js" defer></script>
@@ -27,6 +28,8 @@
   <script src="app.js" defer></script>
   <script src="mods.js" defer></script>
   <script src="worlds.js" defer></script>
+  <script src="shots.js" defer></script>
+  <script src="logs.js" defer></script>
   <script src="packs.js" defer></script>
   <script src="md.js" defer></script>
   <script src="project.js" defer></script>
@@ -146,11 +149,27 @@
             </div>
             <div id="mods-list" data-id="instance.mods"></div>
           </div>
-          <div class="tab-body" id="tab-shots" data-id="instance.shots" hidden>
-            <div class="table-empty"><b>Скриншотов пока нет</b>F2 в игре</div>
-          </div>
+          <div class="tab-body" id="tab-shots" data-id="instance.shots" hidden></div>
           <div class="tab-body" id="tab-logs" data-id="instance.logs" hidden>
-            <pre class="log mono" id="ip-log">Лог появится после первого запуска.</pre>
+            <div class="toolbar">
+              <nav class="seg" id="log-level" data-id="instance.logs.level">
+                <button data-lv="all" aria-selected="true">Все</button>
+                <button data-lv="warn">Предупреждения</button>
+                <button data-lv="error">Ошибки</button>
+              </nav>
+              <label class="field-wrap grow">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+                <input class="field" id="log-find" placeholder="Найти в логе" spellcheck="false" data-id="instance.logs.search">
+              </label>
+              <span class="log-tools-n" id="log-hits"></span>
+              <span class="log-live" id="log-live" hidden><i class="live"></i>Игра запущена</span>
+              <button class="btn btn-icon btn-ghost" id="log-copy" data-tip="Скопировать" aria-label="Скопировать" data-id="instance.logs.copy"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6"/><path d="M10.5 5.5V4c0-.8-.7-1.5-1.5-1.5H4c-.8 0-1.5.7-1.5 1.5v5c0 .8.7 1.5 1.5 1.5h1.5"/></svg></button>
+              <button class="btn btn-icon btn-ghost" id="log-folder" data-tip="Открыть папку" aria-label="Открыть папку" data-id="instance.logs.folder"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 4.5c0-.8.7-1.5 1.5-1.5h2.8l1.4 1.5h4.8c.8 0 1.5.7 1.5 1.5v5.5c0 .8-.7 1.5-1.5 1.5h-9c-.8 0-1.5-.7-1.5-1.5z"/></svg></button>
+            </div>
+            <div class="log-wrap">
+              <div class="log-view" id="log-view" data-id="instance.logs.view" tabindex="0"></div>
+              <button class="btn btn-sm log-jump" id="log-jump" type="button" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v9m-4-4 4 4 4-4"/></svg><span class="t"></span></button>
+            </div>
           </div>
           <div data-slot="instance.end"></div>
         </div>
@@ -450,6 +469,20 @@
       <button type="submit" class="btn btn-danger" id="del-submit"><span class="lbl">Удалить</span></button>
     </div>
   </form>
+
+  <div class="shot-view" id="shot-view" data-id="dialog.screenshot" role="dialog" aria-label="Скриншот" hidden>
+    <div class="sv-bar">
+      <div class="grow"><b id="sv-when"></b><span id="sv-meta"></span></div>
+      <button class="btn btn-sm btn-ghost" id="sv-folder" type="button">Открыть папку</button>
+      <button class="btn btn-sm btn-ghost" id="sv-del" type="button"><span class="lbl"><span class="t">Удалить</span></span></button>
+      <button class="btn btn-icon btn-ghost" id="sv-close" type="button" aria-label="Закрыть" data-tip="Esc"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <div class="sv-stage" id="sv-stage">
+      <img id="sv-img" alt="" draggable="false">
+      <button class="sv-nav" id="sv-prev" type="button" aria-label="Предыдущий"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+      <button class="sv-nav" id="sv-next" type="button" aria-label="Следующий"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg></button>
+    </div>
+  </div>
 
   <form class="dialog" id="dlg-world-del" data-id="dialog.world.delete" role="dialog" aria-label="Удалить мир">
     <h2>Удалить мир «<span id="wdel-name"></span>»?</h2>

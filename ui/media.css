@@ -1,0 +1,82 @@
+/* Screenshots and Logs tabs of an instance. Motion is transform/opacity only; off with data-motion="off". */
+
+/* ---------- Screenshots ---------- */
+.shots-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-3); color: var(--text-3); font-size: var(--text-sm); }
+.shot-day + .shot-day { margin-top: var(--s-5); }
+.shot-day h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 var(--s-2); color: var(--text-2); font-size: var(--text-sm); font-weight: var(--w-semibold); }
+.shot-day h3 .n { color: var(--text-3); font-weight: var(--w-regular); font-variant-numeric: tabular-nums; }
+.shot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--s-2); }
+.shot {
+  position: relative; display: block; aspect-ratio: 16 / 9; padding: 0; overflow: hidden; border: 0; cursor: zoom-in;
+  border-radius: var(--r-card); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line);
+  transition: transform var(--d-3) var(--ease-spring), box-shadow var(--d-2) var(--ease-out);
+  animation: shot-in var(--d-4) var(--ease-out-2) both; animation-delay: calc(var(--i, 0) * 22ms);
+}
+.shot img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.04); transition: opacity var(--d-4) var(--ease-out), transform 600ms var(--ease-out-2); }
+.shot.is-ready img { opacity: 1; transform: none; }
+.shot.is-broken img { display: none; }
+.shot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); pointer-events: none; }
+.shot:hover { transform: translateY(-2px); box-shadow: var(--shadow-2), inset 0 0 0 1px var(--line-strong); }
+.shot:hover img { transform: scale(1.03); }
+.shot:active { transform: translateY(0) scale(.985); transition-duration: var(--d-1); }
+.shot:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
+.shot-skel .shot { cursor: default; animation: w-pulse 1.2s ease-in-out infinite; }
+@keyframes shot-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+
+/* Viewer */
+.shot-view { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; background: rgba(6, 8, 12, .86); backdrop-filter: blur(10px); opacity: 0; transition: opacity var(--d-3) var(--ease-out); }
+.shot-view[data-open] { opacity: 1; }
+.sv-bar { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-3) var(--s-4); color: rgba(255, 255, 255, .92); transform: translateY(-6px); opacity: 0; transition: transform var(--d-4) var(--ease-out-2), opacity var(--d-3) var(--ease-out); }
+.shot-view[data-open] .sv-bar { transform: none; opacity: 1; }
+.sv-bar .grow { flex: 1; min-width: 0; }
+.sv-bar b { display: block; font-weight: var(--w-semibold); }
+.sv-bar span { color: rgba(255, 255, 255, .55); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.sv-bar .btn { color: rgba(255, 255, 255, .85); }
+.sv-bar .btn:hover { color: #fff; background: rgba(255, 255, 255, .1); }
+#sv-del.is-armed { color: #fff; background: var(--danger); }
+.sv-stage { position: relative; flex: 1; display: grid; place-items: center; min-height: 0; padding: 0 72px var(--s-6); }
+.sv-stage img { max-width: 100%; max-height: 100%; border-radius: calc(var(--r-card) * .6); box-shadow: 0 24px 80px rgba(0, 0, 0, .55); user-select: none; }
+.sv-nav { position: absolute; top: 50%; width: 44px; height: 44px; margin-top: -22px; border: 0; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgba(255, 255, 255, .08); cursor: pointer; transition: background-color var(--d-2) var(--ease-out), transform var(--d-2) var(--ease-spring); }
+.sv-nav:hover { background: rgba(255, 255, 255, .16); transform: scale(1.06); }
+.sv-nav:active { transform: scale(.94); }
+.sv-nav svg { width: 18px; height: 18px; }
+#sv-prev { left: var(--s-4); }
+#sv-next { right: var(--s-4); }
+
+/* ---------- Logs ---------- */
+#tab-logs .toolbar { margin-bottom: var(--s-3); }
+.log-tools-n { color: var(--text-3); font-size: var(--text-sm); font-variant-numeric: tabular-nums; min-width: 2ch; }
+.log-live { display: inline-flex; align-items: center; gap: 7px; color: var(--text-2); font-size: var(--text-sm); white-space: nowrap; }
+.log-live .live { width: 7px; height: 7px; }
+.log-wrap { position: relative; }
+.log-view {
+  height: clamp(280px, calc(100vh - 420px), 900px); overflow: auto; padding: var(--s-3) 0; border-radius: var(--r-card);
+  background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--line);
+  font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.6; color: var(--text-2); overscroll-behavior: contain;
+}
+.ll { padding: 0 var(--s-4); white-space: pre-wrap; word-break: break-word; }
+.ll:hover { background: var(--hover); }
+.ll .ts { color: var(--text-3); margin-right: .6ch; }
+.ll .src { color: var(--text-3); opacity: .75; margin-right: .6ch; }
+.ll.is-warn { color: var(--warn); }
+.ll.is-error { color: var(--danger); background: color-mix(in srgb, var(--danger) 7%, transparent); }
+.ll mark { color: inherit; background: color-mix(in srgb, var(--accent) 32%, transparent); border-radius: 2px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
+.ll.is-new { animation: ll-in 380ms var(--ease-out) both; }
+@keyframes ll-in { from { opacity: 0; transform: translateY(3px); background: color-mix(in srgb, var(--accent) 10%, transparent); } }
+.ll.sk { height: 10px; margin: 7px var(--s-4); padding: 0; border-radius: 3px; background: var(--surface-3); animation: w-pulse 1.2s ease-in-out infinite; }
+.ll.sk.w0 { width: 62%; } .ll.sk.w1 { width: 44%; } .ll.sk.w2 { width: 78%; }
+.log-view .table-empty { height: 100%; min-height: 0; font-family: var(--font-ui); }
+.log-more { display: flex; margin: 0 auto var(--s-2); }
+.log-jump {
+  position: absolute; left: 50%; bottom: var(--s-3); transform: translateX(-50%); box-shadow: var(--shadow-pop);
+  animation: jump-in var(--d-4) var(--ease-spring) both;
+}
+.log-jump svg { width: 14px; height: 14px; }
+@keyframes jump-in { from { opacity: 0; transform: translate(-50%, 8px) scale(.94); } }
+
+html[data-motion="off"] .shot, html[data-motion="off"] .ll.is-new, html[data-motion="off"] .log-jump { animation: none; }
+html[data-motion="off"] .shot img, html[data-motion="off"] .sv-bar { transition: none; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .shot, .ll.is-new, .log-jump { animation: none; }
+  .shot img, .sv-bar { transition: none; transform: none; }
+}
