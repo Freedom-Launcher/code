@@ -498,6 +498,12 @@ fn world_dir(
 }
 
 #[derive(Deserialize)]
+struct ShotArg {
+    instance: String,
+    file: String,
+}
+
+#[derive(Deserialize)]
 struct WorldArg {
     instance: String,
     world: String,
@@ -756,6 +762,49 @@ async fn apply_pack(
 }
 
 fn register_import(r: &mut ActionRegistry) {
+    r.register("instances.screenshots", P::InstancesRead, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        Ok(json!(crate::media::list_shots(&i.game_dir(&c.data_dir))))
+    });
+    r.register("screenshots.delete", P::InstancesManage, false, |c, a| async move {
+        let ShotArg { instance, file } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let p = crate::media::shot_path(&i.game_dir(&c.data_dir), &file)
+            .ok_or_else(|| CoreError::BadArgs(format!("no such screenshot: {file}")))?;
+        std::fs::remove_file(p)?;
+        Ok(json!({ "instance": instance, "file": file, "deleted": true }))
+    });
+    r.register("screenshots.folder", P::InstancesRead, true, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let d = i.game_dir(&c.data_dir).join("screenshots");
+        std::fs::create_dir_all(&d)?;
+        Ok(json!({ "instance": instance, "path": d }))
+    });
+    r.register("instances.log", P::InstancesRead, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            #[serde(default)]
+            from: Option<u64>,
+            #[serde(default)]
+            before: Option<u64>,
+        }
+        let A { instance, from, before } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let p = i.game_dir(&c.data_dir).join("logs").join("launcher-output.log");
+        let mut v = crate::media::read_log(&p, from, before)?;
+        v["running"] = json!(c.game_running.is_busy(&instance));
+        Ok(v)
+    });
+    r.register("logs.folder", P::InstancesRead, true, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let d = i.game_dir(&c.data_dir).join("logs");
+        std::fs::create_dir_all(&d)?;
+        Ok(json!({ "instance": instance, "path": d }))
+    });
     r.register("worlds.folder", P::InstancesRead, true, |c, a| async move {
         let WorldArg { instance, world } = args(a)?;
         let (_, d) = world_dir(&c, &instance, &world)?;

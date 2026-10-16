@@ -22,6 +22,7 @@ pub mod export;
 pub mod game;
 pub mod instances;
 pub mod keychain;
+pub mod media;
 pub mod modrinth;
 pub mod mods;
 pub mod mrpack;
