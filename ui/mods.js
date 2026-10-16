@@ -156,7 +156,12 @@
   let sort = 'relevance';
   let cats = new Set();
   let hide = false;
-  let loader = null;
+  // Filters, as in Modrinth Browse. `order` is the loader priority (first wins when several fit).
+  let loaders = new Set(), order = ['neoforge', 'fabric', 'quilt', 'forge'];
+  let vers = new Set(), snaps = false, vq = '';
+  let env = new Set(), oss = false, excl = new Set();
+  const verCache = new Map();
+  const toggle = (set, v) => (set.has(v) ? set.delete(v) : set.add(v));
   let offset = 0;
   let seq = 0;
   let have = new Set();
@@ -179,6 +184,7 @@
     sel.hidden = kind === 'modpack' || !list.length;
     paintLoaders();
     paintCats();
+    paintVersions(); paintEnv(); paintChips();
     paintWorlds().then(() => search(true));
   }
 
@@ -209,12 +215,10 @@
     const order = ['categories', 'features', 'resolutions', 'performance impact'];
     const heads = [...groups.keys()].sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
     $('#disc-cats').replaceChildren(...heads.map((h) => el('section', { class: 'disc-group' },
-      el('h3', {}, HEAD_RU[h] || catName(h)),
-      el('div', { class: 'disc-opts' }, ...groups.get(h).map((c) => opt(catName(c.name), cats.has(c.name), `discover.cat.${c.name}`, (b) => {
-        if (cats.has(c.name)) cats.delete(c.name); else cats.add(c.name);
-        b.setAttribute('aria-pressed', String(cats.has(c.name)));
-        search(true);
-      }))))));
+      el('h3', {}, gh(HEAD_RU[h] || catName(h))),
+      el('div', { class: 'disc-gb' }, el('div', { class: 'disc-opts' }, ...groups.get(h).map((c) => catOpt(c.name)))))));
+    $$('#disc-cats .disc-group').forEach((g) => { g.dataset.g = `cat:${g.querySelector('.disc-gh span').textContent}`; });
+    applyClosed();
   }
 
   // A filter row: a check mark and a label, toggled in place.
@@ -224,18 +228,180 @@
     return b;
   }
 
-  // Browsing all of Modrinth: the loader is a filter; with an instance it is locked to the instance.
+const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m2.5 3.75 2.5 2.5 2.5-2.5"/></svg>';
+  const GRIP = '<svg viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/><circle cx="3" cy="7" r="1.1"/><circle cx="7" cy="7" r="1.1"/><circle cx="3" cy="11" r="1.1"/><circle cx="7" cy="11" r="1.1"/></svg>';
+  const BAN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><path d="m4.6 11.4 6.8-6.8"/></svg>';
+  const XS = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m3 3 4 4M7 3 3 7"/></svg>';
+  const ENV_RU = { client: 'Клиент', server: 'Сервер' };
+  const lk = () => kind === 'mod' || kind === 'modpack';
+  const chev = () => el('i', { class: 'disc-chev', html: CHEV });
+  const gh = (label) => el('button', { class: 'disc-gh', type: 'button' }, el('span', {}, label), chev());
+
+  // Loaders: a check filters; the order is the priority, dragged by the grip (or Alt+↑/↓).
   function paintLoaders() {
-    const free = !target && (kind === 'mod' || kind === 'modpack');
+    const free = !target && lk();
     $('#disc-loaders-g').hidden = !free;
     if (!free) return;
     const box = $('#disc-loaders');
-    box.replaceChildren(...['fabric', 'quilt', 'forge', 'neoforge'].map((l) => opt(LOADER_NAMES[l] || l, loader === l, `discover.loader.${l}`, () => {
-      loader = loader === l ? null : l;
-      paintLoaders(); search(true);
-    })));
+    const before = new Map([...box.children].map((r) => [r.dataset.loader, r.getBoundingClientRect().top]));
+    box.replaceChildren(...order.map((l, i) => {
+      const b = opt(LOADER_NAMES[l] || l, loaders.has(l), `discover.loader.${l}`, () => {
+        toggle(loaders, l); b.setAttribute('aria-pressed', String(loaders.has(l))); changed();
+      });
+      b.dataset.loader = l;
+      b.append(el('span', { class: 'disc-rank' }, String(i + 1)), el('span', { class: 'disc-grip', title: 'Приоритет', html: GRIP }));
+      return b;
+    }));
+    for (const r of box.children) {
+      const d = (before.get(r.dataset.loader) ?? 0) - r.getBoundingClientRect().top;
+      if (!before.size || !d) continue;
+      r.style.transition = 'none'; r.style.transform = `translateY(${d}px)`;
+      r.getBoundingClientRect();
+      r.style.transition = ''; r.style.transform = '';
+    }
+  }
+  function setOrder(o) {
+    order = o; paintLoaders();
+    call('settings.set', { loader_priority: o }).catch(fail);
+  }
+  function dragLoaders(box) {
+    box.addEventListener('pointerdown', (e) => {
+      const row = e.target.closest('.disc-grip')?.closest('.disc-opt');
+      if (!row || e.button !== 0) return;
+      e.preventDefault();
+      const rows = [...box.children], from = rows.indexOf(row), h = row.offsetHeight + 1, y0 = e.clientY;
+      let to = from;
+      row.setPointerCapture(e.pointerId); box.dataset.drag = ''; row.dataset.dragging = '';
+      const move = (ev) => {
+        const dy = Math.max(-from * h, Math.min((rows.length - 1 - from) * h, ev.clientY - y0));
+        row.style.transform = `translateY(${dy}px)`;
+        to = Math.round(from + dy / h);
+        rows.forEach((r, i) => {
+          if (r === row) return;
+          const sh = to > from ? (i > from && i <= to ? -h : 0) : (i < from && i >= to ? h : 0);
+          r.style.transform = sh ? `translateY(${sh}px)` : '';
+        });
+      };
+      const up = () => {
+        row.removeEventListener('pointermove', move); row.removeEventListener('pointerup', up); row.removeEventListener('pointercancel', up);
+        delete box.dataset.drag; delete row.dataset.dragging;
+        if (to === from) { rows.forEach((r) => { r.style.transform = ''; }); return; }
+        const o = [...order]; o.splice(to, 0, o.splice(from, 1)[0]); setOrder(o);
+      };
+      row.addEventListener('pointermove', move); row.addEventListener('pointerup', up); row.addEventListener('pointercancel', up);
+    });
+    box.addEventListener('click', (e) => { if (e.target.closest('.disc-grip')) { e.preventDefault(); e.stopPropagation(); } }, true);
+    box.addEventListener('keydown', (e) => {
+      const row = e.target.closest('.disc-opt');
+      if (!row || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      e.preventDefault();
+      const i = order.indexOf(row.dataset.loader), j = i + (e.key === 'ArrowUp' ? -1 : 1);
+      if (j < 0 || j >= order.length) return;
+      const o = [...order]; [o[i], o[j]] = [o[j], o[i]]; setOrder(o);
+      box.querySelector(`[data-loader="${o[j]}"]`)?.focus();
+    });
   }
 
+  // Game versions: only without an instance (an instance locks its own version).
+  async function paintVersions() {
+    $('#disc-ver-g').hidden = !!target;
+    if (target) return;
+    const k = snaps ? 's' : 'r';
+    if (!verCache.has(k)) verCache.set(k, call('versions.list', { snapshots: snaps }).then((r) => (r?.versions || []).map((v) => v.id)).catch(() => { verCache.delete(k); return []; }));
+    const all = await verCache.get(k);
+    const q = vq.trim().toLowerCase();
+    const list = all.filter((v) => !q || v.toLowerCase().includes(q));
+    const shown = [...list.filter((v) => vers.has(v)), ...list.filter((v) => !vers.has(v))].slice(0, 300);
+    $('#disc-vers').replaceChildren(...(shown.length ? shown.map((v) => opt(v, vers.has(v), `discover.version.${v}`, (b) => {
+      toggle(vers, v); b.setAttribute('aria-pressed', String(vers.has(v))); changed();
+    })) : [el('div', { class: 'disc-none' }, 'Ничего')]));
+  }
+  function paintEnv() {
+    $('#disc-env-g').hidden = !lk();
+    $('#disc-env').replaceChildren(...Object.keys(ENV_RU).map((x) => opt(ENV_RU[x], env.has(x), `discover.env.${x}`, (b) => {
+      toggle(env, x); b.setAttribute('aria-pressed', String(env.has(x))); changed();
+    })));
+    $('#disc-lic').replaceChildren(opt('Открытый код', oss, 'discover.open-source', (b) => { oss = !oss; b.setAttribute('aria-pressed', String(oss)); changed(); }));
+  }
+  // A category: click includes it, the ⊘ beside it excludes it.
+  function catOpt(n) {
+    const b = opt(catName(n), cats.has(n), `discover.cat.${n}`, () => {
+      if (!excl.delete(n)) toggle(cats, n);
+      mark(); changed();
+    });
+    const x = el('button', { class: 'disc-x', type: 'button', title: 'Исключить', 'aria-label': 'Исключить', 'data-id': `discover.exclude.${n}`, html: BAN });
+    const w = el('div', { class: 'disc-optw' }, b, x);
+    const mark = () => { b.setAttribute('aria-pressed', String(cats.has(n))); w.dataset.mode = excl.has(n) ? 'exclude' : ''; };
+    x.addEventListener('click', () => { if (!excl.delete(n)) { excl.add(n); cats.delete(n); } mark(); changed(); });
+    mark();
+    return w;
+  }
+
+  // Active filters as chips above the results; only the ones that apply here.
+  function items() {
+    const out = [], free = !target;
+    if (free && lk()) order.filter((l) => loaders.has(l)).forEach((l) => out.push([`l:${l}`, LOADER_NAMES[l] || l, () => loaders.delete(l)]));
+    if (free) [...vers].forEach((v) => out.push([`v:${v}`, v, () => vers.delete(v)]));
+    if (lk()) [...env].forEach((x) => out.push([`e:${x}`, ENV_RU[x], () => env.delete(x)]));
+    if (oss) out.push(['o', 'Открытый код', () => { oss = false; }]);
+    [...cats].forEach((c) => out.push([`c:${c}`, catName(c), () => cats.delete(c)]));
+    [...excl].forEach((c) => out.push([`x:${c}`, catName(c), () => excl.delete(c), true]));
+    return out;
+  }
+  function searchArgs() {
+    const free = !target;
+    const e = lk() && env.size ? (env.size === 2 ? 'both' : [...env][0]) : null;
+    return { instance: kind === 'modpack' ? null : target, kind, query, offset, sort, categories: [...cats], exclude: [...excl], open_source: oss,
+      ...(free && lk() && loaders.size ? { loaders: order.filter((l) => loaders.has(l)) } : {}),
+      ...(free && vers.size ? { versions: [...vers] } : {}),
+      ...(e ? { environment: e } : {}) };
+  }
+  function paintChips() {
+    const box = $('#disc-chips'), list = items();
+    const old = new Map([...box.children].map((n) => [n.dataset.key, n]));
+    const nodes = list.map(([key, label, off, x]) => old.get(key) || el('button', { class: `disc-chip${x ? ' is-x' : ''}`, type: 'button', 'data-key': key, onclick: () => { off(); refresh(); } },
+      el('span', {}, label), el('i', { html: XS })));
+    if (nodes.length) nodes.push(old.get('*') || el('button', { class: 'disc-chip-clear', type: 'button', 'data-key': '*', onclick: resetAll }, 'Сбросить всё'));
+    box.replaceChildren(...nodes);
+    box.hidden = !list.length;
+    $('#disc-filters-toggle').dataset.count = list.length ? String(list.length) : '';
+  }
+  function changed() { paintChips(); search(true); }
+  function refresh() { paintLoaders(); paintVersions(); paintEnv(); paintCats(); changed(); }
+  function resetAll() { [loaders, vers, env, cats, excl].forEach((x) => x.clear()); oss = false; refresh(); }
+
+  // Collapsible sections and the panel itself, both remembered.
+  let closed;
+  try { closed = new Set(JSON.parse(localStorage.getItem('fl.disc-closed') || '[]')); } catch { closed = new Set(); }
+  function applyClosed() {
+    $$('.disc-side .disc-group').forEach((g) => {
+      const c = closed.has(g.dataset.g);
+      g.toggleAttribute('data-collapsed', c);
+      g.querySelector('.disc-gh')?.setAttribute('aria-expanded', String(!c));
+    });
+  }
+  function setPanel(on) {
+    $('.disc-body').dataset.filters = on ? 'on' : 'off';
+    $('#disc-filters-toggle').setAttribute('aria-pressed', String(on));
+    localStorage.setItem('fl.disc-filters', on ? 'on' : 'off');
+  }
+  function initFilters() {
+    $$('.disc-side .disc-gh').forEach((b) => { if (!b.querySelector('.disc-chev')) b.append(chev()); });
+    $('.disc-side').addEventListener('click', (e) => {
+      const h = e.target.closest('.disc-gh');
+      if (!h) return;
+      toggle(closed, h.closest('.disc-group').dataset.g);
+      localStorage.setItem('fl.disc-closed', JSON.stringify([...closed]));
+      applyClosed();
+    });
+    applyClosed();
+    setPanel(localStorage.getItem('fl.disc-filters') !== 'off');
+    $('#disc-filters-toggle').addEventListener('click', () => setPanel($('.disc-body').dataset.filters === 'off'));
+    $('#disc-vq').addEventListener('input', (e) => { vq = e.target.value; paintVersions(); });
+    $('#disc-snaps').addEventListener('change', (e) => { snaps = e.target.checked; paintVersions(); });
+    dragLoaders($('#disc-loaders'));
+    call('settings.get').then((st) => { if (Array.isArray(st?.loader_priority) && st.loader_priority.length) { order = st.loader_priority; paintLoaders(); } }).catch(() => {});
+  }
   const HEAD_RU = { categories: 'Категории', features: 'Особенности', resolutions: 'Разрешение', 'performance impact': 'Нагрузка' };
 
   const CAT_RU = {
@@ -263,14 +429,14 @@
   async function search(reset) {
     const box = $('#disc-results');
     const more = $('#disc-more');
-    $('.disc-hide').hidden = kind === 'modpack' || !target;
-    $('#disc-reset').hidden = !cats.size && !loader;
+    $('.disc-side > .disc-hide').hidden = kind === 'modpack' || !target;
+    $('#disc-reset').hidden = !items().length;
     if (reset) { offset = 0; box.dataset.state = 'loading'; }
     const my = ++seq;
     let res = null;
     try {
       if (reset) await refreshHave();
-      res = await call('mods.search', { instance: kind === 'modpack' ? null : target, kind, query, offset, sort, categories: [...cats], ...(!target && loader ? { loader } : {}) });
+      res = await call('mods.search', searchArgs());
     } catch (e) { fail(e); }
     if (my !== seq) return;
     delete box.dataset.state;
@@ -347,7 +513,7 @@
       if (f != null) lbl.textContent = `${Math.floor(f * 100)}%`;
     }, 250);
     try {
-      const created = await call('modpacks.install', { project: h.project_id, token, ...(version ? { version } : {}) });
+      const created = await call('modpacks.install', { project: h.project_id, token, ...(version ? { version } : {}), ...(loaders.size ? { loaders: [...loaders] } : {}) });
       clearInterval(poll);
       b.dataset.state = 'success';
       lbl.textContent = 'Установлена';
@@ -385,14 +551,15 @@
   $('#disc-kind').addEventListener('seg:change', (e) => {
     if (e.detail.dataset.kind === kind) return;
     kind = e.detail.dataset.kind;
-    cats = new Set();
+    cats = new Set(); excl = new Set();
     discover();
   });
-  $('#disc-target').addEventListener('change', (e) => { target = e.target.value || null; paintLoaders(); paintWorlds().then(() => search(true)); });
+  $('#disc-target').addEventListener('change', (e) => { target = e.target.value || null; paintLoaders(); paintVersions(); paintChips(); paintWorlds().then(() => search(true)); });
   $('#disc-world').addEventListener('change', (e) => { dworld = e.target.value; search(true); });
   $('#disc-sort').addEventListener('change', (e) => { sort = e.target.value; search(true); });
   $('#disc-hide').addEventListener('change', (e) => { hide = e.target.checked; search(true); });
-  $('#disc-reset').addEventListener('click', () => { cats.clear(); loader = null; paintLoaders(); paintCats(); search(true); });
+  $('#disc-reset').addEventListener('click', resetAll);
+  initFilters();
   $('#disc-more').addEventListener('click', () => search(false));
 
   // The project page reuses the catalog's install flow and context.

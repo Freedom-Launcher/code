@@ -210,6 +210,7 @@
             <button data-kind="shader">Шейдеры</button>
           </nav>
           <div class="toolbar" data-id="discover.toolbar">
+            <button class="btn btn-icon disc-ftoggle" id="disc-filters-toggle" aria-pressed="true" aria-label="Фильтры" title="Фильтры" data-id="discover.filters.toggle"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h11M4.5 8h7M6.5 11.5h3"/></svg></button>
             <label class="field-wrap grow">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
               <input class="field" id="disc-q" placeholder="Сборки на Modrinth" data-id="discover.search">
@@ -227,11 +228,19 @@
           <div class="disc-body">
             <aside class="disc-side" data-id="discover.filters">
               <label class="disc-hide"><span>Скрыть установленные</span><span class="switch"><input type="checkbox" id="disc-hide" data-id="discover.hide-installed"><i></i></span></label>
-              <section class="disc-group" id="disc-loaders-g" hidden><h3>Загрузчик</h3><div class="disc-opts" id="disc-loaders"></div></section>
+              <section class="disc-group" id="disc-ver-g" data-g="versions" hidden><h3><button class="disc-gh" type="button"><span>Версия игры</span></button></h3>
+                <div class="disc-gb"><label class="field-wrap disc-vq"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input class="field" id="disc-vq" placeholder="Поиск" data-id="discover.version.search"></label><div class="disc-opts disc-scroll" id="disc-vers"></div><label class="disc-hide disc-sw"><span>Снапшоты</span><span class="switch"><input type="checkbox" id="disc-snaps" data-id="discover.version.snapshots"><i></i></span></label></div></section>
+              <section class="disc-group" id="disc-loaders-g" data-g="loaders" hidden><h3><button class="disc-gh" type="button"><span>Загрузчик</span></button></h3>
+                <div class="disc-gb"><div class="disc-opts" id="disc-loaders" data-id="discover.loaders"></div></div></section>
               <div id="disc-cats"></div>
+              <section class="disc-group" id="disc-env-g" data-g="env" hidden><h3><button class="disc-gh" type="button"><span>Окружение</span></button></h3>
+                <div class="disc-gb"><div class="disc-opts" id="disc-env"></div></div></section>
+              <section class="disc-group" id="disc-lic-g" data-g="license"><h3><button class="disc-gh" type="button"><span>Лицензия</span></button></h3>
+                <div class="disc-gb"><div class="disc-opts" id="disc-lic"></div></div></section>
               <button class="btn btn-ghost disc-reset" id="disc-reset" data-id="discover.reset" hidden><span class="lbl">Сбросить фильтры</span></button>
             </aside>
             <div class="disc-main">
+              <div class="disc-chips" id="disc-chips" data-id="discover.active-filters" hidden></div>
               <div class="mod-grid" id="disc-results" data-id="discover.results"></div>
               <button class="btn disc-more" id="disc-more" data-id="discover.more" hidden><span class="lbl">Ещё</span></button>
             </div>
