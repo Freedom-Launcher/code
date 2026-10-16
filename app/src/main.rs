@@ -112,6 +112,29 @@ async fn open_instance_folder(
         .map_err(|e| e.to_string())
 }
 
+/// Opens one world's folder in the system file manager.
+#[tauri::command]
+async fn open_world_folder(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+    instance: String,
+    world: String,
+) -> Result<(), String> {
+    let core = Arc::clone(&state.0);
+    let v = core
+        .dispatch(
+            &Caller::BuiltinUi,
+            "worlds.folder",
+            serde_json::json!({ "instance": instance, "world": world }),
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    let path = v["path"].as_str().ok_or("no folder")?.to_owned();
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 /// Saves the user's wallpaper. The body is the raw image; its type comes from the bytes.
 #[tauri::command]
 async fn set_wallpaper(
@@ -460,6 +483,7 @@ fn main() {
             open_login_page,
             open_link,
             open_instance_folder,
+            open_world_folder,
             open_themes_folder,
             addon_action,
             open_addons_folder,

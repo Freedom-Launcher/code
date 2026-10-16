@@ -453,8 +453,54 @@ fn list_worlds(saves: &std::path::Path) -> Vec<Value> {
         .collect();
     out.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
     out.into_iter()
-        .map(|(t, name)| json!({ "id": name, "name": name, "last_played": t }))
+        .map(|(t, name)| {
+            let d = saves.join(&name);
+            let icon = std::fs::metadata(d.join("icon.png"))
+                .ok()
+                .filter(|m| m.len() <= 256 * 1024)
+                .and_then(|_| std::fs::read(d.join("icon.png")).ok())
+                .filter(|b| b.starts_with(b"\x89PNG"))
+                .map(|b| format!("data:image/png;base64,{}", crate::skins::b64_encode(&b)));
+            json!({ "id": name, "name": name, "last_played": t, "icon": icon, "size": dir_size(&d, 0) })
+        })
         .collect()
+}
+
+/// Bytes under `d` (a few levels deep is plenty for a world).
+fn dir_size(d: &std::path::Path, depth: u8) -> u64 {
+    let Ok(rd) = std::fs::read_dir(d) else {
+        return 0;
+    };
+    rd.flatten()
+        .map(|e| match e.file_type() {
+            Ok(t) if t.is_dir() && depth < 6 => dir_size(&e.path(), depth + 1),
+            Ok(t) if t.is_file() => e.metadata().map_or(0, |m| m.len()),
+            _ => 0,
+        })
+        .sum()
+}
+
+/// A world folder of an instance that really exists.
+fn world_dir(
+    c: &Core,
+    instance: &str,
+    world: &str,
+) -> Result<(Instance, std::path::PathBuf), CoreError> {
+    if !valid_world(world) {
+        return Err(CoreError::BadArgs(format!("bad world: {world}")));
+    }
+    let i = instance_by_id(c, instance)?;
+    let d = i.game_dir(&c.data_dir).join("saves").join(world);
+    if !d.join("level.dat").is_file() {
+        return Err(CoreError::BadArgs(format!("no such world: {world}")));
+    }
+    Ok((i, d))
+}
+
+#[derive(Deserialize)]
+struct WorldArg {
+    instance: String,
+    world: String,
 }
 
 /// Downloads a Modrinth modpack version (the newest release by default)
@@ -710,6 +756,22 @@ async fn apply_pack(
 }
 
 fn register_import(r: &mut ActionRegistry) {
+    r.register("worlds.folder", P::InstancesRead, true, |c, a| async move {
+        let WorldArg { instance, world } = args(a)?;
+        let (_, d) = world_dir(&c, &instance, &world)?;
+        Ok(json!({ "instance": instance, "world": world, "path": d }))
+    });
+    r.register("worlds.delete", P::InstancesManage, false, |c, a| async move {
+        let WorldArg { instance, world } = args(a)?;
+        let _g = c.state_lock.lock().await;
+        let (i, d) = world_dir(&c, &instance, &world)?;
+        idle(&c, &i)?;
+        let trash = d.with_file_name(format!(".deleting-{world}"));
+        std::fs::rename(&d, &trash)
+            .map_err(|e| CoreError::msg(format!("Не удалось удалить мир (папка открыта в другой программе?): {e}")))?;
+        let cleaned = std::fs::remove_dir_all(&trash).is_ok();
+        Ok(json!({ "instance": instance, "world": world, "deleted": true, "files_removed": cleaned }))
+    });
     r.register(
         "instances.worlds",
         P::InstancesRead,

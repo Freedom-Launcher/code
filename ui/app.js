@@ -215,6 +215,7 @@ function renderInstancePage() {
   if (!i) return;
   bg($('#ip-cover'), coverName(i));
   $('#ip-name').textContent = i.name;
+  window.FWorlds?.reset();
   $('#ip-version').textContent = i.version;
   $('#ip-loader').textContent = LOADER_NAMES[i.loader] || 'Vanilla';
   $('#ip-created').textContent = new Date(i.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });

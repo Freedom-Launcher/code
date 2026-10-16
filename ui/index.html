@@ -26,6 +26,7 @@
   <script src="addons.js" defer></script>
   <script src="app.js" defer></script>
   <script src="mods.js" defer></script>
+  <script src="worlds.js" defer></script>
   <script src="packs.js" defer></script>
   <script src="md.js" defer></script>
   <script src="project.js" defer></script>
@@ -447,6 +448,15 @@
     <div class="actions">
       <button type="button" class="btn btn-ghost" data-close>Отмена</button>
       <button type="submit" class="btn btn-danger" id="del-submit"><span class="lbl">Удалить</span></button>
+    </div>
+  </form>
+
+  <form class="dialog" id="dlg-world-del" data-id="dialog.world.delete" role="dialog" aria-label="Удалить мир">
+    <h2>Удалить мир «<span id="wdel-name"></span>»?</h2>
+    <p class="hint">Мир удалится с диска без возможности вернуть.</p>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+      <button type="submit" class="btn btn-danger" id="wdel-submit"><span class="lbl">Удалить</span></button>
     </div>
   </form>
 

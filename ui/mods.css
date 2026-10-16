@@ -207,3 +207,20 @@ html[data-l-filters="right"] .disc-body { grid-template-columns: minmax(0, 1fr) 
 html[data-l-filters="right"] .disc-side { order: 2; }
 html[data-l-filters="right"] .disc-body[data-filters="off"] { grid-template-columns: minmax(0, 1fr) 0px; }
 html[data-l-filters="right"] .disc-body[data-filters="off"] .disc-side { transform: translateX(12px); }
+
+/* Worlds */
+.w-ico { position: relative; overflow: hidden; image-rendering: pixelated; }
+.w-ico img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--d-3) var(--ease-out); }
+.w-ico.is-img img { opacity: 1; }
+.w-list .w-row { animation: w-in var(--d-4) var(--ease-out-2) both; animation-delay: calc(var(--i, 0) * 24ms); }
+@keyframes w-in { from { opacity: 0; transform: translateY(var(--shift, 6px)); } }
+.w-row .btn-icon { opacity: 0; transition: opacity var(--d-2) var(--ease-out), background-color var(--d-2), color var(--d-2); }
+.w-row:hover .btn-icon, .w-row:focus-within .btn-icon { opacity: 1; }
+.w-row .w-del:hover { color: var(--danger, #e5484d); }
+.w-skel .sk { display: block; border-radius: calc(4px * var(--rk-chip, 1)); background: var(--surface-3); animation: w-pulse 1.2s ease-in-out infinite; }
+.w-skel b.sk { width: 38%; height: 12px; }
+.w-skel span.sk { width: 22%; height: 10px; margin-top: 7px; }
+.w-skel .mod-ico.sk { box-shadow: none; }
+@keyframes w-pulse { 50% { opacity: .45; } }
+[data-motion="off"] .w-list .w-row, [data-motion="off"] .w-skel .sk { animation: none; }
+@media (hover: none) { .w-row .btn-icon { opacity: 1; } }
