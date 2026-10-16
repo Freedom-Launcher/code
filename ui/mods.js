@@ -156,6 +156,7 @@
   let sort = 'relevance';
   let cats = new Set();
   let hide = false;
+  let loader = null;
   let offset = 0;
   let seq = 0;
   let have = new Set();
@@ -176,6 +177,7 @@
     sel.replaceChildren(el('option', { value: '', selected: !target }, 'Любая сборка'),
       ...list.map((i) => el('option', { value: i.id, selected: i.id === target }, instLabel(i))));
     sel.hidden = kind === 'modpack' || !list.length;
+    paintLoaders();
     paintCats();
     paintWorlds().then(() => search(true));
   }
@@ -196,18 +198,45 @@
     if (!catCache.has(k)) catCache.set(k, call('mods.categories', { kind: k }).catch(() => { catCache.delete(k); return []; }));
     const list = await catCache.get(k);
     if (k !== kind) return;
-    // Modrinth groups tags by header; the browser shows the content categories only.
-    const shown = list.filter((c) => c.header === 'categories' || !c.header);
-    $('#disc-cats').replaceChildren(...shown.map((c) => {
-      const b = el('button', { 'aria-pressed': String(cats.has(c.name)), 'data-id': `discover.cat.${c.name}` }, catName(c.name));
-      b.addEventListener('click', () => {
+    // Modrinth's sidebar: one group per tag header.
+    const groups = new Map();
+    for (const c of list) {
+      const h = c.header || 'categories';
+      if (h === 'loaders') continue;
+      if (!groups.has(h)) groups.set(h, []);
+      groups.get(h).push(c);
+    }
+    const order = ['categories', 'features', 'resolutions', 'performance impact'];
+    const heads = [...groups.keys()].sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+    $('#disc-cats').replaceChildren(...heads.map((h) => el('section', { class: 'disc-group' },
+      el('h3', {}, HEAD_RU[h] || catName(h)),
+      el('div', { class: 'disc-opts' }, ...groups.get(h).map((c) => opt(catName(c.name), cats.has(c.name), `discover.cat.${c.name}`, (b) => {
         if (cats.has(c.name)) cats.delete(c.name); else cats.add(c.name);
         b.setAttribute('aria-pressed', String(cats.has(c.name)));
         search(true);
-      });
-      return b;
-    }));
+      }))))));
   }
+
+  // A filter row: a check mark and a label, toggled in place.
+  function opt(label, on, id, onClick) {
+    const b = el('button', { class: 'disc-opt', 'aria-pressed': String(on), 'data-id': id }, el('i'), el('span', {}, label));
+    b.addEventListener('click', () => onClick(b));
+    return b;
+  }
+
+  // Browsing all of Modrinth: the loader is a filter; with an instance it is locked to the instance.
+  function paintLoaders() {
+    const free = !target && (kind === 'mod' || kind === 'modpack');
+    $('#disc-loaders-g').hidden = !free;
+    if (!free) return;
+    const box = $('#disc-loaders');
+    box.replaceChildren(...['fabric', 'quilt', 'forge', 'neoforge'].map((l) => opt(LOADER_NAMES[l] || l, loader === l, `discover.loader.${l}`, () => {
+      loader = loader === l ? null : l;
+      paintLoaders(); search(true);
+    })));
+  }
+
+  const HEAD_RU = { categories: 'Категории', features: 'Особенности', resolutions: 'Разрешение', 'performance impact': 'Нагрузка' };
 
   const CAT_RU = {
     adventure: 'Приключения', cursed: 'Странное', decoration: 'Декор', economy: 'Экономика', equipment: 'Снаряжение',
@@ -218,6 +247,7 @@
     fonts: 'Шрифты', gui: 'Интерфейс', items: 'Предметы', locale: 'Язык', models: 'Модели', audio: 'Звук',
     simplistic: 'Минимализм', themed: 'Тематические', tweaks: 'Твики', realistic: 'Реализм', modded: 'Для модов',
     'vanilla-like': 'Как в ванилле', challenging: 'Испытания', 'kitchen-sink': 'Всё и сразу',
+    potato: 'Очень слабые ПК', low: 'Низкая', medium: 'Средняя', high: 'Высокая', screenshot: 'Для скриншотов',
     lightweight: 'Лёгкие', multiplayer: 'Мультиплеер', quests: 'Квесты', atmosphere: 'Атмосфера', bloom: 'Свечение', 'colored-lighting': 'Цветной свет',
     foliage: 'Листва', 'path-tracing': 'Трассировка пути', pbr: 'PBR', reflections: 'Отражения', shadows: 'Тени',
     cartoon: 'Мультяшные', fantasy: 'Фэнтези', 'semi-realistic': 'Полуреализм',
@@ -234,12 +264,13 @@
     const box = $('#disc-results');
     const more = $('#disc-more');
     $('.disc-hide').hidden = kind === 'modpack' || !target;
+    $('#disc-reset').hidden = !cats.size && !loader;
     if (reset) { offset = 0; box.dataset.state = 'loading'; }
     const my = ++seq;
     let res = null;
     try {
       if (reset) await refreshHave();
-      res = await call('mods.search', { instance: kind === 'modpack' ? null : target, kind, query, offset, sort, categories: [...cats] });
+      res = await call('mods.search', { instance: kind === 'modpack' ? null : target, kind, query, offset, sort, categories: [...cats], ...(!target && loader ? { loader } : {}) });
     } catch (e) { fail(e); }
     if (my !== seq) return;
     delete box.dataset.state;
@@ -353,10 +384,11 @@
     cats = new Set();
     discover();
   });
-  $('#disc-target').addEventListener('change', (e) => { target = e.target.value || null; paintWorlds().then(() => search(true)); });
+  $('#disc-target').addEventListener('change', (e) => { target = e.target.value || null; paintLoaders(); paintWorlds().then(() => search(true)); });
   $('#disc-world').addEventListener('change', (e) => { dworld = e.target.value; search(true); });
   $('#disc-sort').addEventListener('change', (e) => { sort = e.target.value; search(true); });
   $('#disc-hide').addEventListener('change', (e) => { hide = e.target.checked; search(true); });
+  $('#disc-reset').addEventListener('click', () => { cats.clear(); loader = null; paintLoaders(); paintCats(); search(true); });
   $('#disc-more').addEventListener('click', () => search(false));
 
   window.FMods = { instance, discover };

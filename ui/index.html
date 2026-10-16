@@ -219,12 +219,18 @@
               <option value="updated">Обновлённые</option>
             </select>
           </div>
-          <div class="disc-filters" data-id="discover.filters">
-            <div class="disc-cats" id="disc-cats"></div>
-            <label class="disc-hide"><span>Скрыть установленные</span><span class="switch"><input type="checkbox" id="disc-hide" data-id="discover.hide-installed"><i></i></span></label>
+          <div class="disc-body">
+            <aside class="disc-side" data-id="discover.filters">
+              <label class="disc-hide"><span>Скрыть установленные</span><span class="switch"><input type="checkbox" id="disc-hide" data-id="discover.hide-installed"><i></i></span></label>
+              <section class="disc-group" id="disc-loaders-g" hidden><h3>Загрузчик</h3><div class="disc-opts" id="disc-loaders"></div></section>
+              <div id="disc-cats"></div>
+              <button class="btn btn-ghost disc-reset" id="disc-reset" data-id="discover.reset" hidden><span class="lbl">Сбросить фильтры</span></button>
+            </aside>
+            <div class="disc-main">
+              <div class="mod-grid" id="disc-results" data-id="discover.results"></div>
+              <button class="btn disc-more" id="disc-more" data-id="discover.more" hidden><span class="lbl">Ещё</span></button>
+            </div>
           </div>
-          <div class="mod-grid" id="disc-results" data-id="discover.results"></div>
-          <button class="btn disc-more" id="disc-more" data-id="discover.more" hidden><span class="lbl">Ещё</span></button>
           <div data-slot="discover.end"></div>
         </div>
       </section>

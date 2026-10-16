@@ -36,7 +36,7 @@
 .mod-card .btn { --h: 30px; }
 .disc-more { display: flex; margin: 18px auto 0; }
 .disc-more[hidden] { display: none; }/* The browser is a grid of cards: give it room for three columns on wide windows. */
-#view-discover .narrow { max-width: clamp(600px, 78vw, 1240px); }
+#view-discover .narrow { max-width: clamp(640px, 86vw, 1380px); }
 .mod-row .upd { color: var(--accent); font-style: normal; }
 .mod-row > .btn-sm { --h: 28px; flex: none; }
 #mods-update-all[hidden] { display: none; }
@@ -60,3 +60,40 @@
 .disc-hide[hidden] { display: none; }
 #menu-disc-pick { min-width: 240px; max-height: min(360px, 60vh); overflow-y: auto; }
 .menu-item .mi-sub { margin-left: auto; padding-left: 16px; color: var(--text-3); font-size: var(--text-xs); white-space: nowrap; }
+
+/* Side filters, as in Modrinth Browse: groups of check rows beside the results. */
+.disc-body { display: grid; grid-template-columns: 216px minmax(0, 1fr); gap: 22px; align-items: start; }
+.disc-main { min-width: 0; }
+.disc-side {
+  position: sticky; top: 0; display: flex; flex-direction: column; gap: 18px;
+  max-height: calc(100vh - 140px); overflow-y: auto; padding: 14px 10px 14px 14px;
+  border-radius: var(--r-card); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line);
+  scrollbar-width: thin;
+}
+.disc-side .disc-hide { justify-content: space-between; height: 30px; color: var(--text); }
+.disc-group[hidden], .disc-reset[hidden] { display: none; }
+.disc-group h3 { margin: 0 0 6px; padding: 0 6px; color: var(--text-3); font-size: var(--text-xs); font-weight: var(--w-semibold); letter-spacing: .04em; text-transform: uppercase; }
+#disc-cats { display: flex; flex-direction: column; gap: 18px; }
+.disc-opts { display: flex; flex-direction: column; gap: 1px; }
+.disc-opt {
+  display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 6px; border: 0; border-radius: 8px;
+  background: none; color: var(--text-2); font: inherit; font-size: var(--text-sm); text-align: left; cursor: default;
+  transition: background-color var(--d-2) var(--ease-out), color var(--d-2) var(--ease-out);
+}
+.disc-opt:hover { background: var(--hover); color: var(--text); }
+.disc-opt i {
+  width: 16px; height: 16px; flex: none; border-radius: 5px; box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  transition: background-color var(--d-2) var(--ease-out), box-shadow var(--d-2) var(--ease-out);
+}
+.disc-opt[aria-pressed="true"] { color: var(--text); }
+.disc-opt[aria-pressed="true"] i {
+  background: var(--accent) center / 11px no-repeat; box-shadow: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2.5 6.2 2.3 2.3 4.7-5'/%3E%3C/svg%3E");
+}
+.disc-opt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.disc-reset { --h: 30px; align-self: flex-start; }
+@media (max-width: 860px) {
+  .disc-body { grid-template-columns: minmax(0, 1fr); }
+  .disc-side { position: static; max-height: none; }
+  .disc-opts { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+}
