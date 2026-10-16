@@ -764,3 +764,6 @@ async function start() {
   }));
 }
 start().catch((e) => toast(String(e), { error: true }));
+
+// Settings → «Интерфейс»: the editor works on the other screens, so leave the settings first.
+$('#ui-edit-open')?.addEventListener('click', () => { show(S.instances.length ? 'home' : 'empty'); window.FEditor?.open(); });

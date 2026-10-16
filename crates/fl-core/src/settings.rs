@@ -172,7 +172,7 @@ fn ui_id(id: &str) -> bool {
 
 /// Elements that always stay visible, so the settings can be reached again.
 fn keep_visible(id: &str) -> bool {
-    matches!(id, "app" | "rail" | "rail.settings" | "safe")
+    matches!(id, "app" | "main" | "rail" | "rail.settings" | "safe")
         || id.starts_with("settings")
         || id.starts_with("view.settings")
         || id.starts_with("palette")

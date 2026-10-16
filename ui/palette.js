@@ -59,6 +59,7 @@
     add('go', 'go.accounts', 'Аккаунты', 'user', () => show('accounts'), { k: 'профиль вход microsoft account login' });
     [['game', 'Игра', 'память java ram'], ['launcher', 'Лаунчер', 'тема обои стекло анимации theme'], ['addons', 'Плагины', 'плагины аддоны дополнения addons plugins']]
       .forEach(([p, t, k]) => add('go', `set.${p}`, `Настройки · ${t}`, 'gear', () => openSettings(p), { k: `settings ${k}` }));
+    add('act', 'act.ui-edit', 'Настроить интерфейс', 'gear', () => window.FEditor?.open(), { k: 'редактор интерфейса вид углы скругление размер кнопок расположение панели customize editor layout', keys: [MOD, 'Shift', 'E'] });
     add('act', 'act.import', 'Импорт .mrpack', 'import', () => { show('create'); $('#c-import')?.click(); }, { k: 'modpack модпак import файл' });
     S.running.forEach((id) => { const i = byId(id); if (i) add('act', `act.stop.${id}`, `Остановить «${i.name}»`, 'stop', () => stopGame(id), { k: 'закрыть игру stop kill' }); });
     $$('#theme-seg button:not([aria-selected="true"]):not(:disabled)').forEach((b) =>

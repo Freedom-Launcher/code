@@ -58,7 +58,8 @@ html[data-wall="on"][data-theme="light"] {
 }
 
 /* ---------- Chrome ---------- */
-html[data-wall="on"] .app { grid-template-columns: 80px 1fr; }
+html[data-wall="on"] .app { grid-template-columns: calc(80px * var(--sz-rail, 1)) 1fr; }
+html[data-wall="on"][data-l-rail="right"] .app { grid-template-columns: minmax(0, 1fr) calc(80px * var(--sz-rail, 1)); }
 html[data-wall="on"] .top { background: transparent; }
 /* Rail and main are the same frosted material; --glass-blur drives both. */
 html[data-wall="on"] .rail, html[data-wall="on"] .main {
