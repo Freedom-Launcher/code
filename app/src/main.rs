@@ -135,6 +135,92 @@ async fn open_world_folder(
         .map_err(|e| e.to_string())
 }
 
+/// Opens a folder an action returns as `path` (screenshots, logs).
+async fn open_action_path(
+    app: tauri::AppHandle,
+    core: Arc<Core>,
+    name: &str,
+    args: Value,
+) -> Result<(), String> {
+    let v = core
+        .dispatch(&Caller::BuiltinUi, name, args)
+        .await
+        .map_err(|e| e.to_string())?;
+    let path = v["path"].as_str().ok_or("no folder")?.to_owned();
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
+/// Opens an instance's `screenshots/` folder.
+#[tauri::command]
+async fn open_shots_folder(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+    instance: String,
+) -> Result<(), String> {
+    let core = Arc::clone(&state.0);
+    open_action_path(app, core, "screenshots.folder", serde_json::json!({ "instance": instance })).await
+}
+
+/// Opens an instance's `logs/` folder.
+#[tauri::command]
+async fn open_logs_folder(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+    instance: String,
+) -> Result<(), String> {
+    let core = Arc::clone(&state.0);
+    open_action_path(app, core, "logs.folder", serde_json::json!({ "instance": instance })).await
+}
+
+/// Serves screenshots: `shot://localhost/<instance>/<file>` (Windows: `http://shot.localhost/...`).
+fn shot_protocol(
+    app: &tauri::AppHandle,
+    req: &tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Vec<u8>> {
+    use tauri::http::Response;
+    let deny = |code: u16| Response::builder().status(code).body(Vec::new()).unwrap();
+    let Some(state) = app.try_state::<AppCore>() else {
+        return deny(503);
+    };
+    let path = req.uri().path().trim_start_matches('/');
+    let Some((id, file)) = path.split_once('/') else {
+        return deny(404);
+    };
+    let file = percent_decode(file);
+    let Some((bytes, mime)) = fl_core::media::read_shot(&state.0.data_dir, id, &file) else {
+        return deny(404);
+    };
+    Response::builder()
+        .status(200)
+        .header("Content-Type", mime)
+        .header("X-Content-Type-Options", "nosniff")
+        .header("Cache-Control", "private, max-age=3600")
+        .body(bytes)
+        .unwrap()
+}
+
+/// `%20` and friends in a URL path → text (invalid escapes stay as they are).
+fn percent_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%' && i + 2 < b.len() {
+            let hex = std::str::from_utf8(&b[i + 1..i + 3]).ok();
+            if let Some(v) = hex.and_then(|h| u8::from_str_radix(h, 16).ok()) {
+                out.push(v);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(b[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
 /// Saves the user's wallpaper. The body is the raw image; its type comes from the bytes.
 #[tauri::command]
 async fn set_wallpaper(
@@ -465,6 +551,7 @@ fn main() {
         .register_uri_scheme_protocol("theme", |ctx, req| theme_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("addon", |ctx, req| addon_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("wall", |ctx, _req| wall_protocol(ctx.app_handle()))
+        .register_uri_scheme_protocol("shot", |ctx, req| shot_protocol(ctx.app_handle(), &req))
         .setup(move |app| {
             tray(app)?;
             let data_dir = app.path().app_data_dir()?;
@@ -484,6 +571,8 @@ fn main() {
             open_link,
             open_instance_folder,
             open_world_folder,
+            open_shots_folder,
+            open_logs_folder,
             open_themes_folder,
             addon_action,
             open_addons_folder,
@@ -498,6 +587,14 @@ fn main() {
 
 #[cfg(test)]
 mod link_tests {
+    #[test]
+    fn percent_decoding() {
+        assert_eq!(super::percent_decode("2026-10-16_21.04.46.png"), "2026-10-16_21.04.46.png");
+        assert_eq!(super::percent_decode("a%20b.png"), "a b.png");
+        assert_eq!(super::percent_decode("%D0%BC.png"), "м.png");
+        assert_eq!(super::percent_decode("bad%zz%"), "bad%zz%");
+        assert_eq!(super::percent_decode("м%"), "м%");
+    }
     use super::link_ok;
 
     #[test]
