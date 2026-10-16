@@ -73,7 +73,7 @@ function show(view) {
   if (view === 'settings') requestAnimationFrame(() => { $('#set-seg')._place?.(false); $('#cover-seg')._place?.(false); $('#wall-seg')._place?.(false); });
   if (view === 'home') renderHome();
   if (view === 'create') prepareCreate();
-  if (view === 'accounts') renderAccountsPage();
+  if (view === 'accounts') { renderAccountsPage(); loadProviders(); }
   if (view === 'discover') window.FMods?.discover();
 }
 function openInstance(id) {
@@ -137,14 +137,14 @@ function renderAccounts(state) {
   S.accounts = state;
   $('#acc-list').replaceChildren(...state.accounts.map((a) => el('button', {
     class: 'menu-item acc-row', 'data-action': 'accounts.select', 'data-args': JSON.stringify({ id: a.id }), 'aria-selected': String(a.id === state.selected),
-  }, headFor(a, 'head head-lg'), el('span', { class: 'acc-txt' }, el('b', {}, a.name), el('span', { class: 'sub' }, KIND[a.kind.type] || '')), a.id === state.selected ? el('span', { class: 'acc-check' }, '✓') : '')));
+  }, headFor(a, 'head head-lg'), el('span', { class: 'acc-txt' }, el('b', {}, a.name), el('span', { class: 'sub' }, kindLabel(a))), a.id === state.selected ? el('span', { class: 'acc-check' }, '✓') : '')));
   if (!state.accounts.length) $('#acc-list').append(el('div', { class: 'menu-item faint' }, 'Нет аккаунтов'));
   $('#offline-open').hidden = !state.offline_available;
   const sel = state.accounts.find((a) => a.id === state.selected);
   if (S.view === 'home') renderHome();
   swapText($('#account-name'), sel ? sel.name : 'Войти');
   $('#account-head').replaceWith(Object.assign(headFor(sel), { id: 'account-head' }));
-  $('#account-kind').textContent = sel ? (KIND[sel.kind.type] || '') : 'Нет аккаунта';
+  $('#account-kind').textContent = sel ? kindLabel(sel) : 'Нет аккаунта';
   if (S.view === 'accounts') renderAccountsPage();
   document.dispatchEvent(new Event('accounts:change'));
 }
@@ -340,11 +340,21 @@ function renderAccountsPage() {
   const btn = (label, action, id) => el('button', { class: 'btn btn-sm btn-ghost', 'data-action': action, 'data-args': JSON.stringify({ id }) }, el('span', { class: 'lbl' }, label));
   $('#acc-page').replaceChildren(...st.accounts.map((a) => el('div', { class: 'r', 'data-id': `accounts.${a.id}` },
     headFor(a, 'head'),
-    el('div', { class: 'grow' }, el('div', { class: 't' }, a.name), el('div', { class: 's' }, KIND[a.kind.type] || '')),
+    el('div', { class: 'grow' }, el('div', { class: 't' }, a.name), el('div', { class: 's' }, kindLabel(a))),
     a.id === st.selected ? el('span', { class: 'acc-tag on' }, 'Играю как') : btn('Играть как', 'accounts.select', a.id),
     btn('Удалить', 'accounts.remove', a.id))));
   if (!st.accounts.length) $('#acc-page').append(el('div', { class: 'r' }, el('div', { class: 's' }, 'Аккаунтов пока нет')));
   $('#acc-offline').hidden = !st.offline_available;
+}
+/** Provider accounts show the service name from their addon. */
+const PROVIDERS = new Map();
+const kindLabel = (a) => (a?.kind?.type === 'provider' ? PROVIDERS.get(a.kind.provider) || KIND.provider : KIND[a?.kind?.type] || '');
+function loadProviders() {
+  return call('accounts.providers.list').then((r) => {
+    PROVIDERS.clear();
+    (r?.providers || []).forEach((p) => PROVIDERS.set(p.id, p.label));
+    renderAccounts(S.accounts);
+  }).catch(() => {});
 }
 // ---------- Home: greeting, recent builds, all builds, glass play bar ----------
 const greet = (h) => (h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : h < 23 ? 'Добрый вечер' : 'Доброй ночи');
@@ -717,6 +727,7 @@ async function start() {
     renderThemes(themeList, theme);
     window.FAddons.start();
     renderAccounts(acc);
+    loadProviders();
     S.instances = inst;
     const saved = localStorage.getItem('fl.current');
     S.current = inst.some((i) => i.id === saved) ? saved : recent()[0]?.id || null;

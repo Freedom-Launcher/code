@@ -29,6 +29,7 @@ Example: [`docs/addons/example`](addons/example). Copy it into the addons folder
 | `entry` | HTML file inside the folder, default `index.html` |
 | `permissions` | what the addon needs, see below |
 | `slots` | where it appears: `rail.end`, `topbar.end`, `instance.end`, `accounts.end`, `discover.end`, `settings.end`, `menu.ctx.instance`, `menu.instance` |
+| `account_provider` | `{ "label": "…" }` — the service name on the accounts screen; needs `accounts_provide`, see «Account providers» |
 | `hosts` | up to 16 host names (`api.example.org`, no scheme, port or path) the addon may reach with `fl.fetch`; needs `network` |
 
 ## Permissions
@@ -95,6 +96,43 @@ response 4 MB, 30 s. The body is text; send JSON as a string or an object.
 ```js
 const r = await fl.fetch('https://api.modrinth.com/v2/tag/loader');
 if (r.ok) console.log(r.json());
+```
+
+## Account providers
+
+An account provider adds sign-in through another service. It is an addon with
+the `accounts_provide` permission (tier «Расширенный», so only signed
+«Проверено» / «Официальный» packages) and an `account_provider` block:
+
+```json
+{ "id": "example-auth", "name": "Example", "permissions": ["accounts_provide", "network"],
+  "hosts": ["auth.example.org"], "account_provider": { "label": "Example" } }
+```
+
+The addon signs the player in with its own UI and `fl.fetch`, then hands the
+result to the core:
+
+| Action | Args | Result |
+|--------|------|--------|
+| `accounts.provider.save` | `{ name, uuid, token, expires_at }` | the provider's own accounts |
+| `accounts.provider.list` | — | the provider's own accounts |
+| `accounts.provider.remove` | `{ id }` | the provider's own accounts |
+
+Rules the core enforces:
+
+- Service accounts are available only after a Microsoft account with
+  Minecraft: Java Edition is signed in, the same rule as local profiles.
+- A provider sees and removes only accounts it saved; tokens never come back
+  to any addon or to the UI. At most 16 accounts per provider.
+- `name` is 3–16 characters `A-Z a-z 0-9 _`, `uuid` is the profile UUID,
+  `token` is up to 8192 printable ASCII characters, `expires_at` is a Unix time
+  in the future.
+- At launch the core checks again: the addon is enabled, the grant is
+  approved, the signature is intact and the token has not expired. If any of
+  that fails, the account cannot start the game until the addon signs in again.
+
+```js
+await fl.call('accounts.provider.save', { name, uuid, token, expires_at });
 ```
 
 Safe settings (`--safe`, Shift at start) and «Отключить все дополнения» run the
