@@ -114,7 +114,7 @@ impl Resolve for PublicOnly {
                 return Err("хост не найден".into());
             }
             if addrs.iter().any(|a| !public_ip(a.ip())) {
-                return Err("локальные и частные адреса недоступны дополнениям".into());
+                return Err("локальные и частные адреса недоступны плагинам".into());
             }
             let it: Addrs = Box::new(addrs.into_iter());
             Ok(it)
@@ -156,7 +156,7 @@ pub fn check_url(url: &str, hosts: &[String]) -> Result<Url, String> {
         return Err("url: нужно имя хоста, а не IP".into());
     }
     if !hosts.iter().any(|x| x == h) {
-        return Err(format!("хост {h} не указан в hosts дополнения"));
+        return Err(format!("хост {h} не указан в hosts плагина"));
     }
     u.set_fragment(None);
     Ok(u)
@@ -252,7 +252,7 @@ pub(crate) fn register(r: &mut ActionRegistry) {
         let id = req
             .addon
             .clone()
-            .ok_or_else(|| CoreError::Denied("net.fetch — только для дополнений".into()))?;
+            .ok_or_else(|| CoreError::Denied("net.fetch — только для плагинов".into()))?;
         let m = addons::load(&c.data_dir, &id).map_err(CoreError::Msg)?;
         fetch(&m.hosts, req).await
     });

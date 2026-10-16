@@ -53,7 +53,7 @@ fn me(core: &Core, a: &Value) -> Result<String, CoreError> {
     let id = a
         .get(net::CALLER_KEY)
         .and_then(Value::as_str)
-        .ok_or_else(|| CoreError::Denied("только для дополнений-провайдеров".into()))?;
+        .ok_or_else(|| CoreError::Denied("только для плагинов-провайдеров".into()))?;
     active(core, id)
         .ok_or_else(|| CoreError::Denied(format!("{id} не является провайдером аккаунтов")))?;
     Ok(id.to_owned())
@@ -228,7 +228,7 @@ mod tests {
         let ui = c
             .dispatch(&Caller::BuiltinUi, "accounts.provider.save", spoof)
             .await;
-        assert!(err(ui).contains("только для дополнений"));
+        assert!(err(ui).contains("только для плагинов"));
         let bare = Caller::Addon {
             id: "auth".into(),
             granted: Default::default(),

@@ -142,7 +142,7 @@ pub fn trust(data_dir: &Path, id: &str) -> Trust {
 /// Loads and fully checks an installed addon.
 pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
     if !valid_id(id) {
-        return Err("неверный id аддона".into());
+        return Err("неверный id плагина".into());
     }
     if RESERVED.contains(&id) {
         return Err("id занят встроенными действиями".into());
@@ -165,7 +165,7 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
     let max = trust(data_dir, id).max_tier();
     for p in &m.permissions {
         if *p == Permission::Internal {
-            return Err("право internal недоступно аддонам".into());
+            return Err("право internal недоступно плагинам".into());
         }
         if p.tier() > max {
             return Err(format!(

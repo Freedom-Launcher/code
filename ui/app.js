@@ -50,7 +50,12 @@ async function run(target, name, args = null, fromTheme = false) {
 // Declarative binding for themes: [data-view] navigates, [data-action] + optional [data-args] JSON calls the core.
 document.addEventListener('click', async (ev) => {
   const v = ev.target.closest('[data-view]');
-  if (v) { show(v.dataset.view); closeMenu(); return; }
+  if (v) {
+    show(v.dataset.view);
+    if (v.dataset.pane) $(`#set-seg button[data-pane="${v.dataset.pane}"]`)?.click();
+    closeMenu();
+    return;
+  }
   const a = ev.target.closest('[data-action]');
   if (!a) return;
   ev.preventDefault();

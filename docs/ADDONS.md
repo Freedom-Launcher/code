@@ -1,4 +1,8 @@
-# Addons
+# Addons («Плагины»)
+
+In the UI, addons are called **«Плагины»**: they extend the launcher itself.
+Game content (mods, modpacks, resource packs, shaders, data packs) is separate and lives under «Моды».
+The code name stays `addon` (`addon.json`, `addons.*` actions, `addon:` protocol).
 
 An addon adds features to Freedom Launcher. It is HTML/CSS/JS that runs in an
 **isolated, sandboxed iframe**: no Tauri, no network, no access to the launcher
@@ -17,7 +21,7 @@ Themes change how the launcher looks and contain no code — see [THEMES.md](THE
 ```
 
 Example: [`docs/addons/example`](addons/example). Copy it into the addons folder
-(Settings → Дополнения → Открыть), press «Обновить», then «Разрешить и включить».
+(Settings → Плагины → Открыть), press «Обновить», then «Разрешить и включить».
 
 ## addon.json
 
@@ -135,5 +139,5 @@ Rules the core enforces:
 await fl.call('accounts.provider.save', { name, uuid, token, expires_at });
 ```
 
-Safe settings (`--safe`, Shift at start) and «Отключить все дополнения» run the
+Safe settings (`--safe`, Shift at start) and «Отключить все плагины» run the
 launcher with no addons at all.

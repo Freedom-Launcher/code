@@ -55,9 +55,9 @@
     });
     add('go', 'go.home', 'Главная', 'home', () => show('home'), { k: 'домой home' });
     add('go', 'go.create', 'Новая сборка', 'plus', () => show('create'), { k: 'создать new instance', keys: [MOD, 'N'] });
-    add('go', 'go.discover', 'Дополнения', 'compass', () => show('discover'), { k: 'моды каталог modrinth addons mods' });
+    add('go', 'go.discover', 'Моды', 'compass', () => show('discover'), { k: 'моды каталог modrinth mods' });
     add('go', 'go.accounts', 'Аккаунты', 'user', () => show('accounts'), { k: 'профиль вход microsoft account login' });
-    [['game', 'Игра', 'память java ram'], ['launcher', 'Лаунчер', 'тема обои стекло анимации theme'], ['addons', 'Дополнения', 'аддоны addons']]
+    [['game', 'Игра', 'память java ram'], ['launcher', 'Лаунчер', 'тема обои стекло анимации theme'], ['addons', 'Плагины', 'плагины аддоны дополнения addons plugins']]
       .forEach(([p, t, k]) => add('go', `set.${p}`, `Настройки · ${t}`, 'gear', () => openSettings(p), { k: `settings ${k}` }));
     add('act', 'act.import', 'Импорт .mrpack', 'import', () => { show('create'); $('#c-import')?.click(); }, { k: 'modpack модпак import файл' });
     S.running.forEach((id) => { const i = byId(id); if (i) add('act', `act.stop.${id}`, `Остановить «${i.name}»`, 'stop', () => stopGame(id), { k: 'закрыть игру stop kill' }); });
@@ -72,7 +72,7 @@
     add('act', 'act.palblur', blurOn() ? 'Не размывать фон под строкой' : 'Размывать фон под строкой', 'bar', () => { setLook({ palette_blur: !blurOn() }); applyPal(); }, { k: 'blur размытие палитра' });
     if (S.current) add('act', 'act.folder.inst', 'Открыть папку сборки', 'folder', () => folder('open_instance_folder', { instance: S.current }), { k: 'folder проводник' });
     add('act', 'act.folder.themes', 'Открыть папку тем', 'folder', () => folder('open_themes_folder'), { k: 'folder themes' });
-    add('act', 'act.folder.addons', 'Открыть папку дополнений', 'folder', () => folder('open_addons_folder'), { k: 'folder addons' });
+    add('act', 'act.folder.addons', 'Открыть папку плагинов', 'folder', () => folder('open_addons_folder'), { k: 'folder addons plugins' });
     return out;
   }
 

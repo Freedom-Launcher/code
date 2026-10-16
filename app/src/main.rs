@@ -225,7 +225,7 @@ async fn addon_action(
     let core = Arc::clone(&state.0);
     let caller = core
         .addon_caller(&id)
-        .ok_or("дополнение не включено или не одобрено")?;
+        .ok_or("плагин не включён или не одобрен")?;
     core.dispatch(&caller, &name, args.unwrap_or(Value::Null))
         .await
         .map_err(|e| e.to_string())

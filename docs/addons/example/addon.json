@@ -1,6 +1,6 @@
 {
   "id": "example",
-  "name": "Пример дополнения",
+  "name": "Пример плагина",
   "version": "0.1.0",
   "author": "Freedom Launcher",
   "description": "Показывает число сборок на странице сборки",

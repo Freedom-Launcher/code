@@ -72,7 +72,7 @@
     }
   });
 
-  // ---------- Settings → Дополнения ----------
+  // ---------- Settings → Плагины (launcher extensions; code name "addons") ----------
   function row(a) {
     const r = h('div', 'r addon-row');
     r.dataset.id = `addon.${a.id}`;
@@ -120,7 +120,7 @@
     const box = document.querySelector('#addon-list');
     if (!box) return;
     box.replaceChildren(...(list.length ? list.map(row)
-      : [h('div', 'r', h('div', 'grow', h('div', 't', 'Дополнений пока нет')))]));
+      : [h('div', 'r', h('div', 'grow', h('div', 't', 'Плагинов пока нет')))]));
   }
 
   async function act(name, args) {

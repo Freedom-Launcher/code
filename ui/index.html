@@ -37,7 +37,7 @@
       </button>
       <div data-slot="rail.end"></div>
       <div class="rail-grow"></div>
-      <button class="rail-btn" data-view="discover" data-tip="Дополнения" data-id="rail.discover" aria-label="Дополнения">
+      <button class="rail-btn" data-view="discover" data-tip="Моды" data-id="rail.discover" aria-label="Моды">
         <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="m10.2 5.8-1.4 3-3 1.4 1.4-3z"/></svg>
       </button>
       <button class="rail-btn" data-view="settings" data-tip="Настройки" data-id="rail.settings" aria-label="Настройки">
@@ -182,14 +182,14 @@
           <div class="acc-actions">
             <button class="btn btn-primary" data-open="dlg-login" data-id="accounts.add.microsoft"><span class="lbl">Войти через Microsoft</span></button>
             <button class="btn" data-open="dlg-offline" id="acc-offline" data-id="accounts.add.offline" hidden><span class="lbl">Офлайн-профиль</span></button>
-            <button class="btn btn-ghost" data-view="discover" data-id="accounts.add.provider"><span class="lbl">Сторонний сервис</span></button>
+            <button class="btn btn-ghost" data-view="settings" data-pane="addons" data-id="accounts.add.provider"><span class="lbl">Сторонний сервис</span></button>
           </div>
           <div data-slot="accounts.end"></div>
         </div>
       </section>
       <section class="view" id="view-discover" data-id="view.discover">
         <div class="narrow">
-          <h1 class="page-h">Дополнения</h1>
+          <h1 class="page-h">Моды</h1>
           <div class="toolbar" data-id="discover.toolbar">
             <label class="field-wrap grow">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
@@ -206,7 +206,7 @@
       <section class="view" id="view-settings" data-id="view.settings">
         <div class="narrow">
           <h1 class="page-h">Настройки</h1>
-          <div class="seg set-tabs" id="set-seg" data-id="settings.sections"><button data-pane="game" aria-selected="true">Игра</button><button data-pane="launcher">Лаунчер</button><button data-pane="addons">Дополнения</button></div>
+          <div class="seg set-tabs" id="set-seg" data-id="settings.sections"><button data-pane="game" aria-selected="true">Игра</button><button data-pane="launcher">Лаунчер</button><button data-pane="addons">Плагины</button></div>
           <div class="set-pane" id="set-game" data-id="settings.game">
             <div class="rows">
               <div class="r"><div class="grow"><div class="t">Память</div></div><span class="badge">Авто</span></div>
@@ -244,7 +244,7 @@
           <div class="set-pane" id="set-addons" data-id="settings.addons" hidden>
             <div class="rows" id="addon-list"></div>
             <div class="rows">
-              <div class="r"><div class="grow"><div class="t">Папка дополнений</div></div>
+              <div class="r"><div class="grow"><div class="t">Папка плагинов</div></div>
                 <button class="btn btn-ghost" id="addon-reload" data-id="settings.addons.reload"><span class="lbl">Обновить</span></button>
                 <button class="btn" id="addon-folder" data-id="settings.addons.folder"><span class="lbl">Открыть</span></button></div>
             </div>
@@ -396,10 +396,10 @@
   <div id="safe" class="safe" data-id="safe" hidden>
     <div class="card">
       <h1>Безопасные настройки</h1>
-      <p class="muted">Темы и дополнения сейчас не загружены. Выберите, что восстановить, затем перезапустите лаунчер.</p>
+      <p class="muted">Темы и плагины сейчас не загружены. Выберите, что восстановить, затем перезапустите лаунчер.</p>
       <div class="stack">
         <button class="btn" data-action="safe.restore_theme"><span class="lbl">Вернуть стандартную тему</span></button>
-        <button class="btn" data-action="safe.disable_addons"><span class="lbl">Отключить все дополнения</span></button>
+        <button class="btn" data-action="safe.disable_addons"><span class="lbl">Отключить все плагины</span></button>
         <button class="btn btn-danger" data-action="safe.reset_settings"><span class="lbl">Сбросить настройки</span></button>
       </div>
       <p class="hint" id="safe-msg"></p>

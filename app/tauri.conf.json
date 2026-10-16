@@ -41,7 +41,7 @@
     "publisher": "Freedom Launcher",
     "category": "Game",
     "shortDescription": "Лаунчер Minecraft: Java Edition",
-    "longDescription": "Лёгкий и быстрый лаунчер Minecraft: Java Edition с темами, дополнениями и модами с Modrinth.",
+    "longDescription": "Лёгкий и быстрый лаунчер Minecraft: Java Edition с темами, плагинами и модами с Modrinth.",
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper",

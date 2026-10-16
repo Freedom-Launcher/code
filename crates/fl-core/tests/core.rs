@@ -105,7 +105,7 @@ async fn net_fetch_only_for_addons_and_declared_hosts() {
             json!({"url": "https://api.example.org/"}),
         )
         .await);
-    assert!(e.contains("только для дополнений"), "{e}");
+    assert!(e.contains("только для плагинов"), "{e}");
     let addon = Caller::Addon {
         id: "netdemo".into(),
         granted: [Permission::Network].into(),

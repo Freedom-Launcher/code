@@ -75,7 +75,7 @@
   #set-game::before { content: "Игра"; }
   #set-launcher::before { content: "Лаунчер"; }
   #set-addons { grid-column: 1 / -1; margin-top: var(--s-6); }
-  #set-addons::before { content: "Дополнения"; }
+  #set-addons::before { content: "Плагины"; }
 }
 
 /* ---------- Addons (M3) ---------- */

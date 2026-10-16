@@ -1,4 +1,4 @@
-// Mods: the instance «Моды» tab and the Modrinth browser in «Дополнения».
+// Mods: the instance «Моды» tab and the Modrinth browser in «Моды».
 // Uses the same actions an addon would: mods.list / search / install / toggle / remove.
 (() => {
   const modded = (i) => !!i && !!i.loader && i.loader !== 'vanilla';
