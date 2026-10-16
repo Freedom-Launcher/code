@@ -30,7 +30,7 @@
 .dd-pop.is-up { transform: translateY(var(--shift)) scale(var(--pop-scale)); }
 .dd-pop.is-up[data-open] { transform: none; }
 .dd-hl {
-  position: absolute; left: 4px; right: 4px; top: 0; height: 30px; border-radius: 6px; pointer-events: none;
+  position: absolute; left: 4px; right: 4px; top: 0; height: 30px; border-radius: calc(6px * var(--rk-menu, 1)); pointer-events: none;
   background: var(--hover); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04);
   transition: transform 220ms var(--ease-out-2), height 220ms var(--ease-out-2), opacity var(--d-2) var(--ease-out);
 }
@@ -39,7 +39,7 @@
 .dd-hl.is-instant, .dd-pop[data-instant] .dd-hl { transition: none; }
 .dd-opt {
   position: relative; display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 8px 0 10px;
-  border-radius: 6px; color: var(--text-2); white-space: nowrap; cursor: default; transition: color var(--d-2) var(--ease-out);
+  border-radius: calc(6px * var(--rk-menu, 1)); color: var(--text-2); white-space: nowrap; cursor: default; transition: color var(--d-2) var(--ease-out);
 }
 .dd-opt > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .dd-opt.is-active, .dd-opt[aria-selected="true"] { color: var(--text); }

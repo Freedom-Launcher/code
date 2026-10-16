@@ -15,7 +15,7 @@ html[data-palette-blur="on"] .pal-scrim { background: rgba(4, 5, 8, .26); -webki
 /* ---------- Panel ---------- */
 .pal-panel {
   position: absolute; left: 50%; width: var(--pal-w); display: flex; flex-direction: column; overflow: hidden;
-  border-radius: 14px; background: var(--surface-1);
+  border-radius: calc(14px * var(--rk-menu, 1)); background: var(--surface-1);
   box-shadow: 0 0 0 1px var(--line-strong), 0 28px 80px -12px rgba(0, 0, 0, .55), 0 8px 24px rgba(0, 0, 0, .25);
   opacity: 0; transform: translate(-50%, calc(var(--pal-dir) * 16px)) scale(.975);
   transition: opacity 200ms var(--ease-out), transform 380ms var(--ease-out-2);
@@ -48,7 +48,7 @@ html[data-palette-pos="bottom"] .pal-body { border-top: 0; border-bottom: 1px so
 .pal-body.is-instant, .pal-body.is-instant .pal-hl { transition: none; }
 .pal-list { position: relative; }
 .pal-hl {
-  position: absolute; left: 0; right: 0; top: 0; height: 44px; border-radius: 9px; pointer-events: none;
+  position: absolute; left: 0; right: 0; top: 0; height: 44px; border-radius: calc(9px * var(--rk-menu, 1)); pointer-events: none;
   background: rgba(255, 255, 255, .065); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05);
   transition: transform 240ms var(--ease-out-2), height 240ms var(--ease-out-2), opacity var(--d-2) var(--ease-out);
 }
@@ -57,9 +57,9 @@ html[data-palette-pos="bottom"] .pal-body { border-top: 0; border-bottom: 1px so
 
 .pal-group { position: relative; padding: 10px 10px 5px; font-size: var(--text-xs); font-weight: var(--w-medium); color: var(--text-3); letter-spacing: .01em; }
 .pal-group:first-of-type { padding-top: 4px; }
-.pal-item { position: relative; display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 10px; border-radius: 9px; color: var(--text-2); cursor: default; transition: color var(--d-2) var(--ease-out); }
+.pal-item { position: relative; display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 10px; border-radius: calc(9px * var(--rk-menu, 1)); color: var(--text-2); cursor: default; transition: color var(--d-2) var(--ease-out); }
 .pal-item[aria-selected="true"] { color: var(--text); }
-.pal-ico { position: relative; flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--surface-3) center / cover no-repeat; color: var(--text-2); transition: color var(--d-2) var(--ease-out), transform 300ms var(--ease-spring); }
+.pal-ico { position: relative; flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: calc(7px * var(--rk-menu, 1)); background: var(--surface-3) center / cover no-repeat; color: var(--text-2); transition: color var(--d-2) var(--ease-out), transform 300ms var(--ease-spring); }
 html[data-wall="on"] .pal-ico { background-color: rgba(255, 255, 255, .08); }
 .pal-ico svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .pal-ico.is-cover { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14); }
@@ -83,7 +83,7 @@ html[data-wall="on"] .pal-ico { background-color: rgba(255, 255, 255, .08); }
 
 /* ---------- Top bar trigger ---------- */
 .pal-trigger {
-  display: flex; align-items: center; gap: 8px; width: 260px; height: 28px; padding: 0 5px 0 10px; border: 0; border-radius: 8px;
+  display: flex; align-items: center; gap: 8px; width: 260px; height: 28px; padding: 0 5px 0 10px; border: 0; border-radius: calc(8px * var(--rk-menu, 1));
   background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-3); font-size: var(--text-sm); cursor: default;
   transition: background var(--d-2) var(--ease-out), color var(--d-2) var(--ease-out), transform var(--d-2) var(--ease-out);
 }

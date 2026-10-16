@@ -17,7 +17,7 @@
 .btn:disabled { opacity: .45; pointer-events: none; }
 .btn svg { width: 16px; height: 16px; flex: none; }
 .btn-sm { --h: 26px; padding: 0 var(--s-2); font-size: var(--text-sm); border-radius: var(--r-chip); }
-.btn-lg { --h: 44px; padding: 0 var(--s-5); font-size: var(--text-lg); border-radius: 10px; }
+.btn-lg { --h: 44px; padding: 0 var(--s-5); font-size: var(--text-lg); border-radius: calc(10px * var(--rk-btn, 1)); }
 .btn-icon { width: var(--h); padding: 0; }
 .btn-ghost { background: transparent; box-shadow: none; color: var(--text-2); }
 .btn-ghost:hover { background: var(--hover); color: var(--text); }
@@ -48,7 +48,7 @@
 kbd, .kbd {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 18px; height: 18px; padding: 0 5px;
-  border-radius: 5px; background: var(--surface-3); color: var(--text-2);
+  border-radius: calc(5px * var(--rk-chip, 1)); background: var(--surface-3); color: var(--text-2);
   box-shadow: inset 0 -1px var(--line-strong), 0 0 0 1px var(--line);
   font: var(--w-medium) 10.5px/1 var(--font-mono);
 }
@@ -85,7 +85,7 @@ select.field { appearance: none; padding-right: 28px;
 .switch input:focus-visible + i { box-shadow: var(--focus-ring); }
 
 .check { display: inline-flex; align-items: center; gap: var(--s-2); color: var(--text-2); }
-.check input { appearance: none; width: 16px; height: 16px; margin: 0; border-radius: 4px; background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--line-strong); display: grid; place-items: center; transition: background-color var(--d-2); }
+.check input { appearance: none; width: 16px; height: 16px; margin: 0; border-radius: calc(4px * var(--rk-field, 1)); background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--line-strong); display: grid; place-items: center; transition: background-color var(--d-2); }
 .check input::after { content: ""; width: 4px; height: 8px; margin-top: -2px; border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg) scale(0); transition: transform var(--d-3) var(--ease-spring); }
 .check input:checked { background: var(--accent); box-shadow: none; }
 .check input:checked::after { transform: rotate(45deg) scale(1); }

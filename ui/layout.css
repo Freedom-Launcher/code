@@ -9,11 +9,11 @@
 }
 .nav > * { -webkit-app-region: no-drag; app-region: no-drag; }
 .nav-logo {
-  width: 32px; height: 32px; margin-bottom: var(--s-3); display: grid; place-items: center; border-radius: 9px;
+  width: 32px; height: 32px; margin-bottom: var(--s-3); display: grid; place-items: center; border-radius: calc(9px * var(--rk-nav, 1));
   background: var(--surface-3); color: var(--text); box-shadow: inset 0 0 0 1px var(--line-strong); font: 700 var(--text-lg)/1 var(--font-display); letter-spacing: -.04em;
 }
 .nav-btn {
-  position: relative; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 10px;
+  position: relative; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: calc(10px * var(--rk-nav, 1));
   background: transparent; color: var(--text-3); cursor: pointer;
   transition: background var(--d-2) var(--ease-out), color var(--d-2) var(--ease-out), transform var(--d-1) var(--ease-out);
 }
@@ -24,9 +24,9 @@
 .nav-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .nav-sep { width: 24px; height: 1px; margin: var(--s-2) 0; background: var(--line); }
 .nav-pins { display: flex; flex-direction: column; gap: 6px; }
-.nav-pin { width: 40px; height: 40px; padding: 0; border: 0; border-radius: 10px; cursor: pointer; background: none; position: relative; }
-.nav-pin .inst-ico { width: 36px; height: 36px; margin: 2px; border-radius: 9px; transition: border-radius var(--d-3) var(--ease-out), transform var(--d-1) var(--ease-out); }
-.nav-pin:hover .inst-ico { border-radius: 12px; }
+.nav-pin { width: 40px; height: 40px; padding: 0; border: 0; border-radius: calc(10px * var(--rk-nav, 1)); cursor: pointer; background: none; position: relative; }
+.nav-pin .inst-ico { width: 36px; height: 36px; margin: 2px; border-radius: calc(9px * var(--rk-nav, 1)); transition: border-radius var(--d-3) var(--ease-out), transform var(--d-1) var(--ease-out); }
+.nav-pin:hover .inst-ico { border-radius: calc(12px * var(--rk-nav, 1)); }
 .nav-pin:active .inst-ico { transform: scale(.94); }
 .nav-pin[aria-current="page"]::before { content: ""; position: absolute; left: -10px; top: 10px; width: 3px; height: 20px; border-radius: 0 3px 3px 0; background: var(--text); }
 .nav-grow { flex: 1; }
@@ -60,16 +60,16 @@
 .acc-txt b { font-weight: var(--w-medium); font-size: var(--text-sm); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
 .acc-txt .sub { font-size: 11px; color: var(--text-3); }
 .head { box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.3); }
-.head-lg { width: 28px; height: 28px; border-radius: 6px; }
+.head-lg { width: 28px; height: 28px; border-radius: calc(6px * var(--rk-icon, 1)); }
 .acc-row { gap: var(--s-3); padding-top: 6px; padding-bottom: 6px; }
 .acc-row .acc-check { margin-left: auto; color: var(--accent); }
 .account-btn .caret { width: 14px; height: 14px; color: var(--text-3); }
-.head { width: 22px; height: 22px; border-radius: 5px; background: var(--surface-3); image-rendering: pixelated; flex: none; object-fit: cover; }
-.head-lg { width: 32px; height: 32px; border-radius: 7px; }
+.head { width: 22px; height: 22px; border-radius: calc(5px * var(--rk-icon, 1)); background: var(--surface-3); image-rendering: pixelated; flex: none; object-fit: cover; }
+.head-lg { width: 32px; height: 32px; border-radius: calc(7px * var(--rk-icon, 1)); }
 
 /* ---------- Views ---------- */
 /* Content sits in one calm inset panel; nav and top bar are the window chrome around it. */
-.main { position: relative; min-height: 0; min-width: 0; margin: 0 8px 8px 0; border-radius: 10px; background: var(--surface-1); box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
+.main { position: relative; min-height: 0; min-width: 0; margin: 0 8px 8px 0; border-radius: calc(10px * var(--rk-card, 1)); background: var(--surface-1); box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
 .view { display: none; height: 100%; overflow: auto; }
 .view.is-active { display: block; }
 .page-inner { max-width: 720px; margin: 0 auto; padding: var(--s-7) var(--s-7) 96px; }
@@ -81,7 +81,7 @@
 .toolbar { display: flex; align-items: center; gap: var(--s-2); margin-bottom: var(--s-4); }
 .toolbar .grow { flex: 1; }
 .inst-ico {
-  width: 32px; height: 32px; border-radius: 8px; flex: none; display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: calc(8px * var(--rk-icon, 1)); flex: none; display: grid; place-items: center;
   background: var(--surface-3); color: var(--text-2); font: var(--w-semibold) var(--text-md)/1 var(--font-display);
   box-shadow: inset 0 0 0 1px var(--line); overflow: hidden;
 }
@@ -96,7 +96,7 @@
 }
 .jump-row + .jump-row { box-shadow: inset 0 1px 0 var(--line); }
 .jump-row:hover { background: var(--hover); }
-.jump-row .inst-ico { width: 32px; height: 32px; border-radius: 8px; }
+.jump-row .inst-ico { width: 32px; height: 32px; border-radius: calc(8px * var(--rk-icon, 1)); }
 .jump-row .grow { flex: 1; min-width: 0; }
 .jump-row .title { font-weight: var(--w-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .jump-row .sub { display: flex; gap: 6px; color: var(--text-3); font-size: var(--text-sm); }
@@ -112,7 +112,7 @@
 }
 .card-inst:hover .art { background: var(--surface-3); }
 .card-inst:active { transform: scale(.985); }
-.card-inst .art { position: relative; aspect-ratio: 1; width: 100%; height: auto; border-radius: 8px; font-size: 28px; color: var(--text-3); background: var(--surface-2); transition: background var(--d-2) var(--ease-out); }
+.card-inst .art { position: relative; aspect-ratio: 1; width: 100%; height: auto; border-radius: calc(8px * var(--rk-icon, 1)); font-size: 28px; color: var(--text-3); background: var(--surface-2); transition: background var(--d-2) var(--ease-out); }
 .card-inst .title { font-weight: var(--w-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-inst .sub { color: var(--text-3); font-size: var(--text-sm); margin-top: 2px; }
 .card-inst .quick {
@@ -128,11 +128,11 @@
 /* ---------- Instance page ---------- */
 .inst-head { display: flex; align-items: center; gap: var(--s-4); margin-bottom: var(--s-5); }
 .inst-head .grow { flex: 1; min-width: 0; }
-.inst-ico.xl { width: 64px; height: 64px; border-radius: 14px; font-size: 26px; }
+.inst-ico.xl { width: 64px; height: 64px; border-radius: calc(14px * var(--rk-icon, 1)); font-size: 26px; }
 .inst-title { margin: 0; font: var(--w-semibold) var(--text-2xl)/1.1 var(--font-display); letter-spacing: var(--tracking-title); overflow-wrap: anywhere; }
 .inst-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; color: var(--text-3); font-size: var(--text-sm); }
 .play-row { display: flex; align-items: center; gap: var(--s-2); }
-.play-btn { --h: 44px; min-width: 148px; font-size: var(--text-md); border-radius: 11px; }
+.play-btn { --h: 44px; min-width: 148px; font-size: var(--text-md); border-radius: calc(11px * var(--rk-btn, 1)); }
 .play-status { margin: calc(-1 * var(--s-2)) 0 var(--s-5); }
 .play-status .line { display: flex; justify-content: space-between; gap: var(--s-3); margin-bottom: 6px; font-size: var(--text-sm); }
 .play-status .line .mono { color: var(--text-3); }
@@ -143,7 +143,7 @@
 }
 .tabs button:hover { color: var(--text); }
 .tabs button[aria-selected="true"] { color: var(--text); }
-.tabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--text); }
+.tabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: calc(2px * var(--rk-btn, 1)); background: var(--text); }
 .table-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: var(--s-7) var(--s-6);
   border-radius: var(--r-card); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-3); text-align: center; font-size: var(--text-sm);
@@ -188,7 +188,7 @@
 .acc-row { width: 100%; height: 40px; }
 .acc-row .sub { margin-left: auto; color: var(--text-3); font-size: var(--text-xs); }
 .pop[data-instant] { transition: none; }
-.head.inst-ico { font-size: var(--text-xs); border-radius: 5px; }
+.head.inst-ico { font-size: var(--text-xs); border-radius: calc(5px * var(--rk-icon, 1)); }
 .startup { left: 72px; }
 
 @media (max-width: 960px) {

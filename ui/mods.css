@@ -1,6 +1,6 @@
 /* Mods: the instance list and the Modrinth browser. */
 .mod-ico {
-  width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 10px;
+  width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: calc(10px * var(--rk-icon, 1));
   background: var(--surface-3) center / cover no-repeat; box-shadow: inset 0 0 0 1px var(--line);
   color: var(--text-3); font-style: normal; font-weight: var(--w-semibold);
 }
@@ -26,7 +26,7 @@
   display: grid; grid-template-columns: 48px minmax(0, 1fr); grid-template-rows: auto 1fr auto; gap: 12px 14px; align-items: center;
   padding: 14px; border-radius: var(--r-card); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line);
 }
-.mod-card .mod-ico { width: 48px; height: 48px; border-radius: 12px; }
+.mod-card .mod-ico { width: 48px; height: 48px; border-radius: calc(12px * var(--rk-icon, 1)); }
 .mod-card p {
   grid-column: 1 / -1; align-self: start; margin: 0; color: var(--text-2); font-size: var(--text-sm); line-height: 1.45;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
@@ -76,13 +76,13 @@
 #disc-cats { display: flex; flex-direction: column; gap: 18px; }
 .disc-opts { display: flex; flex-direction: column; gap: 1px; }
 .disc-opt {
-  display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 6px; border: 0; border-radius: 8px;
+  display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 6px; border: 0; border-radius: calc(8px * var(--rk-btn, 1));
   background: none; color: var(--text-2); font: inherit; font-size: var(--text-sm); text-align: left; cursor: default;
   transition: background-color var(--d-2) var(--ease-out), color var(--d-2) var(--ease-out);
 }
 .disc-opt:hover { background: var(--hover); color: var(--text); }
 .disc-opt i {
-  width: 16px; height: 16px; flex: none; border-radius: 5px; box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  width: 16px; height: 16px; flex: none; border-radius: calc(5px * var(--rk-btn, 1)); box-shadow: inset 0 0 0 1.5px var(--line-strong);
   transition: background-color var(--d-2) var(--ease-out), box-shadow var(--d-2) var(--ease-out);
 }
 .disc-opt[aria-pressed="true"] { color: var(--text); }
@@ -115,7 +115,7 @@
 .disc-ftoggle[aria-pressed="true"] { color: var(--text); background: var(--hover); }
 .disc-ftoggle[data-count]:not([data-count=""])::after {
   content: attr(data-count); position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
-  border-radius: 8px; background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: var(--w-semibold); line-height: 16px; text-align: center;
+  border-radius: calc(8px * var(--rk-chip, 1)); background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: var(--w-semibold); line-height: 16px; text-align: center;
   animation: disc-pop var(--d-4) var(--ease-out-2);
 }
 @keyframes disc-pop { from { transform: scale(.4); opacity: 0; } }
@@ -123,7 +123,7 @@
 /* Collapsible sections */
 .disc-group h3 { margin: 0 0 4px; padding: 0; }
 .disc-gh {
-  display: flex; align-items: center; width: 100%; height: 24px; padding: 0 6px; border: 0; border-radius: 6px; background: none;
+  display: flex; align-items: center; width: 100%; height: 24px; padding: 0 6px; border: 0; border-radius: calc(6px * var(--rk-card, 1)); background: none;
   color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; text-align: left; cursor: default;
   transition: color var(--d-2) var(--ease-out), background-color var(--d-2) var(--ease-out);
 }
@@ -148,7 +148,7 @@
 
 /* Loader priority: rank, grip, live reorder */
 .disc-opt .disc-rank { margin-left: auto; color: var(--text-3); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
-.disc-grip { display: grid; place-items: center; width: 18px; height: 22px; margin-right: -2px; border-radius: 5px; color: var(--text-3);
+.disc-grip { display: grid; place-items: center; width: 18px; height: 22px; margin-right: -2px; border-radius: calc(5px * var(--rk-chip, 1)); color: var(--text-3);
   opacity: .55; cursor: grab; touch-action: none; transition: opacity var(--d-2) var(--ease-out), background-color var(--d-2) var(--ease-out); }
 .disc-grip svg { width: 8px; height: 12px; }
 .disc-opt:hover .disc-grip { opacity: 1; }
@@ -165,7 +165,7 @@
 .disc-optw { position: relative; display: flex; }
 .disc-optw .disc-opt { flex: 1; min-width: 0; padding-right: 30px; }
 .disc-x {
-  position: absolute; top: 3px; right: 3px; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px;
+  position: absolute; top: 3px; right: 3px; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: calc(6px * var(--rk-card, 1));
   background: none; color: var(--text-3); opacity: 0; cursor: default;
   transition: opacity var(--d-2) var(--ease-out), color var(--d-2) var(--ease-out), background-color var(--d-2) var(--ease-out);
 }
@@ -182,18 +182,18 @@
 .disc-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 14px; }
 .disc-chips[hidden] { display: none; }
 .disc-chip {
-  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px 0 11px; border: 0; border-radius: 14px;
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px 0 11px; border: 0; border-radius: calc(14px * var(--rk-chip, 1));
   background: var(--accent-soft); color: var(--text); font: inherit; font-size: var(--text-sm); cursor: default;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
   animation: disc-chip-in var(--d-4) var(--ease-out-2);
   transition: background-color var(--d-2) var(--ease-out), box-shadow var(--d-2) var(--ease-out);
 }
-.disc-chip i { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 8px; color: var(--text-2); transition: background-color var(--d-2) var(--ease-out), color var(--d-2) var(--ease-out); }
+.disc-chip i { display: grid; place-items: center; width: 16px; height: 16px; border-radius: calc(8px * var(--rk-chip, 1)); color: var(--text-2); transition: background-color var(--d-2) var(--ease-out), color var(--d-2) var(--ease-out); }
 .disc-chip i svg { width: 10px; height: 10px; }
 .disc-chip:hover i { background: var(--hover); color: var(--text); }
 .disc-chip.is-x { background: var(--danger-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 30%, transparent); }
 .disc-chip.is-x span { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--danger) 70%, transparent); }
-.disc-chip-clear { height: 28px; padding: 0 8px; border: 0; border-radius: 8px; background: none; color: var(--text-2); font: inherit; font-size: var(--text-sm); cursor: default;
+.disc-chip-clear { height: 28px; padding: 0 8px; border: 0; border-radius: calc(8px * var(--rk-chip, 1)); background: none; color: var(--text-2); font: inherit; font-size: var(--text-sm); cursor: default;
   animation: disc-chip-in var(--d-4) var(--ease-out-2); transition: color var(--d-2) var(--ease-out), background-color var(--d-2) var(--ease-out); }
 .disc-chip-clear:hover { color: var(--text); background: var(--hover); }
 @keyframes disc-chip-in { from { opacity: 0; transform: scale(.88); } }

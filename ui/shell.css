@@ -9,13 +9,13 @@
   -webkit-app-region: drag; app-region: drag;
 }
 .rail > * { -webkit-app-region: no-drag; app-region: no-drag; }
-.rail-logo { width: 28px; height: 28px; margin-bottom: 10px; display: grid; place-items: center; border-radius: 8px;
+.rail-logo { width: 28px; height: 28px; margin-bottom: 10px; display: grid; place-items: center; border-radius: calc(8px * var(--rk-nav, 1));
   background: var(--surface-3); color: var(--text); font: var(--w-semibold) 13px/1 var(--font-display); }
 /* overflow-y:auto also clips the x-axis, so the list spans the rail width and keeps room for the 3.5px focus ring. */
 .rail-list { display: flex; flex-direction: column; align-items: center; align-self: stretch; gap: 8px; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; padding: 5px 0; }
 .rail-list::-webkit-scrollbar { display: none; }
 .tile {
-  position: relative; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 10px; cursor: pointer; flex: none;
+  position: relative; width: 38px; height: 38px; padding: 0; border: 0; border-radius: calc(10px * var(--rk-card, 1)); cursor: pointer; flex: none;
   background: var(--surface-3) center / cover no-repeat; color: var(--text-2);
   font: var(--w-semibold) 14px/1 var(--font-display);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); opacity: .62;
@@ -27,7 +27,7 @@
 .tile .live { position: absolute; right: -2px; bottom: -2px; width: 10px; height: 10px; border-radius: 50%;
   background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
 .rail-btn {
-  width: 38px; height: 38px; border: 0; border-radius: 10px; background: none; color: var(--text-3);
+  width: 38px; height: 38px; border: 0; border-radius: calc(10px * var(--rk-nav, 1)); background: none; color: var(--text-3);
   display: grid; place-items: center; cursor: pointer; flex: none; transition: background 120ms ease, color 120ms ease;
 }
 .rail-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
@@ -35,7 +35,7 @@
 .rail-btn[aria-current="page"] { background: var(--surface-2); color: var(--text); }
 .rail-btn.add { box-shadow: inset 0 0 0 1px var(--line-strong); }
 .rail-grow { flex: 1; min-height: 8px; }
-.rail-btn .head { width: 24px; height: 24px; border-radius: 6px; }
+.rail-btn .head { width: 24px; height: 24px; border-radius: calc(6px * var(--rk-nav, 1)); }
 
 /* ---------- Top bar ---------- */
 .top { padding-left: 4px; }
@@ -48,7 +48,7 @@
 .hero-img { position: absolute; inset: 0; background: center / cover no-repeat; }
 .hero::after { content: ""; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,0) 35%, color-mix(in srgb, var(--surface-1) 70%, transparent) 78%, var(--surface-1) 100%); }
-.hero-chip { position: absolute; z-index: 2; top: 14px; right: 14px; height: 30px; padding: 0 12px; border: 0; border-radius: 8px;
+.hero-chip { position: absolute; z-index: 2; top: 14px; right: 14px; height: 30px; padding: 0 12px; border: 0; border-radius: calc(8px * var(--rk-chip, 1));
   background: rgba(10,10,12,.55); color: #f2f2f3; font: var(--w-medium) var(--text-sm)/1 var(--font-ui); cursor: pointer;
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); opacity: 0; transition: opacity 140ms ease; }
 .hero:hover .hero-chip, .hero-chip:focus-visible { opacity: 1; }
@@ -59,7 +59,7 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hero .meta-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: var(--text-2); font-size: var(--text-sm); }
 .hero .meta-line .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--text-3); }
-.hero .play-btn { --h: 48px; min-width: 156px; font-size: 15px; border-radius: 12px; }
+.hero .play-btn { --h: 48px; min-width: 156px; font-size: 15px; border-radius: calc(12px * var(--rk-btn, 1)); }
 [data-theme="dark"] .hero h1 { text-shadow: 0 1px 18px rgba(0,0,0,.35); }
 
 /* Cover size setting: html[data-cover="big|slim|none"] */

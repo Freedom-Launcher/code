@@ -7,14 +7,14 @@
 }
 .seg > button {
   position: relative; z-index: 1; height: 26px; padding: 0 var(--s-3);
-  border: 0; border-radius: 6px; background: transparent; color: var(--text-2);
+  border: 0; border-radius: calc(6px * var(--rk-chip, 1)); background: transparent; color: var(--text-2);
   font-weight: var(--w-medium); cursor: default; transition: color var(--d-2);
 }
 .seg > button:hover { color: var(--text); }
 .seg > button[aria-selected="true"] { color: var(--text); }
 .seg > .seg-pill {
   position: absolute; z-index: 0; top: 2px; bottom: 2px; left: 0; width: 0;
-  border-radius: 6px; background: var(--surface-3); box-shadow: var(--shadow-1);
+  border-radius: calc(6px * var(--rk-chip, 1)); background: var(--surface-3); box-shadow: var(--shadow-1);
   transition: transform var(--d-4) var(--ease-out), width var(--d-4) var(--ease-out);
 }
 [data-theme="light"] .seg > .seg-pill { background: var(--surface-1); }
@@ -22,7 +22,7 @@
 /* ---------- Popover / menu (opens from its origin) ---------- */
 .pop {
   position: fixed; z-index: 50; min-width: 200px; padding: 4px;
-  border-radius: 10px; background: var(--surface-2); box-shadow: var(--shadow-pop);
+  border-radius: calc(10px * var(--rk-menu, 1)); background: var(--surface-2); box-shadow: var(--shadow-pop);
   opacity: 0; transform: translateY(calc(var(--shift) * -1)) scale(var(--pop-scale));
   transform-origin: var(--origin, top right); pointer-events: none;
   transition: opacity var(--d-2) var(--ease-out), transform var(--d-3) var(--ease-out);
@@ -30,7 +30,7 @@
 .pop[data-open] { opacity: 1; transform: none; pointer-events: auto; }
 .menu-item {
   display: flex; align-items: center; gap: var(--s-2); width: 100%; height: 30px; padding: 0 var(--s-2);
-  border: 0; border-radius: 6px; background: transparent; color: var(--text); text-align: left; cursor: default;
+  border: 0; border-radius: calc(6px * var(--rk-menu, 1)); background: transparent; color: var(--text); text-align: left; cursor: default;
 }
 .menu-item:hover, .menu-item:focus-visible { background: var(--hover); box-shadow: none; }
 .menu-item > svg { width: 15px; height: 15px; color: var(--text-2); }
@@ -41,7 +41,7 @@
 
 /* ---------- Tooltip (delayed in, instant out) ---------- */
 .tip {
-  position: fixed; z-index: 60; padding: 4px 8px; border-radius: 6px;
+  position: fixed; z-index: 60; padding: 4px 8px; border-radius: calc(6px * var(--rk-menu, 1));
   background: var(--text); color: var(--bg); font-size: var(--text-sm); font-weight: var(--w-medium);
   pointer-events: none; white-space: nowrap; opacity: 0; transform: translateY(2px);
   transition: opacity 0ms, transform 0ms;
@@ -68,7 +68,7 @@
 .progress[data-indeterminate] > i { transform: scaleX(.3); animation: indet 1.1s var(--ease-out) infinite; }
 @keyframes indet { from { transform: translateX(-100%) scaleX(.3); } to { transform: translateX(340%) scaleX(.3); } }
 .meter { display: flex; gap: 2px; }
-.meter > i { flex: 1; height: 6px; border-radius: 2px; background: var(--surface-3); }
+.meter > i { flex: 1; height: 6px; border-radius: calc(2px * var(--rk-card, 1)); background: var(--surface-3); }
 .meter > i.on { background: var(--accent); }
 
 /* ---------- Card, list, badge ---------- */
@@ -91,7 +91,7 @@
 .badge.is-warn { background: rgba(242, 182, 75, .12); color: var(--warn); }
 
 /* ---------- Skeleton → content crossfade ---------- */
-.skel { border-radius: 6px; background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2)); background-size: 200% 100%; animation: skel 1.4s linear infinite; }
+.skel { border-radius: calc(6px * var(--rk-card, 1)); background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2)); background-size: 200% 100%; animation: skel 1.4s linear infinite; }
 @keyframes skel { to { background-position: -200% 0; } }
 .fade-in { animation: fade-in var(--d-4) var(--ease-out) both; }
 @keyframes fade-in { from { opacity: 0; transform: translateY(calc(var(--shift) / 2)); } }

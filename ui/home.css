@@ -4,7 +4,7 @@
 .home-h { margin: 0 0 18px; font: 650 26px/1.1 var(--font-display); letter-spacing: -.03em; color: var(--text); }
 .home-recent { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .rc {
-  display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 12px 0 0; border: 0; border-radius: 10px;
+  display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 12px 0 0; border: 0; border-radius: calc(10px * var(--rk-card, 1));
   background: var(--surface-2); color: var(--text); text-align: left; cursor: pointer; overflow: hidden; font: inherit;
   box-shadow: inset 0 0 0 1px var(--line); transition: background 140ms ease;
 }
@@ -24,9 +24,9 @@
 .rc.add > i { display: grid; place-items: center; font-style: normal; font-size: 22px; color: var(--text-3); }
 .home-sec { margin-top: 34px; }
 .home-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(164px, 1fr)); gap: 20px 18px; }
-.hcard { min-width: 0; padding: 0; border: 0; border-radius: 12px; background: none; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.hcard { min-width: 0; padding: 0; border: 0; border-radius: calc(12px * var(--rk-card, 1)); background: none; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
 .hcard > i {
-  display: block; aspect-ratio: 1; border-radius: 12px; background: var(--surface-3) center / cover no-repeat;
+  display: block; aspect-ratio: 1; border-radius: calc(12px * var(--rk-card, 1)); background: var(--surface-3) center / cover no-repeat;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(255, 255, 255, .1);
   transition: transform 200ms var(--ease-out, ease), box-shadow 200ms ease;
 }
@@ -36,18 +36,18 @@
 /* Play bar: sits at the bottom of the panel, sticks while the page scrolls. */
 .home-bar {
   position: sticky; bottom: 10px; z-index: 2; flex: none; display: flex; align-items: center; gap: 14px;
-  height: 72px; margin: 0 10px 10px; padding: 0 12px 0 11px; border-radius: 14px;
+  height: 72px; margin: 0 10px 10px; padding: 0 12px 0 11px; border-radius: calc(14px * var(--rk-card, 1));
   background: var(--glass-strong, var(--surface-2));
   -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4);
   box-shadow: inset 0 0 0 1px var(--glass-border, var(--line)), 0 12px 40px rgba(0, 0, 0, .3);
 }
 .home-bar[hidden] { display: none; }
-.hb-open { display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 40%; padding: 0; border: 0; border-radius: 10px; background: none; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
-.hb-open > i { width: 50px; height: 50px; flex: none; border-radius: 10px; background: var(--surface-3) center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14); }
+.hb-open { display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 40%; padding: 0; border: 0; border-radius: calc(10px * var(--rk-card, 1)); background: none; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.hb-open > i { width: 50px; height: 50px; flex: none; border-radius: calc(10px * var(--rk-card, 1)); background: var(--surface-3) center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14); }
 .hb-open b { font-size: 14px; }
 .hb-mid { flex: 1; display: flex; justify-content: center; gap: 8px; min-width: 0; }
-.hb-mid .chip { height: 28px; padding: 0 12px; border-radius: 8px; display: flex; align-items: center; background: var(--surface-2); color: var(--text-2); font-size: 12px; white-space: nowrap; }
-.home-play { --h: 44px; min-width: 148px; font-size: 15px; border-radius: 12px; }
+.hb-mid .chip { height: 28px; padding: 0 12px; border-radius: calc(8px * var(--rk-chip, 1)); display: flex; align-items: center; background: var(--surface-2); color: var(--text-2); font-size: 12px; white-space: nowrap; }
+.home-play { --h: 44px; min-width: 148px; font-size: 15px; border-radius: calc(12px * var(--rk-btn, 1)); }
 .home-play.btn-primary { box-shadow: 0 8px 28px rgba(138, 180, 255, .3); }
 
 @media (max-width: 1000px) {
