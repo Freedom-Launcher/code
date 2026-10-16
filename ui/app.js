@@ -90,6 +90,7 @@ function openInstance(id) {
   applyWall();
   renderInstancePage();
   window.FMods?.instance(byId(id));
+  window.FPacks?.instance(byId(id));
   show('instance');
 }
 // ---------- Accounts ----------
@@ -228,6 +229,7 @@ function renderInstancePage() {
   $('#play-label').textContent = on ? 'Остановить' : 'Играть';
   pb.querySelector('svg').innerHTML = on ? '<rect x="4" y="4" width="8" height="8" rx="1.5"/>' : '<path d="M5 3.5v9l7-4.5z"/>';
   $('#play-status').hidden = !busy;
+  window.FPacks?.paint();
 }
 function renderCoverPick() {
   const i = byId(S.current);

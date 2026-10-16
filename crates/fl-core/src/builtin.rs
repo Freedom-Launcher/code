@@ -503,7 +503,7 @@ async fn fetch_pack(c: &Core, v: &modrinth::Version) -> Result<std::path::PathBu
 /// Pack versions an instance can move to: same loader (any for vanilla), newest first.
 fn pack_versions<'a>(i: &Instance, vs: &'a [modrinth::Version]) -> Vec<&'a modrinth::Version> {
     vs.iter()
-        .filter(|v| i.loader == "vanilla" || v.loaders.iter().any(|l| *l == i.loader))
+        .filter(|v| i.loader == "vanilla" || v.loaders.contains(&i.loader))
         .collect()
 }
 
