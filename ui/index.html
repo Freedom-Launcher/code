@@ -108,7 +108,7 @@
         </div>
         <div class="inst-body">
           <nav class="tabs" id="ip-tabs" data-id="instance.tabs">
-            <button data-tab="content" aria-selected="true">Моды</button>
+            <button data-tab="content" aria-selected="true">Контент</button>
             <button data-tab="worlds">Миры</button>
             <button data-tab="shots">Скриншоты</button>
             <button data-tab="logs">Логи</button>
@@ -118,12 +118,17 @@
           </div>
           <div class="tab-body" id="tab-content" data-id="instance.content">
             <div class="toolbar" id="mods-tools">
+              <nav class="seg" id="mods-kind" data-id="instance.content.kind">
+                <button data-kind="mod" aria-selected="true">Моды</button>
+                <button data-kind="resourcepack">Ресурспаки</button>
+                <button data-kind="shader">Шейдеры</button>
+              </nav>
               <label class="field-wrap grow">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
                 <input class="field" id="mods-filter" placeholder="Найти в сборке" data-id="instance.content.search">
               </label>
               <button class="btn" id="mods-update-all" data-id="instance.content.update-all" hidden><span class="lbl">Обновить все</span></button>
-              <button class="btn" data-view="discover" data-id="instance.content.add"><span class="lbl">Добавить</span></button>
+              <button class="btn" id="mods-add" data-view="discover" data-id="instance.content.add"><span class="lbl">Добавить</span></button>
             </div>
             <div id="mods-list" data-id="instance.mods"></div>
           </div>
@@ -190,12 +195,28 @@
       <section class="view" id="view-discover" data-id="view.discover">
         <div class="narrow">
           <h1 class="page-h">Моды</h1>
+          <nav class="seg disc-kind" id="disc-kind" data-id="discover.kind">
+            <button data-kind="mod" aria-selected="true">Моды</button>
+            <button data-kind="resourcepack">Ресурспаки</button>
+            <button data-kind="shader">Шейдеры</button>
+          </nav>
           <div class="toolbar" data-id="discover.toolbar">
             <label class="field-wrap grow">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
               <input class="field" id="disc-q" placeholder="Моды на Modrinth" data-id="discover.search">
             </label>
             <select class="field disc-target" id="disc-target" aria-label="Сборка" data-id="discover.target"></select>
+            <select class="field disc-sort" id="disc-sort" aria-label="Сортировка" data-id="discover.sort">
+              <option value="relevance">По релевантности</option>
+              <option value="downloads">По загрузкам</option>
+              <option value="follows">По подписчикам</option>
+              <option value="newest">Новые</option>
+              <option value="updated">Обновлённые</option>
+            </select>
+          </div>
+          <div class="disc-filters" data-id="discover.filters">
+            <div class="disc-cats" id="disc-cats"></div>
+            <label class="disc-hide"><span>Скрыть установленные</span><span class="switch"><input type="checkbox" id="disc-hide" data-id="discover.hide-installed"><i></i></span></label>
           </div>
           <div class="mod-grid" id="disc-results" data-id="discover.results"></div>
           <button class="btn disc-more" id="disc-more" data-id="discover.more" hidden><span class="lbl">Ещё</span></button>

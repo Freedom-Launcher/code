@@ -41,3 +41,19 @@
 .mod-row > .btn-sm { --h: 28px; flex: none; }
 #mods-update-all[hidden] { display: none; }
 #c-import-status { margin: 28px 0 0; }
+
+/* Content kinds, sort, category chips. */
+.disc-kind { margin: 10px 0 16px; }
+.seg > button[hidden] { display: none; }
+.disc-sort { width: auto; flex: none; }
+.disc-filters { display: flex; align-items: flex-start; gap: 16px; margin: -4px 0 18px; }
+.disc-cats { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+.disc-cats button {
+  height: 28px; padding: 0 12px; border: 0; border-radius: var(--r-pill); background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line); color: var(--text-2); font-size: var(--text-sm); cursor: default;
+  transition: background-color var(--d-2) var(--ease-out), color var(--d-2) var(--ease-out);
+}
+.disc-cats button:hover { color: var(--text); background: var(--surface-3); }
+.disc-cats button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-soft); }
+.disc-hide { display: flex; align-items: center; gap: 10px; height: 28px; flex: none; color: var(--text-2); font-size: var(--text-sm); white-space: nowrap; }
+#mods-tools .seg { flex: none; }
