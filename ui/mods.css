@@ -202,3 +202,8 @@
   .disc-body[data-filters="off"] .disc-side { display: none; }
   .disc-optw { display: inline-flex; }
 }
+/* Interface editor: filters on the right. */
+html[data-l-filters="right"] .disc-body { grid-template-columns: minmax(0, 1fr) 216px; }
+html[data-l-filters="right"] .disc-side { order: 2; }
+html[data-l-filters="right"] .disc-body[data-filters="off"] { grid-template-columns: minmax(0, 1fr) 0px; }
+html[data-l-filters="right"] .disc-body[data-filters="off"] .disc-side { transform: translateX(12px); }

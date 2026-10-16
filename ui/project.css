@@ -123,3 +123,6 @@
   .proj-head .mod-ico { width: 64px; height: 64px; border-radius: calc(16px * var(--rk-icon, 1)); }
   .proj-actions { grid-column: 1 / -1; }
 }
+/* Interface editor: project sidebar on the left. */
+html[data-l-project="left"] .proj-layout { grid-template-columns: 272px minmax(0, 1fr); }
+html[data-l-project="left"] .proj-side { order: -1; }
