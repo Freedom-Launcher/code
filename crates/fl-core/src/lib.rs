@@ -28,6 +28,7 @@ pub mod msauth;
 pub mod net;
 pub mod permissions;
 pub mod settings;
+pub mod signing;
 pub mod skins;
 pub mod store;
 pub mod themes;

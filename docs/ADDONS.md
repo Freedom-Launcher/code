@@ -43,6 +43,25 @@ Nothing runs until the user approves. A new version that asks for more
 permissions stays off until the user approves again. Launcher
 self-management (themes, addons, safe settings) is never available to addons.
 
+## Signing and badges
+
+A package earns «Проверено» or «Официальный» only through `signature.json` in
+its folder: an Ed25519 signature by a project key over the badge, the addon id
+and the SHA-256 of every other file. Without it the package is «Сообщество».
+Any changed, added or removed file breaks the signature: the launcher shows
+«Подпись нарушена» and treats the package as «Сообщество», so «Расширенный»
+permissions stop loading.
+
+```json
+{ "v": 1, "key": "fl-2026", "badge": "verified", "sig": "<128 hex>" }
+```
+
+Project maintainers sign a reviewed folder with
+`cargo run -p fl-core --example sign_addon -- <folder> <seed file> [verified|official]`.
+The private key never goes into the repository; public keys live in
+`crates/fl-core/src/signing.rs` (`KEYS`). Folders with symlinks, more than 1024
+files or more than 64 MB cannot be signed.
+
 ## SDK
 
 Load `<script src="fl-sdk.js"></script>` (served by the launcher, not shipped).

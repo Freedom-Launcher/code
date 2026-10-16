@@ -81,7 +81,10 @@
       return r;
     }
     const meta = [a.version && `v${a.version}`, a.author].filter(Boolean).join(' · ');
-    const badge = h('span', `badge${a.trust === 'community' ? '' : ' is-accent'}`, TRUST[a.trust] || a.trust);
+    const badge = a.signature_error
+      ? h('span', 'badge is-warn', 'Подпись нарушена')
+      : h('span', `badge${a.trust === 'community' ? '' : ' is-accent'}`, TRUST[a.trust] || a.trust);
+    if (a.signature_error) badge.title = `${a.signature_error}. Файлы пакета изменены после подписи — он работает как «Сообщество».`;
     const perms = h('div', 'addon-perms');
     for (const p of a.permissions || []) {
       const label = p.id === 'network' && a.hosts?.length ? `${PERM.network}: ${a.hosts.join(', ')}` : PERM[p.id] || p.id;

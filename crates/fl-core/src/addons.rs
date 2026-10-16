@@ -124,9 +124,10 @@ fn valid_host(h: &str) -> bool {
         })
 }
 
-/// Trust badge of an installed addon. Signed badges arrive with package signing.
-pub fn trust(_data_dir: &Path, _id: &str) -> Trust {
-    Trust::Community
+/// Trust badge of an installed addon: from a valid `signature.json` by a
+/// project key, otherwise «Сообщество».
+pub fn trust(data_dir: &Path, id: &str) -> Trust {
+    crate::signing::trust(&dir(data_dir).join(id), id)
 }
 
 /// Loads and fully checks an installed addon.
@@ -205,6 +206,7 @@ pub fn list(data_dir: &Path, st: &State) -> Vec<Value> {
                 json!({
                     "id": m.id, "name": m.name, "version": m.version, "author": m.author,
                     "description": m.description, "trust": trust(data_dir, &id),
+                    "signature_error": crate::signing::check(&dir(data_dir).join(&id), &id).err(),
                     "permissions": perms, "slots": m.slots, "hosts": m.hosts,
                     "entry": m.entry, "enabled": e.enabled, "pending": pending,
                 })
