@@ -1,6 +1,7 @@
-//! Mods of one instance: the `mods/` folder plus a small index that remembers
-//! where each jar came from (Modrinth project, version, icon).
-//! A disabled mod is the same jar renamed to `<file>.disabled`.
+//! Content of one instance — mods, resource packs and shaders. Each kind is a
+//! folder (`mods/`, `resourcepacks/`, `shaderpacks/`) plus a small index that
+//! remembers where each file came from (Modrinth project, version, icon).
+//! A disabled file is the same file renamed to `<file>.disabled`.
 
 use std::{
     collections::BTreeMap,
@@ -9,9 +10,8 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{game::download, modrinth, store, Core, CoreError};
+use crate::{game::download, modrinth, modrinth::Kind, store, Core, CoreError};
 
-const INDEX: &str = "freedom-mods.json";
 const OFF: &str = ".disabled";
 /// Guards against dependency cycles and runaway chains.
 const MAX_DEPS: usize = 32;
@@ -41,33 +41,46 @@ pub struct ModEntry {
 }
 
 pub fn mods_dir(game_dir: &Path) -> PathBuf {
-    game_dir.join("mods")
+    dir(game_dir, Kind::Mod)
 }
 
-pub fn load_index(game_dir: &Path) -> Result<Index, CoreError> {
-    store::load(&game_dir.join(INDEX))
+pub fn dir(game_dir: &Path, kind: Kind) -> PathBuf {
+    game_dir.join(kind.folder())
 }
 
-fn save_index(game_dir: &Path, idx: &Index) -> Result<(), CoreError> {
-    store::save(&game_dir.join(INDEX), idx, false)
+fn index_path(game_dir: &Path, kind: Kind) -> PathBuf {
+    game_dir.join(format!("freedom-{}.json", kind.folder()))
+}
+
+pub fn load_index(game_dir: &Path, kind: Kind) -> Result<Index, CoreError> {
+    store::load(&index_path(game_dir, kind))
+}
+
+fn save_index(game_dir: &Path, kind: Kind, idx: &Index) -> Result<(), CoreError> {
+    store::save(&index_path(game_dir, kind), idx, false)
 }
 
 /// Rejects anything that is not a plain jar name inside `mods/`.
 pub fn check_name(file: &str) -> Result<(), CoreError> {
-    let ok = file.ends_with(".jar")
+    check_file(Kind::Mod, file)
+}
+
+/// Rejects anything that is not a plain file name of this kind in its folder.
+pub fn check_file(kind: Kind, file: &str) -> Result<(), CoreError> {
+    let ok = file.ends_with(kind.ext())
         && !file.starts_with('.')
         && !file.contains(['/', '\\', ':'])
         && !file.contains("..");
     if ok {
         Ok(())
     } else {
-        Err(CoreError::BadArgs(format!("bad mod file: {file}")))
+        Err(CoreError::BadArgs(format!("bad file name: {file}")))
     }
 }
 
-pub fn list(game_dir: &Path) -> Result<Vec<ModEntry>, CoreError> {
-    let idx = load_index(game_dir)?;
-    let rd = match std::fs::read_dir(mods_dir(game_dir)) {
+pub fn list(game_dir: &Path, kind: Kind) -> Result<Vec<ModEntry>, CoreError> {
+    let idx = load_index(game_dir, kind)?;
+    let rd = match std::fs::read_dir(dir(game_dir, kind)) {
         Ok(rd) => rd,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
         Err(e) => return Err(e.into()),
@@ -79,12 +92,12 @@ pub fn list(game_dir: &Path) -> Result<Vec<ModEntry>, CoreError> {
             Some(f) => (f.to_owned(), false),
             None => (name, true),
         };
-        if check_name(&file).is_err() {
+        if check_file(kind, &file).is_err() {
             continue;
         }
         let source = idx.get(&file).cloned();
         let title = source.as_ref().map_or_else(
-            || file.trim_end_matches(".jar").to_owned(),
+            || file.trim_end_matches(kind.ext()).to_owned(),
             |s| s.title.clone(),
         );
         out.push(ModEntry {
@@ -98,45 +111,59 @@ pub fn list(game_dir: &Path) -> Result<Vec<ModEntry>, CoreError> {
     Ok(out)
 }
 
-pub fn set_enabled(game_dir: &Path, file: &str, enabled: bool) -> Result<(), CoreError> {
-    check_name(file)?;
-    let on = mods_dir(game_dir).join(file);
-    let off = mods_dir(game_dir).join(format!("{file}{OFF}"));
+pub fn set_enabled(
+    game_dir: &Path,
+    kind: Kind,
+    file: &str,
+    enabled: bool,
+) -> Result<(), CoreError> {
+    check_file(kind, file)?;
+    let on = dir(game_dir, kind).join(file);
+    let off = dir(game_dir, kind).join(format!("{file}{OFF}"));
     let (from, to) = if enabled { (off, on) } else { (on, off) };
     if from.exists() {
         std::fs::rename(from, to)?;
     } else if !to.exists() {
-        return Err(CoreError::BadArgs(format!("no such mod: {file}")));
+        return Err(CoreError::BadArgs(format!("no such file: {file}")));
     }
     Ok(())
 }
 
-pub fn remove(game_dir: &Path, file: &str) -> Result<(), CoreError> {
-    check_name(file)?;
+pub fn remove(game_dir: &Path, kind: Kind, file: &str) -> Result<(), CoreError> {
+    check_file(kind, file)?;
     for name in [file.to_owned(), format!("{file}{OFF}")] {
-        match std::fs::remove_file(mods_dir(game_dir).join(name)) {
+        match std::fs::remove_file(dir(game_dir, kind).join(name)) {
             Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e.into()),
             _ => {}
         }
     }
-    let mut idx = load_index(game_dir)?;
+    let mut idx = load_index(game_dir, kind)?;
     if idx.remove(file).is_some() {
-        save_index(game_dir, &idx)?;
+        save_index(game_dir, kind, &idx)?;
     }
     Ok(())
 }
 
-/// Installs a Modrinth project and its required dependencies into the
-/// instance. Already installed projects are left alone. Returns the titles
-/// of what was added.
+/// Where and for what an install or update goes.
+#[derive(Clone, Copy)]
+pub struct Target<'a> {
+    pub game_dir: &'a Path,
+    pub kind: Kind,
+    pub mc: &'a str,
+    pub loaders: &'a [&'a str],
+}
+
+/// Installs a Modrinth project into the instance: the given version, or the
+/// best fit. Mods also bring their required dependencies. Already installed
+/// projects are left alone. Returns the titles of what was added.
 pub async fn install(
     core: &Core,
-    game_dir: &Path,
-    mc: &str,
-    loader: &str,
+    t: Target<'_>,
     project_id: &str,
+    version_id: Option<&str>,
 ) -> Result<Vec<String>, CoreError> {
-    let mut idx = load_index(game_dir)?;
+    let (game_dir, kind, mc) = (t.game_dir, t.kind, t.mc);
+    let mut idx = load_index(game_dir, kind)?;
     let mut have: Vec<String> = idx.values().map(|s| s.project_id.clone()).collect();
     let mut queue = vec![project_id.to_owned()];
     let mut added = Vec::new();
@@ -149,15 +176,21 @@ pub async fn install(
         }
         let (project, versions) = futures_util::future::try_join(
             modrinth::project(core, &id),
-            modrinth::versions(core, &id, mc, loader),
+            modrinth::versions(core, &id, mc, t.loaders),
         )
         .await?;
-        let v = modrinth::pick(&versions, mc, loader).ok_or_else(|| {
-            CoreError::msg(format!("{}: нет версии для {mc} ({loader})", project.title))
+        let chosen = match version_id.filter(|_| id == project_id) {
+            Some(want) => versions
+                .iter()
+                .find(|v| v.id == want && v.primary_file().is_some()),
+            None => modrinth::pick(&versions, mc, t.loaders),
+        };
+        let v = chosen.ok_or_else(|| {
+            CoreError::msg(format!("{}: нет подходящей версии для {mc}", project.title))
         })?;
-        let f = v.primary_file().expect("pick keeps versions with files");
-        let bytes = fetch_checked(core, f).await?;
-        download::write_atomic(&mods_dir(game_dir).join(&f.filename), &bytes)?;
+        let f = v.primary_file().expect("chosen versions have files");
+        let bytes = fetch_checked(core, kind, f).await?;
+        download::write_atomic(&dir(game_dir, kind).join(&f.filename), &bytes)?;
         idx.insert(
             f.filename.clone(),
             Source {
@@ -168,11 +201,14 @@ pub async fn install(
                 icon_url: project.icon_url.clone(),
             },
         );
-        save_index(game_dir, &idx)?;
+        save_index(game_dir, kind, &idx)?;
         have.push(project.id.clone());
         have.push(id);
         added.push(project.title);
-        queue.extend(v.required().map(str::to_owned));
+        // A shader's "dependency" is the shader mod itself; that is the user's call.
+        if kind == Kind::Mod {
+            queue.extend(v.required().map(str::to_owned));
+        }
     }
     Ok(added)
 }
@@ -191,7 +227,7 @@ pub async fn index_known(
     ids.sort();
     ids.dedup();
     let projects = modrinth::projects(core, &ids).await?;
-    let mut idx = load_index(game_dir)?;
+    let mut idx = load_index(game_dir, Kind::Mod)?;
     for (file, h) in files {
         let Some(v) = by_hash.get(h) else { continue };
         let Some(p) = projects.iter().find(|p| p.id == v.project_id) else {
@@ -208,12 +244,16 @@ pub async fn index_known(
             },
         );
     }
-    save_index(game_dir, &idx)
+    save_index(game_dir, Kind::Mod, &idx)
 }
 
 /// Downloads a version file, refusing bad names and checksum mismatches.
-async fn fetch_checked(core: &Core, f: &modrinth::VersionFile) -> Result<Vec<u8>, CoreError> {
-    check_name(&f.filename)?;
+async fn fetch_checked(
+    core: &Core,
+    kind: Kind,
+    f: &modrinth::VersionFile,
+) -> Result<Vec<u8>, CoreError> {
+    check_file(kind, &f.filename)?;
     let bytes = core
         .http()
         .get(&f.url)
@@ -261,9 +301,9 @@ pub fn choose_update<'a>(
 }
 
 /// Indexed mods as (file id, path on disk incl. `.disabled`, sha1).
-async fn hashed(game_dir: &Path) -> Result<Vec<(String, PathBuf, String)>, CoreError> {
-    let entries = list(game_dir)?;
-    let dir = mods_dir(game_dir);
+async fn hashed(game_dir: &Path, kind: Kind) -> Result<Vec<(String, PathBuf, String)>, CoreError> {
+    let entries = list(game_dir, kind)?;
+    let dir = dir(game_dir, kind);
     tokio::task::spawn_blocking(move || {
         entries
             .into_iter()
@@ -287,16 +327,14 @@ async fn hashed(game_dir: &Path) -> Result<Vec<(String, PathBuf, String)>, CoreE
 /// Mods with a newer fitting version: (file id, path, new version).
 async fn pending(
     core: &Core,
-    game_dir: &Path,
-    mc: &str,
-    loader: &str,
+    t: Target<'_>,
 ) -> Result<Vec<(String, PathBuf, modrinth::Version)>, CoreError> {
-    let idx = load_index(game_dir)?;
-    let files = hashed(game_dir).await?;
+    let idx = load_index(t.game_dir, t.kind)?;
+    let files = hashed(t.game_dir, t.kind).await?;
     let hashes: Vec<String> = files.iter().map(|f| f.2.clone()).collect();
     let (any, rel) = futures_util::future::try_join(
-        modrinth::latest_by_hash(core, &hashes, mc, loader, false),
-        modrinth::latest_by_hash(core, &hashes, mc, loader, true),
+        modrinth::latest_by_hash(core, &hashes, t.mc, t.loaders, false),
+        modrinth::latest_by_hash(core, &hashes, t.mc, t.loaders, true),
     )
     .await?;
     let mut out = Vec::new();
@@ -316,17 +354,16 @@ async fn pending(
 /// download never leaves the instance without the mod. Returns titles.
 pub async fn apply_updates(
     core: &Core,
-    game_dir: &Path,
-    mc: &str,
-    loader: &str,
+    t: Target<'_>,
     only: Option<&str>,
 ) -> Result<Vec<String>, CoreError> {
+    let (game_dir, kind) = (t.game_dir, t.kind);
     if let Some(f) = only {
-        check_name(f)?;
+        check_file(kind, f)?;
     }
-    let mut todo = pending(core, game_dir, mc, loader).await?;
+    let mut todo = pending(core, t).await?;
     todo.retain(|(file, ..)| only.is_none_or(|o| o == file));
-    let mut idx = load_index(game_dir)?;
+    let mut idx = load_index(game_dir, kind)?;
     let mut done = Vec::new();
     for (file, old_path, v) in todo {
         let f = v.primary_file().expect("pending keeps versions with files");
@@ -335,13 +372,13 @@ pub async fn apply_updates(
             continue; // another indexed mod already uses that name
         }
         let disabled = old_path.to_string_lossy().ends_with(OFF);
-        let bytes = fetch_checked(core, f).await?;
+        let bytes = fetch_checked(core, kind, f).await?;
         let on_disk = if disabled {
             format!("{new_name}{OFF}")
         } else {
             new_name.clone()
         };
-        let new_path = mods_dir(game_dir).join(on_disk);
+        let new_path = dir(game_dir, kind).join(on_disk);
         download::write_atomic(&new_path, &bytes)?;
         if new_path != old_path {
             std::fs::remove_file(&old_path)?;
@@ -353,19 +390,14 @@ pub async fn apply_updates(
         src.version_number = v.version_number.clone();
         done.push(src.title.clone());
         idx.insert(new_name, src);
-        save_index(game_dir, &idx)?;
+        save_index(game_dir, kind, &idx)?;
     }
     Ok(done)
 }
 
-pub async fn updates(
-    core: &Core,
-    game_dir: &Path,
-    mc: &str,
-    loader: &str,
-) -> Result<Vec<Update>, CoreError> {
-    let idx = load_index(game_dir)?;
-    Ok(pending(core, game_dir, mc, loader)
+pub async fn updates(core: &Core, t: Target<'_>) -> Result<Vec<Update>, CoreError> {
+    let idx = load_index(t.game_dir, t.kind)?;
+    Ok(pending(core, t)
         .await?
         .into_iter()
         .map(|(file, _, v)| Update {
@@ -416,24 +448,28 @@ mod tests {
                 ..Default::default()
             },
         );
-        save_index(&d, &idx).unwrap();
+        save_index(&d, Kind::Mod, &idx).unwrap();
+        assert!(
+            d.join("freedom-mods.json").exists(),
+            "mods keep their old index name"
+        );
 
-        let l = list(&d).unwrap();
+        let l = list(&d, Kind::Mod).unwrap();
         assert_eq!(l.len(), 2);
         assert_eq!((l[0].title.as_str(), l[0].enabled), ("Sodium", true));
         assert_eq!((l[1].file.as_str(), l[1].enabled), ("zoom.jar", false));
 
-        set_enabled(&d, "sodium.jar", false).unwrap();
-        set_enabled(&d, "sodium.jar", false).unwrap(); // idempotent
+        set_enabled(&d, Kind::Mod, "sodium.jar", false).unwrap();
+        set_enabled(&d, Kind::Mod, "sodium.jar", false).unwrap(); // idempotent
         assert!(mods_dir(&d).join("sodium.jar.disabled").exists());
-        set_enabled(&d, "zoom.jar", true).unwrap();
+        set_enabled(&d, Kind::Mod, "zoom.jar", true).unwrap();
         assert!(mods_dir(&d).join("zoom.jar").exists());
-        assert!(set_enabled(&d, "missing.jar", true).is_err());
+        assert!(set_enabled(&d, Kind::Mod, "missing.jar", true).is_err());
 
-        remove(&d, "sodium.jar").unwrap();
+        remove(&d, Kind::Mod, "sodium.jar").unwrap();
         assert!(!mods_dir(&d).join("sodium.jar.disabled").exists());
-        assert!(load_index(&d).unwrap().is_empty());
-        assert_eq!(list(&d).unwrap().len(), 1);
+        assert!(load_index(&d, Kind::Mod).unwrap().is_empty());
+        assert_eq!(list(&d, Kind::Mod).unwrap().len(), 1);
         std::fs::remove_dir_all(d).unwrap();
     }
 
@@ -476,6 +512,29 @@ mod tests {
     #[test]
     fn missing_mods_dir_is_empty_list() {
         let d = std::env::temp_dir().join(format!("fl-mods-{}", uuid::Uuid::new_v4()));
-        assert!(list(&d).unwrap().is_empty());
+        assert!(list(&d, Kind::Mod).unwrap().is_empty());
+    }
+
+    #[test]
+    fn packs_live_in_their_own_folders() {
+        let d = tmp();
+        let rp = dir(&d, Kind::ResourcePack);
+        std::fs::create_dir_all(&rp).unwrap();
+        std::fs::write(rp.join("Faithful.zip"), b"a").unwrap();
+        std::fs::write(rp.join("x.jar"), b"b").unwrap();
+        std::fs::write(mods_dir(&d).join("sodium.jar"), b"c").unwrap();
+        let l = list(&d, Kind::ResourcePack).unwrap();
+        assert_eq!(l.len(), 1);
+        assert_eq!(
+            (l[0].file.as_str(), l[0].title.as_str()),
+            ("Faithful.zip", "Faithful")
+        );
+        set_enabled(&d, Kind::ResourcePack, "Faithful.zip", false).unwrap();
+        assert!(rp.join("Faithful.zip.disabled").exists());
+        assert!(set_enabled(&d, Kind::ResourcePack, "sodium.jar", false).is_err());
+        assert!(list(&d, Kind::Shader).unwrap().is_empty());
+        remove(&d, Kind::ResourcePack, "Faithful.zip").unwrap();
+        assert!(list(&d, Kind::ResourcePack).unwrap().is_empty());
+        std::fs::remove_dir_all(d).unwrap();
     }
 }

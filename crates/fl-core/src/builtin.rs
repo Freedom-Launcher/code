@@ -3,6 +3,8 @@
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::{json, Value};
 
+use crate::modrinth::Kind;
+
 use crate::{
     accounts::{self, Account, AccountKind, AccountStore},
     actions::ActionRegistry,
@@ -772,37 +774,107 @@ struct ModArg {
     file: String,
     #[serde(default)]
     enabled: bool,
+    #[serde(default)]
+    kind: Kind,
+}
+
+#[derive(Deserialize)]
+struct KindArg {
+    instance: String,
+    #[serde(default)]
+    kind: Kind,
+}
+
+/// Modrinth loaders the instance's content of `kind` must fit, or why it can't have any.
+fn content_loaders(i: &Instance, kind: Kind) -> Result<Vec<&'static str>, CoreError> {
+    kind.loaders(&i.loader).ok_or_else(|| {
+        CoreError::BadArgs(match kind {
+            Kind::Shader => "шейдерам нужна сборка с загрузчиком".into(),
+            _ => "в Vanilla моды недоступны".into(),
+        })
+    })
+}
+
+fn idle(c: &Core, i: &Instance) -> Result<(), CoreError> {
+    if c.game_running.is_busy(&i.id) {
+        return Err(CoreError::msg("Сначала закройте игру"));
+    }
+    Ok(())
 }
 
 fn register_mods(r: &mut ActionRegistry) {
-    // Modrinth search, already filtered to the instance's game version and loader.
+    // Modrinth search for one content kind, already filtered to the
+    // instance's game version and loader.
     r.register("mods.search", P::Network, false, |c, a| async move {
         #[derive(Deserialize)]
         struct A {
             instance: String,
             #[serde(default)]
+            kind: Kind,
+            #[serde(default)]
             query: String,
             #[serde(default)]
             offset: u32,
+            #[serde(default)]
+            categories: Vec<String>,
+            #[serde(default)]
+            sort: String,
         }
-        let A {
-            instance,
-            query,
-            offset,
-        } = args(a)?;
-        let i = instance_by_id(&c, &instance)?;
-        let Some(loader) = modrinth::loader_name(&i.loader) else {
+        let a: A = args(a)?;
+        let i = instance_by_id(&c, &a.instance)?;
+        let Some(loaders) = a.kind.loaders(&i.loader) else {
             return Ok(json!({ "supported": false, "hits": [], "total_hits": 0 }));
         };
-        let page = modrinth::search(&c, &query, &i.version, loader, offset, 20).await?;
+        let q = modrinth::Query {
+            text: &a.query,
+            kind: a.kind,
+            mc: &i.version,
+            loaders: &loaders,
+            categories: &a.categories,
+            sort: &a.sort,
+            offset: a.offset,
+            limit: 20,
+        };
+        let page = modrinth::search(&c, &q).await?;
         Ok(json!({ "supported": true, "hits": page.hits, "total_hits": page.total_hits }))
     });
-    r.register("mods.list", P::InstancesRead, false, |c, a| async move {
-        let InstanceArg { instance } = args(a)?;
-        let i = instance_by_id(&c, &instance)?;
-        Ok(serde_json::to_value(mods::list(&i.game_dir(&c.data_dir))?)?)
+    // Category filters Modrinth offers for a kind, grouped by header.
+    r.register("mods.categories", P::Network, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            #[serde(default)]
+            kind: Kind,
+        }
+        let A { kind } = args(a)?;
+        let tags: Vec<Value> = c
+            .http()
+            .get(format!("{}/tag/category", modrinth::API))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        let out: Vec<Value> = tags
+            .iter()
+            .filter(|t| t["project_type"] == kind.project_type())
+            .filter_map(|t| {
+                let name = t["name"].as_str()?;
+                modrinth::valid_category(name)
+                    .then(|| json!({ "name": name, "header": t["header"].as_str().unwrap_or("") }))
+            })
+            .collect();
+        Ok(json!(out))
     });
-    // Installs a project plus its required dependencies; resolves when done.
+    r.register("mods.list", P::InstancesRead, false, |c, a| async move {
+        let KindArg { instance, kind } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        Ok(serde_json::to_value(mods::list(
+            &i.game_dir(&c.data_dir),
+            kind,
+        )?)?)
+    });
+    // Installs a project (a given version or the best fit; mods also bring
+    // their required dependencies); resolves when done.
     r.register(
         "mods.install",
         P::InstancesManage,
@@ -812,16 +884,23 @@ fn register_mods(r: &mut ActionRegistry) {
             struct A {
                 instance: String,
                 project: String,
+                #[serde(default)]
+                kind: Kind,
+                #[serde(default)]
+                version: Option<String>,
             }
-            let A { instance, project } = args(a)?;
-            let i = instance_by_id(&c, &instance)?;
-            let loader = modrinth::loader_name(&i.loader)
-                .ok_or_else(|| CoreError::BadArgs("vanilla instances take no mods".into()))?;
-            if c.game_running.is_busy(&i.id) {
-                return Err(CoreError::msg("Сначала закройте игру"));
-            }
-            let added =
-                mods::install(&c, &i.game_dir(&c.data_dir), &i.version, loader, &project).await?;
+            let a: A = args(a)?;
+            let i = instance_by_id(&c, &a.instance)?;
+            let loaders = content_loaders(&i, a.kind)?;
+            idle(&c, &i)?;
+            let gd = i.game_dir(&c.data_dir);
+            let t = mods::Target {
+                game_dir: &gd,
+                kind: a.kind,
+                mc: &i.version,
+                loaders: &loaders,
+            };
+            let added = mods::install(&c, t, &a.project, a.version.as_deref()).await?;
             Ok(json!({ "added": added }))
         },
     );
@@ -830,50 +909,67 @@ fn register_mods(r: &mut ActionRegistry) {
             instance,
             file,
             enabled,
+            kind,
         } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
-        if c.game_running.is_busy(&i.id) {
-            return Err(CoreError::msg("Сначала закройте игру"));
-        }
-        mods::set_enabled(&i.game_dir(&c.data_dir), &file, enabled)?;
+        idle(&c, &i)?;
+        mods::set_enabled(&i.game_dir(&c.data_dir), kind, &file, enabled)?;
         Ok(json!({ "file": file, "enabled": enabled }))
     });
     r.register("mods.remove", P::InstancesManage, true, |c, a| async move {
-        let ModArg { instance, file, .. } = args(a)?;
+        let ModArg {
+            instance,
+            file,
+            kind,
+            ..
+        } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
-        if c.game_running.is_busy(&i.id) {
-            return Err(CoreError::msg("Сначала закройте игру"));
-        }
-        mods::remove(&i.game_dir(&c.data_dir), &file)?;
+        idle(&c, &i)?;
+        mods::remove(&i.game_dir(&c.data_dir), kind, &file)?;
         Ok(json!({ "file": file }))
     });
-    // Newer fitting versions of installed Modrinth mods.
+    // Newer fitting versions of installed Modrinth content of one kind.
     r.register("mods.updates", P::Network, false, |c, a| async move {
-        let InstanceArg { instance } = args(a)?;
+        let KindArg { instance, kind } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
-        let Some(loader) = modrinth::loader_name(&i.loader) else {
+        let Some(loaders) = kind.loaders(&i.loader) else {
             return Ok(json!([]));
         };
-        let u = mods::updates(&c, &i.game_dir(&c.data_dir), &i.version, loader).await?;
-        Ok(serde_json::to_value(u)?)
+        let gd = i.game_dir(&c.data_dir);
+        let t = mods::Target {
+            game_dir: &gd,
+            kind,
+            mc: &i.version,
+            loaders: &loaders,
+        };
+        Ok(serde_json::to_value(mods::updates(&c, t).await?)?)
     });
-    // Updates one mod (`file`) or, without it, every mod that has an update.
+    // Updates one file or, without it, everything of that kind with an update.
     r.register("mods.update", P::InstancesManage, true, |c, a| async move {
         #[derive(Deserialize)]
         struct A {
             instance: String,
             #[serde(default)]
+            kind: Kind,
+            #[serde(default)]
             file: Option<String>,
         }
-        let A { instance, file } = args(a)?;
+        let A {
+            instance,
+            kind,
+            file,
+        } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
-        let loader = modrinth::loader_name(&i.loader)
-            .ok_or_else(|| CoreError::BadArgs("vanilla instances take no mods".into()))?;
-        if c.game_running.is_busy(&i.id) {
-            return Err(CoreError::msg("Сначала закройте игру"));
-        }
+        let loaders = content_loaders(&i, kind)?;
+        idle(&c, &i)?;
         let gd = i.game_dir(&c.data_dir);
-        let done = mods::apply_updates(&c, &gd, &i.version, loader, file.as_deref()).await?;
+        let t = mods::Target {
+            game_dir: &gd,
+            kind,
+            mc: &i.version,
+            loaders: &loaders,
+        };
+        let done = mods::apply_updates(&c, t, file.as_deref()).await?;
         Ok(json!({ "updated": done }))
     });
 }

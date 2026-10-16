@@ -1,4 +1,4 @@
-//! Modrinth API v2: mod search, project info and version picking.
+//! Modrinth API v2: content search, project info and version picking.
 //! Only the fields the launcher uses are parsed.
 
 use serde::{Deserialize, Serialize};
@@ -27,6 +27,87 @@ pub fn accepts(loader: &str) -> Vec<&str> {
     }
 }
 
+/// What a Modrinth project installs as. Mods are jars in `mods/`; resource
+/// packs and shaders are zips in their own folders.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Kind {
+    #[default]
+    Mod,
+    ResourcePack,
+    Shader,
+}
+
+impl Kind {
+    pub fn project_type(self) -> &'static str {
+        match self {
+            Kind::Mod => "mod",
+            Kind::ResourcePack => "resourcepack",
+            Kind::Shader => "shader",
+        }
+    }
+    pub fn folder(self) -> &'static str {
+        match self {
+            Kind::Mod => "mods",
+            Kind::ResourcePack => "resourcepacks",
+            Kind::Shader => "shaderpacks",
+        }
+    }
+    pub fn ext(self) -> &'static str {
+        match self {
+            Kind::Mod => ".jar",
+            _ => ".zip",
+        }
+    }
+    /// Modrinth loaders whose files fit an instance on `loader`, best first;
+    /// `None` when the instance cannot use this kind at all. Shaders need
+    /// Iris (Fabric, Quilt, NeoForge) or OptiFine (Forge).
+    pub fn loaders(self, loader: &str) -> Option<Vec<&'static str>> {
+        match self {
+            Kind::Mod => loader_name(loader).map(accepts),
+            Kind::ResourcePack => Some(vec!["minecraft"]),
+            Kind::Shader => match loader {
+                "fabric" | "quilt" | "neoforge" => Some(vec!["iris", "optifine"]),
+                "forge" => Some(vec!["optifine"]),
+                _ => None,
+            },
+        }
+    }
+}
+
+/// Modrinth search order; an empty query has nothing to be relevant to.
+pub fn sort_index(sort: &str, query: &str) -> &'static str {
+    match sort {
+        "downloads" => "downloads",
+        "follows" => "follows",
+        "newest" => "newest",
+        "updated" => "updated",
+        "relevance" if !query.trim().is_empty() => "relevance",
+        _ if query.trim().is_empty() => "downloads",
+        _ => "relevance",
+    }
+}
+
+/// Category slugs from the Modrinth tag list: lowercase words and dashes.
+pub fn valid_category(c: &str) -> bool {
+    !c.is_empty()
+        && c.len() <= 32
+        && c.bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+}
+
+/// One search request. Categories are ANDed, loaders ORed.
+pub struct Query<'a> {
+    pub text: &'a str,
+    pub kind: Kind,
+    pub mc: &'a str,
+    pub loaders: &'a [&'a str],
+    pub categories: &'a [String],
+    pub sort: &'a str,
+    pub offset: u32,
+    pub limit: u32,
+}
+
 /// Percent-encodes everything outside RFC 3986 unreserved characters.
 pub fn encode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -40,27 +121,30 @@ pub fn encode(s: &str) -> String {
     out
 }
 
-pub fn search_url(query: &str, mc: &str, loader: &str, offset: u32, limit: u32) -> String {
-    let facets = json!([
-        ["project_type:mod"],
-        [format!("versions:{mc}")],
-        accepts(loader)
+pub fn search_url(q: &Query) -> String {
+    let mut facets = vec![
+        json!([format!("project_type:{}", q.kind.project_type())]),
+        json!([format!("versions:{}", q.mc)]),
+    ];
+    // Resource packs carry no loader category in the search index.
+    if q.kind != Kind::ResourcePack && !q.loaders.is_empty() {
+        facets.push(json!(q
+            .loaders
             .iter()
             .map(|l| format!("categories:{l}"))
-            .collect::<Vec<_>>()
-    ])
-    .to_string();
-    let q = query.trim();
-    let index = if q.is_empty() {
-        "downloads"
-    } else {
-        "relevance"
-    };
+            .collect::<Vec<_>>()));
+    }
+    for c in q.categories.iter().filter(|c| valid_category(c)).take(8) {
+        facets.push(json!([format!("categories:{c}")]));
+    }
+    let text = q.text.trim();
     format!(
-        "{API}/search?query={}&facets={}&index={index}&offset={offset}&limit={}",
-        encode(q),
-        encode(&facets),
-        limit.clamp(1, 50)
+        "{API}/search?query={}&facets={}&index={}&offset={}&limit={}",
+        encode(text),
+        encode(&json!(facets).to_string()),
+        sort_index(q.sort, text),
+        q.offset,
+        q.limit.clamp(1, 50)
     )
 }
 
@@ -77,6 +161,12 @@ pub struct Hit {
     pub icon_url: Option<String>,
     #[serde(default)]
     pub downloads: u64,
+    #[serde(default)]
+    pub follows: u64,
+    #[serde(default)]
+    pub categories: Vec<String>,
+    #[serde(default)]
+    pub date_modified: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -156,8 +246,10 @@ impl Version {
 /// Modrinth lists versions newest first: take the newest release that fits,
 /// otherwise the newest beta/alpha that fits. A build for the loader itself
 /// beats one it merely accepts (a Quilt build over a Fabric one).
-pub fn pick<'a>(versions: &'a [Version], mc: &str, loader: &str) -> Option<&'a Version> {
-    let ok = accepts(loader);
+pub fn pick<'a>(versions: &'a [Version], mc: &str, ok: &[&str]) -> Option<&'a Version> {
+    if ok.is_empty() {
+        return None;
+    }
     let best = |names: &[&str]| {
         let fits = |v: &&Version| {
             v.game_versions.iter().any(|g| g == mc)
@@ -170,21 +262,13 @@ pub fn pick<'a>(versions: &'a [Version], mc: &str, loader: &str) -> Option<&'a V
             .find(|v| v.version_type == "release")
             .or_else(|| versions.iter().find(fits))
     };
-    best(&ok[..1]).or_else(|| best(&ok))
+    best(&ok[..1]).or_else(|| best(ok))
 }
 
-pub async fn search(
-    core: &Core,
-    query: &str,
-    mc: &str,
-    loader: &str,
-    offset: u32,
-    limit: u32,
-) -> Result<SearchPage, CoreError> {
-    let url = search_url(query, mc, loader, offset, limit);
+pub async fn search(core: &Core, q: &Query<'_>) -> Result<SearchPage, CoreError> {
     Ok(core
         .http()
-        .get(url)
+        .get(search_url(q))
         .send()
         .await?
         .error_for_status()?
@@ -208,12 +292,12 @@ pub async fn versions(
     core: &Core,
     id: &str,
     mc: &str,
-    loader: &str,
+    loaders: &[&str],
 ) -> Result<Vec<Version>, CoreError> {
     let url = format!(
         "{API}/project/{}/version?loaders={}&game_versions={}",
         encode(id),
-        encode(&json!(accepts(loader)).to_string()),
+        encode(&json!(loaders).to_string()),
         encode(&json!([mc]).to_string())
     );
     Ok(core
@@ -270,7 +354,7 @@ pub async fn latest_by_hash(
     core: &Core,
     hashes: &[String],
     mc: &str,
-    loader: &str,
+    loaders: &[&str],
     release_only: bool,
 ) -> Result<std::collections::HashMap<String, Version>, CoreError> {
     if hashes.is_empty() {
@@ -279,7 +363,7 @@ pub async fn latest_by_hash(
     let mut body = json!({
         "hashes": hashes,
         "algorithm": "sha1",
-        "loaders": accepts(loader),
+        "loaders": loaders,
         "game_versions": [mc],
     });
     if release_only {
@@ -308,9 +392,26 @@ mod tests {
         .unwrap()
     }
 
+    fn q<'a>(text: &'a str, kind: Kind, mc: &'a str, loaders: &'a [&'a str]) -> Query<'a> {
+        Query {
+            text,
+            kind,
+            mc,
+            loaders,
+            categories: &[],
+            sort: "",
+            offset: 0,
+            limit: 20,
+        }
+    }
+
     #[test]
     fn search_url_encodes_query_and_facets() {
-        let u = search_url("fabric api & co", "1.21.4", "fabric", 20, 500);
+        let u = search_url(&Query {
+            offset: 20,
+            limit: 500,
+            ..q("fabric api & co", Kind::Mod, "1.21.4", &["fabric"])
+        });
         assert!(u.starts_with(
             "https://api.modrinth.com/v2/search?query=fabric%20api%20%26%20co&facets="
         ));
@@ -318,7 +419,43 @@ mod tests {
         assert!(u.contains("categories%3Afabric"));
         assert!(u.contains("index=relevance"));
         assert!(u.ends_with("offset=20&limit=50"));
-        assert!(search_url("  ", "1.20.1", "forge", 0, 10).contains("index=downloads"));
+        assert!(search_url(&q("  ", Kind::Mod, "1.20.1", &["forge"])).contains("index=downloads"));
+        assert!(search_url(&Query {
+            sort: "relevance",
+            ..q(" ", Kind::Mod, "1.20.1", &[])
+        })
+        .contains("index=downloads"));
+        assert!(search_url(&Query {
+            sort: "updated",
+            ..q("x", Kind::Mod, "1.20.1", &[])
+        })
+        .contains("index=updated"));
+    }
+
+    #[test]
+    fn kinds_have_their_own_facets_and_loaders() {
+        let cats = vec!["optimization".to_string(), "bad\"cat".to_string()];
+        let u = search_url(&Query {
+            categories: &cats,
+            ..q("", Kind::Shader, "1.21.4", &["iris", "optifine"])
+        });
+        assert!(u.contains("project_type%3Ashader"));
+        assert!(u.contains("categories%3Airis%22%2C%22categories%3Aoptifine"));
+        assert!(u.contains("categories%3Aoptimization"));
+        assert!(!u.contains("bad"));
+        let r = search_url(&q("", Kind::ResourcePack, "1.21.4", &["minecraft"]));
+        assert!(r.contains("project_type%3Aresourcepack") && !r.contains("categories%3Aminecraft"));
+        assert_eq!(
+            Kind::ResourcePack.loaders("vanilla"),
+            Some(vec!["minecraft"])
+        );
+        assert_eq!(Kind::Shader.loaders("vanilla"), None);
+        assert_eq!(Kind::Shader.loaders("forge"), Some(vec!["optifine"]));
+        assert_eq!(Kind::Mod.loaders("quilt"), Some(vec!["quilt", "fabric"]));
+        assert_eq!(
+            (Kind::Shader.folder(), Kind::Shader.ext()),
+            ("shaderpacks", ".zip")
+        );
     }
 
     #[test]
@@ -330,9 +467,9 @@ mod tests {
             v("rel", "release", "1.21.4", "fabric"),
             v("old", "release", "1.21.4", "fabric"),
         ];
-        assert_eq!(pick(&list, "1.21.4", "fabric").unwrap().id, "rel");
-        assert_eq!(pick(&list[..1], "1.21.4", "fabric").unwrap().id, "beta");
-        assert!(pick(&list, "1.8.9", "fabric").is_none());
+        assert_eq!(pick(&list, "1.21.4", &["fabric"]).unwrap().id, "rel");
+        assert_eq!(pick(&list[..1], "1.21.4", &["fabric"]).unwrap().id, "beta");
+        assert!(pick(&list, "1.8.9", &["fabric"]).is_none());
     }
 
     #[test]
@@ -345,14 +482,20 @@ mod tests {
     fn quilt_takes_fabric_mods() {
         assert_eq!(accepts("quilt"), ["quilt", "fabric"]);
         assert_eq!(accepts("forge"), ["forge"]);
-        let u = search_url("", "1.21.1", "quilt", 0, 20);
+        let u = search_url(&q("", Kind::Mod, "1.21.1", &accepts("quilt")));
         assert!(u.contains("categories%3Aquilt%22%2C%22categories%3Afabric"));
         let list = vec![
             v("fab", "release", "1.21.1", "fabric"),
             v("qbeta", "beta", "1.21.1", "quilt"),
         ];
-        assert_eq!(pick(&list, "1.21.1", "quilt").unwrap().id, "qbeta");
-        assert_eq!(pick(&list[..1], "1.21.1", "quilt").unwrap().id, "fab");
-        assert!(pick(&list[..1], "1.21.1", "forge").is_none());
+        assert_eq!(
+            pick(&list, "1.21.1", &accepts("quilt")).unwrap().id,
+            "qbeta"
+        );
+        assert_eq!(
+            pick(&list[..1], "1.21.1", &accepts("quilt")).unwrap().id,
+            "fab"
+        );
+        assert!(pick(&list[..1], "1.21.1", &accepts("forge")).is_none());
     }
 }
