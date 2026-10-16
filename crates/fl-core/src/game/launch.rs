@@ -79,6 +79,21 @@ fn fill(s: &str, vars: &HashMap<&str, String>) -> String {
     out
 }
 
+/// Forge / NeoForge keep the client jar out of the module layer with
+/// `-DignoreList=…,${version_name}.jar`: the official launcher stores a copy
+/// of vanilla as `versions/<loader-id>/<loader-id>.jar`. We reuse the
+/// vanilla jar (`<game>.jar`), so its name is added too; otherwise Minecraft
+/// is loaded twice and module resolution fails.
+fn ignore_client_jar(arg: String, v: &VersionJson) -> String {
+    let jar = format!("{}.jar", v.jar_id());
+    match arg.strip_prefix("-DignoreList=") {
+        Some(list) if v.jar_id() != v.id && !list.split(',').any(|x| x == jar) => {
+            format!("{arg},{jar}")
+        }
+        _ => arg,
+    }
+}
+
 /// Full argument list after `java` (JVM args, main class, game args).
 pub fn build_args(
     v: &VersionJson,
@@ -151,7 +166,7 @@ pub fn build_args(
                 a.jvm
                     .iter()
                     .flat_map(|x| x.values(env))
-                    .map(|s| fill(s, &vars)),
+                    .map(|s| ignore_client_jar(fill(s, &vars), v)),
             );
         }
         _ => {
@@ -254,6 +269,24 @@ mod tests {
             extra_jvm_args: vec![],
             client_id: String::new(),
         }
+    }
+
+    #[test]
+    fn ignore_list_covers_shared_vanilla_jar() {
+        let v: VersionJson = serde_json::from_value(json!({
+            "id": "neoforge-21.4.161", "jar": "1.21.4", "mainClass": "M",
+            "arguments": { "game": [], "jvm": [
+                "-DignoreList=client-extra,${version_name}.jar", "-cp", "${classpath}"
+            ]}
+        }))
+        .unwrap();
+        let layout = Layout { root: "/d".into() };
+        let a = build_args(&v, &win(), &layout, &auth(), &opts());
+        assert!(a.contains(&"-DignoreList=client-extra,neoforge-21.4.161.jar,1.21.4.jar".to_owned()));
+
+        let plain = VersionJson { jar: None, ..v };
+        let a = build_args(&plain, &win(), &layout, &auth(), &opts());
+        assert!(a.contains(&"-DignoreList=client-extra,neoforge-21.4.161.jar".to_owned()));
     }
 
     #[test]
