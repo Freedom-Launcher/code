@@ -94,10 +94,9 @@ fn allowed(url: &str) -> bool {
 }
 
 fn loader_of(d: &BTreeMap<String, String>) -> Result<(String, String), CoreError> {
-    if d.contains_key("quilt-loader") {
-        return Err(CoreError::msg("Сборки на Quilt пока не поддерживаются"));
-    }
+    // Quilt first: a Quilt pack may also pin fabric-loader for its Fabric mods.
     for (key, name) in [
+        ("quilt-loader", "quilt"),
         ("fabric-loader", "fabric"),
         ("neoforge", "neoforge"),
         ("forge", "forge"),
@@ -289,6 +288,19 @@ mod tests {
     }
 
     #[test]
+    fn quilt_pack_wins_over_its_fabric_pin() {
+        let deps: BTreeMap<String, String> = [
+            ("minecraft", "1.21.1"),
+            ("fabric-loader", "0.16.10"),
+            ("quilt-loader", "0.29.2"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.into(), v.into()))
+        .collect();
+        assert_eq!(loader_of(&deps).unwrap(), ("quilt".into(), "0.29.2".into()));
+    }
+
+    #[test]
     fn plan_rejects_unsafe_packs() {
         let deps = serde_json::json!({ "minecraft": "1.21.4" });
         let cases = [
@@ -299,10 +311,6 @@ mod tests {
             index(
                 serde_json::json!([file("mods/a.jar", "https://evil.io/a")]),
                 deps.clone(),
-            ),
-            index(
-                serde_json::json!([]),
-                serde_json::json!({ "minecraft": "1.21.4", "quilt-loader": "0.27" }),
             ),
             index(serde_json::json!([]), serde_json::json!({})),
         ];

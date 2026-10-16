@@ -58,7 +58,7 @@
   function paintList() {
     const box = $('#mods-list');
     if (!modded(byId(inst))) {
-      box.replaceChildren(empty('Моды недоступны в Vanilla', 'Нужна сборка с Fabric, Forge или NeoForge'));
+      box.replaceChildren(empty('Моды недоступны в Vanilla', 'Нужна сборка с Fabric, Quilt, Forge или NeoForge'));
       return;
     }
     const q = $('#mods-filter').value.trim().toLowerCase();
@@ -126,7 +126,7 @@
   async function search(reset) {
     const box = $('#disc-results');
     const more = $('#disc-more');
-    if (!target) { box.replaceChildren(empty('Нет сборок для модов', 'Создайте сборку с Fabric, Forge или NeoForge')); more.hidden = true; return; }
+    if (!target) { box.replaceChildren(empty('Нет сборок для модов', 'Создайте сборку с Fabric, Quilt, Forge или NeoForge')); more.hidden = true; return; }
     if (reset) { offset = 0; box.dataset.state = 'loading'; }
     const my = ++seq;
     let res = null;

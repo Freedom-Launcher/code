@@ -1,6 +1,6 @@
 //! Mod loaders on top of vanilla.
 //!
-//! Fabric's meta API serves a ready loader profile: a partial version JSON
+//! Fabric's and Quilt's meta APIs serve a ready loader profile: a partial version JSON
 //! with `inheritsFrom` that is merged onto the vanilla JSON
 //! ([`VersionJson::merge_onto`]). The merged version installs and launches
 //! like any other; its client jar and assets come from vanilla.
@@ -17,6 +17,16 @@ use super::{
 use crate::{instances::Instance, Core, CoreError};
 
 const FABRIC_META: &str = "https://meta.fabricmc.net/v2";
+const QUILT_META: &str = "https://meta.quiltmc.org/v3";
+
+/// Loaders whose profile comes from a Fabric-style meta API.
+fn meta_base(loader: &str) -> Option<&'static str> {
+    match loader {
+        "fabric" => Some(FABRIC_META),
+        "quilt" => Some(QUILT_META),
+        _ => None,
+    }
+}
 
 pub(super) async fn get(core: &Core, url: &str) -> Result<Vec<u8>, CoreError> {
     Ok(core
@@ -42,8 +52,38 @@ pub async fn fabric_latest(core: &Core, game: &str) -> Result<String, CoreError>
 pub async fn latest(core: &Core, loader: &str, game: &str) -> Result<String, CoreError> {
     match loader {
         "fabric" => fabric_latest(core, game).await,
+        "quilt" => quilt_latest(core, game).await,
         _ => super::forge::latest(core, loader, game).await,
     }
+}
+
+/// Newest stable Quilt loader for a game version. Quilt's meta has no
+/// `stable` flag and no fixed order: stable versions are the ones without a
+/// pre-release suffix, compared numerically.
+pub async fn quilt_latest(core: &Core, game: &str) -> Result<String, CoreError> {
+    let url = format!("{QUILT_META}/versions/loader/{game}");
+    let missing = || CoreError::msg(format!("Quilt is not available for {game}"));
+    let bytes = get(core, &url).await.map_err(|_| missing())?;
+    let list: Value = serde_json::from_slice(&bytes)?;
+    pick_quilt(&list).ok_or_else(missing)
+}
+
+fn pick_quilt(list: &Value) -> Option<String> {
+    let key = |v: &str| -> Vec<u64> {
+        v.split(['.', '-', '+'])
+            .map(|p| p.parse().unwrap_or(0))
+            .collect()
+    };
+    let versions: Vec<&str> = list
+        .as_array()?
+        .iter()
+        .filter_map(|e| e["loader"]["version"].as_str())
+        .collect();
+    let stable = versions.iter().filter(|v| !v.contains('-'));
+    stable
+        .max_by_key(|v| key(v))
+        .or_else(|| versions.iter().max_by_key(|v| key(v)))
+        .map(|v| v.to_string())
 }
 
 fn pick_loader(list: &Value) -> Option<String> {
@@ -70,9 +110,9 @@ pub async fn resolve(
     let bytes = match fs::read(&path) {
         Ok(b) => b,
         Err(_) => {
-            let b = if inst.loader == "fabric" {
+            let b = if let Some(meta) = meta_base(&inst.loader) {
                 let url = format!(
-                    "{FABRIC_META}/versions/loader/{}/{}/profile/json",
+                    "{meta}/versions/loader/{}/{}/profile/json",
                     inst.version, inst.loader_version
                 );
                 get(core, &url).await?
@@ -134,6 +174,25 @@ mod tests {
             "fabric-loader-0.16.10-1.21.4"
         );
         assert_eq!(inst("vanilla", "").version_id(), "1.21.4");
+    }
+
+    #[test]
+    fn picks_newest_stable_quilt() {
+        let l = json!([
+            { "loader": { "version": "0.20.0-beta.9" } },
+            { "loader": { "version": "0.9.2" } },
+            { "loader": { "version": "0.29.2" } },
+            { "loader": { "version": "0.30.0-beta.1" } },
+            { "loader": { "version": "0.29.10" } }
+        ]);
+        assert_eq!(pick_quilt(&l).as_deref(), Some("0.29.10"));
+        let betas = json!([{ "loader": { "version": "0.1.0-beta.2" } },
+                           { "loader": { "version": "0.1.0-beta.10" } }]);
+        assert_eq!(pick_quilt(&betas).as_deref(), Some("0.1.0-beta.10"));
+        assert_eq!(pick_quilt(&json!([])), None);
+        assert_eq!(inst("quilt", "0.29.2").version_id(), "quilt-loader-0.29.2-1.21.4");
+        assert_eq!(meta_base("quilt"), Some(QUILT_META));
+        assert_eq!(meta_base("forge"), None);
     }
 
     #[test]

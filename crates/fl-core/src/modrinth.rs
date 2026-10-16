@@ -19,6 +19,14 @@ pub fn loader_name(loader: &str) -> Option<&'static str> {
     }
 }
 
+/// Modrinth loaders whose mods run on `loader`: Quilt also loads Fabric mods.
+pub fn accepts(loader: &str) -> Vec<&str> {
+    match loader {
+        "quilt" => vec!["quilt", "fabric"],
+        l => vec![l],
+    }
+}
+
 /// Percent-encodes everything outside RFC 3986 unreserved characters.
 pub fn encode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -36,7 +44,10 @@ pub fn search_url(query: &str, mc: &str, loader: &str, offset: u32, limit: u32) 
     let facets = json!([
         ["project_type:mod"],
         [format!("versions:{mc}")],
-        [format!("categories:{loader}")]
+        accepts(loader)
+            .iter()
+            .map(|l| format!("categories:{l}"))
+            .collect::<Vec<_>>()
     ])
     .to_string();
     let q = query.trim();
@@ -143,18 +154,23 @@ impl Version {
 }
 
 /// Modrinth lists versions newest first: take the newest release that fits,
-/// otherwise the newest beta/alpha that fits.
+/// otherwise the newest beta/alpha that fits. A build for the loader itself
+/// beats one it merely accepts (a Quilt build over a Fabric one).
 pub fn pick<'a>(versions: &'a [Version], mc: &str, loader: &str) -> Option<&'a Version> {
-    let fits = |v: &&Version| {
-        v.game_versions.iter().any(|g| g == mc)
-            && v.loaders.iter().any(|l| l == loader)
-            && v.primary_file().is_some()
+    let ok = accepts(loader);
+    let best = |names: &[&str]| {
+        let fits = |v: &&Version| {
+            v.game_versions.iter().any(|g| g == mc)
+                && v.loaders.iter().any(|l| names.contains(&l.as_str()))
+                && v.primary_file().is_some()
+        };
+        versions
+            .iter()
+            .filter(fits)
+            .find(|v| v.version_type == "release")
+            .or_else(|| versions.iter().find(fits))
     };
-    versions
-        .iter()
-        .filter(fits)
-        .find(|v| v.version_type == "release")
-        .or_else(|| versions.iter().find(fits))
+    best(&ok[..1]).or_else(|| best(&ok))
 }
 
 pub async fn search(
@@ -197,7 +213,7 @@ pub async fn versions(
     let url = format!(
         "{API}/project/{}/version?loaders={}&game_versions={}",
         encode(id),
-        encode(&json!([loader]).to_string()),
+        encode(&json!(accepts(loader)).to_string()),
         encode(&json!([mc]).to_string())
     );
     Ok(core
@@ -263,7 +279,7 @@ pub async fn latest_by_hash(
     let mut body = json!({
         "hashes": hashes,
         "algorithm": "sha1",
-        "loaders": [loader],
+        "loaders": accepts(loader),
         "game_versions": [mc],
     });
     if release_only {
@@ -323,5 +339,20 @@ mod tests {
     fn vanilla_takes_no_mods() {
         assert_eq!(loader_name("vanilla"), None);
         assert_eq!(loader_name("neoforge"), Some("neoforge"));
+    }
+
+    #[test]
+    fn quilt_takes_fabric_mods() {
+        assert_eq!(accepts("quilt"), ["quilt", "fabric"]);
+        assert_eq!(accepts("forge"), ["forge"]);
+        let u = search_url("", "1.21.1", "quilt", 0, 20);
+        assert!(u.contains("categories%3Aquilt%22%2C%22categories%3Afabric"));
+        let list = vec![
+            v("fab", "release", "1.21.1", "fabric"),
+            v("qbeta", "beta", "1.21.1", "quilt"),
+        ];
+        assert_eq!(pick(&list, "1.21.1", "quilt").unwrap().id, "qbeta");
+        assert_eq!(pick(&list[..1], "1.21.1", "quilt").unwrap().id, "fab");
+        assert!(pick(&list[..1], "1.21.1", "forge").is_none());
     }
 }

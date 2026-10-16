@@ -240,7 +240,7 @@ $('#ip-tabs').addEventListener('click', (e) => {
 });
 
 // ---------- Create instance (a page, not a dialog) ----------
-const LOADER_NAMES = { vanilla: 'Vanilla', fabric: 'Fabric', forge: 'Forge', neoforge: 'NeoForge' };
+const LOADER_NAMES = { vanilla: 'Vanilla', fabric: 'Fabric', quilt: 'Quilt', forge: 'Forge', neoforge: 'NeoForge' };
 let createCover = COVERS[0];
 function paintCreateCovers() {
   $('#c-covers').replaceChildren(...COVERS.map((n) => coverOpt(n, n === createCover, (x) => { createCover = x; paintCreateCovers(); })));
@@ -329,7 +329,7 @@ $('#c-import-file').addEventListener('change', async (ev) => {
     clearInterval(poll);
     box.hidden = true;
     form.classList.remove('is-importing');
-    $$('#create-form button').forEach((b) => { b.disabled = b.dataset.loader === 'quilt'; });
+    $$('#create-form button').forEach((b) => { b.disabled = false; });
   }
 });
 
