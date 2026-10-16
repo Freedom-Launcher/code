@@ -391,7 +391,117 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     register_import(r);
 }
 
+/// Worlds in `saves/` (folders with a `level.dat`), last played first.
+fn list_worlds(saves: &std::path::Path) -> Vec<Value> {
+    let Ok(rd) = std::fs::read_dir(saves) else {
+        return Vec::new();
+    };
+    let mut out: Vec<(u64, String)> = rd
+        .flatten()
+        .filter_map(|e| {
+            let name = e
+                .file_name()
+                .into_string()
+                .ok()
+                .filter(|n| valid_world(n))?;
+            let m = std::fs::metadata(e.path().join("level.dat")).ok()?;
+            let t = m
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map_or(0, |d| d.as_secs());
+            Some((t, name))
+        })
+        .collect();
+    out.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+    out.into_iter()
+        .map(|(t, name)| json!({ "id": name, "name": name, "last_played": t }))
+        .collect()
+}
+
+/// Downloads a Modrinth modpack version (the newest release by default)
+/// and installs it like an imported `.mrpack`.
+async fn install_modpack(
+    c: &Core,
+    project: &str,
+    version: Option<&str>,
+    token: &str,
+) -> Result<Value, CoreError> {
+    let versions = modrinth::project_versions(c, project).await?;
+    let v = match version {
+        Some(id) => versions.iter().find(|v| v.id == id),
+        None => versions
+            .iter()
+            .find(|v| v.version_type == "release")
+            .or(versions.first()),
+    }
+    .ok_or_else(|| CoreError::msg("У сборки нет подходящей версии"))?;
+    let is_pack = |f: &&modrinth::VersionFile| f.filename.ends_with(".mrpack");
+    let f = v
+        .files
+        .iter()
+        .filter(is_pack)
+        .find(|f| f.primary)
+        .or_else(|| v.files.iter().find(is_pack))
+        .ok_or_else(|| CoreError::msg("В этой версии нет файла сборки"))?;
+    if !f.url.starts_with("https://cdn.modrinth.com/") || f.size as usize > mrpack::MAX_PACK {
+        return Err(CoreError::msg("Файл сборки не прошёл проверку"));
+    }
+    let bytes = c
+        .http()
+        .get(&f.url)
+        .send()
+        .await?
+        .error_for_status()?
+        .bytes()
+        .await?;
+    if !f.hashes.sha1.is_empty()
+        && !crate::game::download::sha1_hex(&bytes).eq_ignore_ascii_case(&f.hashes.sha1)
+    {
+        return Err(CoreError::msg("Файл сборки повреждён, попробуйте ещё раз"));
+    }
+    let staged = mrpack::stage(&c.data_dir, &bytes)?;
+    let path = mrpack::staged(&c.data_dir, &staged)?;
+    let res = import_mrpack(c, token, &path).await;
+    let _ = std::fs::remove_file(&path);
+    res
+}
+
 fn register_import(r: &mut ActionRegistry) {
+    r.register(
+        "instances.worlds",
+        P::InstancesRead,
+        false,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                instance: String,
+            }
+            let A { instance } = args(a)?;
+            let i = instance_by_id(&c, &instance)?;
+            Ok(json!(list_worlds(&i.game_dir(&c.data_dir).join("saves"))))
+        },
+    );
+    // Installs a modpack from Modrinth as a new instance. `token` is a fresh
+    // uuid from the UI; progress is polled with `game.progress { instance: token }`.
+    r.register(
+        "modpacks.install",
+        P::InstancesManage,
+        false,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                project: String,
+                token: String,
+                #[serde(default)]
+                version: Option<String>,
+            }
+            let a: A = args(a)?;
+            uuid::Uuid::parse_str(&a.token).map_err(|_| CoreError::BadArgs("bad token".into()))?;
+            service::progress_for(&c, &a.token).set_stage("prepare");
+            install_modpack(&c, &a.project, a.version.as_deref(), &a.token).await
+        },
+    );
     // Creates an instance from a pack staged by the app (`stage_mrpack`).
     // Progress is polled with `game.progress { instance: <token> }`.
     r.register(
@@ -776,6 +886,8 @@ struct ModArg {
     enabled: bool,
     #[serde(default)]
     kind: Kind,
+    #[serde(default)]
+    world: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -783,13 +895,48 @@ struct KindArg {
     instance: String,
     #[serde(default)]
     kind: Kind,
+    /// World folder under `saves/`, for data packs.
+    #[serde(default)]
+    world: Option<String>,
+}
+
+/// Folder whose `<kind folder>/` holds the content: the instance folder, or
+/// for data packs the chosen world inside it.
+fn content_root(
+    c: &Core,
+    i: &Instance,
+    kind: Kind,
+    world: Option<&str>,
+) -> Result<std::path::PathBuf, CoreError> {
+    let gd = i.game_dir(&c.data_dir);
+    if kind != Kind::Datapack {
+        return Ok(gd);
+    }
+    let w = world
+        .filter(|w| valid_world(w))
+        .ok_or_else(|| CoreError::BadArgs("Выберите мир для датапака".into()))?;
+    let dir = gd.join("saves").join(w);
+    if !dir.is_dir() {
+        return Err(CoreError::BadArgs("Мир не найден".into()));
+    }
+    Ok(dir)
+}
+
+/// A plain folder name: no separators, no `..`, nothing hidden.
+fn valid_world(w: &str) -> bool {
+    !w.trim().is_empty()
+        && w.len() <= 128
+        && !w.starts_with('.')
+        && !w.contains(['/', '\\', ':', '\0'])
 }
 
 /// Modrinth loaders the instance's content of `kind` must fit, or why it can't have any.
 fn content_loaders(i: &Instance, kind: Kind) -> Result<Vec<&'static str>, CoreError> {
-    kind.loaders(&i.loader).ok_or_else(|| {
+    kind.supports(&i.loader, &i.version).ok_or_else(|| {
         CoreError::BadArgs(match kind {
             Kind::Shader => "шейдерам нужна сборка с загрузчиком".into(),
+            Kind::Datapack => "датапаки есть только с Minecraft 1.13".into(),
+            Kind::Modpack => "сборка устанавливается как новая сборка".into(),
             _ => "в Vanilla моды недоступны".into(),
         })
     })
@@ -808,7 +955,13 @@ fn register_mods(r: &mut ActionRegistry) {
     r.register("mods.search", P::Network, false, |c, a| async move {
         #[derive(Deserialize)]
         struct A {
-            instance: String,
+            #[serde(default)]
+            instance: Option<String>,
+            /// Filters when browsing without an instance.
+            #[serde(default)]
+            loader: Option<String>,
+            #[serde(default)]
+            mc: Option<String>,
             #[serde(default)]
             kind: Kind,
             #[serde(default)]
@@ -821,14 +974,32 @@ fn register_mods(r: &mut ActionRegistry) {
             sort: String,
         }
         let a: A = args(a)?;
-        let i = instance_by_id(&c, &a.instance)?;
-        let Some(loaders) = a.kind.loaders(&i.loader) else {
-            return Ok(json!({ "supported": false, "hits": [], "total_hits": 0 }));
+        let (mc, loaders) = match a.instance.as_deref().filter(|s| !s.is_empty()) {
+            Some(id) => {
+                let i = instance_by_id(&c, id)?;
+                let Some(l) = a.kind.supports(&i.loader, &i.version) else {
+                    return Ok(json!({ "supported": false, "hits": [], "total_hits": 0 }));
+                };
+                (i.version, l)
+            }
+            None => {
+                let mc = a.mc.filter(|m| m.len() <= 32).unwrap_or_default();
+                let loaders: Vec<&'static str> = match a.kind {
+                    Kind::Mod | Kind::Modpack => a
+                        .loader
+                        .as_deref()
+                        .and_then(modrinth::loader_name)
+                        .into_iter()
+                        .collect(),
+                    _ => Vec::new(),
+                };
+                (mc, loaders)
+            }
         };
         let q = modrinth::Query {
             text: &a.query,
             kind: a.kind,
-            mc: &i.version,
+            mc: &mc,
             loaders: &loaders,
             categories: &a.categories,
             sort: &a.sort,
@@ -856,7 +1027,7 @@ fn register_mods(r: &mut ActionRegistry) {
             .await?;
         let out: Vec<Value> = tags
             .iter()
-            .filter(|t| t["project_type"] == kind.project_type())
+            .filter(|t| t["project_type"] == kind.category_type())
             .filter_map(|t| {
                 let name = t["name"].as_str()?;
                 modrinth::valid_category(name)
@@ -866,12 +1037,14 @@ fn register_mods(r: &mut ActionRegistry) {
         Ok(json!(out))
     });
     r.register("mods.list", P::InstancesRead, false, |c, a| async move {
-        let KindArg { instance, kind } = args(a)?;
-        let i = instance_by_id(&c, &instance)?;
-        Ok(serde_json::to_value(mods::list(
-            &i.game_dir(&c.data_dir),
+        let KindArg {
+            instance,
             kind,
-        )?)?)
+            world,
+        } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let root = content_root(&c, &i, kind, world.as_deref())?;
+        Ok(serde_json::to_value(mods::list(&root, kind)?)?)
     });
     // Installs a project (a given version or the best fit; mods also bring
     // their required dependencies); resolves when done.
@@ -888,12 +1061,14 @@ fn register_mods(r: &mut ActionRegistry) {
                 kind: Kind,
                 #[serde(default)]
                 version: Option<String>,
+                #[serde(default)]
+                world: Option<String>,
             }
             let a: A = args(a)?;
             let i = instance_by_id(&c, &a.instance)?;
             let loaders = content_loaders(&i, a.kind)?;
             idle(&c, &i)?;
-            let gd = i.game_dir(&c.data_dir);
+            let gd = content_root(&c, &i, a.kind, a.world.as_deref())?;
             let t = mods::Target {
                 game_dir: &gd,
                 kind: a.kind,
@@ -910,10 +1085,12 @@ fn register_mods(r: &mut ActionRegistry) {
             file,
             enabled,
             kind,
+            world,
         } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
         idle(&c, &i)?;
-        mods::set_enabled(&i.game_dir(&c.data_dir), kind, &file, enabled)?;
+        let root = content_root(&c, &i, kind, world.as_deref())?;
+        mods::set_enabled(&root, kind, &file, enabled)?;
         Ok(json!({ "file": file, "enabled": enabled }))
     });
     r.register("mods.remove", P::InstancesManage, true, |c, a| async move {
@@ -921,21 +1098,26 @@ fn register_mods(r: &mut ActionRegistry) {
             instance,
             file,
             kind,
+            world,
             ..
         } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
         idle(&c, &i)?;
-        mods::remove(&i.game_dir(&c.data_dir), kind, &file)?;
+        mods::remove(&content_root(&c, &i, kind, world.as_deref())?, kind, &file)?;
         Ok(json!({ "file": file }))
     });
     // Newer fitting versions of installed Modrinth content of one kind.
     r.register("mods.updates", P::Network, false, |c, a| async move {
-        let KindArg { instance, kind } = args(a)?;
+        let KindArg {
+            instance,
+            kind,
+            world,
+        } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
-        let Some(loaders) = kind.loaders(&i.loader) else {
+        let Some(loaders) = kind.supports(&i.loader, &i.version) else {
             return Ok(json!([]));
         };
-        let gd = i.game_dir(&c.data_dir);
+        let gd = content_root(&c, &i, kind, world.as_deref())?;
         let t = mods::Target {
             game_dir: &gd,
             kind,
@@ -953,16 +1135,19 @@ fn register_mods(r: &mut ActionRegistry) {
             kind: Kind,
             #[serde(default)]
             file: Option<String>,
+            #[serde(default)]
+            world: Option<String>,
         }
         let A {
             instance,
             kind,
             file,
+            world,
         } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
         let loaders = content_loaders(&i, kind)?;
         idle(&c, &i)?;
-        let gd = i.game_dir(&c.data_dir);
+        let gd = content_root(&c, &i, kind, world.as_deref())?;
         let t = mods::Target {
             game_dir: &gd,
             kind,
@@ -972,4 +1157,25 @@ fn register_mods(r: &mut ActionRegistry) {
         let done = mods::apply_updates(&c, t, file.as_deref()).await?;
         Ok(json!({ "updated": done }))
     });
+}
+
+#[cfg(test)]
+mod world_tests {
+    use super::*;
+
+    #[test]
+    fn worlds_are_plain_folders_with_level_dat() {
+        assert!(valid_world("New World") && valid_world("Мир 2"));
+        assert!(!valid_world("../x") && !valid_world(".hidden") && !valid_world("a/b"));
+        assert!(!valid_world("C:x") && !valid_world("  "));
+        let d = std::env::temp_dir().join(format!("fl-worlds-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(d.join("A")).unwrap();
+        std::fs::write(d.join("A/level.dat"), b"x").unwrap();
+        std::fs::create_dir_all(d.join("not-a-world")).unwrap();
+        let w = list_worlds(&d);
+        assert_eq!(w.len(), 1);
+        assert_eq!(w[0]["id"], "A");
+        assert!(list_worlds(&d.join("missing")).is_empty());
+        std::fs::remove_dir_all(&d).unwrap();
+    }
 }

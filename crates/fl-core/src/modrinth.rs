@@ -36,6 +36,10 @@ pub enum Kind {
     Mod,
     ResourcePack,
     Shader,
+    /// Lives in a world's `datapacks/` folder, so it is installed per world.
+    Datapack,
+    /// A whole `.mrpack`; installing one creates a new instance.
+    Modpack,
 }
 
 impl Kind {
@@ -44,6 +48,8 @@ impl Kind {
             Kind::Mod => "mod",
             Kind::ResourcePack => "resourcepack",
             Kind::Shader => "shader",
+            Kind::Datapack => "datapack",
+            Kind::Modpack => "modpack",
         }
     }
     pub fn folder(self) -> &'static str {
@@ -51,11 +57,14 @@ impl Kind {
             Kind::Mod => "mods",
             Kind::ResourcePack => "resourcepacks",
             Kind::Shader => "shaderpacks",
+            Kind::Datapack => "datapacks",
+            Kind::Modpack => "modpacks",
         }
     }
     pub fn ext(self) -> &'static str {
         match self {
             Kind::Mod => ".jar",
+            Kind::Modpack => ".mrpack",
             _ => ".zip",
         }
     }
@@ -71,7 +80,36 @@ impl Kind {
                 "forge" => Some(vec!["optifine"]),
                 _ => None,
             },
+            Kind::Datapack => Some(vec!["datapack"]),
+            // Modpacks are not installed into an instance.
+            Kind::Modpack => None,
         }
+    }
+    /// `loaders`, also refusing data packs before 1.13 (they did not exist).
+    pub fn supports(self, loader: &str, mc: &str) -> Option<Vec<&'static str>> {
+        if self == Kind::Datapack && !datapacks_ok(mc) {
+            return None;
+        }
+        self.loaders(loader)
+    }
+    /// Data packs reuse the mod category list on Modrinth.
+    pub fn category_type(self) -> &'static str {
+        match self {
+            Kind::Datapack => "mod",
+            k => k.project_type(),
+        }
+    }
+}
+
+/// Data packs arrived in 1.13; unknown version formats are assumed newer.
+pub fn datapacks_ok(mc: &str) -> bool {
+    match mc.strip_prefix("1.") {
+        Some(rest) => rest
+            .split(['.', '-', ' '])
+            .next()
+            .and_then(|n| n.parse::<u32>().ok())
+            .is_none_or(|n| n >= 13),
+        None => true,
     }
 }
 
@@ -122,12 +160,13 @@ pub fn encode(s: &str) -> String {
 }
 
 pub fn search_url(q: &Query) -> String {
-    let mut facets = vec![
-        json!([format!("project_type:{}", q.kind.project_type())]),
-        json!([format!("versions:{}", q.mc)]),
-    ];
-    // Resource packs carry no loader category in the search index.
-    if q.kind != Kind::ResourcePack && !q.loaders.is_empty() {
+    let mut facets = vec![json!([format!("project_type:{}", q.kind.project_type())])];
+    // Browsing without an instance may leave the game version open.
+    if !q.mc.is_empty() {
+        facets.push(json!([format!("versions:{}", q.mc)]));
+    }
+    // Resource and data packs carry no loader category in the search index.
+    if !matches!(q.kind, Kind::ResourcePack | Kind::Datapack) && !q.loaders.is_empty() {
         facets.push(json!(q
             .loaders
             .iter()
@@ -310,6 +349,19 @@ pub async fn versions(
         .await?)
 }
 
+/// Every version of a project, newest first.
+pub async fn project_versions(core: &Core, id: &str) -> Result<Vec<Version>, CoreError> {
+    let url = format!("{API}/project/{}/version", encode(id));
+    Ok(core
+        .http()
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?)
+}
+
 /// The exact version each sha1 belongs to; unknown hashes are missing.
 pub async fn versions_by_hash(
     core: &Core,
@@ -456,6 +508,25 @@ mod tests {
             (Kind::Shader.folder(), Kind::Shader.ext()),
             ("shaderpacks", ".zip")
         );
+    }
+
+    #[test]
+    fn datapacks_and_modpacks() {
+        assert!(datapacks_ok("1.13") && datapacks_ok("1.21.4") && datapacks_ok("26.1"));
+        assert!(datapacks_ok("24w14a") && !datapacks_ok("1.12.2") && !datapacks_ok("1.8"));
+        assert_eq!(
+            Kind::Datapack.supports("vanilla", "1.20.1"),
+            Some(vec!["datapack"])
+        );
+        assert_eq!(Kind::Datapack.supports("fabric", "1.12.2"), None);
+        assert_eq!(Kind::Modpack.supports("fabric", "1.21.4"), None);
+        assert_eq!(Kind::Datapack.category_type(), "mod");
+        let d = search_url(&q("", Kind::Datapack, "1.21.4", &["datapack"]));
+        assert!(d.contains("project_type%3Adatapack") && !d.contains("categories%3Adatapack"));
+        let m = search_url(&q("", Kind::Modpack, "", &["fabric"]));
+        assert!(m.contains("project_type%3Amodpack") && m.contains("categories%3Afabric"));
+        assert!(!m.contains("versions%3A"));
+        assert_eq!(Kind::Modpack.ext(), ".mrpack");
     }
 
     #[test]
