@@ -71,6 +71,15 @@ pub struct Manifest {
     /// Hosts the addon may reach through the core's `network` action.
     #[serde(default)]
     pub hosts: Vec<String>,
+    /// Present on account-provider addons (needs `accounts_provide`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub account_provider: Option<ProviderInfo>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ProviderInfo {
+    /// Name of the service shown on the accounts screen.
+    pub label: String,
 }
 
 fn default_entry() -> String {
@@ -173,6 +182,14 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
     if !m.hosts.is_empty() && !m.permissions.contains(&Permission::Network) {
         return Err("hosts требуют права network".into());
     }
+    if let Some(p) = &m.account_provider {
+        if !m.permissions.contains(&Permission::AccountsProvide) {
+            return Err("account_provider требует права accounts_provide".into());
+        }
+        if !(1..=40).contains(&p.label.trim().chars().count()) {
+            return Err("account_provider.label: от 1 до 40 символов".into());
+        }
+    }
     Ok(m)
 }
 
@@ -209,6 +226,7 @@ pub fn list(data_dir: &Path, st: &State) -> Vec<Value> {
                     "signature_error": crate::signing::check(&dir(data_dir).join(&id), &id).err(),
                     "permissions": perms, "slots": m.slots, "hosts": m.hosts,
                     "entry": m.entry, "enabled": e.enabled, "pending": pending,
+                    "account_provider": m.account_provider,
                 })
             }
             Err(e) => json!({ "id": id, "name": id, "error": e }),

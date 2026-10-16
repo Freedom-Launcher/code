@@ -189,9 +189,32 @@ async fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
                 user_type: "legacy".into(),
             })
         }
-        AccountKind::Provider { provider } => Err(CoreError::msg(format!(
-            "accounts from {provider} are launched by their addon"
-        ))),
+        AccountKind::Provider { provider } => {
+            if !s.offline_available() {
+                return Err(CoreError::msg(
+                    "service accounts need a Microsoft account with the game",
+                ));
+            }
+            if crate::providers::active(core, provider).is_none() {
+                return Err(CoreError::msg(format!(
+                    "the {provider} addon is off or can no longer provide accounts"
+                )));
+            }
+            let sec = acc
+                .secrets
+                .as_ref()
+                .filter(|sec| sec.mc_expires_at > unix_now() + 60)
+                .ok_or_else(|| {
+                    CoreError::msg("session expired, sign in through the addon again")
+                })?;
+            Ok(LaunchAuth {
+                name: acc.name.clone(),
+                uuid: acc.uuid.replace('-', ""),
+                access_token: sec.mc_access_token.clone(),
+                xuid: String::new(),
+                user_type: "mojang".into(),
+            })
+        }
     }
 }
 

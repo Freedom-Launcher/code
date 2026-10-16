@@ -27,6 +27,7 @@ pub mod mrpack;
 pub mod msauth;
 pub mod net;
 pub mod permissions;
+pub mod providers;
 pub mod settings;
 pub mod signing;
 pub mod skins;

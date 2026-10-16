@@ -56,7 +56,7 @@ struct Req {
 }
 
 pub(crate) fn stamp_caller(caller: &Caller, action: &str, mut args: Value) -> Value {
-    if action.starts_with("net.") {
+    if action.starts_with("net.") || action.starts_with(crate::providers::PREFIX) {
         if let Value::Object(m) = &mut args {
             m.remove(CALLER_KEY);
             if let Caller::Addon { id, .. } = caller {

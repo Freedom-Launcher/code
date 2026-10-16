@@ -162,7 +162,7 @@ pub fn check(root: &Path, id: &str) -> Result<Option<Trust>, String> {
     type Cache = HashMap<PathBuf, (Listing, Result<Option<Trust>, String>)>;
     static CACHE: OnceLock<Mutex<Cache>> = OnceLock::new();
     let Some(list) = files(root) else {
-        return check_with(root, id, &KEYS);
+        return check_with(root, id, keys());
     };
     let cache = CACHE.get_or_init(Default::default);
     if let Some((l, r)) = cache.lock().unwrap().get(root) {
@@ -170,12 +170,32 @@ pub fn check(root: &Path, id: &str) -> Result<Option<Trust>, String> {
             return r.clone();
         }
     }
-    let r = check_with(root, id, &KEYS);
+    let r = check_with(root, id, keys());
     cache
         .lock()
         .unwrap()
         .insert(root.to_path_buf(), (list, r.clone()));
     r
+}
+
+#[cfg(not(test))]
+fn keys() -> &'static [(&'static str, &'static str)] {
+    &KEYS
+}
+
+/// Seed of the extra key trusted only by this crate's own unit tests.
+#[cfg(test)]
+pub(crate) const TEST_SEED: [u8; 32] = [7; 32];
+
+#[cfg(test)]
+fn keys() -> &'static [(&'static str, &'static str)] {
+    static K: OnceLock<Vec<(&'static str, &'static str)>> = OnceLock::new();
+    K.get_or_init(|| {
+        let pk = hex(SigningKey::from_bytes(&TEST_SEED)
+            .verifying_key()
+            .as_bytes());
+        vec![KEYS[0], ("test", Box::leak(pk.into_boxed_str()))]
+    })
 }
 
 pub fn trust(root: &Path, id: &str) -> Trust {
