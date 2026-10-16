@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
@@ -14,6 +15,8 @@ pub struct Settings {
     pub look: Option<Look>,
     /// Loader order for picking a version when several fit (first wins).
     pub loader_priority: Vec<String>,
+    /// Interface editor overrides (corners, sizes, placement).
+    pub ui: UiCustom,
 }
 
 pub const LOADER_ORDER: [&str; 4] = ["neoforge", "fabric", "quilt", "forge"];
@@ -40,6 +43,7 @@ impl Default for Settings {
             onboarded: false,
             look: None,
             loader_priority: LOADER_ORDER.iter().map(|s| s.to_string()).collect(),
+            ui: UiCustom::default(),
         }
     }
 }
@@ -119,8 +123,137 @@ impl Look {
     }
 }
 
+/// Interface editor. Only numbers and known words, so nothing here can inject
+/// CSS: the UI turns it into CSS variables and `[data-id]` rules itself.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct UiCustom {
+    /// Corner scale per group, percent (100 = as the theme draws it).
+    pub radius: BTreeMap<String, u16>,
+    /// Size scale per group, percent.
+    pub size: BTreeMap<String, u16>,
+    /// Side of movable panels: `left` | `right`.
+    pub layout: BTreeMap<String, String>,
+    /// Per-element overrides by `data-id`.
+    pub els: BTreeMap<String, UiEl>,
+    /// Child order of a container (by `data-id`): a permutation of child indices.
+    pub order: BTreeMap<String, Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct UiEl {
+    /// Corner radius, px.
+    pub radius: Option<u16>,
+    /// Size, percent.
+    pub scale: Option<u16>,
+    pub hide: bool,
+}
+
+pub const UI_RADIUS: [&str; 8] = ["btn", "field", "card", "icon", "menu", "chip", "nav", "dialog"];
+/// `(group, min %, max %)`.
+pub const UI_SIZE: [(&str, u16, u16); 6] = [
+    ("btn", 70, 150),
+    ("field", 70, 150),
+    ("text", 85, 130),
+    ("gap", 60, 160),
+    ("rail", 80, 150),
+    ("top", 80, 180),
+];
+pub const UI_LAYOUT: [&str; 3] = ["rail", "filters", "project"];
+
+fn ui_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 64
+        && id
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '-' | '_'))
+}
+
+/// Elements that always stay visible, so the settings can be reached again.
+fn keep_visible(id: &str) -> bool {
+    matches!(id, "app" | "rail" | "rail.settings" | "safe")
+        || id.starts_with("settings")
+        || id.starts_with("view.settings")
+        || id.starts_with("palette")
+}
+
+impl UiCustom {
+    /// Rejects unknown names, clamps numbers, drops no-op entries.
+    pub fn checked(mut self) -> Result<Self, String> {
+        for (k, v) in &mut self.radius {
+            if !UI_RADIUS.contains(&k.as_str()) {
+                return Err(format!("ui.radius: неизвестная группа «{k}»"));
+            }
+            *v = (*v).min(300);
+        }
+        for (k, v) in &mut self.size {
+            let Some(&(_, lo, hi)) = UI_SIZE.iter().find(|g| g.0 == k) else {
+                return Err(format!("ui.size: неизвестная группа «{k}»"));
+            };
+            *v = (*v).clamp(lo, hi);
+        }
+        for (k, v) in &self.layout {
+            if !UI_LAYOUT.contains(&k.as_str()) {
+                return Err(format!("ui.layout: неизвестная панель «{k}»"));
+            }
+            one_of(&format!("ui.layout.{k}"), v, &["left", "right"])?;
+        }
+        if self.els.len() > 400 || self.order.len() > 100 {
+            return Err("ui: слишком много правок".into());
+        }
+        for (id, e) in &mut self.els {
+            if !ui_id(id) {
+                return Err(format!("ui.els: неверный элемент «{id}»"));
+            }
+            if keep_visible(id) {
+                e.hide = false;
+            }
+            e.radius = e.radius.map(|r| r.min(64));
+            e.scale = e.scale.map(|s| s.clamp(50, 200));
+        }
+        self.els.retain(|_, e| *e != UiEl::default());
+        for (id, o) in &self.order {
+            if !ui_id(id) || o.len() > 64 {
+                return Err(format!("ui.order: неверный контейнер «{id}»"));
+            }
+            let mut seen = vec![false; o.len()];
+            for &i in o {
+                let i = usize::from(i);
+                if i >= o.len() || seen[i] {
+                    return Err("ui.order: нужна перестановка".into());
+                }
+                seen[i] = true;
+            }
+        }
+        Ok(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn ui_custom_is_checked() {
+        let u: UiCustom = serde_json::from_value(json!({
+            "radius": { "btn": 900 }, "size": { "btn": 10 },
+            "layout": { "rail": "right" },
+            "els": { "settings.game": { "hide": true }, "instance.play": { "scale": 999 } },
+            "order": { "rail": [2, 0, 1] }
+        }))
+        .unwrap();
+        let u = u.checked().unwrap();
+        assert_eq!(u.radius["btn"], 300);
+        assert_eq!(u.size["btn"], 70);
+        assert!(!u.els.contains_key("settings.game"));
+        assert_eq!(u.els["instance.play"].scale, Some(200));
+        let bad = |v: Value| serde_json::from_value::<UiCustom>(v).map_or(true, |u| u.checked().is_err());
+        assert!(bad(json!({ "radius": { "x": 1 } })));
+        assert!(bad(json!({ "layout": { "rail": "top" } })));
+        assert!(bad(json!({ "order": { "rail": [0, 0] } })));
+        assert!(bad(json!({ "els": { "a\"]{": {} } })));
+        assert!(bad(json!({ "css": "x" })));
+    }
+
     use super::*;
     use serde_json::json;
 

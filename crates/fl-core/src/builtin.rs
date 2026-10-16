@@ -89,12 +89,14 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             reduce_motion: Option<bool>,
             onboarded: Option<bool>,
             loader_priority: Option<Vec<String>>,
+            ui: Option<Value>,
         }
         let A {
             look,
             reduce_motion,
             onboarded,
             loader_priority,
+            ui,
         } = args(a)?;
         let _g = c.state_lock.lock().await;
         let mut s: Settings = store::load(&c.path(SETTINGS))?;
@@ -118,6 +120,11 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 .into_iter()
                 .map(String::from)
                 .collect();
+        }
+        if let Some(u) = ui {
+            let u: crate::settings::UiCustom = serde_json::from_value(u)
+                .map_err(|e| CoreError::BadArgs(format!("ui: {e}")))?;
+            s.ui = u.checked().map_err(CoreError::BadArgs)?;
         }
         store::save(&c.path(SETTINGS), &s, false)?;
         Ok(serde_json::to_value(s)?)
