@@ -14,7 +14,7 @@
 }
 [data-theme="light"] {
   --wall-dim: rgba(255, 255, 255, .22);
-  --glass: rgba(255, 255, 255, calc(var(--glass-a) + .12));
+  --glass: rgba(255, 255, 255, min(1, calc(var(--glass-a) * 1.27)));
   --glass-strong: rgba(255, 255, 255, .86);
   --glass-border: rgba(255, 255, 255, .65);
   --glass-shadow: 0 24px 70px rgba(20, 30, 60, .18);

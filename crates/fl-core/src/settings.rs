@@ -38,7 +38,8 @@ pub struct Look {
     pub wall_blur: u32,
     /// Glass blur, px.
     pub glass_blur: u32,
-    /// Glass density, percent.
+    /// Glass density, percent: 0 = fully transparent, 100 = opaque.
+    /// The UI shows it inverted, as «Прозрачность».
     pub glass_density: u32,
     /// Instance cover: `big` | `slim` | `none`.
     pub cover: String,
@@ -92,7 +93,7 @@ impl Look {
         one_of("palette_pos", &l.palette_pos, &["top", "bottom"])?;
         l.wall_blur = l.wall_blur.min(40);
         l.glass_blur = l.glass_blur.min(60);
-        l.glass_density = l.glass_density.clamp(15, 85);
+        l.glass_density = l.glass_density.min(100);
         Ok(l)
     }
 }
@@ -123,9 +124,9 @@ mod tests {
     #[test]
     fn patch_clamps_ranges() {
         let l = Look::default()
-            .patch(&json!({"wall_blur": 900, "glass_blur": 61, "glass_density": 3}))
+            .patch(&json!({"wall_blur": 900, "glass_blur": 61, "glass_density": 300}))
             .unwrap();
-        assert_eq!((l.wall_blur, l.glass_blur, l.glass_density), (40, 60, 15));
+        assert_eq!((l.wall_blur, l.glass_blur, l.glass_density), (40, 60, 100));
     }
 
     #[test]

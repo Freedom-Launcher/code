@@ -688,7 +688,7 @@ function applyWall() {
   root.style.setProperty('--glass-blur', `${gblur}px`);
   $('#glass-blur').value = gblur; $('#glass-blur-val').textContent = gblur ? `${gblur} px` : 'Прозрачное';
   $('#wall-blur').value = blur; $('#wall-blur-val').textContent = blur ? `${blur} px` : 'Чёткие';
-  $('#wall-glass').value = glass; $('#wall-glass-val').textContent = `${glass}%`;
+  $('#wall-glass').value = 100 - glass; $('#wall-glass-val').textContent = `${100 - glass}%`;
   $$('#wall-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.wallSet === mode)));
   $('#wall-blur-row').hidden = $('#wall-glass-row').hidden = $('#glass-blur-row').hidden = mode === 'off';
 }
@@ -709,7 +709,7 @@ $('#wall-file').addEventListener('change', async (e) => {
 });
 $('#wall-blur').addEventListener('input', (e) => { setLook({ wall_blur: +e.target.value }); applyWall(); });
 $('#glass-blur').addEventListener('input', (e) => { setLook({ glass_blur: +e.target.value }); applyWall(); });
-$('#wall-glass').addEventListener('input', (e) => { setLook({ glass_density: +e.target.value }); applyWall(); });
+$('#wall-glass').addEventListener('input', (e) => { setLook({ glass_density: 100 - +e.target.value }); applyWall(); });
 function applyLook() {
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
