@@ -276,6 +276,13 @@ async fn settings_set_patches_look_and_motion() {
     assert_eq!(s["look"]["palette_pos"], "bottom");
     assert_eq!(s["look"]["wall_blur"], 22);
     assert_eq!(s["reduce_motion"], true);
+    assert_eq!(s["onboarded"], false);
+    let s = c
+        .dispatch(&ui, "settings.set", json!({"onboarded": true}))
+        .await
+        .unwrap();
+    assert_eq!(s["onboarded"], true);
+    assert_eq!(s["look"]["palette_pos"], "bottom");
     let s = c
         .dispatch(&ui, "settings.set", json!({"look": {"wall": "off"}}))
         .await

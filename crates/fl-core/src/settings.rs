@@ -7,6 +7,8 @@ pub struct Settings {
     pub theme: String,
     pub addons_enabled: bool,
     pub reduce_motion: bool,
+    /// The first-run guide was finished or skipped.
+    pub onboarded: bool,
     /// Look of the built-in shell. `None` until the UI saves it once, so the UI
     /// knows to migrate the values it used to keep in localStorage.
     pub look: Option<Look>,
@@ -18,6 +20,7 @@ impl Default for Settings {
             theme: "default".into(),
             addons_enabled: true,
             reduce_motion: false,
+            onboarded: false,
             look: None,
         }
     }

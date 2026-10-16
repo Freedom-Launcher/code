@@ -85,10 +85,12 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         struct A {
             look: Option<Value>,
             reduce_motion: Option<bool>,
+            onboarded: Option<bool>,
         }
         let A {
             look,
             reduce_motion,
+            onboarded,
         } = args(a)?;
         let _g = c.state_lock.lock().await;
         let mut s: Settings = store::load(&c.path(SETTINGS))?;
@@ -98,6 +100,9 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         }
         if let Some(m) = reduce_motion {
             s.reduce_motion = m;
+        }
+        if let Some(o) = onboarded {
+            s.onboarded = o;
         }
         store::save(&c.path(SETTINGS), &s, false)?;
         Ok(serde_json::to_value(s)?)

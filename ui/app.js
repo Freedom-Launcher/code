@@ -146,6 +146,7 @@ function renderAccounts(state) {
   $('#account-head').replaceWith(Object.assign(headFor(sel), { id: 'account-head' }));
   $('#account-kind').textContent = sel ? (KIND[sel.kind.type] || '') : 'Нет аккаунта';
   if (S.view === 'accounts') renderAccountsPage();
+  document.dispatchEvent(new Event('accounts:change'));
 }
 
 $('#dlg-login').addEventListener('dialog:open', async () => {
@@ -640,6 +641,7 @@ function setMotion(on) {
 async function syncLook() {
   try {
     const st = await call('settings.get');
+    S.onboarded = !!st?.onboarded;
     if (st?.look) {
       S.look = { ...LOOK_DEF, ...st.look }; mirrorLook(S.look);
       localStorage.setItem('fl.motion', st.reduce_motion ? 'off' : 'on');
@@ -727,6 +729,7 @@ async function start() {
     if (want === 'instance' && S.current) openInstance(S.current);
     else if (!want || want === 'home' || want === 'instance') show(S.instances.length ? 'home' : 'empty');
     else show(want);
+    window.FWelcome?.start();
   }
   requestAnimationFrame(() => requestAnimationFrame(async () => {
     const r = await call('app.ready');

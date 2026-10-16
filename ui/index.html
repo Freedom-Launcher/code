@@ -14,12 +14,14 @@
   <link rel="stylesheet" href="mods.css">
   <link rel="stylesheet" href="glass.css">
   <link rel="stylesheet" href="palette.css">
+  <link rel="stylesheet" href="welcome.css">
   <script src="ui.js" defer></script>
   <script src="themes.js" defer></script>
   <script src="addons.js" defer></script>
   <script src="app.js" defer></script>
   <script src="mods.js" defer></script>
   <script src="palette.js" defer></script>
+  <script src="welcome.js" defer></script>
 </head>
 <body>
   <div id="app" class="app" data-id="app" hidden>
@@ -283,6 +285,48 @@
   <div class="pop" id="menu-cover" data-id="menu.cover" role="menu">
     <div class="menu-label">Обложка</div>
     <div class="cover-strip" id="cover-pick"></div>
+  </div>
+
+  <!-- First-run guide -->
+  <div class="welcome" id="welcome" data-id="welcome" hidden>
+    <div class="wc-card" role="dialog" aria-modal="true" aria-label="Первый запуск">
+      <button type="button" class="wc-skip" id="wc-skip" data-id="welcome.skip">Пропустить</button>
+      <div class="wc-step" data-step="0">
+        <div class="wc-mark" aria-hidden="true">F</div>
+        <h2>Добро пожаловать</h2>
+        <div class="wc-bottom">
+          <button type="button" class="btn btn-primary btn-lg" id="wc-login" data-open="dlg-login" data-id="welcome.login"><span class="lbl">Войти через Microsoft</span></button>
+          <div class="wc-signed" id="wc-signed" hidden></div>
+        </div>
+      </div>
+      <div class="wc-step" data-step="1" hidden>
+        <h2>Оформление</h2>
+        <div class="wc-label">Тема</div>
+        <div class="wc-opts">
+          <button type="button" class="wc-opt" data-wc-theme="default" aria-pressed="true"><i class="sw-dark"></i><span>Тёмная</span></button>
+          <button type="button" class="wc-opt" data-wc-theme="light" aria-pressed="false"><i class="sw-light"></i><span>Светлая</span></button>
+        </div>
+        <div class="wc-label">Обои</div>
+        <div class="wc-opts three">
+          <button type="button" class="wc-opt" data-wc-wall="cover" aria-pressed="true"><i class="wl-cover"></i><span>Обложка</span></button>
+          <button type="button" class="wc-opt" data-wc-wall="custom" aria-pressed="false"><i class="wl-custom"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg></i><span>Своя</span></button>
+          <button type="button" class="wc-opt" data-wc-wall="off" aria-pressed="false"><i class="wl-off"></i><span>Нет</span></button>
+        </div>
+      </div>
+      <div class="wc-step" data-step="2" hidden>
+        <h2>Первая сборка</h2>
+        <div class="wc-big">
+          <button type="button" id="wc-create" data-id="welcome.create"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg><b>Новая сборка</b></button>
+          <button type="button" id="wc-import" data-id="welcome.import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3 4 7v10l8 4 8-4V7z"/><path d="m4 7 8 4 8-4M12 11v10"/></svg><b>Импорт .mrpack</b></button>
+        </div>
+      </div>
+      <div class="wc-foot">
+        <div class="wc-dots" aria-hidden="true"><i data-on></i><i></i><i></i></div>
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-ghost" id="wc-back" hidden><span class="lbl">Назад</span></button>
+        <button type="button" class="btn btn-primary" id="wc-next" data-id="welcome.next"><span class="lbl">Далее</span></button>
+      </div>
+    </div>
   </div>
 
   <!-- Dialogs -->
