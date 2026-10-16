@@ -24,7 +24,7 @@
   function tile(s, n) {
     const b = el('button', { class: 'shot', type: 'button', 'data-id': `shot.${s.file}`, 'aria-label': when(s.taken) });
     b.style.setProperty('--i', String(Math.min(n, 16)));
-    const im = el('img', { alt: '', loading: 'lazy', decoding: 'async', draggable: false, src: src(S.current, s.file) });
+    const im = el('img', { alt: '', loading: n < 12 ? 'eager' : 'lazy', decoding: 'async', draggable: false, src: src(S.current, s.file) });
     im.addEventListener('load', () => b.classList.add('is-ready'));
     im.addEventListener('error', () => b.classList.add('is-ready', 'is-broken'));
     b.append(im);
