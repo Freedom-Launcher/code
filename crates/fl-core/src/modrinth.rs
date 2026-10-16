@@ -134,6 +134,30 @@ pub fn valid_category(c: &str) -> bool {
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
+/// A game version id as Modrinth lists them (`1.21.4`, `24w14a`, `1.21-pre1`).
+pub fn valid_version(v: &str) -> bool {
+    !v.is_empty()
+        && v.len() <= 32
+        && v.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b".-_ ".contains(&b))
+}
+
+/// The modpack version to install: the first loader in `order` that has a release
+/// wins (or any build of it), else the newest release, else the newest build.
+pub fn pick_pack<'a>(versions: &'a [Version], order: &[&str]) -> Option<&'a Version> {
+    let has = |v: &&Version, l: &str| v.loaders.iter().any(|x| x == l);
+    order
+        .iter()
+        .find_map(|l| {
+            let mut of = versions.iter().filter(|v| has(v, l));
+            of.clone()
+                .find(|v| v.version_type == "release")
+                .or_else(|| of.next())
+        })
+        .or_else(|| versions.iter().find(|v| v.version_type == "release"))
+        .or(versions.first())
+}
+
 /// One search request. Categories are ANDed, loaders ORed.
 pub struct Query<'a> {
     pub text: &'a str,
@@ -141,6 +165,13 @@ pub struct Query<'a> {
     pub mc: &'a str,
     pub loaders: &'a [&'a str],
     pub categories: &'a [String],
+    /// Game versions ORed; used only when `mc` is empty (no instance).
+    pub versions: &'a [String],
+    /// `""` | `client` | `server` | `both`, as in Modrinth's environment filter.
+    pub env: &'a str,
+    pub open_source: bool,
+    /// Categories a project must NOT have.
+    pub exclude: &'a [String],
     pub sort: &'a str,
     pub offset: u32,
     pub limit: u32,
@@ -164,6 +195,40 @@ pub fn search_url(q: &Query) -> String {
     // Browsing without an instance may leave the game version open.
     if !q.mc.is_empty() {
         facets.push(json!([format!("versions:{}", q.mc)]));
+    } else {
+        let vs: Vec<String> = q
+            .versions
+            .iter()
+            .filter(|v| valid_version(v))
+            .take(40)
+            .map(|v| format!("versions:{v}"))
+            .collect();
+        if !vs.is_empty() {
+            facets.push(json!(vs));
+        }
+    }
+    let side =
+        |s: &str, a: &str, b: &str| json!([format!("{s}_side:{a}"), format!("{s}_side:{b}")]);
+    match q.env {
+        "client" => facets.extend([
+            side("client", "optional", "required"),
+            side("server", "optional", "unsupported"),
+        ]),
+        "server" => facets.extend([
+            side("client", "optional", "unsupported"),
+            side("server", "optional", "required"),
+        ]),
+        "both" => facets.extend([
+            json!(["client_side:required"]),
+            json!(["server_side:required"]),
+        ]),
+        _ => {}
+    }
+    if q.open_source {
+        facets.push(json!(["open_source:true"]));
+    }
+    for c in q.exclude.iter().filter(|c| valid_category(c)).take(8) {
+        facets.push(json!([format!("categories!={c}")]));
     }
     // Resource and data packs carry no loader category in the search index.
     if !matches!(q.kind, Kind::ResourcePack | Kind::Datapack) && !q.loaders.is_empty() {
@@ -412,7 +477,7 @@ pub fn pick<'a>(versions: &'a [Version], mc: &str, ok: &[&str]) -> Option<&'a Ve
             .find(|v| v.version_type == "release")
             .or_else(|| versions.iter().find(fits))
     };
-    best(&ok[..1]).or_else(|| best(ok))
+    ok.iter().find_map(|l| best(std::slice::from_ref(l)))
 }
 
 pub async fn search(core: &Core, q: &Query<'_>) -> Result<SearchPage, CoreError> {
@@ -562,6 +627,10 @@ mod tests {
             mc,
             loaders,
             categories: &[],
+            versions: &[],
+            env: "",
+            open_source: false,
+            exclude: &[],
             sort: "",
             offset: 0,
             limit: 20,
@@ -604,6 +673,51 @@ mod tests {
         assert!(!valid_project_id("a/b"));
         assert!(!valid_project_id("a?b"));
         assert!(!valid_project_id(&"x".repeat(65)));
+    }
+
+    #[test]
+    fn search_filters_versions_env_license_exclude() {
+        let vs = vec![
+            "1.21.4".to_string(),
+            "1.20.1".to_string(),
+            "bad\"v".to_string(),
+        ];
+        let ex = vec!["magic".to_string()];
+        let u = search_url(&Query {
+            versions: &vs,
+            env: "client",
+            open_source: true,
+            exclude: &ex,
+            ..q("", Kind::Mod, "", &["neoforge", "fabric"])
+        });
+        assert!(u.contains("versions%3A1.21.4%22%2C%22versions%3A1.20.1%22%5D"));
+        assert!(u.contains("client_side%3Aoptional") && u.contains("server_side%3Aunsupported"));
+        assert!(u.contains("open_source%3Atrue") && u.contains("categories%21%3Dmagic"));
+        assert!(u.contains("categories%3Aneoforge%22%2C%22categories%3Afabric"));
+        let locked = search_url(&Query {
+            versions: &vs,
+            ..q("", Kind::Mod, "1.19.2", &[])
+        });
+        assert!(locked.contains("1.19.2") && !locked.contains("1.20.1"));
+    }
+
+    #[test]
+    fn pack_version_follows_loader_priority() {
+        let v = |id: &str, t: &str, l: &str| -> Version {
+            serde_json::from_value(
+                json!({ "id": id, "project_id": "p", "version_number": id, "version_type": t,
+                "loaders": [l], "game_versions": ["1.21.1"], "files": [] }),
+            )
+            .unwrap()
+        };
+        let list = vec![
+            v("f", "release", "forge"),
+            v("nb", "beta", "neoforge"),
+            v("fa", "release", "fabric"),
+        ];
+        assert_eq!(pick_pack(&list, &["neoforge", "forge"]).unwrap().id, "nb");
+        assert_eq!(pick_pack(&list, &["fabric", "neoforge"]).unwrap().id, "fa");
+        assert_eq!(pick_pack(&list, &["quilt"]).unwrap().id, "f");
     }
 
     #[test]

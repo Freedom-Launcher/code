@@ -12,6 +12,23 @@ pub struct Settings {
     /// Look of the built-in shell. `None` until the UI saves it once, so the UI
     /// knows to migrate the values it used to keep in localStorage.
     pub look: Option<Look>,
+    /// Loader order for picking a version when several fit (first wins).
+    pub loader_priority: Vec<String>,
+}
+
+pub const LOADER_ORDER: [&str; 4] = ["neoforge", "fabric", "quilt", "forge"];
+
+/// The saved order made safe: known loaders only, no repeats, missing ones appended.
+pub fn loader_order(saved: &[String]) -> Vec<&'static str> {
+    let mut out: Vec<&'static str> = Vec::new();
+    for l in saved.iter().map(String::as_str).chain(LOADER_ORDER) {
+        if let Some(n) = crate::modrinth::loader_name(l) {
+            if !out.contains(&n) {
+                out.push(n);
+            }
+        }
+    }
+    out
 }
 
 impl Default for Settings {
@@ -22,6 +39,7 @@ impl Default for Settings {
             reduce_motion: false,
             onboarded: false,
             look: None,
+            loader_priority: LOADER_ORDER.iter().map(|s| s.to_string()).collect(),
         }
     }
 }
@@ -105,6 +123,17 @@ impl Look {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn loader_order_is_normalized() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        assert_eq!(
+            loader_order(&s(&["forge", "bogus", "forge"])),
+            ["forge", "neoforge", "fabric", "quilt"]
+        );
+        assert_eq!(loader_order(&[]), LOADER_ORDER);
+        assert_eq!(Settings::default().loader_priority, s(&LOADER_ORDER));
+    }
 
     #[test]
     fn full_width_defaults_off_and_patches() {

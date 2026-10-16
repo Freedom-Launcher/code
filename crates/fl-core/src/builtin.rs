@@ -88,11 +88,13 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             look: Option<Value>,
             reduce_motion: Option<bool>,
             onboarded: Option<bool>,
+            loader_priority: Option<Vec<String>>,
         }
         let A {
             look,
             reduce_motion,
             onboarded,
+            loader_priority,
         } = args(a)?;
         let _g = c.state_lock.lock().await;
         let mut s: Settings = store::load(&c.path(SETTINGS))?;
@@ -105,6 +107,17 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         }
         if let Some(o) = onboarded {
             s.onboarded = o;
+        }
+        if let Some(p) = loader_priority {
+            if p.len() > 8 {
+                return Err(CoreError::BadArgs(
+                    "loader_priority: слишком много значений".into(),
+                ));
+            }
+            s.loader_priority = crate::settings::loader_order(&p)
+                .into_iter()
+                .map(String::from)
+                .collect();
         }
         store::save(&c.path(SETTINGS), &s, false)?;
         Ok(serde_json::to_value(s)?)
@@ -425,15 +438,20 @@ async fn install_modpack(
     c: &Core,
     project: &str,
     version: Option<&str>,
+    loaders: &[String],
     token: &str,
 ) -> Result<Value, CoreError> {
     let versions = modrinth::project_versions(c, project).await?;
     let v = match version {
         Some(id) => versions.iter().find(|v| v.id == id),
-        None => versions
-            .iter()
-            .find(|v| v.version_type == "release")
-            .or(versions.first()),
+        None => {
+            let s: Settings = store::load(&c.path(SETTINGS))?;
+            let order: Vec<&str> = crate::settings::loader_order(&s.loader_priority)
+                .into_iter()
+                .filter(|l| loaders.is_empty() || loaders.iter().any(|x| x == l))
+                .collect();
+            modrinth::pick_pack(&versions, &order)
+        }
     }
     .ok_or_else(|| CoreError::msg("У сборки нет подходящей версии"))?;
     let is_pack = |f: &&modrinth::VersionFile| f.filename.ends_with(".mrpack");
@@ -495,11 +513,13 @@ fn register_import(r: &mut ActionRegistry) {
                 token: String,
                 #[serde(default)]
                 version: Option<String>,
+                #[serde(default)]
+                loaders: Vec<String>,
             }
             let a: A = args(a)?;
             uuid::Uuid::parse_str(&a.token).map_err(|_| CoreError::BadArgs("bad token".into()))?;
             service::progress_for(&c, &a.token).set_stage("prepare");
-            install_modpack(&c, &a.project, a.version.as_deref(), &a.token).await
+            install_modpack(&c, &a.project, a.version.as_deref(), &a.loaders, &a.token).await
         },
     );
     // Creates an instance from a pack staged by the app (`stage_mrpack`).
@@ -984,6 +1004,16 @@ fn register_mods(r: &mut ActionRegistry) {
             categories: Vec<String>,
             #[serde(default)]
             sort: String,
+            #[serde(default)]
+            loaders: Vec<String>,
+            #[serde(default)]
+            versions: Vec<String>,
+            #[serde(default)]
+            environment: Option<String>,
+            #[serde(default)]
+            open_source: bool,
+            #[serde(default)]
+            exclude: Vec<String>,
         }
         let a: A = args(a)?;
         let (mc, loaders) = match a.instance.as_deref().filter(|s| !s.is_empty()) {
@@ -997,12 +1027,17 @@ fn register_mods(r: &mut ActionRegistry) {
             None => {
                 let mc = a.mc.filter(|m| m.len() <= 32).unwrap_or_default();
                 let loaders: Vec<&'static str> = match a.kind {
-                    Kind::Mod | Kind::Modpack => a
-                        .loader
-                        .as_deref()
-                        .and_then(modrinth::loader_name)
-                        .into_iter()
-                        .collect(),
+                    Kind::Mod | Kind::Modpack => {
+                        let mut v: Vec<&'static str> = Vec::new();
+                        for l in a.loader.iter().chain(a.loaders.iter()) {
+                            if let Some(n) = modrinth::loader_name(l) {
+                                if !v.contains(&n) {
+                                    v.push(n);
+                                }
+                            }
+                        }
+                        v
+                    }
                     _ => Vec::new(),
                 };
                 (mc, loaders)
@@ -1014,6 +1049,14 @@ fn register_mods(r: &mut ActionRegistry) {
             mc: &mc,
             loaders: &loaders,
             categories: &a.categories,
+            versions: &a.versions,
+            env: a
+                .environment
+                .as_deref()
+                .filter(|e| matches!(*e, "client" | "server" | "both"))
+                .unwrap_or(""),
+            open_source: a.open_source,
+            exclude: &a.exclude,
             sort: &a.sort,
             offset: a.offset,
             limit: 20,
@@ -1025,11 +1068,15 @@ fn register_mods(r: &mut ActionRegistry) {
     // The project page: Modrinth's project and every version, newest first.
     r.register("modrinth.project", P::Network, false, |c, a| async move {
         let id = project_arg(a)?;
-        Ok(serde_json::to_value(modrinth::project_page(&c, &id).await?)?)
+        Ok(serde_json::to_value(
+            modrinth::project_page(&c, &id).await?,
+        )?)
     });
     r.register("modrinth.versions", P::Network, false, |c, a| async move {
         let id = project_arg(a)?;
-        Ok(serde_json::to_value(modrinth::project_versions(&c, &id).await?)?)
+        Ok(serde_json::to_value(
+            modrinth::project_versions(&c, &id).await?,
+        )?)
     });
     r.register("mods.categories", P::Network, false, |c, a| async move {
         #[derive(Deserialize)]
