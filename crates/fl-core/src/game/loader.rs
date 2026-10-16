@@ -158,6 +158,7 @@ mod tests {
             last_played: 0,
             playtime_secs: 0,
             settings: Default::default(),
+            pack: None,
         }
     }
 

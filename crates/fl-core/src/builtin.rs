@@ -391,6 +391,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 last_played: 0,
                 playtime_secs: 0,
                 settings: Default::default(),
+                pack: None,
             };
             std::fs::create_dir_all(inst.game_dir(&c.data_dir))?;
             s.instances.push(inst.clone());
@@ -402,6 +403,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     register_game(r);
     register_mods(r);
     register_import(r);
+    register_packs(r);
 }
 
 /// Worlds in `saves/` (folders with a `level.dat`), last played first.
@@ -454,6 +456,22 @@ async fn install_modpack(
         }
     }
     .ok_or_else(|| CoreError::msg("У сборки нет подходящей версии"))?;
+    let path = fetch_pack(c, v).await?;
+    let res = import_mrpack(c, token, &path, Some(pack_ref(v))).await;
+    let _ = std::fs::remove_file(&path);
+    res
+}
+
+fn pack_ref(v: &modrinth::Version) -> instances::PackRef {
+    instances::PackRef {
+        project_id: v.project_id.clone(),
+        version_id: v.id.clone(),
+        version_number: v.version_number.clone(),
+    }
+}
+
+/// Downloads a pack version's `.mrpack` (cdn.modrinth.com only, SHA1-checked) into `imports/`.
+async fn fetch_pack(c: &Core, v: &modrinth::Version) -> Result<std::path::PathBuf, CoreError> {
     let is_pack = |f: &&modrinth::VersionFile| f.filename.ends_with(".mrpack");
     let f = v
         .files
@@ -479,10 +497,193 @@ async fn install_modpack(
         return Err(CoreError::msg("Файл сборки повреждён, попробуйте ещё раз"));
     }
     let staged = mrpack::stage(&c.data_dir, &bytes)?;
-    let path = mrpack::staged(&c.data_dir, &staged)?;
-    let res = import_mrpack(c, token, &path).await;
+    mrpack::staged(&c.data_dir, &staged)
+}
+
+/// Pack versions an instance can move to: same loader (any for vanilla), newest first.
+fn pack_versions<'a>(i: &Instance, vs: &'a [modrinth::Version]) -> Vec<&'a modrinth::Version> {
+    vs.iter()
+        .filter(|v| i.loader == "vanilla" || v.loaders.iter().any(|l| *l == i.loader))
+        .collect()
+}
+
+fn latest_pack<'a>(i: &Instance, vs: &'a [modrinth::Version]) -> Option<&'a modrinth::Version> {
+    let ok = pack_versions(i, vs);
+    ok.iter()
+        .find(|v| v.version_type == "release")
+        .or(ok.first())
+        .copied()
+}
+
+fn register_packs(r: &mut ActionRegistry) {
+    // Is there a newer version of the pack this instance came from?
+    r.register("modpacks.check", P::InstancesRead, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let Some(pack) = i.pack.clone() else {
+            return Ok(json!({ "pack": null }));
+        };
+        let vs = modrinth::project_versions(&c, &pack.project_id).await?;
+        let latest = latest_pack(&i, &vs);
+        let at = |id: &str| vs.iter().position(|v| v.id == id).unwrap_or(usize::MAX);
+        let row = |v: &modrinth::Version| json!({ "id": v.id, "version_number": v.version_number, "version_type": v.version_type,
+            "game_versions": v.game_versions, "loaders": v.loaders, "date_published": v.date_published });
+        Ok(json!({
+            "pack": pack,
+            "update": latest.is_some_and(|v| at(&v.id) < at(&pack.version_id)),
+            "latest": latest.map(row),
+            "versions": pack_versions(&i, &vs).into_iter().take(60).map(row).collect::<Vec<_>>(),
+        }))
+    });
+    // Moves the instance to another pack version; files the user added stay.
+    // Progress is polled with `game.progress { instance: <token> }`.
+    r.register(
+        "modpacks.update",
+        P::InstancesManage,
+        false,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                instance: String,
+                token: String,
+                #[serde(default)]
+                version: Option<String>,
+            }
+            let a: A = args(a)?;
+            uuid::Uuid::parse_str(&a.token).map_err(|_| CoreError::BadArgs("bad token".into()))?;
+            let p = service::progress_for(&c, &a.token);
+            p.set_stage("prepare");
+            let res = update_pack(&c, &a.instance, a.version.as_deref(), &p).await;
+            if res.is_err() {
+                p.set_stage("error");
+            }
+            res
+        },
+    );
+    r.register(
+        "instances.export_candidates",
+        P::InstancesRead,
+        false,
+        |c, a| async move {
+            let InstanceArg { instance } = args(a)?;
+            let i = instance_by_id(&c, &instance)?;
+            let version = i
+                .pack
+                .as_ref()
+                .map(|p| p.version_number.clone())
+                .filter(|v| !v.is_empty());
+            Ok(json!({
+                "name": i.name,
+                "version": version.unwrap_or_else(|| "1.0.0".into()),
+                "candidates": crate::export::candidates(&i.game_dir(&c.data_dir)),
+            }))
+        },
+    );
+    r.register(
+        "instances.export",
+        P::InstancesManage,
+        false,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                instance: String,
+                paths: Vec<String>,
+                name: String,
+                #[serde(default)]
+                version: String,
+            }
+            let a: A = args(a)?;
+            if a.paths.len() > 256 {
+                return Err(CoreError::BadArgs("paths: слишком много".into()));
+            }
+            let i = instance_by_id(&c, &a.instance)?;
+            Ok(serde_json::to_value(
+                crate::export::export(&c, &i, &a.paths, &a.name, &a.version).await?,
+            )?)
+        },
+    );
+    r.register(
+        "exports.folder",
+        P::InstancesRead,
+        false,
+        |c, _| async move {
+            let dir = c.data_dir.join("exports");
+            std::fs::create_dir_all(&dir)?;
+            Ok(json!({ "path": dir }))
+        },
+    );
+}
+
+async fn update_pack(
+    c: &Core,
+    id: &str,
+    version: Option<&str>,
+    p: &std::sync::Arc<crate::game::download::Progress>,
+) -> Result<Value, CoreError> {
+    let i = instance_by_id(c, id)?;
+    idle(c, &i)?;
+    let pack = i
+        .pack
+        .clone()
+        .ok_or_else(|| CoreError::msg("Эта сборка установлена не с Modrinth"))?;
+    let vs = modrinth::project_versions(c, &pack.project_id).await?;
+    let v = match version {
+        Some(id) => vs.iter().find(|v| v.id == id),
+        None => latest_pack(&i, &vs),
+    }
+    .ok_or_else(|| CoreError::msg("У сборки нет подходящей версии"))?;
+    let path = fetch_pack(c, v).await?;
+    let res = apply_pack(c, &i, &path, pack_ref(v), p).await;
     let _ = std::fs::remove_file(&path);
     res
+}
+
+async fn apply_pack(
+    c: &Core,
+    i: &Instance,
+    path: &std::path::Path,
+    pack: instances::PackRef,
+    p: &std::sync::Arc<crate::game::download::Progress>,
+) -> Result<Value, CoreError> {
+    let file = std::fs::File::open(path)?;
+    let mut z = zip::ZipArchive::new(file)
+        .map_err(|_| CoreError::BadArgs("Это не сборка Modrinth (.mrpack)".into()))?;
+    let mut plan = mrpack::plan(mrpack::read_index(&mut z)?, std::path::Path::new(""))?;
+    instances::validate(&i.name, &plan.mc)?;
+    if plan.loader != "vanilla" && plan.loader_version.is_empty() {
+        plan.loader_version = crate::game::loader::latest(c, &plan.loader, &plan.mc).await?;
+    }
+    let game_dir = i.game_dir(&c.data_dir);
+    // Drop what the old version brought and the new one doesn't; user files are never listed.
+    let old: Vec<String> = store::load(&game_dir.join(instances::PACK_FILES))?;
+    let new: std::collections::HashSet<String> = plan
+        .tasks
+        .iter()
+        .map(|t| t.path.to_string_lossy().replace('\\', "/"))
+        .collect();
+    for f in old.iter().filter(|f| !new.contains(*f)) {
+        if let Some(rel) = mrpack::safe_rel(f) {
+            let at = game_dir.join(rel);
+            let _ = std::fs::remove_file(&at);
+            let _ = std::fs::remove_file(format!("{}.disabled", at.display()));
+        }
+    }
+    fill_from_pack(c, &mut z, &mut plan, &game_dir, p).await?;
+    let _g = c.state_lock.lock().await;
+    let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+    let it = s
+        .instances
+        .iter_mut()
+        .find(|x| x.id == i.id)
+        .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {}", i.id)))?;
+    it.version = plan.mc;
+    it.loader = plan.loader;
+    it.loader_version = plan.loader_version;
+    it.pack = Some(pack);
+    let out = serde_json::to_value(&*it)?;
+    store::save(&c.path(INSTANCES), &s, false)?;
+    p.set_stage("done");
+    Ok(out)
 }
 
 fn register_import(r: &mut ActionRegistry) {
@@ -535,14 +736,19 @@ fn register_import(r: &mut ActionRegistry) {
             }
             let A { token } = args(a)?;
             let path = mrpack::staged(&c.data_dir, &token)?;
-            let res = import_mrpack(&c, &token, &path).await;
+            let res = import_mrpack(&c, &token, &path, None).await;
             let _ = std::fs::remove_file(&path);
             res
         },
     );
 }
 
-async fn import_mrpack(c: &Core, token: &str, path: &std::path::Path) -> Result<Value, CoreError> {
+async fn import_mrpack(
+    c: &Core,
+    token: &str,
+    path: &std::path::Path,
+    pack: Option<instances::PackRef>,
+) -> Result<Value, CoreError> {
     let file = std::fs::File::open(path)
         .map_err(|_| CoreError::BadArgs("Файл сборки не найден, выберите его снова".into()))?;
     let mut z = zip::ZipArchive::new(file)
@@ -581,6 +787,7 @@ async fn import_mrpack(c: &Core, token: &str, path: &std::path::Path) -> Result<
         last_played: 0,
         playtime_secs: 0,
         settings: Default::default(),
+        pack,
     };
     s.instances.push(inst.clone());
     store::save(&c.path(INSTANCES), &s, false)?;
@@ -596,8 +803,18 @@ async fn fill_from_pack(
     p: &std::sync::Arc<crate::game::download::Progress>,
 ) -> Result<(), CoreError> {
     let mut jars = Vec::new();
+    let owned: Vec<String> = plan
+        .tasks
+        .iter()
+        .map(|t| t.path.to_string_lossy().replace('\\', "/"))
+        .collect();
     let tasks: Vec<_> = std::mem::take(&mut plan.tasks)
         .into_iter()
+        .filter(|t| {
+            !game_dir
+                .join(format!("{}{}", t.path.display(), ".disabled"))
+                .exists()
+        })
         .map(|mut t| {
             let name = t.path.file_name().map(|n| n.to_string_lossy().into_owned());
             if let Some(name) = name.filter(|n| {
@@ -613,6 +830,7 @@ async fn fill_from_pack(
     crate::game::download::fetch_all(c.http(), tasks, std::sync::Arc::clone(p)).await?;
     p.set_stage("overrides");
     mrpack::extract_overrides(z, game_dir)?;
+    store::save(&game_dir.join(instances::PACK_FILES), &owned, false)?;
     // Best effort: without it the mods still work, just without icons/updates.
     let _ = mods::index_known(c, game_dir, &jars).await;
     Ok(())

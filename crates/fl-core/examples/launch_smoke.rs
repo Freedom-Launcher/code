@@ -42,6 +42,7 @@ async fn main() {
         last_played: 0,
         playtime_secs: 0,
         settings: Default::default(),
+        pack: None,
     };
     let v = loader::resolve(&core, &layout, &inst)
         .await

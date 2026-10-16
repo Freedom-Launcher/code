@@ -25,7 +25,21 @@ pub struct Instance {
     pub playtime_secs: u64,
     #[serde(default)]
     pub settings: InstanceSettings,
+    /// The Modrinth modpack it was installed from; enables updates.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pack: Option<PackRef>,
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PackRef {
+    pub project_id: String,
+    pub version_id: String,
+    #[serde(default)]
+    pub version_number: String,
+}
+
+/// Files the pack put in the game folder (relative paths); an update removes the ones it drops.
+pub const PACK_FILES: &str = "freedom-pack.json";
 
 /// Per-instance overrides; `None` = launcher default.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

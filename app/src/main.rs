@@ -327,6 +327,22 @@ fn addon_protocol(
 
 /// Opens the addons folder in the system file manager.
 #[tauri::command]
+async fn open_exports_folder(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+) -> Result<(), String> {
+    let core = Arc::clone(&state.0);
+    let v = core
+        .dispatch(&Caller::BuiltinUi, "exports.folder", Value::Null)
+        .await
+        .map_err(|e| e.to_string())?;
+    let path = v["path"].as_str().ok_or("no folder")?.to_owned();
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn open_addons_folder(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppCore>,
@@ -447,6 +463,7 @@ fn main() {
             open_themes_folder,
             addon_action,
             open_addons_folder,
+            open_exports_folder,
             set_wallpaper,
             clear_wallpaper,
             stage_mrpack

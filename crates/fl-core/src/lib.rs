@@ -18,6 +18,7 @@ pub mod actions;
 pub mod addons;
 mod builtin;
 pub mod error;
+pub mod export;
 pub mod game;
 pub mod instances;
 pub mod keychain;
