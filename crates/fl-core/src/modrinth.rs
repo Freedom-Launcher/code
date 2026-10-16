@@ -223,11 +223,19 @@ pub struct Project {
     pub icon_url: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Version {
     pub id: String,
     pub project_id: String,
+    #[serde(default)]
+    pub name: String,
     pub version_number: String,
+    #[serde(default)]
+    pub changelog: Option<String>,
+    #[serde(default)]
+    pub date_published: String,
+    #[serde(default)]
+    pub downloads: u64,
     #[serde(default)]
     pub version_type: String,
     #[serde(default)]
@@ -240,7 +248,7 @@ pub struct Version {
     pub files: Vec<VersionFile>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Dependency {
     #[serde(default)]
     pub project_id: Option<String>,
@@ -248,7 +256,7 @@ pub struct Dependency {
     pub dependency_type: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionFile {
     pub url: String,
     pub filename: String,
@@ -260,10 +268,113 @@ pub struct VersionFile {
     pub hashes: Hashes,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Hashes {
     #[serde(default)]
     pub sha1: String,
+}
+
+/// What the project page shows: Modrinth's project, minus moderation fields.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectPage {
+    pub id: String,
+    pub slug: String,
+    pub title: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub body: String,
+    #[serde(default)]
+    pub project_type: String,
+    #[serde(default)]
+    pub icon_url: Option<String>,
+    #[serde(default)]
+    pub categories: Vec<String>,
+    #[serde(default)]
+    pub additional_categories: Vec<String>,
+    #[serde(default)]
+    pub loaders: Vec<String>,
+    #[serde(default)]
+    pub game_versions: Vec<String>,
+    #[serde(default)]
+    pub client_side: String,
+    #[serde(default)]
+    pub server_side: String,
+    #[serde(default)]
+    pub downloads: u64,
+    #[serde(default)]
+    pub followers: u64,
+    #[serde(default)]
+    pub published: String,
+    #[serde(default)]
+    pub updated: String,
+    #[serde(default)]
+    pub license: Option<License>,
+    #[serde(default)]
+    pub source_url: Option<String>,
+    #[serde(default)]
+    pub issues_url: Option<String>,
+    #[serde(default)]
+    pub wiki_url: Option<String>,
+    #[serde(default)]
+    pub discord_url: Option<String>,
+    #[serde(default)]
+    pub donation_urls: Vec<Donation>,
+    #[serde(default)]
+    pub gallery: Vec<GalleryImage>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct License {
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Donation {
+    #[serde(default)]
+    pub platform: String,
+    pub url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GalleryImage {
+    pub url: String,
+    #[serde(default)]
+    pub featured: bool,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub ordering: i64,
+}
+
+/// Modrinth project ids and slugs: letters, digits, `-`, `_`, `.`; short.
+pub fn valid_project_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 64
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
+        && !id.starts_with('.')
+}
+
+/// The full project for its page; gallery in Modrinth's order.
+pub async fn project_page(core: &Core, id: &str) -> Result<ProjectPage, CoreError> {
+    let url = format!("{API}/project/{}", encode(id));
+    let mut p: ProjectPage = core
+        .http()
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    p.gallery.sort_by_key(|g| g.ordering);
+    Ok(p)
 }
 
 impl Version {
@@ -482,6 +593,17 @@ mod tests {
             ..q("x", Kind::Mod, "1.20.1", &[])
         })
         .contains("index=updated"));
+    }
+
+    #[test]
+    fn project_ids_are_plain() {
+        assert!(valid_project_id("AANobbMI"));
+        assert!(valid_project_id("fabric-api"));
+        assert!(!valid_project_id(""));
+        assert!(!valid_project_id("../user"));
+        assert!(!valid_project_id("a/b"));
+        assert!(!valid_project_id("a?b"));
+        assert!(!valid_project_id(&"x".repeat(65)));
     }
 
     #[test]

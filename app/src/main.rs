@@ -46,6 +46,32 @@ async fn theme_action(
         .map_err(|e| e.to_string())
 }
 
+/// Opens a link from a project page in the system browser: plain https only.
+#[tauri::command]
+fn open_link(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    if !link_ok(&url) {
+        return Err("this address is not allowed".into());
+    }
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
+fn link_ok(url: &str) -> bool {
+    let Some(rest) = url.strip_prefix("https://") else {
+        return false;
+    };
+    let host = rest.split(['/', '?', '#']).next().unwrap_or("");
+    url.len() <= 2048
+        && !host.is_empty()
+        && host
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-' | b':'))
+        && url
+            .bytes()
+            .all(|b| b > 0x20 && b < 0x7f && !matches!(b, b'"' | b'\\' | b'<' | b'>'))
+}
+
 /// Opens the Microsoft sign-in page in the system browser. Only fixed Microsoft URLs are allowed.
 #[tauri::command]
 fn open_login_page(app: tauri::AppHandle, url: String) -> Result<(), String> {
@@ -416,6 +442,7 @@ fn main() {
             action,
             theme_action,
             open_login_page,
+            open_link,
             open_instance_folder,
             open_themes_folder,
             addon_action,
@@ -426,4 +453,20 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Freedom Launcher");
+}
+
+#[cfg(test)]
+mod link_tests {
+    use super::link_ok;
+
+    #[test]
+    fn links_are_plain_https() {
+        assert!(link_ok("https://github.com/CaffeineMC/sodium"));
+        assert!(link_ok("https://discord.gg/abc?x=1"));
+        assert!(!link_ok("http://example.com"));
+        assert!(!link_ok("file:///etc/passwd"));
+        assert!(!link_ok("https://user@evil.com/"));
+        assert!(!link_ok("https:///x"));
+        assert!(!link_ok("https://a.com/ b"));
+    }
 }

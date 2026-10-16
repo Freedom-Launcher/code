@@ -97,3 +97,9 @@
   .disc-side { position: static; max-height: none; }
   .disc-opts { flex-direction: row; flex-wrap: wrap; gap: 4px; }
 }
+
+/* A card opens its project page. */
+.mod-card { cursor: pointer; transition: background-color var(--d-2) var(--ease-out); }
+.mod-card:hover { background: var(--surface-3); }
+.mod-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mod-card .btn { cursor: default; }

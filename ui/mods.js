@@ -286,16 +286,20 @@
     const k = kind;
     const on = k !== 'modpack' && have.has(h.project_id);
     const b = el('button', { class: `btn${on ? '' : ' btn-primary'}`, disabled: on, 'data-id': `discover.install.${h.slug}` }, el('span', { class: 'lbl' }, on ? 'Установлен' : 'Установить'));
-    b.addEventListener('click', (e) => {
-      if (k === 'modpack') installPack(b, h);
-      else if (target && (k !== 'datapack' || dworld)) installInto(b, h, where());
-      else { e.stopPropagation(); pickTarget(b, h, k); }
-    });
-    return el('article', { class: 'mod-card', 'data-project': h.project_id },
+    b.addEventListener('click', (e) => { e.stopPropagation(); install(b, h, k); });
+    const open = () => window.FProject?.open(h.project_id, k, h);
+    return el('article', { class: 'mod-card', 'data-project': h.project_id, tabindex: '0', onclick: open, onkeydown: (e) => { if (e.key === 'Enter' && e.target === e.currentTarget) open(); } },
       icon(h.icon_url, h.title),
       el('div', { class: 't' }, el('b', {}, h.title), el('span', {}, h.author)),
       el('p', {}, h.description),
       el('div', { class: 'foot' }, el('span', { class: 'dl' }, `${fmtN(h.downloads)} загрузок`), b));
+  }
+
+  function install(b, h, k, version) {
+    const v = version ? { version } : {};
+    if (k === 'modpack') installPack(b, h, version);
+    else if (target && k === kind && (k !== 'datapack' || dworld)) installInto(b, h, { ...where(), ...v });
+    else pickTarget(b, h, k, version);
   }
 
   async function installInto(b, h, at) {
@@ -310,7 +314,7 @@
   // «Установить» without a chosen instance asks where, like Modrinth's install modal.
   const pick = el('div', { class: 'pop', id: 'menu-disc-pick', role: 'menu', 'data-id': 'discover.pick' });
   document.body.append(pick);
-  async function pickTarget(b, h, k) {
+  async function pickTarget(b, h, k, version) {
     const list = S.instances.filter((i) => supports(i, k));
     let items = list.map((i) => ({ at: { instance: i.id, kind: k }, label: i.name, sub: `${LOADER_NAMES[i.loader] || LOADER_NAMES.vanilla} ${i.version}` }));
     if (k === 'datapack') {
@@ -320,7 +324,7 @@
     if (!items.length) { toast(k === 'datapack' ? 'Миров пока нет' : 'Нет подходящих сборок', { error: true }); return; }
     pick.replaceChildren(el('div', { class: 'menu-label' }, 'Установить в'), ...items.map((it) => {
       const m = el('button', { class: 'menu-item', 'data-id': `discover.pick.${it.at.instance}` }, el('span', { class: 'mi-t' }, it.label), el('span', { class: 'mi-sub' }, it.sub));
-      m.addEventListener('click', () => installInto(b, h, it.at));
+      m.addEventListener('click', () => installInto(b, h, version ? { ...it.at, version } : it.at));
       return m;
     }));
     const r = b.getBoundingClientRect();
@@ -330,7 +334,7 @@
   const uuid = () => crypto.randomUUID?.() || '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16));
 
   // A modpack becomes a new instance; the button shows the download progress.
-  async function installPack(b, h) {
+  async function installPack(b, h, version) {
     const lbl = b.querySelector('.lbl');
     const token = uuid();
     b.disabled = true;
@@ -343,7 +347,7 @@
       if (f != null) lbl.textContent = `${Math.floor(f * 100)}%`;
     }, 250);
     try {
-      const created = await call('modpacks.install', { project: h.project_id, token });
+      const created = await call('modpacks.install', { project: h.project_id, token, ...(version ? { version } : {}) });
       clearInterval(poll);
       b.dataset.state = 'success';
       lbl.textContent = 'Установлена';
@@ -391,7 +395,9 @@
   $('#disc-reset').addEventListener('click', () => { cats.clear(); loader = null; paintLoaders(); paintCats(); search(true); });
   $('#disc-more').addEventListener('click', () => search(false));
 
-  window.FMods = { instance, discover };
+  // The project page reuses the catalog's install flow and context.
+  const context = () => ({ target: target && byId(target), kind, have });
+  window.FMods = { instance, discover, install, context, icon, fmtN, supports, catName };
 })();// app.js may have opened a view before this script ran.
 if (S.view === 'instance' && S.current) window.FMods.instance(byId(S.current));
 if (S.view === 'discover') window.FMods.discover();

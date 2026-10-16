@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="shell-2.css">
   <link rel="stylesheet" href="home.css">
   <link rel="stylesheet" href="mods.css">
+  <link rel="stylesheet" href="project.css">
   <link rel="stylesheet" href="glass.css">
   <link rel="stylesheet" href="palette.css">
   <link rel="stylesheet" href="welcome.css">
@@ -20,6 +21,8 @@
   <script src="addons.js" defer></script>
   <script src="app.js" defer></script>
   <script src="mods.js" defer></script>
+  <script src="md.js" defer></script>
+  <script src="project.js" defer></script>
   <script src="palette.js" defer></script>
   <script src="welcome.js" defer></script>
 </head>
@@ -235,6 +238,22 @@
         </div>
       </section>
 
+      <section class="view" id="view-project" data-id="view.project">
+        <div class="narrow">
+          <button class="btn btn-ghost proj-back" id="proj-back" data-id="project.back"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg><span class="lbl">Назад</span></button>
+          <div class="proj-for" id="proj-for" data-id="project.for" hidden></div>
+          <header class="proj-head" id="proj-head" data-id="project.header"></header>
+          <div class="proj-layout">
+            <div class="proj-main">
+              <nav class="seg proj-tabs" id="proj-tabs" data-id="project.tabs" hidden><button data-tab="desc" aria-selected="true">Описание</button><button data-tab="versions">Версии<span class="n"></span></button><button data-tab="gallery">Галерея<span class="n"></span></button></nav>
+              <div class="proj-pane" id="proj-pane" data-id="project.pane"></div>
+            </div>
+            <aside class="proj-side" id="proj-side" data-id="project.sidebar"></aside>
+          </div>
+          <div data-slot="project.end"></div>
+        </div>
+        <div class="pop" id="menu-proj" role="menu" data-id="project.menu"><button class="menu-item" data-do="open">Открыть на Modrinth</button><button class="menu-item" data-do="copy">Скопировать ссылку</button></div>
+      </section>
       <section class="view" id="view-settings" data-id="view.settings">
         <div class="narrow">
           <h1 class="page-h">Настройки</h1>

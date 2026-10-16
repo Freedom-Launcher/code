@@ -949,6 +949,18 @@ fn idle(c: &Core, i: &Instance) -> Result<(), CoreError> {
     Ok(())
 }
 
+fn project_arg(a: Value) -> Result<String, CoreError> {
+    #[derive(Deserialize)]
+    struct A {
+        id: String,
+    }
+    let A { id } = args(a)?;
+    if !modrinth::valid_project_id(&id) {
+        return Err(CoreError::msg("Неверный проект"));
+    }
+    Ok(id)
+}
+
 fn register_mods(r: &mut ActionRegistry) {
     // Modrinth search for one content kind, already filtered to the
     // instance's game version and loader.
@@ -1010,6 +1022,15 @@ fn register_mods(r: &mut ActionRegistry) {
         Ok(json!({ "supported": true, "hits": page.hits, "total_hits": page.total_hits }))
     });
     // Category filters Modrinth offers for a kind, grouped by header.
+    // The project page: Modrinth's project and every version, newest first.
+    r.register("modrinth.project", P::Network, false, |c, a| async move {
+        let id = project_arg(a)?;
+        Ok(serde_json::to_value(modrinth::project_page(&c, &id).await?)?)
+    });
+    r.register("modrinth.versions", P::Network, false, |c, a| async move {
+        let id = project_arg(a)?;
+        Ok(serde_json::to_value(modrinth::project_versions(&c, &id).await?)?)
+    });
     r.register("mods.categories", P::Network, false, |c, a| async move {
         #[derive(Deserialize)]
         struct A {

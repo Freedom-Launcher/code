@@ -13,12 +13,14 @@ const PLAY_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9
 function el(tag, attrs = {}, ...kids) {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
+    if (v == null) continue;
     if (k === 'class') n.className = v;
     else if (k === 'html') n.innerHTML = v;
-    else if (k.startsWith('data-') || k.startsWith('aria-')) n.setAttribute(k, v);
+    else if (k.startsWith('data-') || k.startsWith('aria-') || k === 'tabindex') n.setAttribute(k, v);
     else n[k] = v;
   }
-  n.append(...kids);
+  // Optional parts are written inline as `cond ? node : null`.
+  n.append(...kids.filter((c) => c != null && c !== false));
   return n;
 }
 const fmtBytes = (b) => (b >= 1 << 30 ? `${(b / (1 << 30)).toFixed(1)} ГБ` : b >= 1 << 20 ? `${(b / (1 << 20)).toFixed(0)} МБ` : `${Math.round(b / 1024)} КБ`);
@@ -72,7 +74,8 @@ document.addEventListener('click', async (ev) => {
 function show(view) {
   S.view = view;
   $$('.view').forEach((x) => x.classList.toggle('is-active', x.id === `view-${view}`));
-  $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === view ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
+  const lit = view === 'project' ? 'discover' : view;
+  $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === lit ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   $$('#rail-list .tile').forEach((t) => (view === 'instance' && t.dataset.inst === S.current ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
   $('#top-title').textContent = TITLES[view] ?? '';
   if (view === 'settings') requestAnimationFrame(() => { $('#set-seg')._place?.(false); $('#cover-seg')._place?.(false); $('#wall-seg')._place?.(false); });
