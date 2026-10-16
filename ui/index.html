@@ -13,11 +13,13 @@
   <link rel="stylesheet" href="home.css">
   <link rel="stylesheet" href="mods.css">
   <link rel="stylesheet" href="glass.css">
+  <link rel="stylesheet" href="palette.css">
   <script src="ui.js" defer></script>
   <script src="themes.js" defer></script>
   <script src="addons.js" defer></script>
   <script src="app.js" defer></script>
   <script src="mods.js" defer></script>
+  <script src="palette.js" defer></script>
 </head>
 <body>
   <div id="app" class="app" data-id="app" hidden>
@@ -44,6 +46,10 @@
     <!-- Top bar: title, running indicator, account, window controls -->
     <header class="top" data-id="topbar" data-tauri-drag-region>
       <div class="top-title" id="top-title" data-tauri-drag-region>Freedom Launcher</div>
+      <div class="spacer" data-tauri-drag-region></div>
+      <button class="pal-trigger" id="pal-open" data-id="topbar.palette" aria-label="Командная строка">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><span>Поиск</span><kbd data-pal-kbd>Ctrl K</kbd>
+      </button>
       <div class="spacer" data-tauri-drag-region></div>
       <div data-slot="topbar.end"></div>
       <div class="running" id="running" data-id="topbar.running"><i class="dot"></i><span id="running-text">Ничего не запущено</span></div>
@@ -216,6 +222,10 @@
                 <button class="btn" id="theme-folder" data-id="settings.theme.folder"><span class="lbl">Открыть</span></button></div>
               <div class="r"><div class="grow"><div class="t">Анимации</div></div>
                 <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
+              <div class="r"><div class="grow"><div class="t">Командная строка</div><div class="s" data-pal-kbd>Ctrl K</div></div>
+                <div class="seg" id="pal-pos-seg" data-id="settings.palette.position"><button data-pal-pos="top" aria-selected="true">Сверху</button><button data-pal-pos="bottom">Снизу</button></div></div>
+              <div class="r"><div class="grow"><div class="t">Размывать фон под строкой</div></div>
+                <label class="switch"><input type="checkbox" id="pal-blur" checked data-id="settings.palette.blur"><i></i></label></div>
               <div class="r"><div class="grow"><div class="t">Обои</div></div>
                 <div class="seg" id="wall-seg" data-id="settings.wall"><button data-wall-set="cover" aria-selected="true">Обложка</button><button data-wall-set="custom">Своя</button><button data-wall-set="off">Нет</button></div></div>
               <div class="r" id="wall-file-row" hidden><div class="grow"><div class="t">Картинка</div></div>
@@ -323,6 +333,18 @@
     </div>
   </form>
 
+  <!-- Command palette (Ctrl K) -->
+  <div class="palette" id="palette" data-id="palette" role="dialog" aria-label="Командная строка" aria-hidden="true">
+    <div class="pal-scrim" id="pal-scrim"></div>
+    <div class="pal-panel" data-id="palette.panel">
+      <label class="pal-input">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+        <input id="pal-q" autocomplete="off" spellcheck="false" placeholder="Сборка, экран или действие" aria-controls="pal-list" data-id="palette.input">
+        <kbd>Esc</kbd>
+      </label>
+      <div class="pal-body" id="pal-body"><div class="pal-list" id="pal-list" role="listbox"><i class="pal-hl" id="pal-hl" hidden></i></div></div>
+    </div>
+  </div>
   <div class="tip" id="tip" role="tooltip"></div>
   <div class="toasts" id="toasts" aria-live="polite"></div>
   <div class="startup" id="startup"></div>

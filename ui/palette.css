@@ -1,0 +1,108 @@
+/* Freedom Launcher — command palette (Ctrl K).
+   html[data-palette-pos="top|bottom"] places the bar, html[data-palette-blur="on|off"] picks the backdrop.
+   Motion is transform/opacity only; [data-motion="off"] and reduced motion turn travel off. Loaded after glass.css. */
+.palette { --pal-w: min(640px, calc(100vw - 48px)); --pal-dir: -1; position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+html[data-palette-pos="bottom"] .palette { --pal-dir: 1; }
+.palette[data-open] { pointer-events: auto; }
+
+/* ---------- Backdrop ---------- */
+.pal-scrim { position: absolute; inset: 0; background: rgba(4, 5, 8, .34); opacity: 0; transition: opacity 260ms var(--ease-out); }
+html[data-palette-blur="on"] .pal-scrim { background: rgba(4, 5, 8, .26); -webkit-backdrop-filter: blur(16px) saturate(1.15); backdrop-filter: blur(16px) saturate(1.15); }
+[data-theme="light"] .pal-scrim { background: rgba(210, 216, 228, .38); }
+[data-theme="light"][data-palette-blur="on"] .pal-scrim { background: rgba(230, 234, 242, .30); }
+.palette[data-open] .pal-scrim { opacity: 1; }
+
+/* ---------- Panel ---------- */
+.pal-panel {
+  position: absolute; left: 50%; width: var(--pal-w); display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 14px; background: var(--surface-1);
+  box-shadow: 0 0 0 1px var(--line-strong), 0 28px 80px -12px rgba(0, 0, 0, .55), 0 8px 24px rgba(0, 0, 0, .25);
+  opacity: 0; transform: translate(-50%, calc(var(--pal-dir) * 16px)) scale(.975);
+  transition: opacity 200ms var(--ease-out), transform 380ms var(--ease-out-2);
+}
+html:not([data-palette-pos="bottom"]) .pal-panel { top: 13vh; transform-origin: 50% 0; }
+html[data-palette-pos="bottom"] .pal-panel { bottom: 28px; flex-direction: column-reverse; transform-origin: 50% 100%; }
+.palette[data-open] .pal-panel { opacity: 1; transform: translate(-50%, 0) scale(1); }
+[data-theme="light"] .pal-panel { box-shadow: 0 0 0 1px rgba(0, 0, 0, .08), 0 28px 70px -14px rgba(20, 30, 60, .28), 0 6px 18px rgba(20, 30, 60, .08); }
+html[data-wall="on"] .pal-panel {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(max(var(--glass-blur), 26px)) saturate(1.5); backdrop-filter: blur(max(var(--glass-blur), 26px)) saturate(1.5);
+  box-shadow: inset 0 0 0 1px var(--glass-border), 0 30px 90px -10px rgba(0, 0, 0, .55);
+}
+
+/* ---------- Input ---------- */
+.pal-input { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px 0 18px; flex: none; cursor: text; }
+.pal-input svg { width: 18px; height: 18px; flex: none; color: var(--text-3); transition: color var(--d-3) var(--ease-out), transform 320ms var(--ease-spring); }
+.palette[data-query] .pal-input svg { color: var(--accent); transform: scale(1.06); }
+.pal-input input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; padding: 0; font-size: 16px; letter-spacing: -.012em; caret-color: var(--accent); }
+.pal-input input::placeholder { color: var(--text-3); }
+.pal-input kbd { flex: none; }
+
+/* ---------- Results ---------- */
+.pal-body {
+  position: relative; flex: none; height: 0; max-height: min(424px, 54vh); overflow-y: auto; overscroll-behavior: contain;
+  padding: 6px; scroll-padding: 34px 0 6px; border-top: 1px solid var(--line);
+  transition: height 300ms var(--ease-out-2);
+}
+html[data-palette-pos="bottom"] .pal-body { border-top: 0; border-bottom: 1px solid var(--line); }
+.pal-body.is-instant, .pal-body.is-instant .pal-hl { transition: none; }
+.pal-list { position: relative; }
+.pal-hl {
+  position: absolute; left: 0; right: 0; top: 0; height: 44px; border-radius: 9px; pointer-events: none;
+  background: rgba(255, 255, 255, .065); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05);
+  transition: transform 240ms var(--ease-out-2), height 240ms var(--ease-out-2), opacity var(--d-2) var(--ease-out);
+}
+[data-theme="light"] .pal-hl { background: rgba(0, 0, 0, .055); box-shadow: none; }
+.pal-hl[hidden] { display: block; opacity: 0; }
+
+.pal-group { position: relative; padding: 10px 10px 5px; font-size: var(--text-xs); font-weight: var(--w-medium); color: var(--text-3); letter-spacing: .01em; }
+.pal-group:first-of-type { padding-top: 4px; }
+.pal-item { position: relative; display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 10px; border-radius: 9px; color: var(--text-2); cursor: default; transition: color var(--d-2) var(--ease-out); }
+.pal-item[aria-selected="true"] { color: var(--text); }
+.pal-ico { position: relative; flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--surface-3) center / cover no-repeat; color: var(--text-2); transition: color var(--d-2) var(--ease-out), transform 300ms var(--ease-spring); }
+html[data-wall="on"] .pal-ico { background-color: rgba(255, 255, 255, .08); }
+.pal-ico svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.pal-ico.is-cover { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14); }
+.pal-ico .live { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--success, #4cc38a); box-shadow: 0 0 0 2px var(--surface-1); }
+.pal-item[aria-selected="true"] .pal-ico { color: var(--text); transform: scale(1.04); }
+.pal-t { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.pal-t b { flex: none; max-width: 70%; overflow: hidden; text-overflow: ellipsis; font-weight: var(--w-medium); }
+.pal-t span { overflow: hidden; text-overflow: ellipsis; font-size: var(--text-sm); color: var(--text-3); }
+.pal-t mark { background: none; color: var(--accent); }
+.pal-key { flex: none; display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--text-3); }
+.pal-key em { font-style: normal; }
+.pal-hint { flex: none; display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--text-3); opacity: 0; transform: translateX(6px); transition: opacity var(--d-3) var(--ease-out), transform 260ms var(--ease-out-2); }
+.pal-hint em { font-style: normal; margin-right: 2px; }
+.pal-item[aria-selected="true"] .pal-hint { opacity: 1; transform: none; }
+.pal-item[aria-selected="true"] .pal-key { display: none; }
+.pal-empty { padding: 22px 10px; text-align: center; color: var(--text-3); }
+
+/* New rows slide in from the bar, one after another; rows that stay put do not move. */
+.palette[data-open] .is-new { animation: pal-in 340ms var(--ease-out-2) both; animation-delay: calc(min(var(--i, 0), 12) * 14ms); }
+@keyframes pal-in { from { opacity: 0; transform: translateY(calc(var(--pal-dir) * 6px)); } }
+
+/* ---------- Top bar trigger ---------- */
+.pal-trigger {
+  display: flex; align-items: center; gap: 8px; width: 260px; height: 28px; padding: 0 5px 0 10px; border: 0; border-radius: 8px;
+  background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-3); font-size: var(--text-sm); cursor: default;
+  transition: background var(--d-2) var(--ease-out), color var(--d-2) var(--ease-out), transform var(--d-2) var(--ease-out);
+}
+.pal-trigger:hover { background: var(--surface-3); color: var(--text-2); }
+.pal-trigger:active { transform: scale(.985); }
+.pal-trigger svg { width: 14px; height: 14px; flex: none; }
+.pal-trigger kbd { margin-left: auto; }
+html[data-wall="on"] .pal-trigger { background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .09); }
+html[data-wall="on"] .pal-trigger:hover { background: rgba(255, 255, 255, .11); }
+@media (max-width: 980px) { .pal-trigger { width: 180px; } }
+
+/* ---------- Motion off ---------- */
+[data-motion="off"] .pal-panel, [data-motion="off"] .pal-scrim, [data-motion="off"] .pal-body, [data-motion="off"] .pal-hl { transition-duration: 0ms; }
+[data-motion="off"] .palette .is-new { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .pal-panel { transform: translate(-50%, 0); }
+  .palette .is-new { animation: none; }
+}
+/* The bar is the field: no inner focus ring or field chrome. */
+.pal-input input, .pal-input input:focus, .pal-input input:focus-visible { outline: 0; box-shadow: none; background: none; border-radius: 0; }
+/* The Enter hint overlays the row end, so shortcut chips keep their place. */
+.pal-hint { position: absolute; right: 10px; top: 0; bottom: 0; }
