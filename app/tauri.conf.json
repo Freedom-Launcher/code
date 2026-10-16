@@ -27,10 +27,36 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "nsis",
+      "app",
+      "dmg",
+      "appimage",
+      "deb"
+    ],
     "icon": [
       "icons/icon.png",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "Freedom Launcher",
+    "category": "Game",
+    "shortDescription": "Лаунчер Minecraft: Java Edition",
+    "longDescription": "Лёгкий и быстрый лаунчер Minecraft: Java Edition с темами, дополнениями и модами с Modrinth.",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "Russian",
+          "English"
+        ],
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "startMenuFolder": "Freedom Launcher"
+      }
+    }
   }
 }
