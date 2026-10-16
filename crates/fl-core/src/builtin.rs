@@ -122,8 +122,8 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 .collect();
         }
         if let Some(u) = ui {
-            let u: crate::settings::UiCustom = serde_json::from_value(u)
-                .map_err(|e| CoreError::BadArgs(format!("ui: {e}")))?;
+            let u: crate::settings::UiCustom =
+                serde_json::from_value(u).map_err(|e| CoreError::BadArgs(format!("ui: {e}")))?;
             s.ui = u.checked().map_err(CoreError::BadArgs)?;
         }
         store::save(&c.path(SETTINGS), &s, false)?;
@@ -161,6 +161,22 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         // A broken template must never break the screen: fall back to the built-in one.
         let html = themes::template(&c.data_dir, &s.theme, &screen).unwrap_or(None);
         Ok(json!({ "screen": screen, "html": html }))
+    });
+    // The editor's edits become a theme of their own; the user's layer starts clean on top of it.
+    r.register("themes.save", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            name: String,
+        }
+        let A { name } = args(a)?;
+        let _g = c.state_lock.lock().await;
+        let mut s: Settings = store::load(&c.path(SETTINGS))?;
+        let id =
+            themes::save(&c.data_dir, &s.theme, &name, s.ui.clone()).map_err(CoreError::BadArgs)?;
+        s.theme = id;
+        s.ui = Default::default();
+        store::save(&c.path(SETTINGS), &s, false)?;
+        Ok(themes::current(&c.data_dir, &s.theme))
     });
     r.register("themes.folder", P::Internal, false, |c, _| async move {
         let d = themes::dir(&c.data_dir);

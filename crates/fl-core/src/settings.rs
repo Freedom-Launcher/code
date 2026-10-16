@@ -150,7 +150,9 @@ pub struct UiEl {
     pub hide: bool,
 }
 
-pub const UI_RADIUS: [&str; 8] = ["btn", "field", "card", "icon", "menu", "chip", "nav", "dialog"];
+pub const UI_RADIUS: [&str; 8] = [
+    "btn", "field", "card", "icon", "menu", "chip", "nav", "dialog",
+];
 /// `(group, min %, max %)`.
 pub const UI_SIZE: [(&str, u16, u16); 6] = [
     ("btn", 70, 150),
@@ -179,6 +181,34 @@ fn keep_visible(id: &str) -> bool {
 }
 
 impl UiCustom {
+    /// `over` on top of `self` (a theme's edits): corner and size percents multiply,
+    /// so 100 % always means "as the theme draws it"; the rest is replaced.
+    pub fn layered(&self, over: &UiCustom) -> UiCustom {
+        let mul = |b: Option<&u16>, v: u16| {
+            ((u32::from(*b.unwrap_or(&100)) * u32::from(v) + 50) / 100).min(1000) as u16
+        };
+        let mut u = self.clone();
+        for (k, v) in &over.radius {
+            let x = mul(u.radius.get(k), *v);
+            u.radius.insert(k.clone(), x);
+        }
+        for (k, v) in &over.size {
+            let x = mul(u.size.get(k), *v);
+            u.size.insert(k.clone(), x);
+        }
+        u.layout.extend(over.layout.clone());
+        for (id, e) in &over.els {
+            let b = u.els.entry(id.clone()).or_default();
+            b.radius = e.radius.or(b.radius);
+            b.scale = e.scale.or(b.scale);
+            b.hide |= e.hide;
+        }
+        u.order.extend(over.order.clone());
+        u.radius.retain(|_, v| *v != 100);
+        u.size.retain(|_, v| *v != 100);
+        u
+    }
+
     /// Rejects unknown names, clamps numbers, drops no-op entries.
     pub fn checked(mut self) -> Result<Self, String> {
         for (k, v) in &mut self.radius {
@@ -246,7 +276,8 @@ mod tests {
         assert_eq!(u.size["btn"], 70);
         assert!(!u.els.contains_key("settings.game"));
         assert_eq!(u.els["instance.play"].scale, Some(200));
-        let bad = |v: Value| serde_json::from_value::<UiCustom>(v).map_or(true, |u| u.checked().is_err());
+        let bad =
+            |v: Value| serde_json::from_value::<UiCustom>(v).map_or(true, |u| u.checked().is_err());
         assert!(bad(json!({ "radius": { "x": 1 } })));
         assert!(bad(json!({ "layout": { "rail": "top" } })));
         assert!(bad(json!({ "order": { "rail": [0, 0] } })));
@@ -256,6 +287,23 @@ mod tests {
 
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn ui_layers_multiply_percents() {
+        let base: UiCustom = serde_json::from_value(
+            json!({ "radius": { "btn": 200 }, "layout": { "rail": "right" } }),
+        )
+        .unwrap();
+        let over: UiCustom = serde_json::from_value(
+            json!({ "radius": { "btn": 50, "card": 150 }, "els": { "x": { "hide": true } } }),
+        )
+        .unwrap();
+        let u = base.layered(&over).checked().unwrap();
+        assert!(!u.radius.contains_key("btn"));
+        assert_eq!(u.radius["card"], 150);
+        assert_eq!(u.layout["rail"], "right");
+        assert!(u.els["x"].hide);
+    }
 
     #[test]
     fn loader_order_is_normalized() {
