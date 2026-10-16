@@ -78,6 +78,31 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         return;
     }
 
+    // Shell look (wallpaper, glass, cover, palette) and motion. `look` is a partial patch.
+    r.register("settings.set", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct A {
+            look: Option<Value>,
+            reduce_motion: Option<bool>,
+        }
+        let A {
+            look,
+            reduce_motion,
+        } = args(a)?;
+        let _g = c.state_lock.lock().await;
+        let mut s: Settings = store::load(&c.path(SETTINGS))?;
+        if let Some(p) = look {
+            let base = s.look.clone().unwrap_or_default();
+            s.look = Some(base.patch(&p).map_err(CoreError::BadArgs)?);
+        }
+        if let Some(m) = reduce_motion {
+            s.reduce_motion = m;
+        }
+        store::save(&c.path(SETTINGS), &s, false)?;
+        Ok(serde_json::to_value(s)?)
+    });
+
     // Themes (M2): tokens + CSS + templates, checked in `themes.rs`. Not available in safe mode.
     r.register("themes.list", P::Public, false, |c, _| async move {
         Ok(json!(themes::list(&c.data_dir)))

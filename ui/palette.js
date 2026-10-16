@@ -23,8 +23,8 @@
   const HINT = { inst: 'Играть', go: 'Перейти', act: 'Выполнить', mods: 'Искать' };
 
   // ---------- Settings: bar position + backdrop blur ----------
-  const pos = () => (localStorage.getItem('fl.palette-pos') === 'bottom' ? 'bottom' : 'top');
-  const blurOn = () => localStorage.getItem('fl.palette-blur') !== 'off';
+  const pos = () => S.look.palette_pos;
+  const blurOn = () => S.look.palette_blur;
   function applyPal() {
     const r = document.documentElement;
     r.dataset.palettePos = pos();
@@ -33,8 +33,9 @@
     $('#pal-pos-seg')?._place?.(false);
     if ($('#pal-blur')) $('#pal-blur').checked = blurOn();
   }
-  $('#pal-pos-seg')?.addEventListener('seg:change', (e) => { localStorage.setItem('fl.palette-pos', e.detail.dataset.palPos); applyPal(); });
-  $('#pal-blur')?.addEventListener('change', (e) => { localStorage.setItem('fl.palette-blur', e.target.checked ? 'on' : 'off'); applyPal(); });
+  $('#pal-pos-seg')?.addEventListener('seg:change', (e) => { setLook({ palette_pos: e.detail.dataset.palPos }); applyPal(); });
+  $('#pal-blur')?.addEventListener('change', (e) => { setLook({ palette_blur: e.target.checked }); applyPal(); });
+  document.addEventListener('look:change', applyPal);
   // The settings pane is hidden until opened; place the pill once it gets a size.
   if (window.ResizeObserver && $('#pal-pos-seg')) new ResizeObserver(() => $('#pal-pos-seg')._place?.(true)).observe($('#pal-pos-seg'));
   $$('[data-pal-kbd]').forEach((k) => { k.textContent = `${MOD} K`; });
@@ -67,8 +68,8 @@
     const motion = $('#fx-motion');
     add('act', 'act.motion', motion.checked ? 'Выключить анимации' : 'Включить анимации', 'motion', () => { motion.checked = !motion.checked; motion.dispatchEvent(new Event('change')); }, { k: 'motion эффекты' });
     const other = pos() === 'top' ? 'bottom' : 'top';
-    add('act', 'act.palpos', `Командная строка ${other === 'top' ? 'сверху' : 'снизу'}`, 'bar', () => { localStorage.setItem('fl.palette-pos', other); applyPal(); }, { k: 'палитра palette положение' });
-    add('act', 'act.palblur', blurOn() ? 'Не размывать фон под строкой' : 'Размывать фон под строкой', 'bar', () => { localStorage.setItem('fl.palette-blur', blurOn() ? 'off' : 'on'); applyPal(); }, { k: 'blur размытие палитра' });
+    add('act', 'act.palpos', `Командная строка ${other === 'top' ? 'сверху' : 'снизу'}`, 'bar', () => { setLook({ palette_pos: other }); applyPal(); }, { k: 'палитра palette положение' });
+    add('act', 'act.palblur', blurOn() ? 'Не размывать фон под строкой' : 'Размывать фон под строкой', 'bar', () => { setLook({ palette_blur: !blurOn() }); applyPal(); }, { k: 'blur размытие палитра' });
     if (S.current) add('act', 'act.folder.inst', 'Открыть папку сборки', 'folder', () => folder('open_instance_folder', { instance: S.current }), { k: 'folder проводник' });
     add('act', 'act.folder.themes', 'Открыть папку тем', 'folder', () => folder('open_themes_folder'), { k: 'folder themes' });
     add('act', 'act.folder.addons', 'Открыть папку дополнений', 'folder', () => folder('open_addons_folder'), { k: 'folder addons' });

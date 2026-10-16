@@ -282,7 +282,9 @@ mod tests {
         .unwrap();
         let layout = Layout { root: "/d".into() };
         let a = build_args(&v, &win(), &layout, &auth(), &opts());
-        assert!(a.contains(&"-DignoreList=client-extra,neoforge-21.4.161.jar,1.21.4.jar".to_owned()));
+        assert!(
+            a.contains(&"-DignoreList=client-extra,neoforge-21.4.161.jar,1.21.4.jar".to_owned())
+        );
 
         let plain = VersionJson { jar: None, ..v };
         let a = build_args(&plain, &win(), &layout, &auth(), &opts());

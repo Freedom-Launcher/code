@@ -190,7 +190,10 @@ mod tests {
                            { "loader": { "version": "0.1.0-beta.10" } }]);
         assert_eq!(pick_quilt(&betas).as_deref(), Some("0.1.0-beta.10"));
         assert_eq!(pick_quilt(&json!([])), None);
-        assert_eq!(inst("quilt", "0.29.2").version_id(), "quilt-loader-0.29.2-1.21.4");
+        assert_eq!(
+            inst("quilt", "0.29.2").version_id(),
+            "quilt-loader-0.29.2-1.21.4"
+        );
         assert_eq!(meta_base("quilt"), Some(QUILT_META));
         assert_eq!(meta_base("forge"), None);
     }

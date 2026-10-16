@@ -27,7 +27,9 @@ async fn main() {
     let lv = if kind == "vanilla" {
         String::new()
     } else {
-        loader::latest(&core, &kind, &game).await.expect("loader list")
+        loader::latest(&core, &kind, &game)
+            .await
+            .expect("loader list")
     };
     let inst = Instance {
         id: "smoke".into(),
@@ -41,15 +43,21 @@ async fn main() {
         playtime_secs: 0,
         settings: Default::default(),
     };
-    let v = loader::resolve(&core, &layout, &inst).await.expect("resolve");
+    let v = loader::resolve(&core, &layout, &inst)
+        .await
+        .expect("resolve");
     let p = Arc::new(Progress::default());
-    let v = install::install(&core, v, Arc::clone(&p)).await.expect("install");
+    let v = install::install(&core, v, Arc::clone(&p))
+        .await
+        .expect("install");
     if kind == "forge" || kind == "neoforge" {
         fl_core::game::forge::post_install(&core, &layout, &inst, &v, Arc::clone(&p))
             .await
             .expect("processors");
     }
-    let exe = java::ensure(&core, v.java_version.as_ref(), p).await.expect("java");
+    let exe = java::ensure(&core, v.java_version.as_ref(), p)
+        .await
+        .expect("java");
     println!("{} ready, java {}", v.id, exe.display());
 
     let mut env = Env::current();
@@ -61,7 +69,10 @@ async fn main() {
         xuid: String::new(),
         user_type: "msa".into(),
     };
-    let game_dir = core.data_dir.join("instances").join(format!("smoke-{kind}"));
+    let game_dir = core
+        .data_dir
+        .join("instances")
+        .join(format!("smoke-{kind}"));
     let opts = LaunchOptions {
         java: exe.clone(),
         game_dir: game_dir.clone(),
@@ -90,5 +101,8 @@ async fn main() {
             let _ = child.kill();
         }
     }
-    println!("log: {}", game_dir.join("logs/launcher-output.log").display());
+    println!(
+        "log: {}",
+        game_dir.join("logs/launcher-output.log").display()
+    );
 }

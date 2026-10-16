@@ -565,7 +565,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && S.view === 'instance' && !document.querySelector('.dialog[data-open]')) play(S.current, true);
 });
 
-// ---------- Settings: sections, theme + effects (saved locally until settings.set exists) ----------
+// ---------- Settings: sections, theme + effects (look is kept in the core, see syncLook) ----------
 $('#set-seg').addEventListener('seg:change', (e) => {
   $$('#view-settings .set-pane').forEach((p) => { p.hidden = p.id !== `set-${e.detail.dataset.pane}`; });
   requestAnimationFrame(() => $('#theme-seg')._place?.(false));
@@ -601,22 +601,73 @@ $('#theme-seg').addEventListener('seg:change', async (e) => {
 $('#theme-folder').addEventListener('click', () => invoke('open_themes_folder').catch((e) => toast(String(e), { error: true })));
 $('#theme-reload').addEventListener('click', () => { location.hash = 'settings'; location.reload(); });
 
+// Look (wallpaper, glass, cover, palette) lives in the core (settings.look).
+// localStorage keeps a mirror so the first paint is right before the core answers.
+const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur' };
+const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true };
+const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'] };
+function lookFromCache() {
+  const l = { ...LOOK_DEF };
+  for (const [k, key] of Object.entries(LOOK_KEYS)) {
+    const v = localStorage.getItem(key);
+    if (v == null) continue;
+    const d = LOOK_DEF[k];
+    if (typeof d === 'number') l[k] = Math.max(0, Math.round(+v) || 0);
+    else if (typeof d === 'boolean') l[k] = v !== 'off';
+    else if (LOOK_ENUM[k].includes(v)) l[k] = v;
+  }
+  return l;
+}
+function mirrorLook(p) {
+  for (const [k, v] of Object.entries(p)) if (LOOK_KEYS[k]) localStorage.setItem(LOOK_KEYS[k], typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v));
+}
+S.look = lookFromCache();
+let lookReady = false, lookPending = {}, lookTimer = 0;
+function flushLook() {
+  if (!lookReady || !Object.keys(lookPending).length) return;
+  const look = lookPending; lookPending = {};
+  call('settings.set', { look }).catch((e) => toast(String(e), { error: true }));
+}
+function setLook(patch) {
+  Object.assign(S.look, patch); mirrorLook(patch);
+  Object.assign(lookPending, patch);
+  clearTimeout(lookTimer); lookTimer = setTimeout(flushLook, 250);
+}
+function setMotion(on) {
+  localStorage.setItem('fl.motion', on ? 'on' : 'off');
+  if (lookReady) call('settings.set', { reduce_motion: !on }).catch((e) => toast(String(e), { error: true }));
+}
+async function syncLook() {
+  try {
+    const st = await call('settings.get');
+    if (st?.look) {
+      S.look = { ...LOOK_DEF, ...st.look }; mirrorLook(S.look);
+      localStorage.setItem('fl.motion', st.reduce_motion ? 'off' : 'on');
+    } else {
+      const saved = await call('settings.set', { look: S.look, reduce_motion: localStorage.getItem('fl.motion') === 'off' });
+      if (saved?.look) { S.look = { ...LOOK_DEF, ...saved.look }; mirrorLook(S.look); }
+    }
+    lookReady = true; flushLook();
+  } catch (e) { console.warn('settings', e); }
+  applyLook(); applyWall(); document.dispatchEvent(new Event('look:change'));
+}
+
 // Wallpaper behind the glass. fl.wall = 'cover' | 'custom' | 'off'; fl.wall-v stamps the user's image.
 const WALL_URL = navigator.userAgent.includes('Windows') ? 'http://wall.localhost/w' : 'wall://localhost/w';
 function applyWall() {
   const i = byId(S.current);
-  const mode = localStorage.getItem('fl.wall') || 'cover';
-  const v = localStorage.getItem('fl.wall-v');
+  const mode = S.look.wall;
+  const v = S.look.wall_stamp;
   const url = mode === 'custom' && v ? `${WALL_URL}?v=${v}` : mode === 'cover' && i ? `covers/${coverName(i)}.jpg` : '';
   const root = document.documentElement;
   root.dataset.wall = url ? 'on' : 'off';
   if (url) root.style.setProperty('--wall', `url("${url}")`);
   $('#wall-file-row').hidden = mode !== 'custom';
-  const blur = +(localStorage.getItem('fl.wall-blur') ?? 22);
-  const glass = +(localStorage.getItem('fl.wall-glass') ?? 45);
+  const blur = S.look.wall_blur;
+  const glass = S.look.glass_density;
   root.style.setProperty('--wall-blur', `${blur}px`);
   root.style.setProperty('--glass-a', String(glass / 100));
-  const gblur = +(localStorage.getItem('fl.glass-blur') ?? 28);
+  const gblur = S.look.glass_blur;
   root.style.setProperty('--glass-blur', `${gblur}px`);
   $('#glass-blur').value = gblur; $('#glass-blur-val').textContent = gblur ? `${gblur} px` : 'Прозрачное';
   $('#wall-blur').value = blur; $('#wall-blur-val').textContent = blur ? `${blur} px` : 'Чёткие';
@@ -626,8 +677,8 @@ function applyWall() {
 }
 $('#wall-seg').addEventListener('seg:change', (e) => {
   const mode = e.detail.dataset.wallSet;
-  localStorage.setItem('fl.wall', mode); applyWall();
-  if (mode === 'custom' && !localStorage.getItem('fl.wall-v')) $('#wall-file').click();
+  setLook({ wall: mode }); applyWall();
+  if (mode === 'custom' && !S.look.wall_stamp) $('#wall-file').click();
 });
 $('#wall-pick').addEventListener('click', () => $('#wall-file').click());
 $('#wall-file').addEventListener('change', async (e) => {
@@ -635,23 +686,22 @@ $('#wall-file').addEventListener('change', async (e) => {
   if (!f) return;
   try {
     await invoke('set_wallpaper', new Uint8Array(await f.arrayBuffer()));
-    localStorage.setItem('fl.wall-v', String(Date.now()));
-    localStorage.setItem('fl.wall', 'custom');
+    setLook({ wall_stamp: Date.now(), wall: 'custom' });
     applyWall();
   } catch (err) { toast(String(err), { error: true }); }
 });
-$('#wall-blur').addEventListener('input', (e) => { localStorage.setItem('fl.wall-blur', e.target.value); applyWall(); });
-$('#glass-blur').addEventListener('input', (e) => { localStorage.setItem('fl.glass-blur', e.target.value); applyWall(); });
-$('#wall-glass').addEventListener('input', (e) => { localStorage.setItem('fl.wall-glass', e.target.value); applyWall(); });
+$('#wall-blur').addEventListener('input', (e) => { setLook({ wall_blur: +e.target.value }); applyWall(); });
+$('#glass-blur').addEventListener('input', (e) => { setLook({ glass_blur: +e.target.value }); applyWall(); });
+$('#wall-glass').addEventListener('input', (e) => { setLook({ glass_density: +e.target.value }); applyWall(); });
 function applyLook() {
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
-  document.documentElement.dataset.cover = localStorage.getItem('fl.cover-size') || 'big';
+  document.documentElement.dataset.cover = S.look.cover;
   $$('#cover-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.coverSet === document.documentElement.dataset.cover)));
 }
 
-$('#cover-seg').addEventListener('seg:change', (e) => { localStorage.setItem('fl.cover-size', e.detail.dataset.coverSet); applyLook(); });
-$('#fx-motion').addEventListener('change', (e) => { localStorage.setItem('fl.motion', e.target.checked ? 'on' : 'off'); applyLook(); });
+$('#cover-seg').addEventListener('seg:change', (e) => { setLook({ cover: e.detail.dataset.coverSet }); applyLook(); });
+$('#fx-motion').addEventListener('change', (e) => { setMotion(e.target.checked); applyLook(); });
 
 // ---------- Startup ----------
 async function start() {
@@ -659,6 +709,7 @@ async function start() {
   const info = await call('app.info');
   if (info.safe_mode) { $('#safe').hidden = false; }
   else {
+    await syncLook();
     const [acc, inst, theme, themeList] = await Promise.all([call('accounts.list'), call('instances.list'), call('themes.current'), call('themes.list')]);
     await applyTheme(theme, true);
     renderThemes(themeList, theme);

@@ -258,3 +258,47 @@ async fn legacy_folders_migrate_to_names() {
         .exists());
     assert!(!c.data_dir.join("instances").join(id).exists());
 }
+
+#[tokio::test]
+async fn settings_set_patches_look_and_motion() {
+    let c = temp_core(false);
+    let ui = Caller::BuiltinUi;
+    let s = c.dispatch(&ui, "settings.get", json!(null)).await.unwrap();
+    assert!(s["look"].is_null());
+    let s = c
+        .dispatch(
+            &ui,
+            "settings.set",
+            json!({"look": {"palette_pos": "bottom"}, "reduce_motion": true}),
+        )
+        .await
+        .unwrap();
+    assert_eq!(s["look"]["palette_pos"], "bottom");
+    assert_eq!(s["look"]["wall_blur"], 22);
+    assert_eq!(s["reduce_motion"], true);
+    let s = c
+        .dispatch(&ui, "settings.set", json!({"look": {"wall": "off"}}))
+        .await
+        .unwrap();
+    assert_eq!(s["look"]["palette_pos"], "bottom");
+    assert_eq!(s["look"]["wall"], "off");
+    assert!(c
+        .dispatch(&ui, "settings.set", json!({"look": {"wall": "x"}}))
+        .await
+        .is_err());
+    assert!(c
+        .dispatch(&ui, "settings.set", json!({"theme": "light"}))
+        .await
+        .is_err());
+    // Themes cannot change settings; safe mode resets the look.
+    let t = Caller::Theme { id: "x".into() };
+    assert!(c
+        .dispatch(&t, "settings.set", json!({"reduce_motion": false}))
+        .await
+        .is_err());
+    c.dispatch(&ui, "safe.reset_settings", json!(null))
+        .await
+        .unwrap();
+    let s = c.dispatch(&ui, "settings.get", json!(null)).await.unwrap();
+    assert!(s["look"].is_null());
+}
