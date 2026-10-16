@@ -53,9 +53,9 @@
       add('inst', `inst.${i.id}`, i.name, null, (o) => (o.alt || on ? openInstance(i.id) : play(i.id, true)),
         { s: instMeta(i), k: `${i.loader || 'vanilla'} ${i.version} сборка`, cover: coverName(i), live: on, hint: on ? 'Открыть' : 'Играть', alt: !on && 'Открыть' });
     });
-    add('go', 'go.home', 'Главная', 'home', () => show('home'), { k: 'домой home' });
+    add('go', 'go.home', 'Библиотека', 'home', () => show('home'), { k: 'библиотека главная домой сборки library home' });
     add('go', 'go.create', 'Новая сборка', 'plus', () => show('create'), { k: 'создать new instance', keys: [MOD, 'N'] });
-    add('go', 'go.discover', 'Моды', 'compass', () => show('discover'), { k: 'моды каталог modrinth mods' });
+    add('go', 'go.discover', 'Каталог', 'compass', () => show('discover'), { k: 'каталог обзор моды сборки модпаки ресурспаки шейдеры датапаки modrinth browse mods modpacks' });
     add('go', 'go.accounts', 'Аккаунты', 'user', () => show('accounts'), { k: 'профиль вход microsoft account login' });
     [['game', 'Игра', 'память java ram'], ['launcher', 'Лаунчер', 'тема обои стекло анимации theme'], ['addons', 'Плагины', 'плагины аддоны дополнения addons plugins']]
       .forEach(([p, t, k]) => add('go', `set.${p}`, `Настройки · ${t}`, 'gear', () => openSettings(p), { k: `settings ${k}` }));

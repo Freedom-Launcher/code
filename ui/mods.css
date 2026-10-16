@@ -57,3 +57,6 @@
 .disc-cats button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-soft); }
 .disc-hide { display: flex; align-items: center; gap: 10px; height: 28px; flex: none; color: var(--text-2); font-size: var(--text-sm); white-space: nowrap; }
 #mods-tools .seg { flex: none; }
+.disc-hide[hidden] { display: none; }
+#menu-disc-pick { min-width: 240px; max-height: min(360px, 60vh); overflow-y: auto; }
+.menu-item .mi-sub { margin-left: auto; padding-left: 16px; color: var(--text-3); font-size: var(--text-xs); white-space: nowrap; }

@@ -28,7 +28,7 @@
     <!-- Left rail: instances as cover tiles, create, settings -->
     <nav class="rail" data-id="rail">
       <div class="rail-logo" data-id="rail.logo" aria-hidden="true">F</div>
-      <button class="rail-btn" data-view="home" data-tip="Главная" data-id="rail.home" aria-label="Главная">
+      <button class="rail-btn" data-view="home" data-tip="Библиотека" data-id="rail.home" aria-label="Библиотека">
         <svg viewBox="0 0 16 16"><path d="M2.5 7 8 2.5 13.5 7v6.5h-11z"/></svg>
       </button>
       <div class="rail-list" id="rail-list" data-id="rail.instances"></div>
@@ -37,7 +37,7 @@
       </button>
       <div data-slot="rail.end"></div>
       <div class="rail-grow"></div>
-      <button class="rail-btn" data-view="discover" data-tip="Моды" data-id="rail.discover" aria-label="Моды">
+      <button class="rail-btn" data-view="discover" data-tip="Каталог" data-id="rail.discover" aria-label="Каталог">
         <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="m10.2 5.8-1.4 3-3 1.4 1.4-3z"/></svg>
       </button>
       <button class="rail-btn" data-view="settings" data-tip="Настройки" data-id="rail.settings" aria-label="Настройки">
@@ -121,8 +121,10 @@
               <nav class="seg" id="mods-kind" data-id="instance.content.kind">
                 <button data-kind="mod" aria-selected="true">Моды</button>
                 <button data-kind="resourcepack">Ресурспаки</button>
+                <button data-kind="datapack">Датапаки</button>
                 <button data-kind="shader">Шейдеры</button>
               </nav>
+              <select class="field disc-target" id="mods-world" aria-label="Мир" data-id="instance.content.world" hidden></select>
               <label class="field-wrap grow">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
                 <input class="field" id="mods-filter" placeholder="Найти в сборке" data-id="instance.content.search">
@@ -194,18 +196,21 @@
       </section>
       <section class="view" id="view-discover" data-id="view.discover">
         <div class="narrow">
-          <h1 class="page-h">Моды</h1>
+          <h1 class="page-h">Каталог</h1>
           <nav class="seg disc-kind" id="disc-kind" data-id="discover.kind">
-            <button data-kind="mod" aria-selected="true">Моды</button>
+            <button data-kind="modpack" aria-selected="true">Сборки</button>
+            <button data-kind="mod">Моды</button>
             <button data-kind="resourcepack">Ресурспаки</button>
+            <button data-kind="datapack">Датапаки</button>
             <button data-kind="shader">Шейдеры</button>
           </nav>
           <div class="toolbar" data-id="discover.toolbar">
             <label class="field-wrap grow">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
-              <input class="field" id="disc-q" placeholder="Моды на Modrinth" data-id="discover.search">
+              <input class="field" id="disc-q" placeholder="Сборки на Modrinth" data-id="discover.search">
             </label>
             <select class="field disc-target" id="disc-target" aria-label="Сборка" data-id="discover.target"></select>
+            <select class="field disc-target" id="disc-world" aria-label="Мир" data-id="discover.world" hidden></select>
             <select class="field disc-sort" id="disc-sort" aria-label="Сортировка" data-id="discover.sort">
               <option value="relevance">По релевантности</option>
               <option value="downloads">По загрузкам</option>

@@ -1,14 +1,23 @@
-// Content: the instance «Контент» tab and the Modrinth browser in «Моды».
-// Mods, resource packs and shaders share the same actions (mods.* with `kind`),
-// the same ones an addon would use.
+// Content: the instance «Контент» tab and «Каталог», the Modrinth browser for
+// every kind (modpacks, mods, resource packs, data packs, shaders). Content in
+// an instance goes through mods.* with `kind`, the same actions an addon uses.
 (() => {
   const KINDS = {
     mod: { one: 'мод', many: 'Моды', none: 'Модов нет', search: 'Моды на Modrinth' },
     resourcepack: { one: 'ресурспак', many: 'Ресурспаки', none: 'Ресурспаков нет', search: 'Ресурспаки на Modrinth' },
     shader: { one: 'шейдер', many: 'Шейдеры', none: 'Шейдеров нет', search: 'Шейдеры на Modrinth' },
+    datapack: { one: 'датапак', many: 'Датапаки', none: 'Датапаков нет', search: 'Датапаки на Modrinth' },
+    modpack: { one: 'сборка', many: 'Сборки', none: 'Сборок нет', search: 'Сборки на Modrinth' },
   };
-  // Which instances can hold a kind: mods need a loader, shaders a loader with Iris or OptiFine.
-  const supports = (i, kind) => !!i && (kind === 'resourcepack' || (!!i.loader && i.loader !== 'vanilla'));
+  // Which instances can hold a kind: mods and shaders need a loader, data packs
+  // Minecraft 1.13+; a modpack is never installed into an instance.
+  const mcOk = (v) => { const m = /^1\.(\d+)/.exec(v || ''); return !m || +m[1] >= 13; };
+  const supports = (i, kind) => {
+    if (!i || kind === 'modpack') return false;
+    if (kind === 'resourcepack') return true;
+    if (kind === 'datapack') return mcOk(i.version);
+    return !!i.loader && i.loader !== 'vanilla';
+  };
   const modded = (i) => supports(i, 'mod');
   const fmtN = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)} млн` : n >= 1e3 ? `${Math.round(n / 1e3)} тыс` : String(n));
   const CDN = /^https:\/\/cdn\.modrinth\.com\/[^"'\\()\s]+$/;
@@ -33,6 +42,9 @@
   let installed = [];
   let updates = new Map();
   let iseq = 0;
+  let iworld = null;
+  // Where the tab's content lives: data packs belong to one world.
+  const loc = () => ({ instance: inst, kind: ikind, ...(ikind === 'datapack' ? { world: iworld } : {}) });
 
   async function instance(i) {
     inst = i?.id || null;
@@ -45,14 +57,25 @@
     paintAll();
     $('#mods-filter').value = '';
     $('#mods-tools').hidden = !i;
+    const wsel = $('#mods-world');
+    wsel.hidden = true;
     paintList();
     if (!i) return;
-    const kind = ikind;
-    try { installed = await call('mods.list', { instance: i.id, kind }); } catch (e) { fail(e); }
+    if (ikind === 'datapack') {
+      const ws = await call('instances.worlds', { instance: i.id }).catch(() => []);
+      if (my !== iseq) return;
+      if (!ws.some((w) => w.id === iworld)) iworld = ws[0]?.id || null;
+      wsel.replaceChildren(...ws.map((w) => el('option', { value: w.id, selected: w.id === iworld }, w.name)));
+      wsel.hidden = !ws.length;
+      paintList();
+      if (!iworld) return;
+    }
+    const at = loc();
+    try { installed = await call('mods.list', at); } catch (e) { fail(e); }
     if (my !== iseq) return;
     paintList();
     // Network check after the list is on screen; silent when offline.
-    const u = await call('mods.updates', { instance: i.id, kind }).catch(() => []);
+    const u = await call('mods.updates', at).catch(() => []);
     if (my !== iseq) return;
     updates = new Map(u.map((x) => [x.file, x]));
     paintList();
@@ -66,7 +89,7 @@
   }
 
   async function update(btn, file) {
-    const args = { instance: inst, kind: ikind };
+    const args = loc();
     if (file) args.file = file;
     const r = await run(btn, 'mods.update', args).catch(() => null);
     if (!r) return;
@@ -81,18 +104,20 @@
     if (!inst) { box.replaceChildren(); return; }
     const q = $('#mods-filter').value.trim().toLowerCase();
     const rows = installed.filter((m) => !q || m.title.toLowerCase().includes(q));
-    if (!installed.length) box.replaceChildren(empty(KINDS[ikind].none));
+    if (ikind === 'datapack' && !iworld) box.replaceChildren(empty('Миров пока нет'));
+    else if (!installed.length) box.replaceChildren(empty(KINDS[ikind].none));
     else if (!rows.length) box.replaceChildren(empty('Ничего не найдено'));
     else box.replaceChildren(el('div', { class: 'mod-list' }, ...rows.map(row)));
   }
 
   function row(m) {
     const kind = ikind;
+    const at = loc();
     const r = el('div', { class: `mod-row${m.enabled ? '' : ' is-off'}`, 'data-id': `${kind}.${m.file}` });
     const sw = el('input', { type: 'checkbox', checked: m.enabled, 'aria-label': m.title });
     sw.addEventListener('change', async () => {
       try {
-        await call('mods.toggle', { instance: inst, kind, file: m.file, enabled: sw.checked });
+        await call('mods.toggle', { ...at, file: m.file, enabled: sw.checked });
         m.enabled = sw.checked;
         r.classList.toggle('is-off', !m.enabled);
       } catch (e) { sw.checked = !sw.checked; fail(e); }
@@ -100,7 +125,7 @@
     const del = el('button', { class: 'btn btn-icon btn-ghost', 'data-tip': 'Удалить', 'aria-label': 'Удалить', html: TRASH });
     del.addEventListener('click', async () => {
       try {
-        await call('mods.remove', { instance: inst, kind, file: m.file });
+        await call('mods.remove', { ...at, file: m.file });
         installed = installed.filter((x) => x !== m);
         paintList();
       } catch (e) { fail(e); }
@@ -120,11 +145,13 @@
   $('#mods-filter').addEventListener('input', paintList);
   $('#mods-kind').addEventListener('seg:change', (e) => { ikind = e.detail.dataset.kind; instance(byId(inst)); });
   // «Добавить» opens the browser on the same kind and instance.
-  $('#mods-add').addEventListener('click', () => { kind = ikind; target = inst; });
+  $('#mods-add').addEventListener('click', () => { kind = ikind; target = inst; dworld = iworld; });
+  $('#mods-world').addEventListener('change', (e) => { iworld = e.target.value; instance(byId(inst)); });
 
   // ---------- Modrinth browser ----------
-  let kind = 'mod';
+  let kind = 'modpack';
   let target = null;
+  let dworld = null;
   let query = '';
   let sort = 'relevance';
   let cats = new Set();
@@ -135,17 +162,33 @@
   let timer = 0;
   const catCache = new Map();
 
+  const instLabel = (i) => `${i.name} · ${LOADER_NAMES[i.loader] || LOADER_NAMES.vanilla} ${i.version}`;
+  // The query/install context: an instance (and world) narrows the results,
+  // like an instance picked in Modrinth's Browse; without one it is all of Modrinth.
+  const where = () => ({ instance: target, kind, ...(kind === 'datapack' ? { world: dworld } : {}) });
+
   function discover() {
     selectSeg($('#disc-kind'), kind);
     $('#disc-q').placeholder = KINDS[kind].search;
     const list = S.instances.filter((i) => supports(i, kind));
-    if (!list.some((i) => i.id === target)) target = supports(byId(S.current), kind) ? S.current : list[0]?.id || null;
+    if (!list.some((i) => i.id === target)) target = null;
     const sel = $('#disc-target');
-    sel.replaceChildren(...list.map((i) => el('option', { value: i.id, selected: i.id === target }, `${i.name} · ${LOADER_NAMES[i.loader] || LOADER_NAMES.vanilla} ${i.version}`)));
-    sel.hidden = !list.length;
-    $('#disc-q').disabled = !list.length;
+    sel.replaceChildren(el('option', { value: '', selected: !target }, 'Любая сборка'),
+      ...list.map((i) => el('option', { value: i.id, selected: i.id === target }, instLabel(i))));
+    sel.hidden = kind === 'modpack' || !list.length;
     paintCats();
-    search(true);
+    paintWorlds().then(() => search(true));
+  }
+
+  async function paintWorlds() {
+    const w = $('#disc-world');
+    if (kind !== 'datapack' || !target) { w.hidden = true; return; }
+    const t = target;
+    const ws = await call('instances.worlds', { instance: t }).catch(() => []);
+    if (t !== target) return;
+    if (!ws.some((x) => x.id === dworld)) dworld = ws[0]?.id || null;
+    w.replaceChildren(...ws.map((x) => el('option', { value: x.id, selected: x.id === dworld }, x.name)));
+    w.hidden = !ws.length;
   }
 
   async function paintCats() {
@@ -174,33 +217,29 @@
     blocks: 'Блоки', combat: 'Бой', 'core-shaders': 'Core-шейдеры', entities: 'Сущности', environment: 'Окружение',
     fonts: 'Шрифты', gui: 'Интерфейс', items: 'Предметы', locale: 'Язык', models: 'Модели', audio: 'Звук',
     simplistic: 'Минимализм', themed: 'Тематические', tweaks: 'Твики', realistic: 'Реализм', modded: 'Для модов',
-    'vanilla-like': 'Как в ванилле', atmosphere: 'Атмосфера', bloom: 'Свечение', 'colored-lighting': 'Цветной свет',
+    'vanilla-like': 'Как в ванилле', challenging: 'Испытания', 'kitchen-sink': 'Всё и сразу',
+    lightweight: 'Лёгкие', multiplayer: 'Мультиплеер', quests: 'Квесты', atmosphere: 'Атмосфера', bloom: 'Свечение', 'colored-lighting': 'Цветной свет',
     foliage: 'Листва', 'path-tracing': 'Трассировка пути', pbr: 'PBR', reflections: 'Отражения', shadows: 'Тени',
     cartoon: 'Мультяшные', fantasy: 'Фэнтези', 'semi-realistic': 'Полуреализм',
   };
   const catName = (n) => CAT_RU[n] || n.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
 
   async function refreshHave() {
-    const l = await call('mods.list', { instance: target, kind });
+    if (!target || kind === 'modpack' || (kind === 'datapack' && !dworld)) { have = new Set(); return; }
+    const l = await call('mods.list', where());
     have = new Set(l.map((m) => m.project_id).filter(Boolean));
   }
 
   async function search(reset) {
     const box = $('#disc-results');
     const more = $('#disc-more');
-    if (!target) {
-      box.replaceChildren(kind === 'resourcepack'
-        ? empty('Нет сборок', 'Создайте сборку')
-        : empty('Нет подходящих сборок', 'Создайте сборку с Fabric, Quilt, Forge или NeoForge'));
-      more.hidden = true;
-      return;
-    }
+    $('.disc-hide').hidden = kind === 'modpack' || !target;
     if (reset) { offset = 0; box.dataset.state = 'loading'; }
     const my = ++seq;
     let res = null;
     try {
       if (reset) await refreshHave();
-      res = await call('mods.search', { instance: target, kind, query, offset, sort, categories: [...cats] });
+      res = await call('mods.search', { instance: kind === 'modpack' ? null : target, kind, query, offset, sort, categories: [...cats] });
     } catch (e) { fail(e); }
     if (my !== seq) return;
     delete box.dataset.state;
@@ -213,23 +252,81 @@
   }
 
   function card(h) {
-    const on = have.has(h.project_id);
     const k = kind;
+    const on = k !== 'modpack' && have.has(h.project_id);
     const b = el('button', { class: `btn${on ? '' : ' btn-primary'}`, disabled: on, 'data-id': `discover.install.${h.slug}` }, el('span', { class: 'lbl' }, on ? 'Установлен' : 'Установить'));
-    b.addEventListener('click', async () => {
-      const where = target;
-      const r = await run(b, 'mods.install', { instance: where, kind: k, project: h.project_id }).catch(() => null);
-      if (!r) return;
-      setInstalled(b);
-      toast(r.added.length > 1 ? `Установлено: ${r.added.join(', ')}` : `${h.title} установлен`);
-      if (where === inst && k === ikind) instance(byId(inst));
-      if (where === target && k === kind) refreshHave().then(markHave).catch(() => {});
+    b.addEventListener('click', (e) => {
+      if (k === 'modpack') installPack(b, h);
+      else if (target && (k !== 'datapack' || dworld)) installInto(b, h, where());
+      else { e.stopPropagation(); pickTarget(b, h, k); }
     });
     return el('article', { class: 'mod-card', 'data-project': h.project_id },
       icon(h.icon_url, h.title),
       el('div', { class: 't' }, el('b', {}, h.title), el('span', {}, h.author)),
       el('p', {}, h.description),
       el('div', { class: 'foot' }, el('span', { class: 'dl' }, `${fmtN(h.downloads)} загрузок`), b));
+  }
+
+  async function installInto(b, h, at) {
+    const r = await run(b, 'mods.install', { ...at, project: h.project_id }).catch(() => null);
+    if (!r) return;
+    const name = byId(at.instance)?.name || '';
+    toast(r.added.length > 1 ? `Установлено: ${r.added.join(', ')}` : `${h.title} → ${name}`);
+    if (at.instance === target && at.kind === kind) { setInstalled(b); refreshHave().then(markHave).catch(() => {}); }
+    if (at.instance === inst && at.kind === ikind) instance(byId(inst));
+  }
+
+  // «Установить» without a chosen instance asks where, like Modrinth's install modal.
+  const pick = el('div', { class: 'pop', id: 'menu-disc-pick', role: 'menu', 'data-id': 'discover.pick' });
+  document.body.append(pick);
+  async function pickTarget(b, h, k) {
+    const list = S.instances.filter((i) => supports(i, k));
+    let items = list.map((i) => ({ at: { instance: i.id, kind: k }, label: i.name, sub: `${LOADER_NAMES[i.loader] || LOADER_NAMES.vanilla} ${i.version}` }));
+    if (k === 'datapack') {
+      const ws = await Promise.all(list.map((i) => call('instances.worlds', { instance: i.id }).catch(() => [])));
+      items = list.flatMap((i, n) => ws[n].map((w) => ({ at: { instance: i.id, kind: k, world: w.id }, label: w.name, sub: i.name })));
+    }
+    if (!items.length) { toast(k === 'datapack' ? 'Миров пока нет' : 'Нет подходящих сборок', { error: true }); return; }
+    pick.replaceChildren(el('div', { class: 'menu-label' }, 'Установить в'), ...items.map((it) => {
+      const m = el('button', { class: 'menu-item', 'data-id': `discover.pick.${it.at.instance}` }, el('span', { class: 'mi-t' }, it.label), el('span', { class: 'mi-sub' }, it.sub));
+      m.addEventListener('click', () => installInto(b, h, it.at));
+      return m;
+    }));
+    const r = b.getBoundingClientRect();
+    FUI.openMenuAt(pick, r.left, r.bottom + 6);
+  }
+
+  const uuid = () => crypto.randomUUID?.() || '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16));
+
+  // A modpack becomes a new instance; the button shows the download progress.
+  async function installPack(b, h) {
+    const lbl = b.querySelector('.lbl');
+    const token = uuid();
+    b.disabled = true;
+    b.dataset.state = 'loading';
+    lbl.textContent = 'Готовим…';
+    const poll = setInterval(async () => {
+      const p = await call('game.progress', { instance: token }).catch(() => null);
+      if (!p) return;
+      const f = p.total_bytes > 0 ? p.done_bytes / p.total_bytes : p.total_files > 0 ? p.done_files / p.total_files : null;
+      if (f != null) lbl.textContent = `${Math.floor(f * 100)}%`;
+    }, 250);
+    try {
+      const created = await call('modpacks.install', { project: h.project_id, token });
+      clearInterval(poll);
+      b.dataset.state = 'success';
+      lbl.textContent = 'Установлена';
+      S.instances = await call('instances.list');
+      renderInstances();
+      toast(`${created.name} установлена`);
+      openInstance(created.id);
+    } catch (e) {
+      clearInterval(poll);
+      b.disabled = false;
+      b.dataset.state = 'error';
+      lbl.textContent = 'Установить';
+      fail(e);
+    }
   }
 
   function setInstalled(b) {
@@ -256,7 +353,8 @@
     cats = new Set();
     discover();
   });
-  $('#disc-target').addEventListener('change', (e) => { target = e.target.value; search(true); });
+  $('#disc-target').addEventListener('change', (e) => { target = e.target.value || null; paintWorlds().then(() => search(true)); });
+  $('#disc-world').addEventListener('change', (e) => { dworld = e.target.value; search(true); });
   $('#disc-sort').addEventListener('change', (e) => { sort = e.target.value; search(true); });
   $('#disc-hide').addEventListener('change', (e) => { hide = e.target.checked; search(true); });
   $('#disc-more').addEventListener('click', () => search(false));
