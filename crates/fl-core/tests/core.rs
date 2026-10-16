@@ -84,6 +84,86 @@ async fn addon_needs_grant() {
 }
 
 #[tokio::test]
+async fn net_fetch_only_for_addons_and_declared_hosts() {
+    let c = temp_core(false);
+    for (id, host) in [
+        ("netdemo", "api.example.org"),
+        ("other", "evil.example.org"),
+    ] {
+        let d = c.data_dir.join("addons").join(id);
+        std::fs::create_dir_all(&d).unwrap();
+        std::fs::write(d.join("index.html"), "<p>x</p>").unwrap();
+        let m = json!({"id": id, "name": id, "permissions": ["network"], "hosts": [host]});
+        std::fs::write(d.join("addon.json"), m.to_string()).unwrap();
+    }
+    let err = |r: Result<serde_json::Value, fl_core::CoreError>| r.unwrap_err().to_string();
+    // The built-in UI has no business fetching through an addon's hosts.
+    let e = err(c
+        .dispatch(
+            &Caller::BuiltinUi,
+            "net.fetch",
+            json!({"url": "https://api.example.org/"}),
+        )
+        .await);
+    assert!(e.contains("только для дополнений"), "{e}");
+    let addon = Caller::Addon {
+        id: "netdemo".into(),
+        granted: [Permission::Network].into(),
+    };
+    // Without the network grant the call never reaches the handler.
+    let bare = Caller::Addon {
+        id: "netdemo".into(),
+        granted: HashSet::new(),
+    };
+    assert!(err(c
+        .dispatch(
+            &bare,
+            "net.fetch",
+            json!({"url": "https://api.example.org/"})
+        )
+        .await)
+    .contains("Network"));
+    // Spoofing another addon's identity is overwritten by the core.
+    let spoof = json!({"$addon": "other", "url": "https://evil.example.org/"});
+    let e = err(c.dispatch(&addon, "net.fetch", spoof).await);
+    assert!(e.contains("не указан в hosts"), "{e}");
+    let e = err(c
+        .dispatch(
+            &addon,
+            "net.fetch",
+            json!({"url": "http://api.example.org/"}),
+        )
+        .await);
+    assert!(e.contains("https"), "{e}");
+}
+
+/// Live request; run with `cargo test -p fl-core -- --ignored net_fetch_live`.
+#[tokio::test]
+#[ignore]
+async fn net_fetch_live() {
+    let c = temp_core(false);
+    let d = c.data_dir.join("addons").join("live");
+    std::fs::create_dir_all(&d).unwrap();
+    std::fs::write(d.join("index.html"), "<p>x</p>").unwrap();
+    let m = json!({"id": "live", "name": "live", "permissions": ["network"], "hosts": ["api.modrinth.com"]});
+    std::fs::write(d.join("addon.json"), m.to_string()).unwrap();
+    let addon = Caller::Addon {
+        id: "live".into(),
+        granted: [Permission::Network].into(),
+    };
+    let r = c
+        .dispatch(
+            &addon,
+            "net.fetch",
+            json!({"url": "https://api.modrinth.com/v2/tag/loader"}),
+        )
+        .await
+        .unwrap();
+    assert_eq!(r["status"], 200, "{r}");
+    assert!(r["body"].as_str().unwrap().contains("fabric"));
+}
+
+#[tokio::test]
 async fn theme_only_bindable() {
     let c = temp_core(false);
     let theme = Caller::Theme { id: "t".into() };

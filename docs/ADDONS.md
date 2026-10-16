@@ -29,7 +29,7 @@ Example: [`docs/addons/example`](addons/example). Copy it into the addons folder
 | `entry` | HTML file inside the folder, default `index.html` |
 | `permissions` | what the addon needs, see below |
 | `slots` | where it appears: `rail.end`, `topbar.end`, `instance.end`, `accounts.end`, `discover.end`, `settings.end`, `menu.ctx.instance`, `menu.instance` |
-| `hosts` | hosts the addon will reach through the core's network action (next M3 step); needs `network` |
+| `hosts` | up to 16 host names (`api.example.org`, no scheme, port or path) the addon may reach with `fl.fetch`; needs `network` |
 
 ## Permissions
 
@@ -51,8 +51,32 @@ Inline scripts are blocked by the CSP: put code in a `.js` file.
 - `fl.call(name, args)` → Promise with the action result.
 - `fl.toast(text)` — short notification in the launcher.
 - `fl.resize()` — fit the frame to the content (also automatic).
+- `fl.fetch(url, {method, headers, body})` → `{status, ok, headers, body, json()}`,
+  see Network below.
 - Theme tokens (`--bg`, `--text`, `--accent`, `--font-ui`, …) are set on the
   addon's `<html>`, and updated when the user switches themes.
+
+## Network
+
+The iframe itself has no network. `fl.fetch` (the `net.fetch` action) asks the
+core to make the request, and the core allows it only when:
+
+- the addon has the approved `network` permission;
+- the URL is `https://`, on the default port, without a login or password;
+- the host is exactly one of the manifest's `hosts` (no wildcards, no IP literals);
+- the host resolves only to public addresses — never loopback, LAN, link-local
+  or other private ranges.
+
+Redirects are not followed: a `3xx` comes back as is. Methods: `GET`, `HEAD`,
+`POST`, `PUT`, `PATCH`, `DELETE`. The launcher sets `User-Agent`, `Host`,
+`Cookie`, `Origin`, `Referer` and transport headers; an addon may not. No
+cookies are kept and `Set-Cookie` is not returned. Limits: request body 1 MB,
+response 4 MB, 30 s. The body is text; send JSON as a string or an object.
+
+```js
+const r = await fl.fetch('https://api.modrinth.com/v2/tag/loader');
+if (r.ok) console.log(r.json());
+```
 
 Safe settings (`--safe`, Shift at start) and «Отключить все дополнения» run the
 launcher with no addons at all.

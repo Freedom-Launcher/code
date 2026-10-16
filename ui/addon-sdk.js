@@ -33,6 +33,18 @@
         post({ type: 'call', seq: s, name: String(name), args: args === undefined ? null : args });
       });
     },
+    /**
+     * HTTPS request through the launcher, only to hosts from `hosts` in
+     * addon.json; needs the `network` permission. Resolves to
+     * `{status, ok, headers, body}`; `json()` parses the body.
+     */
+    async fetch(url, opts = {}) {
+      const body = opts.body === undefined || typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body);
+      const r = await this.call('net.fetch', {
+        url: String(url), method: opts.method || 'GET', headers: opts.headers || {}, body,
+      });
+      return Object.assign(r, { json: () => JSON.parse(r.body) });
+    },
     /** Shows a short notification in the launcher. */
     toast(text) { post({ type: 'toast', text: String(text).slice(0, 200) }); },
     resize,

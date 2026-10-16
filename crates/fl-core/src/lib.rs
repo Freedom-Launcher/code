@@ -25,6 +25,7 @@ pub mod modrinth;
 pub mod mods;
 pub mod mrpack;
 pub mod msauth;
+pub mod net;
 pub mod permissions;
 pub mod settings;
 pub mod skins;
@@ -64,6 +65,7 @@ impl Core {
         std::fs::create_dir_all(&data_dir)?;
         let mut registry = ActionRegistry::default();
         builtin::register(&mut registry, safe_mode);
+        net::register(&mut registry);
         Ok(Arc::new(Self {
             data_dir,
             safe_mode,
@@ -90,6 +92,7 @@ impl Core {
             .get(name)
             .ok_or_else(|| CoreError::UnknownAction(name.to_owned()))?;
         caller.check(name, spec)?;
+        let args = net::stamp_caller(caller, name, args);
         (spec.handler)(Arc::clone(self), args).await
     }
 

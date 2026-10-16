@@ -29,7 +29,7 @@ pub const SLOTS: [&str; 8] = [
 ];
 
 /// Namespaces of built-in actions: no addon may take these ids.
-pub const RESERVED: [&str; 12] = [
+pub const RESERVED: [&str; 13] = [
     "app",
     "settings",
     "safe",
@@ -42,6 +42,7 @@ pub const RESERVED: [&str; 12] = [
     "skins",
     "java",
     "system",
+    "net",
 ];
 
 /// Files an addon may ship.
@@ -109,6 +110,10 @@ pub fn file(data_dir: &Path, id: &str, rel: &str) -> Option<PathBuf> {
 fn valid_host(h: &str) -> bool {
     h.len() <= 253
         && h.split('.').count() >= 2
+        && !h
+            .rsplit('.')
+            .next()
+            .is_some_and(|l| l.chars().all(|c| c.is_ascii_digit()))
         && h.split('.').all(|l| {
             !l.is_empty()
                 && l.len() <= 63
