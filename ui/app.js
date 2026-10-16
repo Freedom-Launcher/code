@@ -594,6 +594,7 @@ $('#set-seg').addEventListener('seg:change', (e) => {
 // ---------- Themes: the core owns the choice; tokens/CSS switch live, templates on reload ----------
 async function applyTheme(cur, first = false) {
   FTheme.apply(cur);
+  window.FEditor?.setTheme(cur.ui);
   if (cur.fallback) toast(`Тема «${cur.fallback.theme}» не загрузилась: ${cur.fallback.error}. Включена стандартная.`, { error: true });
   if (!first) return;
   for (const screen of cur.templates || []) {
@@ -620,6 +621,12 @@ $('#theme-seg').addEventListener('seg:change', async (e) => {
   window.FAddons.retheme();
 });
 $('#theme-folder').addEventListener('click', () => invoke('open_themes_folder').catch((e) => toast(String(e), { error: true })));
+document.addEventListener('fl:theme', async (e) => {
+  const cur = e.detail, list = await call('themes.list').catch(() => null);
+  if (list) renderThemes(list, cur); else S.theme = cur;
+  applyTheme(cur); window.FAddons.retheme();
+  requestAnimationFrame(() => $('#theme-seg')._place?.(false));
+});
 $('#theme-reload').addEventListener('click', () => { location.hash = 'settings'; location.reload(); });
 
 // Look (wallpaper, glass, cover, palette) lives in the core (settings.look).

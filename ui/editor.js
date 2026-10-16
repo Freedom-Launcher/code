@@ -18,7 +18,7 @@
   const blank = () => ({ radius: {}, size: {}, layout: {}, els: {}, order: {} });
   const cap = (k) => `l${k[0].toUpperCase()}${k.slice(1)}`;
   const q = (id) => `[data-id="${id}"]`;
-  let ui = blank(), past = [], future = [], sel = null, hov = null, isOpen = false, saveT = 0, drag = false, safe = false;
+  let base = null, ui = blank(), past = [], future = [], sel = null, hov = null, isOpen = false, saveT = 0, drag = false, safe = false;
 
   // ---------- Apply ----------
   let live = null;
@@ -30,19 +30,28 @@
     text.split('\n').filter(Boolean).forEach((r) => sh.insertRule(r, sh.cssRules.length));
   }
   function setVar(name, v) { if (v == null || v === 100) root.style.removeProperty(name); else root.style.setProperty(name, String(v / 100)); }
+  // A theme's own edits sit under the user's: percents multiply, the rest is replaced (as in the core).
+  function layered(b, o) {
+    const u = JSON.parse(JSON.stringify({ ...blank(), ...b }));
+    for (const g of ['radius', 'size']) for (const [k, v] of Object.entries(o[g])) u[g][k] = Math.round(((u[g][k] ?? 100) * v) / 100);
+    Object.assign(u.layout, o.layout); Object.assign(u.order, o.order);
+    for (const [id, e] of Object.entries(o.els)) { const x = (u.els[id] ||= {}); if (e.radius != null) x.radius = e.radius; if (e.scale != null) x.scale = e.scale; x.hide = !!(x.hide || e.hide); }
+    return u;
+  }
   function apply() {
-    for (const [g] of RADIUS) setVar(`--rk-${g}`, ui.radius[g]);
-    for (const [g] of SIZE) setVar(`--sz-${g}`, ui.size[g]);
-    for (const [k, , def] of LAYOUT) { const v = ui.layout[k]; if (v && v !== def) root.dataset[cap(k)] = v; else delete root.dataset[cap(k)]; }
+    const U = base ? layered(base, ui) : ui;
+    for (const [g] of RADIUS) setVar(`--rk-${g}`, U.radius[g]);
+    for (const [g] of SIZE) setVar(`--sz-${g}`, U.size[g]);
+    for (const [k, , def] of LAYOUT) { const v = U.layout[k]; if (v && v !== def) root.dataset[cap(k)] = v; else delete root.dataset[cap(k)]; }
     const out = [];
-    for (const [id, e] of Object.entries(ui.els)) {
+    for (const [id, e] of Object.entries(U.els)) {
       const d = [];
       if (e.radius != null) d.push(`border-radius: ${e.radius}px !important`);
       if (e.scale != null && e.scale !== 100) d.push(`zoom: ${e.scale / 100}`);
       if (e.hide && !keepVisible(id)) d.push('display: none !important');
       if (d.length) out.push(`${q(id)} { ${d.join('; ')} }`);
     }
-    for (const [id, list] of Object.entries(ui.order)) {
+    for (const [id, list] of Object.entries(U.order)) {
       const p = document.querySelector(q(id));
       if (!p || p.children.length !== list.length) continue;
       list.forEach((ci, pos) => out.push(`${q(id)} > :nth-child(${ci + 1}) { order: ${pos} }`));
@@ -72,6 +81,7 @@
     x: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m4.5 4.5 7 7m0-7-7 7"/></svg>',
     pick: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 2.5 13 7l-4.3 1.2L6.8 12.6z"/></svg>',
     back: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>',
+    save: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M8 1.8 9.6 6l4.4.3-3.4 2.8 1.1 4.3L8 11l-3.7 2.4 1.1-4.3L2 6.3 6.4 6z"/></svg>',
     fwd: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg>',
   };
   const ib = (ico, tip) => { const b = h('button', 'btn btn-ghost btn-icon ue-ib', ICO[ico]); b.type = 'button'; b.dataset.tip = tip; b.setAttribute('aria-label', tip); return b; };
@@ -115,7 +125,12 @@
   const tabs = h('div', 'seg ue-tabs', '<button type="button" data-tab="gen" aria-selected="true">Общее</button><button type="button" data-tab="el">Элемент</button>');
   const body = h('div', 'ue-body'), pGen = h('div', 'ue-pane'), pEl = h('div', 'ue-pane'); pEl.hidden = true;
   body.append(pGen, pEl);
-  const foot = h('div', 'ue-foot'); const bReset = h('button', 'btn btn-ghost', '<span class="lbl">Сбросить всё</span>'); bReset.type = 'button'; foot.append(bReset);
+  const foot = h('div', 'ue-foot'); const bReset = h('button', 'btn btn-ghost', '<span class="lbl">Сбросить всё</span>'); bReset.type = 'button';
+  const bSave = h('button', 'btn btn-ghost ue-save', `${ICO.save}<span class="lbl">Сохранить как тему</span>`); bSave.type = 'button';
+  const fa = h('div', 'ue-foot-a'), fb = h('div', 'ue-foot-b'); fb.hidden = true;
+  const nameIn = h('input', 'field ue-name'); nameIn.maxLength = 60; nameIn.placeholder = 'Название темы'; nameIn.setAttribute('aria-label', 'Название темы'); nameIn.spellcheck = false;
+  const bOk = h('button', 'btn btn-primary', '<span class="lbl">Сохранить</span>'); bOk.type = 'button';
+  fa.append(bSave, bReset); fb.append(nameIn, bOk); foot.append(fa, fb);
   panel.append(head, tabs, body, foot);
   const hidSec = h('div', 'ue-sec'); const hidList = h('div', 'ue-picks');
   hidSec.append(h('h4', '', 'Скрытые'), hidList);
@@ -162,6 +177,28 @@
   bUndo.addEventListener('click', undo); bRedo.addEventListener('click', redo);
   bDone.addEventListener('click', () => close());
   bReset.addEventListener('click', () => commit((u) => Object.assign(u, blank())));
+  function saveMode(on) {
+    const show = on ? fb : fa; fa.hidden = on; fb.hidden = !on;
+    show.classList.remove('ue-in'); void show.offsetWidth; show.classList.add('ue-in');
+    if (!on) return;
+    const t = typeof S !== 'undefined' && S.theme && !S.theme.builtin ? S.theme.name : '';
+    nameIn.value = t ? `${t} 2` : 'Моя тема'; nameIn.focus(); nameIn.select();
+  }
+  async function saveTheme() {
+    const name = nameIn.value.trim(); if (!name) { nameIn.focus(); return; }
+    bOk.disabled = true;
+    try {
+      clearTimeout(saveT); await call('settings.set', { ui });
+      const cur = await call('themes.save', { name });
+      ui = blank(); past = []; future = []; base = cur.ui || null;
+      apply(); sync(); saveMode(false);
+      document.dispatchEvent(new CustomEvent('fl:theme', { detail: cur }));
+      toast(`Тема «${cur.name}» сохранена`);
+    } catch (e) { toast(String(e), { error: true }); } finally { bOk.disabled = false; }
+  }
+  bSave.addEventListener('click', () => saveMode(true));
+  bOk.addEventListener('click', saveTheme);
+  nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveTheme(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); saveMode(false); } });
 
   // ---------- Element pane ----------
   function name(id, n = document.querySelector(q(id))) {
@@ -174,7 +211,7 @@
     pEl.replaceChildren();
     if (!sel) {
       const e = h('div', 'ue-empty');
-      e.append(h('span', 'ue-empty-ico', ICO.pick), h('span', 't', 'Кликните по элементу'), h('span', 'muted', '<kbd>Alt</kbd> + клик — обычное нажатие'));
+      e.append(h('span', 'ue-empty-ico', ICO.pick), h('span', 't', 'Кликните по элементу'), h('span', 'muted', 'Перетащите, чтобы переставить'), h('span', 'muted', '<kbd>Alt</kbd> + клик — обычное нажатие'));
       const picks = h('div', 'ue-picks');
       for (const id of ['rail', 'topbar', 'main', 'instance.hero', 'discover.filters']) {
         const n = document.querySelector(q(id)); if (!n || !n.getClientRects().length) continue;
@@ -250,9 +287,78 @@
       if (!isOpen || e.altKey || e.target.closest?.('.ue, .palette')) return;
       const n = pickable(e.target); if (!n) return;
       e.preventDefault(); e.stopPropagation();
-      if (ev === 'click') select(n);
+      if (ev === 'click' && !noClick) select(n);
     }, true);
   }
+  let dg = null, noClick = false;
+  const motion = () => root.dataset.motion !== 'off' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const EASE = 'cubic-bezier(.22, 1, .36, 1)';
+  function orderable(n) {
+    const p = n?.parentElement;
+    if (!p?.dataset.id || p.children.length < 2 || p.children.length > 64 || !p.closest('#app')) return null;
+    return /flex|grid/.test(getComputedStyle(p).display) ? p : null;
+  }
+  const orderOf = (pid, n) => (ui.order[pid]?.length === n ? [...ui.order[pid]] : [...Array(n).keys()]);
+  function layoutRect(n) { const t = n.style.transform; n.style.transform = ''; const r = n.getBoundingClientRect(); n.style.transform = t; return r; }
+  function follow() { dg.n.style.transform = `translate(${dg.x - dg.gx - dg.lay.left}px, ${dg.y - dg.gy - dg.lay.top}px) scale(1.02)`; }
+  function startDrag() {
+    dg.on = true; dg.snap = snap(); drag = true; push();
+    if (sel?.node !== dg.n) select(dg.n);
+    const r = dg.n.getBoundingClientRect(); dg.gx = dg.x0 - r.left; dg.gy = dg.y0 - r.top;
+    const cs = getComputedStyle(dg.p); dg.col = cs.display.includes('flex') && /column/.test(cs.flexDirection);
+    dg.n.setAttribute('data-ue-drag', ''); root.dataset.ueDragging = '';
+    dg.lay = layoutRect(dg.n);
+    dg.rects = new Map([...dg.p.children].filter((k) => k !== dg.n).map((k) => [k, k.getBoundingClientRect()]));
+  }
+  function reorder() {
+    const kids = [...dg.p.children], L = orderOf(dg.pid, kids.length);
+    let best = null, bd = Infinity;
+    for (const [k, r] of dg.rects) {
+      if (!r.width || !r.height) continue;
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2, d = Math.hypot(dg.x - cx, dg.y - cy);
+      if (d < bd) { bd = d; best = { k, r, cx, cy }; }
+    }
+    if (!best) return;
+    const across = !dg.col && Math.abs(dg.y - best.cy) < best.r.height / 2;
+    const after = across ? dg.x > best.cx : dg.y > best.cy;
+    const M = L.filter((x) => x !== dg.ci);
+    M.splice(M.indexOf(kids.indexOf(best.k)) + (after ? 1 : 0), 0, dg.ci);
+    if (M.every((x, i) => x === L[i])) return;
+    const others = kids.filter((k) => k !== dg.n), before = new Map(others.map((k) => [k, k.getBoundingClientRect()]));
+    others.forEach((k) => k._ueA?.cancel());
+    if (M.every((x, i) => x === i)) delete ui.order[dg.pid]; else ui.order[dg.pid] = M;
+    apply();
+    dg.rects = new Map(others.map((k) => [k, k.getBoundingClientRect()]));
+    dg.lay = layoutRect(dg.n); follow();
+    if (!motion()) return;
+    for (const k of others) {
+      const a = before.get(k), b = dg.rects.get(k), dx = a.left - b.left, dy = a.top - b.top;
+      if (Math.abs(dx) + Math.abs(dy) > 0.5) k._ueA = k.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 280, easing: EASE });
+    }
+  }
+  function endDrag() {
+    const d = dg; dg = null; if (!d?.on) return;
+    noClick = true; setTimeout(() => { noClick = false; }, 0);
+    const r = d.n.getBoundingClientRect(); d.n.style.transform = ''; const l = d.n.getBoundingClientRect();
+    d.n.removeAttribute('data-ue-drag'); delete root.dataset.ueDragging; drag = false;
+    if (motion()) d.n.animate([{ transform: `translate(${r.left + r.width / 2 - l.left - l.width / 2}px, ${r.top + r.height / 2 - l.top - l.height / 2}px) scale(1.02)` }, { transform: 'none' }], { duration: 260, easing: EASE });
+    if (snap() === d.snap) past.pop(); else save();
+    sync();
+  }
+  document.addEventListener('pointerdown', (e) => {
+    if (!isOpen || e.altKey || e.button !== 0 || e.target.closest?.('.ue, .palette')) return;
+    const n = sel?.node?.contains(e.target) && orderable(sel.node) ? sel.node : pickable(e.target);
+    const p = n && orderable(n); if (!p) return;
+    dg = { n, p, pid: p.dataset.id, ci: [...p.children].indexOf(n), x0: e.clientX, y0: e.clientY, on: false };
+  }, true);
+  document.addEventListener('pointermove', (e) => {
+    if (!dg) return;
+    if (!dg.on) { if (Math.hypot(e.clientX - dg.x0, e.clientY - dg.y0) < 5) return; startDrag(); }
+    dg.x = e.clientX; dg.y = e.clientY; follow(); reorder();
+  }, true);
+  addEventListener('pointerup', endDrag, true); addEventListener('pointercancel', endDrag, true);
+  addEventListener('blur', endDrag);
+
   function place(box, n) {
     const r = n?.isConnected ? n.getBoundingClientRect() : null;
     if (!r || !r.width || !r.height) { box.removeAttribute('data-on'); return; }
@@ -267,7 +373,7 @@
     if (!isOpen) return;
     if (sel && !sel.node.isConnected) { const n = document.querySelector(q(sel.id)); if (n) sel.node = n; }
     place(sb, sel?.node);
-    place(hl, hov && hov !== sel?.node ? hov : null);
+    place(hl, hov && !dg?.on && hov !== sel?.node ? hov : null);
     requestAnimationFrame(loop);
   }
 
@@ -282,6 +388,7 @@
     requestAnimationFrame(loop);
   }
   function close() {
+    endDrag(); if (!fb.hidden) saveMode(false);
     isOpen = false; hov = null; delete root.dataset.uiEdit;
     panel.removeAttribute('data-open'); hl.removeAttribute('data-on'); sb.removeAttribute('data-on');
   }
@@ -299,8 +406,10 @@
     try { safe = !!(await call('app.info'))?.safe_mode; } catch { /* not in the app */ }
     if (safe) return;
     try { const st = await call('settings.get'); if (st?.ui) ui = { ...blank(), ...st.ui }; } catch { /* defaults */ }
+    try { const cur = await call('themes.current'); if (cur?.ui) base = cur.ui; } catch { /* none */ }
     apply(); sync();
   })();
 
-  window.FEditor = { open, close, apply, get state() { return ui; } };
+  function setTheme(u) { base = u || null; apply(); }
+  window.FEditor = { open, close, apply, setTheme, get state() { return ui; } };
 })();
