@@ -261,7 +261,7 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
             .as_deref()
             .map(|a| a.split_whitespace().map(str::to_owned).collect())
             .unwrap_or_default(),
-        client_id: std::env::var("FREEDOM_MSA_CLIENT_ID").unwrap_or_default(),
+        client_id: crate::msauth::client_id().unwrap_or_default(),
         resolution: set.resolution(),
     };
     let mut env = Env::current();
