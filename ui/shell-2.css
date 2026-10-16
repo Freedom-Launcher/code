@@ -93,3 +93,13 @@
   /* Column labels need air under the page title once the tabs are gone. */
   #view-settings .page-h { margin-bottom: 26px; }
 }
+
+/* ---------- Layout: «На весь экран» (look.full_width) ---------- */
+html[data-width="full"] .home,
+html[data-width="full"] .narrow,
+html[data-width="full"] #view-discover .narrow,
+html[data-width="full"] #view-project .narrow,
+html[data-width="full"] .page-inner,
+html[data-width="full"] .page-inner.wide { max-width: none; }
+html[data-width="full"] #create-form.narrow { max-width: clamp(600px, 48vw, 880px); }
+.home, .narrow, .page-inner { transition: max-width var(--d-5) var(--ease-out-2); }

@@ -46,6 +46,8 @@ pub struct Look {
     /// Command palette position: `top` | `bottom`.
     pub palette_pos: String,
     pub palette_blur: bool,
+    /// Screens fill the whole window instead of a centered column.
+    pub full_width: bool,
 }
 
 impl Default for Look {
@@ -59,6 +61,7 @@ impl Default for Look {
             cover: "big".into(),
             palette_pos: "top".into(),
             palette_blur: true,
+            full_width: false,
         }
     }
 }
@@ -102,6 +105,15 @@ impl Look {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn full_width_defaults_off_and_patches() {
+        let l = Look::default();
+        assert!(!l.full_width);
+        let p = l.patch(&json!({"full_width": true})).unwrap();
+        assert!(p.full_width);
+        assert!(l.patch(&json!({"full_width": "yes"})).is_err());
+    }
 
     #[test]
     fn old_settings_file_still_loads() {

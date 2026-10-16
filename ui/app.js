@@ -622,8 +622,8 @@ $('#theme-reload').addEventListener('click', () => { location.hash = 'settings';
 
 // Look (wallpaper, glass, cover, palette) lives in the core (settings.look).
 // localStorage keeps a mirror so the first paint is right before the core answers.
-const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur' };
-const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true };
+const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width' };
+const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false };
 const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'] };
 function lookFromCache() {
   const l = { ...LOOK_DEF };
@@ -717,11 +717,14 @@ function applyLook() {
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
   document.documentElement.dataset.cover = S.look.cover;
+  document.documentElement.dataset.width = S.look.full_width ? 'full' : 'center';
+  $('#fx-wide').checked = !!S.look.full_width;
   $$('#cover-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.coverSet === document.documentElement.dataset.cover)));
 }
 
 $('#cover-seg').addEventListener('seg:change', (e) => { setLook({ cover: e.detail.dataset.coverSet }); applyLook(); });
 $('#fx-motion').addEventListener('change', (e) => { setMotion(e.target.checked); applyLook(); });
+$('#fx-wide').addEventListener('change', (e) => { setLook({ full_width: e.target.checked }); applyLook(); document.dispatchEvent(new Event('look:change')); });
 
 // ---------- Startup ----------
 async function start() {

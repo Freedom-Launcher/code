@@ -1,0 +1,62 @@
+/* Freedom Launcher — custom dropdown (draws every native <select>).
+   The list reuses .pop motion (opens from its origin, flips upward near the window edge);
+   the highlight slides between options like the Ctrl K palette. Transform/opacity only. */
+.dd-native {
+  position: absolute !important; width: 1px !important; height: 1px !important; margin: -1px; padding: 0 !important;
+  overflow: hidden; clip: rect(0 0 0 0); border: 0; opacity: 0; pointer-events: none;
+}
+
+/* ---------- Trigger ---------- */
+.dd-btn { display: inline-flex; align-items: center; gap: 8px; padding-right: 8px; text-align: left; font: inherit; cursor: default; }
+.dd-btn[hidden] { display: none; }
+.dd-btn.field { background-image: none; padding-right: 8px; }
+.dd-btn .dd-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-btn .dd-value.is-empty { color: var(--text-3); }
+.dd-btn > svg {
+  flex: none; width: 14px; height: 14px; fill: none; stroke: var(--text-3); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform var(--d-5) var(--ease-out-2), stroke var(--d-2) var(--ease-out);
+}
+.dd-btn:hover > svg { stroke: var(--text-2); }
+.dd-btn[aria-expanded="true"] { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-soft); }
+.dd-btn[aria-expanded="true"] > svg { transform: rotate(180deg); stroke: var(--text); }
+.dd-btn:disabled { opacity: .5; }
+
+/* ---------- List ---------- */
+.dd-pop {
+  z-index: 70; min-width: 160px; max-width: min(420px, calc(100vw - 16px)); max-height: 340px;
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+}
+.dd-pop:focus { outline: none; }
+.dd-pop.is-up { transform: translateY(var(--shift)) scale(var(--pop-scale)); }
+.dd-pop.is-up[data-open] { transform: none; }
+.dd-hl {
+  position: absolute; left: 4px; right: 4px; top: 0; height: 30px; border-radius: 6px; pointer-events: none;
+  background: var(--hover); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04);
+  transition: transform 220ms var(--ease-out-2), height 220ms var(--ease-out-2), opacity var(--d-2) var(--ease-out);
+}
+[data-theme="light"] .dd-hl { box-shadow: none; }
+.dd-hl[hidden] { display: block; opacity: 0; }
+.dd-hl.is-instant, .dd-pop[data-instant] .dd-hl { transition: none; }
+.dd-opt {
+  position: relative; display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 8px 0 10px;
+  border-radius: 6px; color: var(--text-2); white-space: nowrap; cursor: default; transition: color var(--d-2) var(--ease-out);
+}
+.dd-opt > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.dd-opt.is-active, .dd-opt[aria-selected="true"] { color: var(--text); }
+.dd-opt[aria-selected="true"] { font-weight: var(--w-medium); }
+.dd-opt > svg {
+  flex: none; width: 14px; height: 14px; fill: none; stroke: var(--accent); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0; transform: scale(.5); transition: opacity var(--d-2) var(--ease-out), transform 300ms var(--ease-spring);
+}
+.dd-opt[aria-selected="true"] > svg { opacity: 1; transform: none; }
+.dd-opt[aria-disabled="true"] { opacity: .45; }
+.dd-group { padding: 8px 10px 4px; color: var(--text-3); font-size: var(--text-xs); font-weight: var(--w-medium); }
+.dd-group:first-of-type { padding-top: 4px; }
+/* Over wallpaper: same frosted material as the palette, so content behind never shows through. */
+.dd-pop { background: var(--surface-1); box-shadow: 0 0 0 1px var(--line-strong), 0 18px 48px -10px rgba(0, 0, 0, .55), 0 4px 14px rgba(0, 0, 0, .22); }
+html[data-wall="on"] .dd-pop {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(max(var(--glass-blur), 26px)) saturate(1.5); backdrop-filter: blur(max(var(--glass-blur), 26px)) saturate(1.5);
+  box-shadow: inset 0 0 0 1px var(--glass-border), 0 22px 60px -10px rgba(0, 0, 0, .55);
+}
+[data-theme="light"] .dd-pop { box-shadow: 0 0 0 1px rgba(0, 0, 0, .08), 0 18px 44px -12px rgba(20, 30, 60, .26); }
