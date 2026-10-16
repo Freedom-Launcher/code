@@ -1,0 +1,42 @@
+/* Shared micro-motion. Transform/opacity only; everything here is off with data-motion="off" or reduced motion. */
+
+/* Tabs: one ink bar slides between tabs instead of jumping. */
+.tabs.has-ink { position: relative; }
+.tabs.has-ink button[aria-selected="true"]::after { content: none; }
+.tabs-ink {
+  position: absolute; left: 0; bottom: -1px; width: 0; height: 2px; opacity: 0; pointer-events: none;
+  border-radius: calc(2px * var(--rk-btn, 1)); background: var(--text);
+}
+.tabs-ink[data-ready] { transition: transform var(--d-4) var(--ease-out-2), width var(--d-4) var(--ease-out-2), opacity var(--d-2) var(--ease-out); }
+
+/* Dialogs land with a light spring; closing stays quick. */
+.dialog[data-open] { transition: opacity var(--d-3) var(--ease-out), transform 360ms var(--ease-spring); }
+
+/* Menus: items cascade in from the origin. */
+.pop[data-open] .menu-item { animation: mi-in var(--d-3) var(--ease-out) both; }
+.pop[data-open] .menu-item:nth-child(2) { animation-delay: 14ms; }
+.pop[data-open] .menu-item:nth-child(3) { animation-delay: 28ms; }
+.pop[data-open] .menu-item:nth-child(4) { animation-delay: 42ms; }
+.pop[data-open] .menu-item:nth-child(5) { animation-delay: 56ms; }
+.pop[data-open] .menu-item:nth-child(6) { animation-delay: 70ms; }
+.pop[data-open] .menu-item:nth-child(n+7) { animation-delay: 84ms; }
+@keyframes mi-in { from { opacity: 0; transform: translateY(-3px); } }
+
+/* Buttons answer their action: a soft pop on success, a short shake on error. */
+.btn[data-state="success"] { animation: btn-ok 420ms var(--ease-out); }
+.btn[data-state="error"] { animation: btn-shake 380ms var(--ease-out); }
+@keyframes btn-ok { 40% { transform: scale(1.035); } }
+@keyframes btn-shake { 20% { transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(1px); } }
+
+/* Toggles and icons feel physical. */
+.btn-icon svg { transition: transform var(--d-3) var(--ease-spring); }
+.btn-icon:hover svg { transform: scale(1.08); }
+.btn-icon:active svg { transform: scale(.92); transition-duration: var(--d-1); }
+.field { transition: box-shadow var(--d-2) var(--ease-out), background-color var(--d-2) var(--ease-out); }
+
+html[data-motion="off"] .tabs-ink, html[data-motion="off"] .dialog, html[data-motion="off"] .btn-icon svg { transition: none; }
+html[data-motion="off"] .pop .menu-item, html[data-motion="off"] .btn { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .tabs-ink, .dialog[data-open], .btn-icon svg { transition: none; }
+  .pop .menu-item, .btn[data-state] { animation: none; }
+}
