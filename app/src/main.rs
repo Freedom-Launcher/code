@@ -264,6 +264,46 @@ async fn stage_mrpack(
     fl_core::mrpack::stage(&state.0.data_dir, bytes).map_err(|e| e.to_string())
 }
 
+/// Picks a `.mrpack` with the native dialog and stages it straight from disk, so the
+/// WebView never has to read the file (WebView2 throws NotReadableError on some files).
+#[tauri::command]
+async fn pick_mrpack(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) -> Result<Option<String>, String> {
+    let data_dir = state.0.data_dir.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(path) = app
+            .dialog()
+            .file()
+            .set_title("Импорт сборки")
+            .add_filter("Сборка Modrinth", &["mrpack", "zip"])
+            .blocking_pick_file()
+            .and_then(|p| p.into_path().ok())
+        else {
+            return Ok(None);
+        };
+        stage_mrpack_file(&data_dir, &path).map(Some)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn stage_mrpack_file(data_dir: &std::path::Path, path: &std::path::Path) -> Result<String, String> {
+    let len = std::fs::metadata(path).map_err(|e| format!("Не удалось открыть файл: {e}"))?.len();
+    if len as usize > fl_core::mrpack::MAX_PACK {
+        return Err("Сборка больше 512 МБ".into());
+    }
+    let bytes = std::fs::read(path).map_err(|e| format!("Не удалось прочитать файл: {e}"))?;
+    fl_core::mrpack::stage(data_dir, &bytes).map_err(|e| e.to_string())
+}
+
+/// Stages a `.mrpack` dropped onto the window (path from the drag-drop event).
+#[tauri::command]
+async fn stage_mrpack_path(path: String, state: tauri::State<'_, AppCore>) -> Result<String, String> {
+    let data_dir = state.0.data_dir.clone();
+    tauri::async_runtime::spawn_blocking(move || stage_mrpack_file(&data_dir, std::path::Path::new(&path)))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 /// Saves an instance's own icon or cover, already cropped by the UI. Raw body; the
 /// instance and kind come in the `x-inst` / `x-kind` headers.
 #[tauri::command]
@@ -644,6 +684,8 @@ fn main() {
             set_art,
             clear_art,
             stage_mrpack,
+            pick_mrpack,
+            stage_mrpack_path,
             pick_folder,
             updater::update_check,
             updater::update_install,

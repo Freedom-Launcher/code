@@ -331,24 +331,41 @@ $('#create-form').addEventListener('submit', async (ev) => {
 
 // ---------- Import .mrpack: the app stages the bytes, the core builds the instance ----------
 const IMPORT_STAGE = { prepare: 'Читаем сборку', files: 'Скачиваем файлы', overrides: 'Копируем настройки', done: 'Готово' };
-$('#c-import').addEventListener('click', () => $('#c-import-file').click());
-$('#c-import-file').addEventListener('change', async (ev) => {
+// The native dialog hands the path to the core, which reads the file itself; the
+// <input> is only a fallback outside Tauri.
+$('#c-import').addEventListener('click', async () => {
+  if (!window.__TAURI__) { $('#c-import-file').click(); return; }
+  runImport(() => invoke('pick_mrpack'));
+});
+$('#c-import-file').addEventListener('change', (ev) => {
   const f = ev.target.files?.[0];
-  ev.target.value = '';
   if (!f) return;
+  runImport(async () => {
+    const buf = await f.arrayBuffer();
+    ev.target.value = '';
+    return invoke('stage_mrpack', new Uint8Array(buf));
+  });
+});
+window.flImportMrpackPath = (path) => runImport(() => invoke('stage_mrpack_path', { path }));
+async function runImport(stage) {
   const btn = $('#c-import');
   const box = $('#c-import-status');
   const form = $('#create-form');
-  form.classList.add('is-importing');
-  $$('#create-form button').forEach((b) => { b.disabled = true; });
-  btn.dataset.state = 'loading';
-  box.hidden = false;
-  $('#ci-stage').textContent = IMPORT_STAGE.prepare;
-  $('#ci-count').textContent = '';
-  progress($('#ci-bar'), null);
   let poll = 0;
+  let token = null;
+  const busy = (on) => {
+    form.classList.toggle('is-importing', on);
+    $$('#create-form button').forEach((b) => { b.disabled = on; });
+    box.hidden = !on;
+  };
   try {
-    const token = await invoke('stage_mrpack', new Uint8Array(await f.arrayBuffer()));
+    btn.dataset.state = 'loading';
+    token = await stage();
+    if (!token) { delete btn.dataset.state; return; }
+    busy(true);
+    $('#ci-stage').textContent = IMPORT_STAGE.prepare;
+    $('#ci-count').textContent = '';
+    progress($('#ci-bar'), null);
     poll = setInterval(async () => {
       const p = await call('game.progress', { instance: token }).catch(() => null);
       if (!p) return;
@@ -375,11 +392,9 @@ $('#c-import-file').addEventListener('change', async (ev) => {
     toast(String(e), { error: true });
   } finally {
     clearInterval(poll);
-    box.hidden = true;
-    form.classList.remove('is-importing');
-    $$('#create-form button').forEach((b) => { b.disabled = false; });
+    busy(false);
   }
-});
+}
 
 // ---------- Accounts page ----------
 function renderAccountsPage() {
