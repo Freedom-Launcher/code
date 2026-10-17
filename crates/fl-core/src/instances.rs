@@ -188,8 +188,9 @@ impl Instance {
         }
     }
     /// The game directory (worlds, mods, configs) of this instance.
-    pub fn game_dir(&self, data_dir: &std::path::Path) -> std::path::PathBuf {
-        data_dir.join("instances").join(self.dir_name())
+    /// `root` is [`crate::Core::instances_root`].
+    pub fn game_dir(&self, root: &std::path::Path) -> std::path::PathBuf {
+        root.join(self.dir_name())
     }
     /// Id of the version this instance launches (its `versions/<id>/` dir).
     pub fn version_id(&self) -> String {

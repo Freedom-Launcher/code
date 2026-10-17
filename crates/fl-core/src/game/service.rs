@@ -254,7 +254,7 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
     };
     let opts = LaunchOptions {
         java: java.clone(),
-        game_dir: inst.game_dir(&core.data_dir),
+        game_dir: inst.game_dir(&core.instances_root()),
         memory_mb: set
             .memory_mb
             .unwrap_or_else(|| launch::default_memory_mb(launch::total_ram_mb())),

@@ -5,6 +5,7 @@ use std::{sync::Arc, time::Instant};
 use fl_core::{Caller, Core};
 use serde_json::Value;
 use tauri::Manager;
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 
 struct AppCore(Arc<Core>);
@@ -112,6 +113,22 @@ async fn open_instance_folder(
         .map_err(|e| e.to_string())
 }
 
+/// Native folder picker (Settings → Игра → «Папка сборок»); `None` if cancelled.
+#[tauri::command]
+async fn pick_folder(app: tauri::AppHandle, title: Option<String>) -> Result<Option<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut d = app.dialog().file();
+        if let Some(t) = title {
+            d = d.set_title(t);
+        }
+        d.blocking_pick_folder()
+            .and_then(|p| p.into_path().ok())
+            .map(|p| p.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
 /// Opens one world's folder in the system file manager.
 #[tauri::command]
 async fn open_world_folder(
@@ -189,7 +206,7 @@ fn shot_protocol(
         return deny(404);
     };
     let file = percent_decode(file);
-    let Some((bytes, mime)) = fl_core::media::read_shot(&state.0.data_dir, id, &file) else {
+    let Some((bytes, mime)) = fl_core::media::read_shot(&state.0, id, &file) else {
         return deny(404);
     };
     Response::builder()
@@ -548,6 +565,7 @@ fn main() {
     }
     builder
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .register_uri_scheme_protocol("theme", |ctx, req| theme_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("addon", |ctx, req| addon_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("wall", |ctx, _req| wall_protocol(ctx.app_handle()))
@@ -579,7 +597,8 @@ fn main() {
             open_exports_folder,
             set_wallpaper,
             clear_wallpaper,
-            stage_mrpack
+            stage_mrpack,
+            pick_folder
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Freedom Launcher");

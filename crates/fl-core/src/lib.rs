@@ -30,6 +30,7 @@ pub mod msauth;
 pub mod net;
 pub mod permissions;
 pub mod providers;
+pub mod relocate;
 pub mod settings;
 pub mod signing;
 pub mod skins;
@@ -125,6 +126,20 @@ impl Core {
 
     pub fn path(&self, file: &str) -> PathBuf {
         self.data_dir.join(file)
+    }
+
+    /// Where instance folders live: the user's chosen folder or `<data_dir>/instances`.
+    pub fn instances_root(&self) -> PathBuf {
+        store::load::<settings::Settings>(&self.path("settings.json"))
+            .ok()
+            .and_then(|s| s.instances_dir)
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .unwrap_or_else(|| self.default_instances_root())
+    }
+
+    pub fn default_instances_root(&self) -> PathBuf {
+        self.data_dir.join("instances")
     }
 
     /// Records time from process start to first UI paint (first call wins).

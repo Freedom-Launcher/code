@@ -424,7 +424,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 settings: Default::default(),
                 pack: None,
             };
-            std::fs::create_dir_all(inst.game_dir(&c.data_dir))?;
+            std::fs::create_dir_all(inst.game_dir(&c.instances_root()))?;
             s.instances.push(inst.clone());
             store::save(&c.path(INSTANCES), &s, false)?;
             Ok(serde_json::to_value(inst)?)
@@ -498,7 +498,7 @@ fn world_dir(
         return Err(CoreError::BadArgs(format!("bad world: {world}")));
     }
     let i = instance_by_id(c, instance)?;
-    let d = i.game_dir(&c.data_dir).join("saves").join(world);
+    let d = i.game_dir(&c.instances_root()).join("saves").join(world);
     if !d.join("level.dat").is_file() {
         return Err(CoreError::BadArgs(format!("no such world: {world}")));
     }
@@ -658,7 +658,7 @@ fn register_packs(r: &mut ActionRegistry) {
             Ok(json!({
                 "name": i.name,
                 "version": version.unwrap_or_else(|| "1.0.0".into()),
-                "candidates": crate::export::candidates(&i.game_dir(&c.data_dir)),
+                "candidates": crate::export::candidates(&i.game_dir(&c.instances_root())),
             }))
         },
     );
@@ -736,7 +736,7 @@ async fn apply_pack(
     if plan.loader != "vanilla" && plan.loader_version.is_empty() {
         plan.loader_version = crate::game::loader::latest(c, &plan.loader, &plan.mc).await?;
     }
-    let game_dir = i.game_dir(&c.data_dir);
+    let game_dir = i.game_dir(&c.instances_root());
     // Drop what the old version brought and the new one doesn't; user files are never listed.
     let old: Vec<String> = store::load(&game_dir.join(instances::PACK_FILES))?;
     let new: std::collections::HashSet<String> = plan
@@ -777,7 +777,7 @@ fn register_import(r: &mut ActionRegistry) {
         |c, a| async move {
             let InstanceArg { instance } = args(a)?;
             let i = instance_by_id(&c, &instance)?;
-            Ok(json!(crate::media::list_shots(&i.game_dir(&c.data_dir))))
+            Ok(json!(crate::media::list_shots(&i.game_dir(&c.instances_root()))))
         },
     );
     r.register(
@@ -787,7 +787,7 @@ fn register_import(r: &mut ActionRegistry) {
         |c, a| async move {
             let ShotArg { instance, file } = args(a)?;
             let i = instance_by_id(&c, &instance)?;
-            let p = crate::media::shot_path(&i.game_dir(&c.data_dir), &file)
+            let p = crate::media::shot_path(&i.game_dir(&c.instances_root()), &file)
                 .ok_or_else(|| CoreError::BadArgs(format!("no such screenshot: {file}")))?;
             std::fs::remove_file(p)?;
             Ok(json!({ "instance": instance, "file": file, "deleted": true }))
@@ -800,7 +800,7 @@ fn register_import(r: &mut ActionRegistry) {
         |c, a| async move {
             let InstanceArg { instance } = args(a)?;
             let i = instance_by_id(&c, &instance)?;
-            let d = i.game_dir(&c.data_dir).join("screenshots");
+            let d = i.game_dir(&c.instances_root()).join("screenshots");
             std::fs::create_dir_all(&d)?;
             Ok(json!({ "instance": instance, "path": d }))
         },
@@ -825,7 +825,7 @@ fn register_import(r: &mut ActionRegistry) {
             } = args(a)?;
             let i = instance_by_id(&c, &instance)?;
             let p = i
-                .game_dir(&c.data_dir)
+                .game_dir(&c.instances_root())
                 .join("logs")
                 .join("launcher-output.log");
             let mut v = crate::media::read_log(&p, from, before)?;
@@ -836,7 +836,7 @@ fn register_import(r: &mut ActionRegistry) {
     r.register("logs.folder", P::InstancesRead, true, |c, a| async move {
         let InstanceArg { instance } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
-        let d = i.game_dir(&c.data_dir).join("logs");
+        let d = i.game_dir(&c.instances_root()).join("logs");
         std::fs::create_dir_all(&d)?;
         Ok(json!({ "instance": instance, "path": d }))
     });
@@ -867,7 +867,7 @@ fn register_import(r: &mut ActionRegistry) {
             }
             let A { instance } = args(a)?;
             let i = instance_by_id(&c, &instance)?;
-            Ok(json!(list_worlds(&i.game_dir(&c.data_dir).join("saves"))))
+            Ok(json!(list_worlds(&i.game_dir(&c.instances_root()).join("saves"))))
         },
     );
     // Installs a modpack from Modrinth as a new instance. `token` is a fresh
@@ -934,10 +934,10 @@ async fn import_mrpack(
         let _g = c.state_lock.lock().await;
         let s: InstanceStore = store::load(&c.path(INSTANCES))?;
         let dir = free_dir(c, &s, &plan.name, None);
-        std::fs::create_dir_all(c.data_dir.join("instances").join(&dir))?;
+        std::fs::create_dir_all(c.instances_root().join(&dir))?;
         dir
     };
-    let game_dir = c.data_dir.join("instances").join(&dir);
+    let game_dir = c.instances_root().join(&dir);
     if let Err(e) = fill_from_pack(c, &mut z, &mut plan, &game_dir, &p).await {
         p.set_stage("error");
         let _ = std::fs::remove_dir_all(&game_dir);
@@ -1021,7 +1021,7 @@ fn copy_dir(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()>
 
 /// A readable folder name for `name` that no other instance or existing folder uses.
 fn free_dir(c: &Core, s: &InstanceStore, name: &str, own: Option<&str>) -> String {
-    let root = c.data_dir.join("instances");
+    let root = c.instances_root();
     let mut taken: Vec<String> = s
         .instances
         .iter()
@@ -1049,8 +1049,8 @@ fn move_dir(c: &Core, inst: &mut Instance, new_dir: String) {
     if new_dir == inst.dir_name() {
         return;
     }
-    let from = inst.game_dir(&c.data_dir);
-    let to = c.data_dir.join("instances").join(&new_dir);
+    let from = inst.game_dir(&c.instances_root());
+    let to = c.instances_root().join(&new_dir);
     if !from.exists() || std::fs::rename(&from, &to).is_ok() {
         inst.dir = new_dir;
     }
@@ -1079,6 +1079,44 @@ fn busy(c: &Core, id: &str) -> Result<(), CoreError> {
 }
 
 fn register_instance_manage(r: &mut ActionRegistry) {
+    // Where instance folders live (Settings → Игра → «Папка сборок»).
+    r.register("instances.root", P::InstancesRead, false, |c, _| async move {
+        let root = c.instances_root();
+        let default = c.default_instances_root();
+        Ok(json!({ "path": root, "default": default, "custom": root != default }))
+    });
+    // Moves every instance folder to `path` (`null` = back to the default) and remembers it.
+    r.register("instances.move_root", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct A {
+            path: Option<String>,
+        }
+        let A { path } = args(a)?;
+        let default = c.default_instances_root();
+        let new = path.map(std::path::PathBuf::from).unwrap_or_else(|| default.clone());
+        let (run, start) = c.game_running.list();
+        if !run.is_empty() || !start.is_empty() {
+            return Err(CoreError::msg("Сначала закройте игру"));
+        }
+        let _g = c.state_lock.lock().await;
+        let old = c.instances_root();
+        if new == old {
+            return Ok(json!({ "path": old, "moved": 0 }));
+        }
+        let s: InstanceStore = store::load(&c.path(INSTANCES))?;
+        let dirs: Vec<String> = s.instances.iter().map(|i| i.dir_name().to_owned()).collect();
+        crate::relocate::check_target(&old, &new, &c.data_dir, &dirs)?;
+        let p = service::progress_for(&c, crate::relocate::PROGRESS_KEY);
+        let (o, n, pp) = (old.clone(), new.clone(), std::sync::Arc::clone(&p));
+        let moved = tokio::task::spawn_blocking(move || crate::relocate::move_all(&dirs, &o, &n, &pp))
+            .await
+            .map_err(|e| CoreError::msg(e.to_string()))??;
+        let mut st: Settings = store::load(&c.path(SETTINGS))?;
+        st.instances_dir = crate::relocate::to_setting(&new, &default);
+        store::save(&c.path(SETTINGS), &st, false)?;
+        Ok(json!({ "path": new, "moved": moved }))
+    });
     // Rename and/or replace per-instance settings.
     r.register("instances.update", P::InstancesManage, true, |c, a| {
         update_instance(c, a, false)
@@ -1101,12 +1139,11 @@ fn register_instance_manage(r: &mut ActionRegistry) {
                 .iter()
                 .position(|i| i.id == instance)
                 .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
-            let dir = s.instances[k].game_dir(&c.data_dir);
+            let dir = s.instances[k].game_dir(&c.instances_root());
             // Move the folder aside first: if a file is locked, nothing is lost and the
             // instance stays. Only then forget it and remove the files.
             let trash = c
-                .data_dir
-                .join("instances")
+                .instances_root()
                 .join(format!(".deleting-{instance}"));
             if dir.exists() {
                 std::fs::rename(&dir, &trash).map_err(|e| {
@@ -1143,7 +1180,7 @@ fn register_instance_manage(r: &mut ActionRegistry) {
                 .find(|i| i.id == instance)
                 .cloned()
                 .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
-            let src_dir = src.game_dir(&c.data_dir);
+            let src_dir = src.game_dir(&c.instances_root());
             let name = name.unwrap_or_else(|| format!("{} (2)", src.name));
             instances::validate(&name, &src.version)?;
             let name = name.trim().to_owned();
@@ -1158,9 +1195,9 @@ fn register_instance_manage(r: &mut ActionRegistry) {
             };
             let from = src_dir;
             if from.is_dir() {
-                copy_dir(&from, &copy.game_dir(&c.data_dir))?;
+                copy_dir(&from, &copy.game_dir(&c.instances_root()))?;
             } else {
-                std::fs::create_dir_all(copy.game_dir(&c.data_dir))?;
+                std::fs::create_dir_all(copy.game_dir(&c.instances_root()))?;
             }
             s.instances.push(copy.clone());
             store::save(&c.path(INSTANCES), &s, false)?;
@@ -1180,7 +1217,7 @@ fn register_instance_manage(r: &mut ActionRegistry) {
                 .iter()
                 .find(|i| i.id == instance)
                 .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?
-                .game_dir(&c.data_dir);
+                .game_dir(&c.instances_root());
             std::fs::create_dir_all(&dir)?;
             Ok(json!({ "instance": instance, "path": dir }))
         },
@@ -1338,7 +1375,7 @@ fn content_root(
     kind: Kind,
     world: Option<&str>,
 ) -> Result<std::path::PathBuf, CoreError> {
-    let gd = i.game_dir(&c.data_dir);
+    let gd = i.game_dir(&c.instances_root());
     if kind != Kind::Datapack {
         return Ok(gd);
     }

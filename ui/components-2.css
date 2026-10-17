@@ -109,3 +109,8 @@
 .mem-val { float: right; color: var(--text); font-weight: var(--w-medium); }
 .range { width: 100%; accent-color: var(--accent); }
 .menu-item.is-danger { color: var(--danger, #e5484d); }
+
+/* Settings → Игра → «Папка сборок» */
+.gs-root .s { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
+.gs-root-prog { margin-top: 8px; max-width: 320px; animation: gs-in var(--d-4, .24s) var(--ease-out) both; }
+@keyframes gs-in { from { opacity: 0; transform: translateY(-2px); } }

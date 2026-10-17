@@ -220,7 +220,7 @@ pub async fn export(
     if name.is_empty() || name.chars().count() > 64 || version.chars().count() > 32 {
         return Err(bad("Укажите название (до 64 символов) и версию"));
     }
-    let game_dir = inst.game_dir(&c.data_dir);
+    let game_dir = inst.game_dir(&c.instances_root());
     let mut files = Vec::new();
     for p in paths {
         let rel =

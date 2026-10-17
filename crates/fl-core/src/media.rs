@@ -61,10 +61,10 @@ pub fn shot_path(game_dir: &Path, file: &str) -> Option<PathBuf> {
 }
 
 /// For the `shot:` protocol: `<instance id>/<file>` → bytes and MIME type.
-pub fn read_shot(data_dir: &Path, instance: &str, file: &str) -> Option<(Vec<u8>, &'static str)> {
-    let s: InstanceStore = store::load(&data_dir.join("instances.json")).ok()?;
+pub fn read_shot(core: &crate::Core, instance: &str, file: &str) -> Option<(Vec<u8>, &'static str)> {
+    let s: InstanceStore = store::load(&core.path("instances.json")).ok()?;
     let i = s.instances.into_iter().find(|i| i.id == instance)?;
-    let p = shot_path(&i.game_dir(data_dir), file)?;
+    let p = shot_path(&i.game_dir(&core.instances_root()), file)?;
     let bytes = std::fs::read(p).ok()?;
     let mime = if bytes.starts_with(b"\x89PNG") {
         "image/png"

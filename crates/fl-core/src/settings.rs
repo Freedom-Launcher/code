@@ -19,6 +19,10 @@ pub struct Settings {
     pub ui: UiCustom,
     /// Launcher-wide game defaults; each instance overrides what it sets.
     pub game: crate::instances::InstanceSettings,
+    /// Folder that holds every instance; `None` = `<data_dir>/instances`.
+    /// Changed only by `instances.move_root`, which moves the folders too.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instances_dir: Option<String>,
 }
 
 pub const LOADER_ORDER: [&str; 4] = ["neoforge", "fabric", "quilt", "forge"];
@@ -47,6 +51,7 @@ impl Default for Settings {
             loader_priority: LOADER_ORDER.iter().map(|s| s.to_string()).collect(),
             ui: UiCustom::default(),
             game: Default::default(),
+            instances_dir: None,
         }
     }
 }
