@@ -83,7 +83,9 @@ pub fn read_log(path: &Path, from: Option<u64>, before: Option<u64>) -> Result<V
     let mut f = match std::fs::File::open(path) {
         Ok(f) => f,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            return Ok(json!({ "exists": false, "text": "", "start": 0, "end": 0, "size": 0, "reset": false }));
+            return Ok(
+                json!({ "exists": false, "text": "", "start": 0, "end": 0, "size": 0, "reset": false }),
+            );
         }
         Err(e) => return Err(e.into()),
     };

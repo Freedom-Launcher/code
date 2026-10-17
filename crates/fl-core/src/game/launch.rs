@@ -215,12 +215,44 @@ pub fn build_args(
 }
 
 /// Starts the game. Output goes to `<game_dir>/logs/launcher-output.log`.
-pub fn spawn(java: &Path, args: &[String], game_dir: &Path) -> Result<Child, CoreError> {
+/// Shell for hook commands: `cmd /C` on Windows, `sh -c` elsewhere.
+pub fn shell(line: &str) -> Command {
+    let mut c = if cfg!(windows) {
+        Command::new("cmd")
+    } else {
+        Command::new("sh")
+    };
+    c.arg(if cfg!(windows) { "/C" } else { "-c" }).arg(line);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        c.creation_flags(0x0800_0000);
+    }
+    c
+}
+
+pub fn spawn(
+    java: &Path,
+    args: &[String],
+    game_dir: &Path,
+    wrapper: Option<&str>,
+    env: &std::collections::BTreeMap<String, String>,
+) -> Result<Child, CoreError> {
     std::fs::create_dir_all(game_dir.join("logs"))?;
     let log = std::fs::File::create(game_dir.join("logs").join("launcher-output.log"))?;
     let err = log.try_clone()?;
-    let mut cmd = Command::new(java);
+    let mut words = wrapper
+        .map(|w| w.split_whitespace().collect::<Vec<_>>())
+        .unwrap_or_default();
+    let mut cmd = if words.is_empty() {
+        Command::new(java)
+    } else {
+        let mut c = Command::new(words.remove(0));
+        c.args(words).arg(java);
+        c
+    };
     cmd.args(args)
+        .envs(env)
         .current_dir(game_dir)
         .stdin(Stdio::null())
         .stdout(log)

@@ -90,6 +90,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             onboarded: Option<bool>,
             loader_priority: Option<Vec<String>>,
             ui: Option<Value>,
+            game: Option<instances::InstanceSettings>,
         }
         let A {
             look,
@@ -97,7 +98,11 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             onboarded,
             loader_priority,
             ui,
+            game,
         } = args(a)?;
+        if let Some(g) = &game {
+            g.validate()?;
+        }
         let _g = c.state_lock.lock().await;
         let mut s: Settings = store::load(&c.path(SETTINGS))?;
         if let Some(p) = look {
@@ -125,6 +130,9 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             let u: crate::settings::UiCustom =
                 serde_json::from_value(u).map_err(|e| CoreError::BadArgs(format!("ui: {e}")))?;
             s.ui = u.checked().map_err(CoreError::BadArgs)?;
+        }
+        if let Some(g) = game {
+            s.game = g;
         }
         store::save(&c.path(SETTINGS), &s, false)?;
         Ok(serde_json::to_value(s)?)
@@ -762,42 +770,69 @@ async fn apply_pack(
 }
 
 fn register_import(r: &mut ActionRegistry) {
-    r.register("instances.screenshots", P::InstancesRead, false, |c, a| async move {
-        let InstanceArg { instance } = args(a)?;
-        let i = instance_by_id(&c, &instance)?;
-        Ok(json!(crate::media::list_shots(&i.game_dir(&c.data_dir))))
-    });
-    r.register("screenshots.delete", P::InstancesManage, false, |c, a| async move {
-        let ShotArg { instance, file } = args(a)?;
-        let i = instance_by_id(&c, &instance)?;
-        let p = crate::media::shot_path(&i.game_dir(&c.data_dir), &file)
-            .ok_or_else(|| CoreError::BadArgs(format!("no such screenshot: {file}")))?;
-        std::fs::remove_file(p)?;
-        Ok(json!({ "instance": instance, "file": file, "deleted": true }))
-    });
-    r.register("screenshots.folder", P::InstancesRead, true, |c, a| async move {
-        let InstanceArg { instance } = args(a)?;
-        let i = instance_by_id(&c, &instance)?;
-        let d = i.game_dir(&c.data_dir).join("screenshots");
-        std::fs::create_dir_all(&d)?;
-        Ok(json!({ "instance": instance, "path": d }))
-    });
-    r.register("instances.log", P::InstancesRead, false, |c, a| async move {
-        #[derive(Deserialize)]
-        struct A {
-            instance: String,
-            #[serde(default)]
-            from: Option<u64>,
-            #[serde(default)]
-            before: Option<u64>,
-        }
-        let A { instance, from, before } = args(a)?;
-        let i = instance_by_id(&c, &instance)?;
-        let p = i.game_dir(&c.data_dir).join("logs").join("launcher-output.log");
-        let mut v = crate::media::read_log(&p, from, before)?;
-        v["running"] = json!(c.game_running.is_busy(&instance));
-        Ok(v)
-    });
+    r.register(
+        "instances.screenshots",
+        P::InstancesRead,
+        false,
+        |c, a| async move {
+            let InstanceArg { instance } = args(a)?;
+            let i = instance_by_id(&c, &instance)?;
+            Ok(json!(crate::media::list_shots(&i.game_dir(&c.data_dir))))
+        },
+    );
+    r.register(
+        "screenshots.delete",
+        P::InstancesManage,
+        false,
+        |c, a| async move {
+            let ShotArg { instance, file } = args(a)?;
+            let i = instance_by_id(&c, &instance)?;
+            let p = crate::media::shot_path(&i.game_dir(&c.data_dir), &file)
+                .ok_or_else(|| CoreError::BadArgs(format!("no such screenshot: {file}")))?;
+            std::fs::remove_file(p)?;
+            Ok(json!({ "instance": instance, "file": file, "deleted": true }))
+        },
+    );
+    r.register(
+        "screenshots.folder",
+        P::InstancesRead,
+        true,
+        |c, a| async move {
+            let InstanceArg { instance } = args(a)?;
+            let i = instance_by_id(&c, &instance)?;
+            let d = i.game_dir(&c.data_dir).join("screenshots");
+            std::fs::create_dir_all(&d)?;
+            Ok(json!({ "instance": instance, "path": d }))
+        },
+    );
+    r.register(
+        "instances.log",
+        P::InstancesRead,
+        false,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                instance: String,
+                #[serde(default)]
+                from: Option<u64>,
+                #[serde(default)]
+                before: Option<u64>,
+            }
+            let A {
+                instance,
+                from,
+                before,
+            } = args(a)?;
+            let i = instance_by_id(&c, &instance)?;
+            let p = i
+                .game_dir(&c.data_dir)
+                .join("logs")
+                .join("launcher-output.log");
+            let mut v = crate::media::read_log(&p, from, before)?;
+            v["running"] = json!(c.game_running.is_busy(&instance));
+            Ok(v)
+        },
+    );
     r.register("logs.folder", P::InstancesRead, true, |c, a| async move {
         let InstanceArg { instance } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
@@ -1045,56 +1080,13 @@ fn busy(c: &Core, id: &str) -> Result<(), CoreError> {
 
 fn register_instance_manage(r: &mut ActionRegistry) {
     // Rename and/or replace per-instance settings.
-    r.register(
-        "instances.update",
-        P::InstancesManage,
-        true,
-        |c, a| async move {
-            #[derive(Deserialize)]
-            struct A {
-                instance: String,
-                #[serde(default)]
-                name: Option<String>,
-                #[serde(default)]
-                settings: Option<instances::InstanceSettings>,
-            }
-            let A {
-                instance,
-                name,
-                settings,
-            } = args(a)?;
-            if let Some(s) = &settings {
-                s.validate()?;
-            }
-            let _g = c.state_lock.lock().await;
-            let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
-            let i = s
-                .instances
-                .iter_mut()
-                .find(|i| i.id == instance)
-                .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
-            if let Some(n) = &name {
-                instances::validate(n, &i.version)?;
-                i.name = n.trim().to_owned();
-            }
-            if let Some(set) = settings {
-                i.settings = set;
-            }
-            let k = s
-                .instances
-                .iter()
-                .position(|i| i.id == instance)
-                .expect("found above");
-            // Renaming also renames the folder, unless the game is using it right now.
-            if name.is_some() && !c.game_running.is_busy(&instance) {
-                let dir = free_dir(&c, &s, &s.instances[k].name.clone(), Some(&instance));
-                move_dir(&c, &mut s.instances[k], dir);
-            }
-            let out = serde_json::to_value(&s.instances[k])?;
-            store::save(&c.path(INSTANCES), &s, false)?;
-            Ok(out)
-        },
-    );
+    r.register("instances.update", P::InstancesManage, true, |c, a| {
+        update_instance(c, a, false)
+    });
+    // Same, but may also change Java, JVM arguments, variables and hooks.
+    r.register("instances.configure", P::Internal, false, |c, a| {
+        update_instance(c, a, true)
+    });
     r.register(
         "instances.delete",
         P::InstancesManage,
@@ -1197,6 +1189,72 @@ fn register_instance_manage(r: &mut ActionRegistry) {
 
 fn register_game(r: &mut ActionRegistry) {
     // `game.install` resolves when done; the UI polls `game.progress` meanwhile.
+    // ---------- Java & memory (Э5) ----------
+    r.register("system.memory", P::Public, false, |_c, _| async move {
+        let total = crate::game::launch::total_ram_mb();
+        Ok(json!({
+            "total_mb": total,
+            "recommended_mb": crate::game::launch::default_memory_mb(total),
+        }))
+    });
+    r.register("java.list", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize, Default)]
+        #[serde(default)]
+        struct A {
+            version: Option<String>,
+        }
+        let A { version } = args(a)?;
+        let core = c.clone();
+        let installs = tokio::task::spawn_blocking(move || crate::game::javas::list(&core))
+            .await
+            .map_err(|e| CoreError::msg(e.to_string()))?;
+        Ok(json!({
+            "installs": installs,
+            "required": version.as_deref().map(crate::game::javas::required_major),
+        }))
+    });
+    r.register("java.test", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            path: String,
+        }
+        let A { path } = args(a)?;
+        let root = c.data_dir.join("java");
+        let found = tokio::task::spawn_blocking(move || {
+            let p = std::path::PathBuf::from(path.trim());
+            let exe = if cfg!(windows) { "javaw.exe" } else { "java" };
+            [p.clone(), p.join("bin").join(exe), p.join(exe)]
+                .into_iter()
+                .find_map(|e| crate::game::javas::probe(&e, &root))
+        })
+        .await
+        .map_err(|e| CoreError::msg(e.to_string()))?;
+        found
+            .map(|j| serde_json::to_value(j).map_err(CoreError::from))
+            .unwrap_or_else(|| Err(CoreError::BadArgs("Здесь нет рабочей Java".into())))
+    });
+    r.register("java.install", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            major: u32,
+        }
+        let A { major } = args(a)?;
+        if !(8..=99).contains(&major) {
+            return Err(CoreError::BadArgs("major: 8-99".into()));
+        }
+        let jv = crate::game::version::JavaVersion {
+            component: crate::game::javas::component_for_major(major).into(),
+            major_version: major,
+        };
+        let progress = service::progress_for(&c, &format!("java:{major}"));
+        let exe = crate::game::java::ensure(&c, Some(&jv), progress).await?;
+        let root = c.data_dir.join("java");
+        let j = tokio::task::spawn_blocking(move || crate::game::javas::probe(&exe, &root))
+            .await
+            .map_err(|e| CoreError::msg(e.to_string()))?
+            .ok_or_else(|| CoreError::msg("Java установлена, но не запускается"))?;
+        Ok(serde_json::to_value(j)?)
+    });
     r.register("game.install", P::GameLaunch, true, |c, a| async move {
         let InstallArg { instance, verify } = args(a)?;
         service::install_instance(&c, &instance, verify).await
@@ -1577,6 +1635,60 @@ fn register_mods(r: &mut ActionRegistry) {
         let done = mods::apply_updates(&c, t, file.as_deref()).await?;
         Ok(json!({ "updated": done }))
     });
+}
+
+/// `instances.update` / `instances.configure`; `full` also allows program-running fields.
+async fn update_instance(
+    c: std::sync::Arc<Core>,
+    a: Value,
+    full: bool,
+) -> Result<Value, CoreError> {
+    #[derive(Deserialize)]
+    struct A {
+        instance: String,
+        #[serde(default)]
+        name: Option<String>,
+        #[serde(default)]
+        settings: Option<instances::InstanceSettings>,
+    }
+    let A {
+        instance,
+        name,
+        settings,
+    } = args(a)?;
+    if let Some(s) = &settings {
+        s.validate()?;
+    }
+    let _g = c.state_lock.lock().await;
+    let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+    let i = s
+        .instances
+        .iter_mut()
+        .find(|i| i.id == instance)
+        .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
+    if let Some(n) = &name {
+        instances::validate(n, &i.version)?;
+        i.name = n.trim().to_owned();
+    }
+    if let Some(mut set) = settings {
+        if !full {
+            set.keep_exec_from(&i.settings);
+        }
+        i.settings = set;
+    }
+    let k = s
+        .instances
+        .iter()
+        .position(|i| i.id == instance)
+        .expect("found above");
+    // Renaming also renames the folder, unless the game is using it right now.
+    if name.is_some() && !c.game_running.is_busy(&instance) {
+        let dir = free_dir(&c, &s, &s.instances[k].name.clone(), Some(&instance));
+        move_dir(&c, &mut s.instances[k], dir);
+    }
+    let out = serde_json::to_value(&s.instances[k])?;
+    store::save(&c.path(INSTANCES), &s, false)?;
+    Ok(out)
 }
 
 #[cfg(test)]

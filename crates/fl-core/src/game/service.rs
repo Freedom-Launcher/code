@@ -239,7 +239,9 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
         install_instance(core, &inst.id, false).await?;
     }
     let v = loader::resolve(core, &layout, inst).await?;
-    let set = &inst.settings;
+    let global: crate::settings::Settings = store::load(&core.path("settings.json"))?;
+    let merged = inst.settings.over(&global.game);
+    let set = &merged;
     let java = match set
         .java_path
         .as_deref()
@@ -268,8 +270,51 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
     if opts.resolution.is_some() {
         env.features.insert("has_custom_resolution".into(), true);
     }
-    let args = launch::build_args(&v, &env, &layout, &auth, &opts);
-    let child = launch::spawn(&java, &args, &opts.game_dir)?;
+    let mut args = launch::build_args(&v, &env, &layout, &auth, &opts);
+    if set.fullscreen == Some(true) {
+        args.push("--fullscreen".into());
+    }
+    // Variables like Prism/Modrinth give hooks, plus the user's own.
+    let mut vars: std::collections::BTreeMap<String, String> = [
+        ("INST_ID", inst.id.clone()),
+        ("INST_NAME", inst.name.clone()),
+        ("INST_MC_VER", inst.version.clone()),
+        ("INST_DIR", opts.game_dir.to_string_lossy().into_owned()),
+        ("INST_JAVA", java.to_string_lossy().into_owned()),
+    ]
+    .into_iter()
+    .map(|(k, v)| (k.to_owned(), v))
+    .collect();
+    vars.extend(set.env.clone().unwrap_or_default());
+    let line = |o: &Option<String>| {
+        o.as_deref()
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .map(str::to_owned)
+    };
+    if let Some(pre) = line(&set.hooks.pre_launch) {
+        let (dir, vars2) = (opts.game_dir.clone(), vars.clone());
+        std::fs::create_dir_all(&dir)?;
+        let ok = tokio::task::spawn_blocking(move || {
+            launch::shell(&pre).envs(&vars2).current_dir(&dir).status()
+        })
+        .await
+        .map_err(|e| CoreError::msg(e.to_string()))?
+        .map_err(|e| CoreError::msg(format!("Команда перед запуском не запустилась: {e}")))?;
+        if !ok.success() {
+            return Err(CoreError::msg(format!(
+                "Команда перед запуском завершилась с кодом {}",
+                ok.code().unwrap_or(-1)
+            )));
+        }
+    }
+    let wrapper = line(&set.hooks.wrapper);
+    let child = launch::spawn(&java, &args, &opts.game_dir, wrapper.as_deref(), &vars)?;
+    if let Some(post) = line(&set.hooks.post_exit) {
+        let mut c = launch::shell(&post);
+        c.envs(&vars).current_dir(&opts.game_dir);
+        core.game_running.on_exit(&inst.id, c);
+    }
     let pid = child.id();
     core.game_running.started(&inst.id, child);
     mark_played(core, &inst.id).await?;

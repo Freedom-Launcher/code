@@ -18,6 +18,8 @@ struct Inner {
     finished: Vec<(String, u64)>,
     /// Instances between «Играть» and a spawned process (install, Java).
     starting: HashSet<String>,
+    /// Commands to run once a game exits (post-exit hook).
+    after_exit: HashMap<String, std::process::Command>,
 }
 
 /// Drops processes that have exited.
@@ -30,6 +32,11 @@ fn reap(g: &mut Inner) {
         }
         alive
     });
+    for (id, _) in &done {
+        if let Some(mut c) = g.after_exit.remove(id) {
+            let _ = c.spawn();
+        }
+    }
     g.finished.extend(done);
 }
 
@@ -58,6 +65,11 @@ impl Running {
         let mut g = self.lock();
         g.starting.remove(id);
         g.children.insert(id.to_owned(), (child, Instant::now()));
+    }
+
+    /// Runs `cmd` after this instance's game exits.
+    pub fn on_exit(&self, id: &str, cmd: std::process::Command) {
+        self.lock().after_exit.insert(id.to_owned(), cmd);
     }
 
     /// Ended sessions since the last call, for playtime bookkeeping.
@@ -92,6 +104,9 @@ impl Running {
                 let _ = c.kill();
                 let _ = c.wait();
                 g.finished.push((id.to_owned(), t.elapsed().as_secs()));
+                if let Some(mut c) = g.after_exit.remove(id) {
+                    let _ = c.spawn();
+                }
                 true
             }
             None => false,

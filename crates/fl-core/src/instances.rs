@@ -58,6 +58,40 @@ pub struct InstanceSettings {
     /// What the launcher does once the game starts: `keep`, `minimize`, `close`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub after_launch: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fullscreen: Option<bool>,
+    /// Extra environment variables for the game process.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub env: Option<std::collections::BTreeMap<String, String>>,
+    #[serde(default, skip_serializing_if = "Hooks::is_empty")]
+    pub hooks: Hooks,
+}
+
+/// Commands around a launch (Modrinth «Хуки запуска»).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Hooks {
+    /// Runs before the game; a non-zero exit cancels the launch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_launch: Option<String>,
+    /// Program the game is started through, e.g. `prime-run`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wrapper: Option<String>,
+    /// Runs after the game exits.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub post_exit: Option<String>,
+}
+
+impl Hooks {
+    pub fn is_empty(&self) -> bool {
+        self.pre_launch.is_none() && self.wrapper.is_none() && self.post_exit.is_none()
+    }
+    fn over(&self, base: &Hooks) -> Hooks {
+        Hooks {
+            pre_launch: self.pre_launch.clone().or_else(|| base.pre_launch.clone()),
+            wrapper: self.wrapper.clone().or_else(|| base.wrapper.clone()),
+            post_exit: self.post_exit.clone().or_else(|| base.post_exit.clone()),
+        }
+    }
 }
 
 pub const AFTER_LAUNCH: &[&str] = &["keep", "minimize", "close"];
@@ -79,7 +113,58 @@ impl InstanceSettings {
         {
             return bad("after_launch must be keep, minimize or close");
         }
+        let line = |v: &Option<String>| {
+            v.as_deref()
+                .is_some_and(|c| c.len() > 1024 || c.contains(['\n', '\r', '\0']))
+        };
+        let h = &self.hooks;
+        if line(&h.pre_launch) || line(&h.wrapper) || line(&h.post_exit) || line(&self.jvm_args) {
+            return bad("commands: one line, up to 1024 characters");
+        }
+        if let Some(env) = &self.env {
+            let key_ok = |k: &str| {
+                !k.is_empty()
+                    && k.len() <= 128
+                    && !k.starts_with(|c: char| c.is_ascii_digit())
+                    && k.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+            };
+            if env.len() > 64
+                || env
+                    .iter()
+                    .any(|(k, v)| !key_ok(k) || v.len() > 4096 || v.contains('\0'))
+            {
+                return bad("env: up to 64 variables, names A-Z 0-9 _");
+            }
+        }
         Ok(())
+    }
+    /// These settings with every unset field taken from `base` (launcher defaults).
+    pub fn over(&self, base: &InstanceSettings) -> InstanceSettings {
+        let (w, h) = match self.resolution() {
+            Some((w, h)) => (Some(w), Some(h)),
+            None => (base.width, base.height),
+        };
+        InstanceSettings {
+            memory_mb: self.memory_mb.or(base.memory_mb),
+            java_path: self.java_path.clone().or_else(|| base.java_path.clone()),
+            width: w,
+            height: h,
+            jvm_args: self.jvm_args.clone().or_else(|| base.jvm_args.clone()),
+            after_launch: self
+                .after_launch
+                .clone()
+                .or_else(|| base.after_launch.clone()),
+            fullscreen: self.fullscreen.or(base.fullscreen),
+            env: self.env.clone().or_else(|| base.env.clone()),
+            hooks: self.hooks.over(&base.hooks),
+        }
+    }
+    /// Fields that run programs; only the built-in UI may change them.
+    pub fn keep_exec_from(&mut self, old: &InstanceSettings) {
+        self.java_path = old.java_path.clone();
+        self.jvm_args = old.jvm_args.clone();
+        self.env = old.env.clone();
+        self.hooks = old.hooks.clone();
     }
     pub fn resolution(&self) -> Option<(u32, u32)> {
         self.width.zip(self.height)
@@ -235,5 +320,47 @@ mod tests {
         }
         .validate()
         .is_err());
+    }
+
+    #[test]
+    fn settings_layering_and_limits() {
+        let base = InstanceSettings {
+            memory_mb: Some(6144),
+            width: Some(1920),
+            height: Some(1080),
+            hooks: Hooks {
+                wrapper: Some("prime-run".into()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let own = InstanceSettings {
+            memory_mb: Some(2048),
+            hooks: Hooks {
+                post_exit: Some("echo bye".into()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let m = own.over(&base);
+        assert_eq!(m.memory_mb, Some(2048));
+        assert_eq!(m.resolution(), Some((1920, 1080)));
+        assert_eq!(m.hooks.wrapper.as_deref(), Some("prime-run"));
+        assert_eq!(m.hooks.post_exit.as_deref(), Some("echo bye"));
+        let bad_env = InstanceSettings {
+            env: Some([("1X".to_string(), "v".to_string())].into()),
+            ..Default::default()
+        };
+        assert!(bad_env.validate().is_err());
+        let bad_hook = InstanceSettings {
+            hooks: Hooks {
+                pre_launch: Some("a\nb".into()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(bad_hook.validate().is_err());
+        let json = serde_json::to_value(InstanceSettings::default()).unwrap();
+        assert_eq!(json, serde_json::json!({}));
     }
 }

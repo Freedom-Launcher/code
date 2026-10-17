@@ -17,6 +17,8 @@ pub struct Settings {
     pub loader_priority: Vec<String>,
     /// Interface editor overrides (corners, sizes, placement).
     pub ui: UiCustom,
+    /// Launcher-wide game defaults; each instance overrides what it sets.
+    pub game: crate::instances::InstanceSettings,
 }
 
 pub const LOADER_ORDER: [&str; 4] = ["neoforge", "fabric", "quilt", "forge"];
@@ -44,6 +46,7 @@ impl Default for Settings {
             look: None,
             loader_priority: LOADER_ORDER.iter().map(|s| s.to_string()).collect(),
             ui: UiCustom::default(),
+            game: Default::default(),
         }
     }
 }
