@@ -159,6 +159,7 @@ mod tests {
             playtime_secs: 0,
             settings: Default::default(),
             pack: None,
+            group: String::new(),
         }
     }
 

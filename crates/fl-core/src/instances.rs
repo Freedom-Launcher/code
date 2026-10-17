@@ -28,6 +28,9 @@ pub struct Instance {
     /// The Modrinth modpack it was installed from; enables updates.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pack: Option<PackRef>,
+    /// Library group (Э6); empty = ungrouped.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub group: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

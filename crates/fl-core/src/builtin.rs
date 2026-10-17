@@ -423,6 +423,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 playtime_secs: 0,
                 settings: Default::default(),
                 pack: None,
+                group: String::new(),
             };
             std::fs::create_dir_all(inst.game_dir(&c.instances_root()))?;
             s.instances.push(inst.clone());
@@ -957,6 +958,7 @@ async fn import_mrpack(
         playtime_secs: 0,
         settings: Default::default(),
         pack,
+        group: String::new(),
     };
     s.instances.push(inst.clone());
     store::save(&c.path(INSTANCES), &s, false)?;
@@ -1687,12 +1689,20 @@ async fn update_instance(
         name: Option<String>,
         #[serde(default)]
         settings: Option<instances::InstanceSettings>,
+        #[serde(default)]
+        group: Option<String>,
     }
     let A {
         instance,
         name,
         settings,
+        group,
     } = args(a)?;
+    if let Some(g) = &group {
+        if g.trim().chars().count() > 32 || g.chars().any(char::is_control) {
+            return Err(CoreError::BadArgs("Название группы — до 32 символов".into()));
+        }
+    }
     if let Some(s) = &settings {
         s.validate()?;
     }
@@ -1706,6 +1716,9 @@ async fn update_instance(
     if let Some(n) = &name {
         instances::validate(n, &i.version)?;
         i.name = n.trim().to_owned();
+    }
+    if let Some(g) = group {
+        i.group = g.trim().to_owned();
     }
     if let Some(mut set) = settings {
         if !full {
