@@ -502,42 +502,6 @@ $('#mi-install').addEventListener('click', () => play(S.current, false));
 
 // ---------- Instance management: settings, folder, duplicate, delete ----------
 async function reloadInstances() { S.instances = await call('instances.list'); renderInstances(); }
-const memLabel = (v) => (+v ? `${(+v / 1024).toFixed(1).replace('.0', '')} ГБ` : 'Авто');
-$('#is-mem').addEventListener('input', (e) => { $('#is-mem-val').textContent = memLabel(e.target.value); });
-$('#mi-settings').addEventListener('click', () => {
-  const i = byId(S.current);
-  if (!i) return;
-  const s = i.settings || {};
-  const f = $('#dlg-inst');
-  f.name.value = i.name;
-  f.memory.value = s.memory_mb || 0;
-  $('#is-mem-val').textContent = memLabel(f.memory.value);
-  f.width.value = s.width || '';
-  f.height.value = s.height || '';
-  f.java.value = s.java_path || '';
-  f.jvm.value = s.jvm_args || '';
-  f.after.value = s.after_launch || 'keep';
-  openDlg('dlg-inst');
-});
-$('#dlg-inst').addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  const f = ev.currentTarget;
-  const num = (v) => (v.trim() ? parseInt(v, 10) : undefined);
-  const str = (v) => v.trim() || undefined;
-  const settings = {
-    memory_mb: +f.memory.value || undefined,
-    width: num(f.width.value),
-    height: num(f.height.value),
-    java_path: str(f.java.value),
-    jvm_args: str(f.jvm.value),
-    after_launch: f.after.value === 'keep' ? undefined : f.after.value,
-  };
-  try {
-    await run($('#is-submit'), 'instances.update', { instance: S.current, name: f.name.value, settings });
-    await reloadInstances();
-    closeDlg();
-  } catch { /* toast shown */ }
-});
 $('#mi-folder').addEventListener('click', () => {
   closeMenu();
   invoke('open_instance_folder', { instance: S.current }).catch((e) => toast(String(e), { error: true }));
