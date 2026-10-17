@@ -31,7 +31,7 @@
   width: 58px; height: 58px; margin: 18px 0 26px; border-radius: calc(17px * var(--rk-dialog, 1)); display: grid; place-items: center;
   font: 700 27px/1 var(--font-display); color: var(--on-accent);
   background: linear-gradient(150deg, #b7d0ff, var(--accent) 45%, #5f86dc);
-  box-shadow: 0 14px 34px rgba(138, 180, 255, .32), inset 0 1px 0 rgba(255, 255, 255, .45);
+  box-shadow: 0 14px 34px var(--accent-glow, rgba(138, 180, 255, .32)), inset 0 1px 0 rgba(255, 255, 255, .45);
 }
 .wc-bottom { margin-top: auto; padding-top: 26px; }
 .wc-signed {

@@ -4,6 +4,7 @@
 (() => {
   const root = document.documentElement;
   let applied = [];
+  let curTokens = {};
   const isWin = navigator.userAgent.includes('Windows');
   const base = (id) => (isWin ? `http://theme.localhost/${id}/` : `theme://localhost/${id}/`);
   const BAD_TAGS = 'script,iframe,frame,object,embed,link,meta,base,style,form,portal,foreignObject,animate,set';
@@ -15,6 +16,7 @@
     for (const k of applied) root.style.removeProperty(k);
     applied = Object.keys(cur.tokens || {});
     for (const [k, v] of Object.entries(cur.tokens || {})) root.style.setProperty(k, v);
+    curTokens = { ...(cur.tokens || {}) };
     document.querySelectorAll('link[data-theme-css]').forEach((n) => n.remove());
     for (const c of cur.css || []) {
       const l = document.createElement('link');
@@ -23,6 +25,8 @@
       l.dataset.themeCss = '';
       document.head.append(l);
     }
+    // The user's own base colors (colors.js) are laid back on top.
+    document.dispatchEvent(new Event('theme:applied'));
   }
 
   // A template replaces a screen's markup. Built-in pieces are pulled in with
@@ -61,5 +65,5 @@
     return true;
   }
 
-  window.FTheme = { apply, mount, base };
+  window.FTheme = { apply, mount, base, tokens: () => ({ ...curTokens }) };
 })();

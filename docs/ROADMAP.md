@@ -11,6 +11,12 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Base colors (0.3.1)
+
+- Settings → Лаунчер → «Цвета»: accent, window background, panels, cards, fields, glass tint, three text levels, lines, error and warning colors — separately for the dark and light base, laid over the active theme.
+- Own color picker (saturation/brightness, hue, opacity for lines, HEX, eyedropper, presets, was/now), ready-made sets, per-color and full reset, contrast warning.
+- Hover/press/soft shades, text on accent, focus ring and glow are derived automatically. Stored in `settings.colors` (hex only, validated by the core); safe mode ignores them and «Вернуть стандартную тему» clears them.
+
 ## Navigation, catalog pages, instance settings (0.3.0)
 
 - Title bar: back / forward history and breadcrumbs (`ui/nav.js`), Alt+←/→, mouse buttons 4/5.
