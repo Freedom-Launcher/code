@@ -1193,6 +1193,7 @@ fn register_instance_manage(r: &mut ActionRegistry) {
             s.instances.remove(k);
             store::save(&c.path(INSTANCES), &s, false)?;
             let cleaned = !trash.exists() || std::fs::remove_dir_all(&trash).is_ok();
+            crate::art::forget(&c.data_dir, &instance);
             Ok(json!({ "instance": instance, "deleted": true, "files_removed": cleaned }))
         },
     );
@@ -1239,6 +1240,7 @@ fn register_instance_manage(r: &mut ActionRegistry) {
             }
             s.instances.push(copy.clone());
             store::save(&c.path(INSTANCES), &s, false)?;
+            crate::art::copy(&c.data_dir, &instance, &copy.id);
             Ok(serde_json::to_value(copy)?)
         },
     );
