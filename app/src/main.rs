@@ -343,6 +343,28 @@ fn art_protocol(app: &tauri::AppHandle, req: &tauri::http::Request<Vec<u8>>) -> 
         .unwrap()
 }
 
+/// Remote images in descriptions: `rimg://localhost/<encoded url>` (Windows:
+/// `http://rimg.localhost/...`), fetched and checked by the core.
+async fn rimg_protocol(app: &tauri::AppHandle, req: &tauri::http::Request<Vec<u8>>) -> tauri::http::Response<Vec<u8>> {
+    use tauri::http::Response;
+    let url = percent_decode(req.uri().path().trim_start_matches('/'));
+    let Some(state) = app.try_state::<AppCore>() else {
+        return Response::builder().status(503).body(Vec::new()).unwrap();
+    };
+    let data_dir = state.0.data_dir.clone();
+    match fl_core::rimg::get(&data_dir, &url).await {
+        Ok((bytes, mime)) => Response::builder()
+            .status(200)
+            .header("Content-Type", mime)
+            .header("X-Content-Type-Options", "nosniff")
+            .header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
+            .header("Cache-Control", "private, max-age=86400")
+            .body(bytes)
+            .unwrap(),
+        Err(_) => Response::builder().status(404).body(Vec::new()).unwrap(),
+    }
+}
+
 #[tauri::command]
 async fn clear_wallpaper(state: tauri::State<'_, AppCore>) -> Result<(), String> {
     fl_core::wallpaper::clear(&state.0.data_dir).map_err(|e| e.to_string())
@@ -654,6 +676,10 @@ fn main() {
         .register_uri_scheme_protocol("wall", |ctx, _req| wall_protocol(ctx.app_handle()))
         .register_uri_scheme_protocol("shot", |ctx, req| shot_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("art", |ctx, req| art_protocol(ctx.app_handle(), &req))
+        .register_asynchronous_uri_scheme_protocol("rimg", |ctx, req, responder| {
+            let app = ctx.app_handle().clone();
+            tauri::async_runtime::spawn(async move { responder.respond(rimg_protocol(&app, &req).await) });
+        })
         .setup(move |app| {
             tray(app)?;
             let data_dir = app.path().app_data_dir()?;

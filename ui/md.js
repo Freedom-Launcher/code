@@ -1,7 +1,7 @@
 // Project descriptions from Modrinth: Markdown mixed with HTML, as Modrinth
 // renders it. The text is turned into HTML, parsed inert, and rebuilt from an
 // allowlist into fresh nodes: no scripts, no styles, no event handlers, images
-// only from cdn.modrinth.com (the CSP enforces the same). Links never navigate
+// from cdn.modrinth.com directly, others through the core (`rimg:`). Links never navigate
 // the window; the caller decides what a click does.
 (() => {
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -76,6 +76,7 @@
   const DROP = new Set('script style iframe object embed form input button textarea select svg math template noscript link meta video audio source canvas'.split(' '));
   const CDN = /^https:\/\/cdn\.modrinth\.com\/[^"'\\()\s]+$/;
   const SAFE_URL = /^https?:\/\/[^\s"'<>\\]+$/i;
+  const RIMG = navigator.userAgent.includes('Windows') ? 'http://rimg.localhost' : 'rimg://localhost';
 
   function rebuild(node, onLink) {
     if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.data);
@@ -101,11 +102,20 @@
     }
     if (tag === 'img') {
       const src = node.getAttribute('src') || '';
-      if (!CDN.test(src)) return SAFE_URL.test(src) ? link(node.getAttribute('alt') || 'Изображение', src, onLink, 'md-embed') : null;
+      if (!CDN.test(src) && !SAFE_URL.test(src)) return null;
       const img = document.createElement('img');
-      img.src = src;
+      img.src = CDN.test(src) ? src : `${RIMG}/${encodeURIComponent(src)}`;
       img.alt = node.getAttribute('alt') || '';
       img.loading = 'lazy';
+      img.decoding = 'async';
+      for (const k of ['width', 'height']) {
+        const v = (node.getAttribute(k) || '').trim();
+        if (/^\d{1,4}(%|px)?$/.test(v)) img.setAttribute(k, v.replace('px', ''));
+      }
+      img.addEventListener('error', () => {
+        if (img.alt && !img.closest('a')) img.replaceWith(link(img.alt, src, onLink, 'md-embed'));
+        else img.remove();
+      }, { once: true });
       return img;
     }
     const n = document.createElement(tag);

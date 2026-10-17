@@ -32,6 +32,7 @@ pub mod net;
 pub mod permissions;
 pub mod providers;
 pub mod relocate;
+pub mod rimg;
 pub mod settings;
 pub mod signing;
 pub mod skins;

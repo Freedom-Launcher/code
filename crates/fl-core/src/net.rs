@@ -103,7 +103,7 @@ pub fn public_ip(ip: IpAddr) -> bool {
     }
 }
 
-struct PublicOnly;
+pub(crate) struct PublicOnly;
 
 impl Resolve for PublicOnly {
     fn resolve(&self, name: Name) -> Resolving {
