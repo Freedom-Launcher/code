@@ -56,3 +56,35 @@
 .isx-icon:hover::after { opacity: 1; transform: none; }
 .isx-icon:active { transform: scale(.96); }
 .isx-icon-acts { display: flex; gap: 6px; }#isx-covers .cover-opt.cover-add { width: 52px; }
+
+/* Create: banner with the icon on it, compact cover row */
+.c-art { position: relative; margin-bottom: 8px; }
+.c-banner { position: relative; display: block; width: 100%; height: 124px; padding: 0; border: 0; overflow: hidden; cursor: pointer;
+  border-radius: calc(12px * var(--rk-card, 1)); background: var(--surface-3) center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+  transition: background-image 0s, filter var(--d-2); }
+.c-banner::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,.32)); }
+.c-banner:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.c-banner-chip { position: absolute; z-index: 1; top: 10px; right: 10px; display: inline-flex; align-items: center; height: 26px; padding: 0 10px;
+  border-radius: calc(7px * var(--rk-chip, 1)); background: rgba(10,10,12,.55); color: #f2f2f3; font: var(--w-medium) 12px/1 var(--font-ui);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); opacity: 0; transform: translateY(-2px); transition: opacity 140ms ease, transform 200ms ease; }
+.c-banner:hover .c-banner-chip, .c-banner:focus-visible .c-banner-chip { opacity: 1; transform: none; }
+.c-icon { position: absolute; z-index: 2; left: 14px; bottom: 14px; display: grid; place-items: center; width: 56px; height: 56px; padding: 0; border: 0; overflow: hidden;
+  border-radius: calc(12px * var(--rk-icon, 1)); background: var(--surface-3) center / cover no-repeat; color: #fff; cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 8px 20px rgba(0,0,0,.32); transition: transform var(--d-2) var(--ease-spring); }
+.c-icon::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.4); opacity: 0; transition: opacity 140ms ease; }
+.c-icon svg { position: relative; width: 18px; height: 18px; opacity: 0; transition: opacity 140ms ease, transform var(--d-3) var(--ease-spring); }
+.c-icon:hover::before, .c-icon:focus-visible::before, .c-icon:hover svg, .c-icon:focus-visible svg { opacity: 1; }
+.c-icon:hover svg { transform: rotate(90deg); }
+.c-icon:active { transform: scale(.95); }
+.c-icon:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(255,255,255,.9), var(--focus-ring); }
+.c-icon-x { position: absolute; z-index: 3; left: 61px; bottom: 61px; display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%;
+  background: rgba(0,0,0,.7); color: #fff; cursor: pointer; opacity: 0; transform: scale(.7); transition: opacity var(--d-2), transform var(--d-3) var(--ease-spring), background-color var(--d-2); }
+.c-icon-x svg { width: 10px; height: 10px; }
+.c-art:hover .c-icon-x, .c-icon-x:focus-visible { opacity: 1; transform: none; }
+.c-icon-x:hover { background: var(--danger); }
+#c-covers.cover-strip { flex-wrap: nowrap; gap: 6px; margin-bottom: 6px; }
+#c-covers .cover-opt { width: 54px; height: 34px; border-radius: calc(6px * var(--rk-icon, 1)); }
+#c-covers .cover-opt.cover-add { width: 40px; }
+#c-covers .cover-opt.cover-add svg { width: 15px; height: 15px; }
+#c-covers .cover-x { top: 2px; right: 2px; width: 15px; height: 15px; }
+#c-covers .cover-x svg { width: 8px; height: 8px; }

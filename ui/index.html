@@ -208,8 +208,12 @@
       <section class="view" id="view-create" data-id="view.create">
         <form class="narrow" id="create-form" data-id="create.form" autocomplete="off">
           <h1 class="page-h">Новая сборка</h1>
-          <span class="label">Обложка</span>
-          <div class="cover-strip" id="c-covers" data-id="create.covers"></div>
+          <div class="c-art" data-id="create.art">
+            <button type="button" class="c-banner" id="c-banner" data-id="create.banner" aria-label="Своя обложка"><span class="c-banner-chip">Своя обложка</span></button>
+            <button type="button" class="c-icon" id="c-icon" data-id="create.icon" aria-label="Своя иконка" data-tip="Своя иконка"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
+            <button type="button" class="c-icon-x" id="c-icon-x" aria-label="Убрать иконку" data-tip="Убрать иконку" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m4.5 4.5 7 7m0-7-7 7"/></svg></button>
+          </div>
+          <div class="cover-strip c-covers" id="c-covers" data-id="create.covers"></div>
           <label class="label" for="c-name">Название</label>
           <input class="field" id="c-name" name="name" placeholder="Моя сборка" required maxlength="64" data-id="create.name">
           <span class="label">Загрузчик</span>

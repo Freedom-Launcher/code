@@ -289,12 +289,56 @@ $('#ip-tabs').addEventListener('click', (e) => {
 
 // ---------- Create instance (a page, not a dialog) ----------
 const LOADER_NAMES = { vanilla: 'Vanilla', fabric: 'Fabric', quilt: 'Quilt', forge: 'Forge', neoforge: 'NeoForge' };
-let createCover = COVERS[0];
+// Own icon and cover can be picked before the instance exists: bytes wait here and go to set_art after create.
+let createCover = COVERS[0], createOwn = { cover: null, icon: null };
+const dataUrl = (bytes) => new Promise((r) => {
+  const t = bytes[0] === 0x89 ? 'image/png' : bytes[0] === 0xff ? 'image/jpeg' : 'image/webp';
+  const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(new Blob([bytes], { type: t }));
+});
+function pickCreate(kind) {
+  window.FCrop?.open({ kind, title: kind === 'icon' ? 'Иконка сборки' : 'Обложка сборки', save: async (bytes) => {
+    createOwn[kind] = { bytes, url: await dataUrl(bytes) };
+    if (kind === 'cover') createCover = 'own';
+    paintCreateCovers();
+  } });
+}
 function paintCreateCovers() {
-  $('#c-covers').replaceChildren(...COVERS.map((n) => coverOpt(n, n === createCover, (x) => { createCover = x; paintCreateCovers(); })));
+  const own = createOwn.cover, ic = createOwn.icon;
+  const url = createCover === 'own' && own ? own.url : coverSrc(createCover);
+  $('#c-banner').style.backgroundImage = `url("${url}")`;
+  $('#c-icon').style.backgroundImage = `url("${ic ? ic.url : url}")`;
+  $('#c-icon').classList.toggle('is-own', !!ic); $('#c-icon-x').hidden = !ic;
+  const out = [];
+  if (own) {
+    const o = el('button', { type: 'button', class: 'cover-opt is-own', 'aria-pressed': String(createCover === 'own'), 'aria-label': 'Своё фото', 'data-id': 'cover.own', onclick: () => { createCover = 'own'; paintCreateCovers(); } });
+    o.style.backgroundImage = `url("${own.url}")`;
+    o.append(el('span', { class: 'cover-x', role: 'button', 'aria-label': 'Убрать фото', 'data-tip': 'Убрать фото', html: X_SVG,
+      onclick: (e) => { e.stopPropagation(); createOwn.cover = null; if (createCover === 'own') createCover = COVERS[0]; paintCreateCovers(); } }));
+    out.push(o);
+  }
+  out.push(...COVERS.map((n) => coverOpt(n, n === createCover, (x) => { createCover = x; paintCreateCovers(); })));
+  out.push(el('button', { type: 'button', class: 'cover-opt cover-add', 'aria-label': 'Своё фото', 'data-tip': 'Своё фото', 'data-id': 'cover.add',
+    html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>', onclick: () => pickCreate('cover') }));
+  $('#c-covers').replaceChildren(...out);
+}
+$('#c-banner').addEventListener('click', () => pickCreate('cover'));
+$('#c-icon').addEventListener('click', () => pickCreate('icon'));
+$('#c-icon-x').addEventListener('click', () => { createOwn.icon = null; paintCreateCovers(); });
+async function applyCreateArt(id) {
+  for (const kind of ['cover', 'icon']) {
+    const p = createOwn[kind]; if (!p) continue;
+    try {
+      await invoke('set_art', p.bytes, { headers: { 'x-inst': id, 'x-kind': kind } });
+      localStorage.setItem(kind === 'icon' ? `fl.icon.${id}` : `fl.cover-own.${id}`, String(Date.now()));
+    } catch (e) { toast(String(e), { error: true }); if (kind === 'cover' && createCover === 'own') createCover = COVERS[0]; }
+  }
+  localStorage.setItem(`fl.cover.${id}`, createCover);
+  createOwn = { cover: null, icon: null };
+  applyWall();
 }
 function prepareCreate() {
   createCover = COVERS[Math.floor(Math.random() * COVERS.length)];
+  createOwn = { cover: null, icon: null };
   paintCreateCovers();
   if (!$('#c-version').options.length) loadVersions();
   requestAnimationFrame(() => $('#c-name').focus());
@@ -322,7 +366,7 @@ $('#create-form').addEventListener('submit', async (ev) => {
     const created = await run($('#c-submit'), 'instances.create', { name: f.name.value, version: f.version.value, loader: createLoader });
     S.instances = await call('instances.list');
     const id = created?.id || S.instances[S.instances.length - 1]?.id;
-    if (id) localStorage.setItem(`fl.cover.${id}`, createCover);
+    if (id) await applyCreateArt(id);
     f.name.value = '';
     renderInstances();
     if (id) openInstance(id);
