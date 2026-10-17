@@ -8,7 +8,7 @@ DIR="target/x86_64-pc-windows-msvc/release/bundle/nsis"
 EXE="Freedom Launcher_${VER}_x64-setup.exe"
 SIG="$DIR/$EXE.sig"
 [ -f "$SIG" ] || { echo "нет $SIG — соберите с TAURI_SIGNING_PRIVATE_KEY" >&2; exit 1; }
-URL="https://github.com/Freedom-Launcher/releases/releases/download/v${VER}/$(echo "$EXE" | sed 's/ /./g')"
+URL="https://github.com/Freedom-Launcher/releases/releases/download/v${VER}/$(echo "$EXE" | sed 's/ /-/g')"
 python3 - "$VER" "$NOTES" "$URL" "$SIG" > "$DIR/latest.json" <<'PY'
 import json, sys, datetime
 ver, notes, url, sig = sys.argv[1:]

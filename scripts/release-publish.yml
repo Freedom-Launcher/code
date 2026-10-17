@@ -1,0 +1,31 @@
+# .github/workflows/publish.yml for Freedom-Launcher/releases (added there once, by hand:
+# the GitHub integration may not write workflow files). scripts/release-push.sh pushes
+# the build to the `staging` branch; this job turns it into Release v<version>.
+name: publish
+on:
+  push:
+    branches: [staging]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          R: ${{ github.repository }}
+        run: |
+          set -eu
+          VER=$(jq -r .version latest.json)
+          TAG="v$VER"
+          if ! gh release view "$TAG" -R "$R" >/dev/null 2>&1; then
+            jq -r .notes latest.json > notes.md
+            gh release create "$TAG" -R "$R" --target main --title "Freedom Launcher $VER" --notes-file notes.md
+          fi
+          gh release upload "$TAG" -R "$R" --clobber Freedom-Launcher_*_x64-setup.exe Freedom-Launcher_*_x64-setup.exe.sig latest.json
+          gh release edit "$TAG" -R "$R" --draft=false --latest
+          gh api -X DELETE "repos/$R/git/refs/heads/staging"
