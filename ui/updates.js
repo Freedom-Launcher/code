@@ -4,7 +4,7 @@
 (() => {
   const row = $('#upd-row');
   if (!row) return;
-  const sub = $('#upd-sub'), bar = $('#upd-prog'), btn = $('#upd-btn'), lbl = btn.querySelector('.lbl');
+  const sub = $('#upd-sub'), bar = $('#upd-prog'), btn = $('#upd-btn'), lbl = btn.querySelector('.lbl .t');
   const st = { found: null, current: '' };
   const mb = (b) => `${(b / (1 << 20)).toFixed(1)} МБ`;
 

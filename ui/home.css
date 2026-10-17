@@ -103,3 +103,5 @@ html[data-motion="on"] .lib-g .hcard { animation: fl-card-in 360ms var(--ease-ou
 .dlg-group .actions .spacer { flex: 1; }
 .grp-chips .chip { height: 26px; padding: 0 10px; border-radius: calc(8px * var(--rk-chip, 1)); display: inline-flex; align-items: center; background: var(--surface-2); color: var(--text-2); }
 .grp-chips .chip:hover { background: var(--surface-3); color: var(--text); }
+.lib-bar .dd-btn.field { width: auto; flex: none; min-width: 156px; }
+.lib-bar .lib-q .field { flex: none; }
