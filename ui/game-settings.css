@@ -1,0 +1,31 @@
+/* ---------- Settings → Игра: inline instance defaults, as in Modrinth's settings ---------- */
+#set-game .gs-h { margin: 28px 4px 6px; color: var(--text); font: var(--w-semibold) var(--text-md)/1.3 var(--font-display); }
+#set-game .gs-h:first-child { margin-top: 10px; }
+.gs-jv .gs-jn { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: calc(8px * var(--rk-icon, 1)); background: var(--surface-3); color: var(--text-3); font: var(--w-semibold) var(--text-sm)/1 var(--font-display); transition: background-color var(--d-3) var(--ease-out), color var(--d-3) var(--ease-out); }
+.gs-jv.is-set .gs-jn { background: var(--accent-soft); color: var(--accent); }
+.gs-jv .gs-jp { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--text-xs); }
+.gs-acts { display: flex; align-items: center; gap: 4px; flex: none; }
+.gs-acts .btn:not(.btn-icon) svg { width: 14px; height: 14px; margin-right: 6px; }
+.gs-acts .btn-icon[hidden] { display: none; }
+.gs-found { display: grid; gap: 4px; padding: 0 4px 10px 52px; animation: isx-in 220ms var(--ease-out); }
+.gs-found button { display: flex; align-items: baseline; gap: 10px; min-width: 0; padding: 8px 10px; border: 0; border-radius: calc(8px * var(--rk-btn, 1)); background: var(--surface-2); color: var(--text-2); text-align: left; cursor: pointer; transition: background-color var(--d-2) var(--ease-out), transform var(--d-2) var(--ease-out); }
+.gs-found button:hover { background: var(--surface-3); color: var(--text); }
+.gs-found button:active { transform: scale(.99); }
+.gs-found button[aria-pressed="true"] { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.gs-found b { flex: none; font-weight: var(--w-medium); }
+.gs-found .mono { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-size: var(--text-xs); }
+.gs-block { display: grid; gap: 10px; padding: 14px 4px; }
+.gs-block > .t, .gs-line > .t { color: var(--text); font-weight: var(--w-medium); }
+.rows > .r + .gs-block, .rows > .gs-block + .r, .rows > .gs-block + .gs-block { border-top: 1px solid var(--line); }
+.gs-line { display: flex; align-items: center; gap: 14px; }
+.gs-line > .t { flex: 1; }
+.gs-line .isx-num .field { width: 96px; }
+.gs-res { display: flex; align-items: center; gap: 6px; }
+.gs-res .field { width: 96px; }
+.gs-res span { color: var(--text-3); }
+.gs-sel, .gs-sel + .dd-btn { width: 220px; }
+.gs-hooks { gap: 12px; }
+.gs-hook { display: grid; }
+.gs-hook .label { margin: 0 0 6px; }
+.gs-pulse { animation: gs-pulse 700ms var(--ease-out); }
+@keyframes gs-pulse { 30% { transform: scale(1.06); box-shadow: 0 0 0 4px var(--accent-soft); } }

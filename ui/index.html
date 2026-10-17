@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="media.css">
   <link rel="stylesheet" href="motion.css">
   <link rel="stylesheet" href="inst-settings.css">
+  <link rel="stylesheet" href="game-settings.css">
   <link rel="stylesheet" href="nav.css">
   <link rel="stylesheet" href="editor.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
@@ -41,6 +42,7 @@
   <script src="editor.js" defer></script>
   <script src="inst-settings.js" defer></script>
   <script src="folders.js" defer></script>
+  <script src="game-settings.js" defer></script>
   <script src="updates.js" defer></script>
   <script src="library.js" defer></script>
   <script src="nav.js" defer></script>
@@ -311,10 +313,6 @@
           <div class="seg set-tabs" id="set-seg" data-id="settings.sections"><button data-pane="game" aria-selected="true">Игра</button><button data-pane="launcher">Лаунчер</button><button data-pane="addons">Плагины</button></div>
           <div class="set-pane" id="set-game" data-id="settings.game">
             <div class="rows">
-              <button type="button" class="r isx-row" data-isx-sec="java"><div class="grow"><div class="t">Java</div><div class="s" id="gs-java"></div></div><svg class="isx-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg></button>
-              <button type="button" class="r isx-row" data-isx-sec="java"><div class="grow"><div class="t">Память</div><div class="s" id="gs-mem"></div></div><svg class="isx-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg></button>
-              <button type="button" class="r isx-row" data-isx-sec="window"><div class="grow"><div class="t">Окно игры</div><div class="s" id="gs-win"></div></div><svg class="isx-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg></button>
-              <button type="button" class="r isx-row" data-isx-sec="launch"><div class="grow"><div class="t">Аргументы и хуки</div><div class="s" id="gs-launch"></div></div><svg class="isx-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg></button>
               <div class="r gs-root" id="gs-root-row" data-id="settings.game.root"><div class="grow"><div class="t">Папка сборок</div><div class="s" id="gs-root"></div><div class="progress gs-root-prog" id="gs-root-prog" hidden><i></i></div></div>
                 <button class="btn btn-ghost" id="gs-root-reset" hidden><span class="lbl">По умолчанию</span></button>
                 <button class="btn" id="gs-root-pick"><span class="lbl">Изменить</span></button></div>

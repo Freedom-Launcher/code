@@ -289,7 +289,7 @@
         await reloadInstances();
       } else {
         await run($('#isx-save'), 'settings.set', { game: s });
-        summary();
+        window.FGameSettings?.reload();
       }
       setTimeout(closeDlg, 260);
     } catch { /* toast shown */ }
@@ -303,17 +303,6 @@
 
   // ---------- Entry points ----------
   $('#mi-settings').addEventListener('click', () => { closeMenu(); open(S.current); });
-  $$('[data-isx-sec]').forEach((b) => b.addEventListener('click', () => open(null, b.dataset.isxSec)));
-  async function summary() {
-    const [g, m] = await Promise.all([call('settings.get').then((x) => x.game || {}).catch(() => ({})), memInfo()]);
-    const h = g.hooks || {};
-    $('#gs-java').textContent = g.java_path ? short(g.java_path) : 'Авто';
-    $('#gs-mem').textContent = g.memory_mb ? gb(g.memory_mb) : `Авто · ${gb(m.recommended_mb)}`;
-    $('#gs-win').textContent = [g.width ? `${g.width} × ${g.height}` : 'Как в игре', g.fullscreen ? 'полный экран' : ''].filter(Boolean).join(' · ');
-    const parts = [g.jvm_args ? 'JVM' : '', g.env && Object.keys(g.env).length ? `${Object.keys(g.env).length} перем.` : '', h.pre_launch || h.wrapper || h.post_exit ? 'хуки' : ''].filter(Boolean);
-    $('#gs-launch').textContent = parts.length ? parts.join(' · ') : 'Нет';
-  }
-  summary();
   addEventListener('resize', placeInk);
   window.FInstSettings = { open, section };
 })();
