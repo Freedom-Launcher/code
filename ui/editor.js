@@ -6,7 +6,7 @@
   const { $, toast } = window.FUI;
   const root = document.documentElement;
   const RADIUS = [['btn', 'Кнопки'], ['field', 'Поля'], ['card', 'Карточки'], ['icon', 'Иконки'], ['menu', 'Меню'], ['chip', 'Метки'], ['nav', 'Боковая панель'], ['dialog', 'Окна']];
-  const SIZE = [['btn', 'Кнопки', 70, 150], ['field', 'Поля', 70, 150], ['text', 'Текст', 85, 130], ['gap', 'Отступы', 60, 160], ['rail', 'Боковая панель', 80, 150], ['top', 'Верхняя панель', 80, 180]];
+  const SIZE = [['btn', 'Кнопки', 70, 150], ['field', 'Поля', 70, 150], ['text', 'Текст', 85, 130], ['gap', 'Отступы', 60, 160], ['rail', 'Боковая панель', 80, 150], ['top', 'Верхняя панель', 80, 180], ['card', 'Карточки сборок', 60, 200]];
   const LAYOUT = [['rail', 'Боковая панель', 'left'], ['filters', 'Фильтры каталога', 'left'], ['project', 'Панель проекта', 'right']];
   const NAMES = {
     rail: 'Боковая панель', 'rail.logo': 'Логотип', 'rail.instances': 'Сборки в панели', topbar: 'Верхняя панель', main: 'Основная область',
@@ -14,6 +14,10 @@
     'discover.kind': 'Типы контента', 'project.header': 'Шапка проекта', 'project.sidebar': 'Панель проекта', 'project.tabs': 'Вкладки проекта',
     'view.home': 'Библиотека', 'view.instance': 'Сборка', 'view.discover': 'Каталог', 'view.create': 'Новая сборка', 'view.accounts': 'Аккаунты', 'view.project': 'Проект',
   };
+  const FIXED_IDS = new Set(['home.all', 'home.recent', 'rail.instances']);
+  const FIXED = (p) => FIXED_IDS.has(p.dataset.id) || p.hasAttribute('data-ue-fixed');
+  const isCard = (id) => /^home\.card\./.test(id);
+  const ghostOn = () => isOpen && localStorage.getItem('fl.ue.ghost') !== 'off';
   const keepVisible = (id) => ['app', 'main', 'rail', 'rail.settings', 'safe'].includes(id) || /^(settings|view\.settings|palette)/.test(id);
   const blank = () => ({ radius: {}, size: {}, layout: {}, els: {}, order: {} });
   const EL_KEYS = ['radius', 'scale', 'bg', 'opacity', 'bright', 'contrast', 'saturate', 'blur', 'border', 'border_color', 'shadow'];
@@ -32,7 +36,7 @@
     if (f.length) d.push(`filter: ${f.join(' ')} !important`);
     const bl = num(e.blur, 0, 40); if (bl) d.push(`backdrop-filter: blur(${bl}px) saturate(1.4) !important`, `-webkit-backdrop-filter: blur(${bl}px) saturate(1.4) !important`);
     const bw = num(e.border, 0, 6), bc = HEX.test(e.border_color || '') ? e.border_color : null;
-    if (bw) d.push(`border: ${bw}px solid ${bc || 'var(--line-strong)'} !important`); else if (bc) d.push(`border-color: ${bc} !important`);
+    if (bw) d.push(`outline: ${bw}px solid ${bc || 'var(--line-strong)'} !important`, `outline-offset: -${bw}px !important`); else if (bc) d.push(`border-color: ${bc} !important`);
     const sh = num(e.shadow, 0, 4); if (sh) d.push(`box-shadow: ${SHADOW[sh]} !important`);
     return d;
   }
@@ -55,7 +59,7 @@
     const u = JSON.parse(JSON.stringify({ ...blank(), ...b }));
     for (const g of ['radius', 'size']) for (const [k, v] of Object.entries(o[g])) u[g][k] = Math.round(((u[g][k] ?? 100) * v) / 100);
     Object.assign(u.layout, o.layout); Object.assign(u.order, o.order);
-    for (const [id, e] of Object.entries(o.els)) { const x = (u.els[id] ||= {}); for (const k of EL_KEYS) if (e[k] != null) x[k] = e[k]; x.hide = !!(x.hide || e.hide); }
+    for (const [id, e] of Object.entries(o.els)) { const x = (u.els[id] ||= {}); for (const k of EL_KEYS) if (e[k] != null) x[k] = e[k]; if (e.hide != null) x.hide = !!e.hide; }
     return u;
   }
   function apply() {
@@ -67,12 +71,13 @@
     for (const [id, e] of Object.entries(U.els)) {
       const d = [];
       if (e.radius != null) d.push(`border-radius: ${e.radius}px !important`);
-      if (e.scale != null && e.scale !== 100) d.push(`zoom: ${e.scale / 100}`);
+      if (e.scale != null && e.scale !== 100 && !isCard(id)) d.push(`zoom: ${e.scale / 100}`);
       d.push(...elDecl(e));
-      if (e.hide && !keepVisible(id)) d.push('display: none !important');
+      if (e.hide && !keepVisible(id)) d.push(...(ghostOn() ? ['opacity: .36 !important', 'outline: 1.5px dashed var(--accent) !important', 'outline-offset: -1.5px !important'] : ['display: none !important']));
       if (d.length) out.push(`${q(id)} { ${d.join('; ')} }`);
     }
     for (const [id, list] of Object.entries(U.order)) {
+      if (FIXED_IDS.has(id)) continue;
       const p = document.querySelector(q(id));
       if (!p || p.children.length !== list.length) continue;
       list.forEach((ci, pos) => out.push(`${q(id)} > :nth-child(${ci + 1}) { order: ${pos} }`));
@@ -92,7 +97,7 @@
   function undo() { if (!past.length) return; future.push(snap()); ui = JSON.parse(past.pop()); apply(); sync(); save(); }
   function redo() { if (!future.length) return; past.push(snap()); ui = JSON.parse(future.pop()); apply(); sync(); save(); }
   const elOf = (u, id) => (u.els[id] ||= {});
-  function tidy(u, id) { const e = u.els[id]; if (e && !e.hide && EL_KEYS.every((k) => e[k] == null || (k === 'scale' && e[k] === 100))) delete u.els[id]; }
+  function tidy(u, id) { const e = u.els[id]; if (e && !e.hide && !(e.hide === false && base?.els?.[id]?.hide) && EL_KEYS.every((k) => e[k] == null || (k === 'scale' && e[k] === 100))) delete u.els[id]; }
 
   // ---------- Building blocks ----------
   function h(tag, cls, html) { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; }
@@ -104,6 +109,7 @@
     back: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>',
     save: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M8 1.8 9.6 6l4.4.3-3.4 2.8 1.1 4.3L8 11l-3.7 2.4 1.1-4.3L2 6.3 6.4 6z"/></svg>',
     reset: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.9 8.6A5.2 5.2 0 1 0 4.4 4.3L2.8 5.9"/><path d="M2.8 2.9v3h3"/></svg>',
+    eye: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.6 8S4 3.5 8 3.5 14.4 8 14.4 8 12 12.5 8 12.5 1.6 8 1.6 8z"/><circle cx="8" cy="8" r="2"/></svg>',
     fwd: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg>',
   };
   const ib = (ico, tip) => { const b = h('button', 'btn btn-ghost btn-icon ue-ib', ICO[ico]); b.type = 'button'; b.dataset.tip = tip; b.setAttribute('aria-label', tip); return b; };
@@ -178,9 +184,13 @@
   bCol.addEventListener('click', () => bCol.setAttribute('aria-pressed', String(bCol.getAttribute('aria-pressed') !== 'true')));
   fa.append(bSave, bReset); fb.append(nameIn, bCol, bOk); foot.append(fa, fb);
   panel.append(head, tabs, body, foot);
-  const hidSec = h('div', 'ue-sec'); const hidList = h('div', 'ue-picks');
-  hidSec.append(h('h4', '', 'Скрытые'), hidList);
+  const hidSec = h('div', 'ue-sec ue-hid'); const hidList = h('div', 'ue-picks');
+  const hidHead = h('div', 'ue-hid-h'), hidTitle = h('h4'), hidSw = h('label', 'ue-hid-sw', '<span>На месте</span><span class="switch"><input type="checkbox"><i></i></span>');
+  const hidGhost = hidSw.querySelector('input'); hidSw.dataset.tip = 'Показывать скрытые полупрозрачными, пока открыт редактор';
+  hidGhost.addEventListener('change', () => { localStorage.setItem('fl.ue.ghost', hidGhost.checked ? 'on' : 'off'); apply(); });
+  hidHead.append(hidTitle, hidSw); hidSec.append(hidHead, hidList);
   pGen.append(
+    hidSec,
     sec('Углы', ...RADIUS.map(([g, label]) => slider({
       label, min: 0, max: 300, get: () => ui.radius[g] ?? 100, changed: () => (ui.radius[g] ?? 100) !== 100,
       set: (u, x) => { if (x === 100) delete u.radius[g]; else u.radius[g] = x; }, reset: (u) => delete u.radius[g],
@@ -190,7 +200,6 @@
       set: (u, x) => { if (x === 100) delete u.size[g]; else u.size[g] = x; }, reset: (u) => delete u.size[g],
     }))),
     sec('Расположение', ...LAYOUT.map(([k, label, def]) => sides(label, k, def))),
-    hidSec,
   );
   document.body.append(panel);
   window.FUI.initSegs(panel);
@@ -212,11 +221,16 @@
     rows.forEach((r) => r._sync());
     bUndo.disabled = !past.length; bRedo.disabled = !future.length;
     bReset.disabled = snap() === JSON.stringify(blank());
-    const hidden = Object.entries(ui.els).filter(([, e]) => e.hide).map(([id]) => id);
+    const U = base ? layered(base, ui) : ui;
+    const hidden = Object.entries(U.els).filter(([id, e]) => e.hide && !keepVisible(id)).map(([id]) => id);
     hidSec.hidden = !hidden.length;
+    hidTitle.textContent = `Скрытые · ${hidden.length}`;
+    hidGhost.checked = localStorage.getItem('fl.ue.ghost') !== 'off';
     hidList.replaceChildren(...hidden.map((id) => {
-      const c = h('button', 'ue-chip'); c.type = 'button'; c.textContent = name(id); c.dataset.tip = 'Показать снова';
-      c.addEventListener('click', () => commit((u) => { u.els[id].hide = false; tidy(u, id); }));
+      const c = h('button', 'ue-chip ue-chip-hid', ICO.eye); c.type = 'button'; c.append(name(id)); c.dataset.tip = 'Показать снова';
+      c.addEventListener('click', () => commit((u) => { elOf(u, id).hide = false; tidy(u, id); }));
+      c.addEventListener('pointerenter', () => { const n = document.querySelector(q(id)); if (n && n.getClientRects().length) hov = n; });
+      c.addEventListener('pointerleave', () => { hov = null; });
       return c;
     }));
   }
@@ -282,19 +296,22 @@
       label: 'Скругление', min: 0, max: 64, fmt: (x) => `${x} px`,
       get: () => ui.els[id]?.radius ?? Math.min(64, sel.base), changed: () => ui.els[id]?.radius != null,
       set: (u, x) => { elOf(u, id).radius = x; }, reset: (u) => { if (u.els[id]) { u.els[id].radius = null; tidy(u, id); } },
-    }), slider({
+    }), isCard(id) ? slider({
+      label: 'Размер карточек', min: 60, max: 200, get: () => ui.size.card ?? 100, changed: () => (ui.size.card ?? 100) !== 100,
+      set: (u, x) => { if (x === 100) delete u.size.card; else u.size.card = x; }, reset: (u) => delete u.size.card,
+    }) : slider({
       label: 'Размер', min: 50, max: 200, get: () => ui.els[id]?.scale ?? 100, changed: () => (ui.els[id]?.scale ?? 100) !== 100,
       set: (u, x) => { elOf(u, id).scale = x === 100 ? null : x; tidy(u, id); }, reset: (u) => { if (u.els[id]) { u.els[id].scale = null; tidy(u, id); } },
     }));
     if (!keepVisible(id)) {
       const r = h('label', 'ue-row ue-row-seg'), l = h('span', 'l', 'Скрыть'), sw = h('span', 'switch', '<input type="checkbox"><i></i>');
       const inp = sw.querySelector('input'); r.append(l, sw);
-      inp.addEventListener('change', () => commit((u) => { elOf(u, id).hide = inp.checked; tidy(u, id); if (inp.checked) select(null); }));
+      inp.addEventListener('change', () => commit((u) => { elOf(u, id).hide = inp.checked; tidy(u, id); if (inp.checked && !ghostOn()) select(null); }));
       r._sync = () => { inp.checked = !!ui.els[id]?.hide; r.toggleAttribute('data-changed', inp.checked); };
       rows.push(r); s.append(r);
     }
     const p = node.parentElement;
-    if (p?.dataset.id && p.children.length <= 64 && /flex|grid/.test(getComputedStyle(p).display)) {
+    if (p?.dataset.id && !FIXED(p) && p.children.length <= 64 && /flex|grid/.test(getComputedStyle(p).display)) {
       const col = /column/.test(getComputedStyle(p).flexDirection);
       const r = h('div', 'ue-row ue-row-seg'), l = h('span', 'l', 'Порядок'), pair = h('div', 'ue-pair');
       const bA = ib('back', col ? 'Выше' : 'Левее'), bB = ib('fwd', col ? 'Ниже' : 'Правее');
@@ -335,7 +352,9 @@
     const had = ui.els[id]?.radius != null;
     sel = { id, node: n, base: had ? ui.els[id].radius : Math.round(parseFloat(getComputedStyle(n).borderTopLeftRadius) || 0) };
     const r = n.getBoundingClientRect();
-    panel.dataset.side = r.right > innerWidth - 330 && r.left > 330 ? 'left' : 'right';
+    const side = panel.dataset.side, covered = side === 'right' ? r.right > innerWidth - 330 : r.left < 330;
+    const fits = side === 'right' ? r.left > 330 : r.right < innerWidth - 330;
+    if (covered && fits) panel.dataset.side = side === 'right' ? 'left' : 'right';
     renderEl(); tab('el');
   }
 
@@ -359,7 +378,7 @@
   const EASE = 'cubic-bezier(.22, 1, .36, 1)';
   function orderable(n) {
     const p = n?.parentElement;
-    if (!p?.dataset.id || p.children.length < 2 || p.children.length > 64 || !p.closest('#app')) return null;
+    if (!p?.dataset.id || FIXED(p) || p.children.length < 2 || p.children.length > 64 || !p.closest('#app')) return null;
     return /flex|grid/.test(getComputedStyle(p).display) ? p : null;
   }
   const orderOf = (pid, n) => (ui.order[pid]?.length === n ? [...ui.order[pid]] : [...Array(n).keys()]);
@@ -446,14 +465,14 @@
     if (safe) return;
     if (typeof S !== 'undefined' && S.view === 'settings') show(S.instances.length ? 'home' : 'empty');
     window.FUI.closeMenu?.();
-    isOpen = true; root.dataset.uiEdit = '';
+    isOpen = true; root.dataset.uiEdit = ''; apply();
     panel.setAttribute('data-open', '');
     renderEl(); sync(); tab(sel ? 'el' : 'gen', false);
     requestAnimationFrame(loop);
   }
   function close() {
     endDrag(); if (!fb.hidden) saveMode(false);
-    isOpen = false; hov = null; delete root.dataset.uiEdit;
+    isOpen = false; hov = null; delete root.dataset.uiEdit; apply();
     panel.removeAttribute('data-open'); hl.removeAttribute('data-on'); sb.removeAttribute('data-on');
   }
   document.addEventListener('keydown', (e) => {

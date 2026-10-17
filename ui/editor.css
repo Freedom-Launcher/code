@@ -166,3 +166,11 @@ html[data-ue-dragging] .ue-sel .ue-tag { opacity: 0; }
 .ue-sw:active { transform: scale(.94); }
 .ue-sw[aria-expanded=true] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
 .cp.cp-top { z-index: 90; }
+
+/* Hidden elements: first in «Общее», ghosted in place while editing */
+.ue-hid-h { display: flex; align-items: center; justify-content: space-between; padding-right: 14px; }
+.ue-hid-sw { display: inline-flex; align-items: center; gap: 8px; padding-top: 8px; color: var(--text-3); font-size: 11px; cursor: pointer; }
+.ue-hid .ue-picks { justify-content: flex-start; margin: 8px 16px 6px; }
+.ue-chip-hid { display: inline-flex; align-items: center; gap: 6px; }
+.ue-chip-hid svg { width: 13px; height: 13px; flex: none; opacity: .7; }
+.ue-chip-hid:hover svg { opacity: 1; color: var(--accent); }
