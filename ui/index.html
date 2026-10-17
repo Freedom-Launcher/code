@@ -41,6 +41,7 @@
   <script src="welcome.js" defer></script>
   <script src="editor.js" defer></script>
   <script src="inst-settings.js" defer></script>
+  <script src="inst-install.js" defer></script>
   <script src="folders.js" defer></script>
   <script src="game-settings.js" defer></script>
   <script src="updates.js" defer></script>
@@ -472,9 +473,10 @@
       <div class="isx-who"><span class="isx-ava" id="isx-ava"></span><div class="isx-who-t"><b id="isx-title"></b><span id="isx-sub"></span></div></div>
       <nav class="isx-nav" id="isx-nav" data-id="dialog.instance.settings.sections"><i class="isx-ink"></i>
         <button type="button" data-sec="general" aria-selected="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 4.5h10M3 8h10M3 11.5h6"/></svg><span>Общее</span></button>
+        <button type="button" data-sec="install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 2.5 13.5 5.5v5L8 13.5 2.5 10.5v-5zM2.5 5.5 8 8.5l5.5-3M8 8.5v5"/></svg><span>Установка</span></button>
         <button type="button" data-sec="java"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5.5 2.5c1 1-1 2 0 3M8 2.5c1 1-1 2 0 3M3.5 7.5h8v2.5a3 3 0 0 1-3 3h-2a3 3 0 0 1-3-3zM11.5 8.5h1a1.5 1.5 0 0 1 0 3h-1"/></svg><span>Java и память</span></button>
         <button type="button" data-sec="window"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2.5 3.5h11v8h-11zM6 13.5h4"/></svg><span>Окно</span></button>
-        <button type="button" data-sec="launch"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5.5 4 2.5 8l3 4M10.5 4l3 4-3 4"/></svg><span>Запуск</span></button>
+        <button type="button" data-sec="launch"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5.5 4 2.5 8l3 4M10.5 4l3 4-3 4"/></svg><span>Хуки запуска</span></button>
       </nav>
     </aside>
     <div class="isx-main">
@@ -482,12 +484,22 @@
       <div class="isx-scroll" id="isx-scroll">
         <section class="isx-sec" data-sec="general">
           <div class="isx-block"><label class="label" for="isx-name">Название</label><input class="field" id="isx-name" maxlength="64" required></div>
+          <div class="isx-block"><label class="label" for="isx-group">Группа</label><input class="field" id="isx-group" maxlength="32" placeholder="Без группы" autocomplete="off"></div>
+          <div class="isx-block"><div class="label">Обложка</div><div class="cover-strip" id="isx-covers"></div></div>
           <div class="isx-block"><div class="label">Действия</div><div class="isx-acts">
-            <button type="button" class="btn btn-sm" data-isx-act="mi-install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 3v7m-3-3 3 3 3-3M3.5 13h9"/></svg>Проверить файлы</button>
             <button type="button" class="btn btn-sm" data-isx-act="mi-folder"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg>Папка</button>
             <button type="button" class="btn btn-sm" data-isx-act="mi-dup"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5.5 5.5h7v7h-7zM3.5 10.5v-7h7"/></svg>Дублировать</button>
             <button type="button" class="btn btn-sm is-danger" data-isx-act="mi-del"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3.5 4.5h9M6.5 4.5V3h3v1.5M4.5 4.5l.5 8.5h6l.5-8.5"/></svg>Удалить</button>
           </div></div>
+        </section>
+        <section class="isx-sec" data-sec="install" hidden>
+          <div class="isx-block" id="isx-pack-block" hidden><div class="isx-bh"><div class="grow"><div class="t">Сборка Modrinth</div><div class="s" id="isx-pack"></div></div><button type="button" class="btn btn-sm" id="isx-unlink"><span class="lbl">Отвязать</span></button></div></div>
+          <div class="isx-block" id="isx-game">
+            <div class="label">Платформа</div><div class="pick isx-pick" id="isx-loader"><button type="button" data-loader="vanilla" aria-pressed="false">Ванилла</button><button type="button" data-loader="fabric" aria-pressed="false">Fabric</button><button type="button" data-loader="forge" aria-pressed="false">Forge</button><button type="button" data-loader="neoforge" aria-pressed="false">NeoForge</button><button type="button" data-loader="quilt" aria-pressed="false">Quilt</button></div>
+            <div class="isx-two"><label><span class="label">Версия игры</span><select class="field" id="isx-ver"></select></label><label id="isx-lver-row"><span class="label" id="isx-lver-l">Версия загрузчика</span><select class="field" id="isx-lver"></select></label></div>
+            <div class="isx-apply"><span class="isx-chg" id="isx-chg"></span><button type="button" class="btn btn-primary btn-sm" id="isx-apply" disabled><span class="lbl">Установить</span></button></div>
+          </div>
+          <div class="isx-block"><div class="isx-bh"><div class="grow"><div class="t">Файлы игры</div></div><button type="button" class="btn btn-sm" data-isx-act="mi-install"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 3v7m-3-3 3 3 3-3M3.5 13h9"/></svg>Проверить и восстановить</button></div></div>
         </section>
         <section class="isx-sec" data-sec="java" hidden>
           <div class="isx-block" data-own="java"><div class="isx-bh"><div class="grow"><div class="t">Java</div><div class="isx-inh" data-inh="java"></div></div><button type="button" class="btn btn-ghost btn-icon btn-sm isx-scan" id="isx-java-scan" aria-label="Найти заново"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v2.5h-2.5"/></svg></button><label class="switch isx-sw"><input type="checkbox" data-own-toggle="java" aria-label="Java"><i></i></label></div>
@@ -505,6 +517,9 @@
           <div class="isx-block" data-own="jvm"><div class="isx-bh"><div class="grow"><div class="t">Аргументы JVM</div><div class="isx-inh" data-inh="jvm"></div></div><label class="switch isx-sw"><input type="checkbox" data-own-toggle="jvm" aria-label="Аргументы JVM"><i></i></label></div>
             <fieldset class="isx-body"><input class="field mono" id="isx-jvm" placeholder="-XX:+UseG1GC" spellcheck="false" autocomplete="off"></fieldset>
           </div>
+          <div class="isx-block" data-own="env"><div class="isx-bh"><div class="grow"><div class="t">Переменные среды</div><div class="isx-inh" data-inh="env"></div></div><label class="switch isx-sw"><input type="checkbox" data-own-toggle="env" aria-label="Переменные среды"><i></i></label></div>
+            <fieldset class="isx-body"><div class="isx-env" id="isx-env"></div><button type="button" class="btn btn-sm btn-ghost isx-add" id="isx-env-add"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>Добавить</button></fieldset>
+          </div>
         </section>
         <section class="isx-sec" data-sec="window" hidden>
           <div class="isx-block" data-own="win"><div class="isx-bh"><div class="grow"><div class="t">Окно игры</div><div class="isx-inh" data-inh="win"></div></div><label class="switch isx-sw"><input type="checkbox" data-own-toggle="win" aria-label="Окно игры"><i></i></label></div>
@@ -517,9 +532,6 @@
           <div class="isx-block"><label class="label" for="isx-after">Когда игра запустилась</label><select class="field" id="isx-after"></select></div>
         </section>
         <section class="isx-sec" data-sec="launch" hidden>
-          <div class="isx-block" data-own="env"><div class="isx-bh"><div class="grow"><div class="t">Переменные среды</div><div class="isx-inh" data-inh="env"></div></div><label class="switch isx-sw"><input type="checkbox" data-own-toggle="env" aria-label="Переменные среды"><i></i></label></div>
-            <fieldset class="isx-body"><div class="isx-env" id="isx-env"></div><button type="button" class="btn btn-sm btn-ghost isx-add" id="isx-env-add"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>Добавить</button></fieldset>
-          </div>
           <div class="isx-block" data-own="hooks"><div class="isx-bh"><div class="grow"><div class="t">Хуки запуска</div><div class="isx-inh" data-inh="hooks"></div></div><label class="switch isx-sw"><input type="checkbox" data-own-toggle="hooks" aria-label="Хуки запуска"><i></i></label></div>
             <fieldset class="isx-body isx-hooks">
               <label><span class="label">Перед запуском</span><input class="field mono" id="isx-pre" spellcheck="false" autocomplete="off"></label>

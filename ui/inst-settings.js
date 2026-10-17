@@ -1,10 +1,10 @@
 'use strict';
 // Instance settings (Э5), Modrinth-style: sections, Java picker, memory slider, window, launch hooks.
-// The same dialog edits launcher-wide defaults (Settings → Игра); an instance overrides block by block.
+// Launcher-wide defaults live inline in Settings → Игра (game-settings.js); each block here overrides them.
 (() => {
   const f = $('#dlg-inst');
   const KEYS = ['java', 'mem', 'jvm', 'win', 'env', 'hooks'];
-  const TITLE = { general: 'Общее', java: 'Java и память', window: 'Окно', launch: 'Запуск' };
+  const TITLE = { general: 'Общее', install: 'Установка', java: 'Java и память', window: 'Окно', launch: 'Хуки запуска' };
   const VARS = ['INST_ID', 'INST_NAME', 'INST_MC_VER', 'INST_DIR', 'INST_JAVA'];
   const WIN = /Windows/.test(navigator.userAgent);
   const st = { mode: 'inst', inst: null, own: {}, java: null, javas: null, req: null, base: {}, mem: null, snap: '', lastHook: null };
@@ -241,7 +241,7 @@
     if (a && !(st.mode === 'global' && a === 'keep')) o.after_launch = a;
     return JSON.parse(JSON.stringify(o));
   }
-  const key = () => JSON.stringify([collect(), $('#isx-name').value]);
+  const key = () => JSON.stringify([collect(), $('#isx-name').value, $('#isx-group').value.trim()]);
   function dirty() { $('#isx-save').disabled = key() === st.snap; }
   f.addEventListener('input', dirty);
   f.addEventListener('change', dirty);
@@ -254,6 +254,19 @@
     setTimeout(() => n.removeAttribute('aria-invalid'), 1600);
   }
 
+  // Cover applies at once, like the instance menu's cover picker.
+  function paintCovers() {
+    const i = st.inst;
+    if (!i) return;
+    const cur = coverName(i);
+    $('#isx-covers').replaceChildren(...COVERS.map((n) => coverOpt(n, n === cur, (x) => {
+      localStorage.setItem(`fl.cover.${i.id}`, x);
+      applyWall();
+      renderInstances();
+      paintCovers();
+    })));
+  }
+
   // ---------- Open / save ----------
   async function open(id, sec) {
     const inst = id ? byId(id) : null;
@@ -264,16 +277,20 @@
     st.req = inst ? null : null;
     f.classList.toggle('is-global', !inst);
     $('[data-sec="general"]', nav).hidden = !inst;
+    $('[data-sec="install"]', nav).hidden = !inst;
     $('#isx-ava').textContent = inst ? initials(inst.name) : '';
     $('#isx-ava').classList.toggle('is-global', !inst);
     $('#isx-title').textContent = inst ? inst.name : 'Игра';
     $('#isx-sub').textContent = inst ? [inst.version, inst.loader === 'vanilla' ? '' : inst.loader].filter(Boolean).join(' · ') : 'Для всех сборок';
     $('#isx-name').value = inst ? inst.name : '';
+    $('#isx-group').value = inst?.group || '';
+    paintCovers();
     if (inst) st.req = (await call('java.list', { version: inst.version }).then((r) => { st.javas = r.installs; return r.required; }).catch(() => null));
     fill(inst ? inst.settings || {} : g.game || {});
     if (st.javas) paintJavas();
     st.snap = key();
     $('#isx-save').disabled = true;
+    f.dispatchEvent(new CustomEvent('isx:open', { detail: inst }));
     openDlg('dlg-inst');
     requestAnimationFrame(() => section(sec || (inst ? 'general' : 'java')));
   }
@@ -286,6 +303,8 @@
     try {
       if (st.mode === 'inst') {
         await run($('#isx-save'), 'instances.configure', { instance: st.inst.id, name: $('#isx-name').value.trim(), settings: s });
+        const grp = $('#isx-group').value.trim();
+        if (grp !== (st.inst.group || '')) await call('instances.update', { instance: st.inst.id, group: grp });
         await reloadInstances();
       } else {
         await run($('#isx-save'), 'settings.set', { game: s });

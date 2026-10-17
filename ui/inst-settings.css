@@ -114,3 +114,19 @@ html[data-wall="on"] .isx-block { background: rgba(255, 255, 255, .04); }
 html[data-wall="on"] .isx-ink, html[data-wall="on"] .isx-jv { background: rgba(255, 255, 255, .07); }
 .isx-in, .isx-javas { grid-template-columns: minmax(0, 1fr); }
 .isx-jv > .badge { flex: none; }
+
+/* «Установка»: platform, game and loader version */
+.isx-pick { grid-template-columns: repeat(5, 1fr); }
+.isx-pick button { height: 42px; }
+.isx-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.isx-two > label { display: grid; min-width: 0; }
+.isx-two > label[hidden] { display: none; }
+.isx-two .label { margin: 16px 0 6px; }
+.isx-apply { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; min-height: 30px; }
+.isx-chg { flex: 1; min-width: 0; color: var(--text-3); font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform: translateY(2px); transition: opacity var(--d-3) var(--ease-out), transform var(--d-3) var(--ease-out); }
+.isx-chg.is-on { opacity: 1; transform: none; }
+.isx-chg b { color: var(--text); font-weight: var(--w-medium); }
+.isx-bh .s { color: var(--text-3); font-size: var(--text-sm); }
+.isx-bh > .btn svg { width: 14px; height: 14px; margin-right: 6px; }
+#isx-game.is-locked .isx-pick, #isx-game.is-locked .isx-two { opacity: .5; pointer-events: none; }
+#isx-covers .cover-opt { width: 84px; height: 52px; }
