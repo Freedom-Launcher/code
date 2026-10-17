@@ -14,7 +14,7 @@
     const e = { view: v };
     if (v === 'instance') { e.inst = S.current; e.sub = sel('#ip-tabs')?.dataset.tab || 'content'; }
     if (v === 'settings') e.sub = sel('#set-seg')?.dataset.pane || 'game';
-    if (v === 'discover') e.sub = sel('#disc-kind')?.dataset.kind || 'modpack';
+    if (v === 'discover') { e.sub = sel('#disc-kind')?.dataset.kind || 'modpack'; const sc = window.FMods?.scopeOf?.(); if (sc) e.inst = sc; }
     if (v === 'project' && proj) { e.proj = { ...proj }; e.sub = proj.id; }
     return e;
   }
@@ -39,6 +39,8 @@
         if (S.view !== 'instance' || S.current !== e.inst) openInstance(e.inst);
         const t = $(`#ip-tabs [data-tab="${e.sub}"]`);
         if (t && t.getAttribute('aria-selected') !== 'true') t.click();
+      } else if (e.view === 'discover' && e.inst && byId(e.inst)) {
+        window.FMods?.scoped(e.inst, e.sub);
       } else if (e.view === 'project' && e.proj) {
         await window.FProject?.open(e.proj.id, e.proj.kind, { project_id: e.proj.id, title: e.proj.title, icon_url: e.proj.icon });
       } else {
@@ -68,7 +70,12 @@
         if (e.sub && e.sub !== 'content') out.push({ t: label('#ip-tabs', 'tab', e.sub) });
         return out;
       }
-      case 'discover': return [{ t: 'Каталог', go: toKind('modpack') }, { t: label('#disc-kind', 'kind', e.sub) }];
+      case 'discover': {
+        const i = e.inst && byId(e.inst);
+        if (!i) return [{ t: 'Каталог', go: toKind('modpack') }, { t: label('#disc-kind', 'kind', e.sub) }];
+        const ico = bg(el('i', { class: 'cr-ico', 'aria-hidden': 'true' }), iconName(i));
+        return [lib, { t: i.name, ico, go: () => openInstance(i.id) }, { t: `Добавить · ${label('#disc-kind', 'kind', e.sub)}` }];
+      }
       case 'project': {
         const p = e.proj || {};
         const ico = window.FMods?.icon(p.icon, p.title || '');

@@ -245,3 +245,19 @@ html[data-l-filters="right"] .disc-body[data-filters="off"] .disc-side { transfo
 @keyframes card-in { from { opacity: 0; transform: translateY(6px); } }
 [data-motion="off"] .mod-grid > .mod-card { animation: none; }
 @media (prefers-reduced-motion: reduce) { .mod-grid > .mod-card { animation: none; } }
+
+/* Catalog scoped to one instance («Установка в …»), as in Modrinth App */
+.disc-scope { display: flex; align-items: center; gap: 14px; margin: 0 0 6px; }
+.disc-scope[hidden], #disc-kind button[hidden] { display: none; }
+#view-discover[data-scoped] .page-h { display: none; }
+.disc-scope-back { --h: 34px; flex: none; }
+.disc-scope-back svg { width: 16px; height: 16px; }
+.disc-scope-ico { flex: none; width: 46px; height: 46px; border-radius: calc(12px * var(--rk-icon, 1)); background: var(--surface-3) center / cover no-repeat; box-shadow: inset 0 0 0 1px var(--line); }
+.disc-scope-t { min-width: 0; display: grid; gap: 2px; }
+.disc-scope-t .s { color: var(--text-3); font-size: 12px; }
+.disc-scope-t b { font: var(--w-semibold) 22px/1.15 var(--font-display); letter-spacing: -.022em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disc-scope-tags { display: flex; gap: 6px; margin-left: auto; flex: none; }
+.disc-scope-tag { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: var(--r-pill); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-2); font-size: 12px; font-weight: var(--w-medium); }
+.disc-scope-tag i { display: inline-flex; color: var(--text-3); }
+.disc-scope-tag svg { width: 12px; height: 12px; }
+html[data-motion="on"] .disc-scope:not([hidden]) { animation: fl-card-in 300ms var(--ease-out, ease) both; }

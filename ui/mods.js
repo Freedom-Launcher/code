@@ -145,12 +145,14 @@
   $('#mods-filter').addEventListener('input', paintList);
   $('#mods-kind').addEventListener('seg:change', (e) => { ikind = e.detail.dataset.kind; instance(byId(inst)); });
   // «Добавить» opens the browser on the same kind and instance.
-  $('#mods-add').addEventListener('click', () => { kind = ikind; target = inst; dworld = iworld; });
+  // «Добавить» opens the catalog scoped to this instance, as in Modrinth App.
+  $('#mods-add').addEventListener('click', () => { kind = ikind; target = inst; dworld = iworld; scope = inst; });
   $('#mods-world').addEventListener('change', (e) => { iworld = e.target.value; instance(byId(inst)); });
 
   // ---------- Modrinth browser ----------
   let kind = 'modpack';
   let target = null;
+  let scope = null; // instance the catalog is scoped to («Установка в …»)
   let dworld = null;
   let query = '';
   let sort = 'relevance';
@@ -175,7 +177,38 @@
   // like an instance picked in Modrinth's Browse; without one it is all of Modrinth.
   const where = () => ({ instance: target, kind, ...(kind === 'datapack' ? { world: dworld } : {}) });
 
+  const LOCK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
+  function paintScope() {
+    const i = scope && byId(scope);
+    if (scope && !i) scope = null;
+    $('#view-discover').toggleAttribute('data-scoped', !!i);
+    $('#disc-scope').hidden = !i;
+    const ok = (k) => !i || (k !== 'modpack' && supports(i, k));
+    $$('#disc-kind button').forEach((b) => { b.hidden = !ok(b.dataset.kind); });
+    requestAnimationFrame(() => $('#disc-kind')._place?.(false));
+    // Scoped: the rail lights the instance, not «Каталог» (as in Modrinth App).
+    $$('.rail-btn[data-view="discover"]').forEach((b) => (i ? b.removeAttribute('aria-current') : S.view === 'discover' && b.setAttribute('aria-current', 'page')));
+    $$('#rail-list .tile').forEach((t) => (i && t.dataset.inst === i.id ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
+    if (!i) return;
+    if (!ok(kind)) kind = ['mod', 'resourcepack', 'shader', 'datapack'].find(ok) || 'resourcepack';
+    target = i.id;
+    bg($('#disc-scope-ico'), iconName(i));
+    $('#disc-scope-name').textContent = i.name;
+    $('#disc-scope-tags').replaceChildren(...[LOADER_NAMES[i.loader] || LOADER_NAMES.vanilla, i.version]
+      .map((t) => el('span', { class: 'disc-scope-tag' }, el('i', { 'aria-hidden': 'true', html: LOCK }), t)));
+  }
+  function scoped(id, k) { scope = id; target = id; if (k) kind = k; show('discover'); }
+  function unscope() { if (!scope) return; scope = null; target = null; }
+  document.addEventListener('click', (e) => { const v = e.target.closest('[data-view="discover"]'); if (v && v.id !== 'mods-add') unscope(); }, true);
+  $('#disc-scope-back').addEventListener('click', () => {
+    const id = scope;
+    if (!byId(id)) return show('home');
+    if ($(`#mods-kind [data-kind="${kind}"]`)) ikind = kind;
+    openInstance(id);
+  });
+
   function discover() {
+    paintScope();
     selectSeg($('#disc-kind'), kind);
     $('#disc-q').placeholder = KINDS[kind].search;
     const list = S.instances.filter((i) => supports(i, kind));
@@ -183,7 +216,7 @@
     const sel = $('#disc-target');
     sel.replaceChildren(el('option', { value: '', selected: !target }, 'Любая сборка'),
       ...list.map((i) => el('option', { value: i.id, selected: i.id === target }, instLabel(i))));
-    sel.hidden = kind === 'modpack' || !list.length;
+    sel.hidden = !!scope || kind === 'modpack' || !list.length;
     paintLoaders();
     paintCats();
     paintVersions(); paintEnv(); paintChips();
@@ -609,7 +642,7 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
 
   // The project page reuses the catalog's install flow and context.
   const context = () => ({ target: target && byId(target), kind, have });
-  window.FMods = { instance, discover, install, context, icon, fmtN, supports, catName };
+  window.FMods = { instance, discover, install, context, icon, fmtN, supports, catName, scoped, unscope, scopeOf: () => scope };
 })();// app.js may have opened a view before this script ran.
 if (S.view === 'instance' && S.current) window.FMods.instance(byId(S.current));
 if (S.view === 'discover') window.FMods.discover();

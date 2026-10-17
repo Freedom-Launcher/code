@@ -72,6 +72,7 @@ document.addEventListener('click', async (ev) => {
 // ---------- Navigation: views and the rail ----------
 function show(view) {
   S.view = view;
+  if (view !== 'discover' && view !== 'project') window.FMods?.unscope?.();
   $$('.view').forEach((x) => x.classList.toggle('is-active', x.id === `view-${view}`));
   const lit = view === 'project' ? 'discover' : view;
   $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === lit ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
