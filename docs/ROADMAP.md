@@ -11,6 +11,12 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Own pictures, element styles, colours in themes (0.3.2)
+
+- Own instance icon and cover from the user's photos: crop dialog (drag the frame, wheel to zoom around the cursor, corner handles, arrows / ± keys, rule-of-thirds grid while moving, live previews, drop another file). Cropped in the UI (icon 256 PNG, cover ≤1600×900 WebP), stored by the core in `art/<instance>.<icon|cover>.<ext>` (type from bytes, 8 MB max), served via the `art:` protocol; kept on duplicate, removed on delete. Icon is used in the rail, home, breadcrumbs and Ctrl K; «Как обложка» falls back to the cover.
+- Interface editor: a reset button on every slider; per-element background colour (shared colour picker), opacity, backdrop blur, brightness, contrast, saturation, border width and colour, shadow depth. All values are clamped numbers or `#hex` in `settings.ui.els` — still no raw CSS.
+- «Сохранить как тему» can bake the user's base colours (with derived shades) into the theme's tokens (`themes.save {name, tokens}`), so a palette can be shared as a theme file; the overrides are then cleared.
+
 ## Base colors (0.3.1)
 
 - Settings → Лаунчер → «Цвета»: accent, window background, panels, cards, fields, glass tint, three text levels, lines, error and warning colors — separately for the dark and light base, laid over the active theme.
