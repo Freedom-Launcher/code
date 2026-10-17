@@ -57,6 +57,18 @@
         "installerIcon": "icons/icon.ico",
         "startMenuFolder": "Freedom Launcher"
       }
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJDMTU2ODQ5RkUzOTZCMUIKUldRYmF6bitTV2dWdkVURSt5WVIrbW92MHQ0ZUljSU1jM3RsRkY1VUltRTNRVTZKd3lxcnlQQk8K",
+      "endpoints": [
+        "https://github.com/Freedom-Launcher/releases/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

@@ -8,6 +8,8 @@ use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 
+mod updater;
+
 struct AppCore(Arc<Core>);
 
 /// The single bridge between the UI and the core: every UI feature is an action.
@@ -566,6 +568,8 @@ fn main() {
     builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updater::UpdateState::default())
         .register_uri_scheme_protocol("theme", |ctx, req| theme_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("addon", |ctx, req| addon_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("wall", |ctx, _req| wall_protocol(ctx.app_handle()))
@@ -598,7 +602,10 @@ fn main() {
             set_wallpaper,
             clear_wallpaper,
             stage_mrpack,
-            pick_folder
+            pick_folder,
+            updater::update_check,
+            updater::update_install,
+            updater::update_progress
         ])
         .run(tauri::generate_context!())
         .expect("failed to start Freedom Launcher");

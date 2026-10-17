@@ -40,6 +40,7 @@
   <script src="editor.js" defer></script>
   <script src="inst-settings.js" defer></script>
   <script src="folders.js" defer></script>
+  <script src="updates.js" defer></script>
   <script src="motion.js" defer></script>
 </head>
 <body>
@@ -313,6 +314,8 @@
           </div>
           <div class="set-pane" id="set-launcher" data-id="settings.launcher" hidden>
             <div class="rows">
+              <div class="r upd-row" id="upd-row" data-id="settings.updates"><div class="grow"><div class="t">Обновления<i class="upd-dot" aria-hidden="true"></i></div><div class="s" id="upd-sub"></div><div class="progress upd-prog" id="upd-prog" hidden><i></i></div></div>
+                <button class="btn" id="upd-btn"><span class="lbl">Проверить</span></button></div>
               <div class="r"><div class="grow"><div class="t">Обложка сборки</div></div>
                 <div class="seg" id="cover-seg"><button data-cover-set="big" aria-selected="true">Большая</button><button data-cover-set="slim">Узкая</button><button data-cover-set="none">Нет</button></div></div>
               <div class="r"><div class="grow"><div class="t">Тема</div></div>

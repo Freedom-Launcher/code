@@ -114,3 +114,10 @@
 .gs-root .s { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
 .gs-root-prog { margin-top: 8px; max-width: 320px; animation: gs-in var(--d-4, .24s) var(--ease-out) both; }
 @keyframes gs-in { from { opacity: 0; transform: translateY(-2px); } }
+
+/* Settings → Лаунчер → «Обновления» */
+.upd-prog { margin-top: 8px; max-width: 320px; animation: gs-in var(--d-4, .24s) var(--ease-out) both; }
+.upd-dot { display: inline-block; width: 6px; height: 6px; margin-left: 8px; vertical-align: middle; border-radius: 50%; background: var(--accent); transform: scale(0); transition: transform var(--d-4, .24s) var(--ease-out); }
+.upd-row[data-state="available"] .upd-dot { transform: scale(1); animation: upd-pulse 2s var(--ease-out) infinite; }
+@keyframes upd-pulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .upd-row[data-state="available"] .upd-dot { animation: none; } }
