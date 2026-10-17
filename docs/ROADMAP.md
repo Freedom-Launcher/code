@@ -11,6 +11,14 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Navigation, catalog pages, instance settings (0.3.0)
+
+- Title bar: back / forward history and breadcrumbs (`ui/nav.js`), Alt+←/→, mouse buttons 4/5.
+- Catalog: numbered pages, 10 / 20 / 50 per page; `look.browse` = `pages` | `scroll`, `look.per_page`.
+- Settings → Игра is inline (`ui/game-settings.js`): Java per major (`settings.javas`), memory, JVM args, env, window, hooks, instances folder.
+- Instance settings: Общее (name, group, cover) / Установка (`loaders.versions`, `instances.set_game`, repair, `instances.unlink`) / Java и память / Окно / Хуки запуска (`ui/inst-install.js`).
+- Remaining Modrinth gaps: `/workspace/research/matrix.md` (artifact `modrinth-port-plan`).
+
 ## Instances folder and in-app updates (0.2.0)
 
 - Custom instances root: `settings.instances_dir`, `instances.root`, Internal `instances.move_root` (moves folders with progress and rollback, refuses while a game runs). UI: Settings → Игра → «Папка сборок».
