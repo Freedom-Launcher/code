@@ -117,7 +117,14 @@
       <section class="view" id="view-instance" data-id="view.instance">
         <header class="hero" id="ip-hero" data-id="instance.hero">
           <div class="hero-img" id="ip-cover"></div>
-          <button class="hero-chip" id="ip-cover-btn" data-menu="menu-cover" data-id="instance.cover.change">Сменить обложку</button>
+          <div class="hero-tools" data-id="instance.cover.tools">
+            <div class="hero-view" id="ip-cover-view" role="group" aria-label="Вид обложки" data-id="instance.cover.view">
+              <button type="button" data-cover-set="big" data-tip="Большая обложка" aria-label="Большая обложка"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M2.5 10.5h11" stroke-opacity=".5"/></svg></button>
+              <button type="button" data-cover-set="slim" data-tip="Узкая обложка" aria-label="Узкая обложка"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M2.5 6.5h11" stroke-opacity=".5"/></svg></button>
+              <button type="button" data-cover-set="none" data-tip="Без обложки" aria-label="Без обложки"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="2.5" y="2.5" width="11" height="11" rx="2" stroke-dasharray="2 2"/></svg></button>
+            </div>
+            <button class="hero-chip" id="ip-cover-btn" data-menu="menu-cover" data-id="instance.cover.change">Сменить обложку</button>
+          </div>
           <div class="hero-body">
             <div class="grow">
               <h1 id="ip-name"></h1>

@@ -73,3 +73,22 @@ html[data-l-rail="right"] .app > .main { grid-area: main; margin: 0 0 8px 8px; }
 [data-cover="none"] .hero { height: auto; background: none; }
 [data-cover="none"] .hero-img, [data-cover="none"] .hero::after, [data-cover="none"] .hero-chip { display: none; }
 [data-cover="none"] .hero-body { position: static; padding-top: 36px; }
+/* Cover view switch next to «Сменить обложку» */
+.hero-tools { position: absolute; z-index: 2; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px;
+  opacity: 0; transform: translateY(-2px); transition: opacity 160ms ease, transform 220ms var(--ease-out, ease); }
+.hero:hover .hero-tools, .hero-tools:focus-within, [data-cover="none"] .hero-tools { opacity: 1; transform: none; }
+.hero-tools .hero-chip { position: static; opacity: 1; }
+.hero-view { display: flex; gap: 2px; height: 30px; padding: 2px; box-sizing: border-box; border-radius: calc(8px * var(--rk-chip, 1));
+  background: rgba(10,10,12,.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.hero-view button { display: grid; place-items: center; width: 30px; height: 26px; padding: 0; border: 0; border-radius: calc(6px * var(--rk-chip, 1));
+  background: none; color: rgba(242,242,243,.62); cursor: pointer; transition: background 140ms ease, color 140ms ease; }
+.hero-view button svg { width: 15px; height: 15px; }
+.hero-view button:hover { color: #f2f2f3; background: rgba(255,255,255,.08); }
+.hero-view button[aria-pressed="true"] { color: #fff; background: rgba(255,255,255,.18); }
+.hero-view button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+[data-cover="none"] .hero-view { background: var(--surface-2); backdrop-filter: none; -webkit-backdrop-filter: none; }
+[data-cover="none"] .hero-view button { color: var(--text-3); }
+[data-cover="none"] .hero-view button:hover { color: var(--text); background: var(--surface-3); }
+[data-cover="none"] .hero-view button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
+.hero { transition: height 300ms var(--ease-out, ease); }
+html[data-motion="off"] .hero, html[data-motion="off"] .hero-tools { transition: none; }

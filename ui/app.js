@@ -746,7 +746,14 @@ function applyLook() {
   document.documentElement.dataset.width = S.look.full_width ? 'full' : 'center';
   $('#fx-wide').checked = !!S.look.full_width;
   $$('#cover-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.coverSet === document.documentElement.dataset.cover)));
+  $$('#ip-cover-view button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.coverSet === document.documentElement.dataset.cover)));
 }
+$('#ip-cover-view').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cover-set]');
+  if (!b || b.dataset.coverSet === S.look.cover) return;
+  setLook({ cover: b.dataset.coverSet }); applyLook();
+  $('#cover-seg')._place?.(false);
+});
 
 $('#cover-seg').addEventListener('seg:change', (e) => { setLook({ cover: e.detail.dataset.coverSet }); applyLook(); });
 $('#browse-seg').addEventListener('seg:change', (e) => { setLook({ browse: e.detail.dataset.browse }); document.dispatchEvent(new Event('look:browse')); });
