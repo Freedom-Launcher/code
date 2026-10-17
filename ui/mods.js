@@ -553,6 +553,7 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
     kind = e.detail.dataset.kind;
     cats = new Set(); excl = new Set();
     discover();
+    window.FNav?.note();
   });
   $('#disc-target').addEventListener('change', (e) => { target = e.target.value || null; paintLoaders(); paintVersions(); paintChips(); paintWorlds().then(() => search(true)); });
   $('#disc-world').addEventListener('change', (e) => { dworld = e.target.value; search(true); });

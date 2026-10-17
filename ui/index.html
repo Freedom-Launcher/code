@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="media.css">
   <link rel="stylesheet" href="motion.css">
   <link rel="stylesheet" href="inst-settings.css">
+  <link rel="stylesheet" href="nav.css">
   <link rel="stylesheet" href="editor.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
   <script src="ui.js" defer></script>
@@ -42,6 +43,7 @@
   <script src="folders.js" defer></script>
   <script src="updates.js" defer></script>
   <script src="library.js" defer></script>
+  <script src="nav.js" defer></script>
   <script src="motion.js" defer></script>
 </head>
 <body>
@@ -68,7 +70,8 @@
 
     <!-- Top bar: title, running indicator, account, window controls -->
     <header class="top" data-id="topbar" data-tauri-drag-region>
-      <div class="top-title" id="top-title" data-tauri-drag-region>Freedom Launcher</div>
+      <div class="nav-ctl" data-id="topbar.nav"><button class="nav-btn" id="nav-back" data-id="topbar.back" aria-label="Назад" data-tip="Назад" data-kbd="Alt ←" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3.5M7.5 4 3.5 8l4 4"/></svg></button><button class="nav-btn" id="nav-fwd" data-id="topbar.forward" aria-label="Вперёд" data-tip="Вперёд" data-kbd="Alt →" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9.5M8.5 4l4 4-4 4"/></svg></button></div>
+      <nav class="crumbs-t" id="crumbs" data-id="topbar.crumbs" aria-label="Путь" data-tauri-drag-region></nav>
       <div class="spacer" data-tauri-drag-region></div>
       <button class="pal-trigger" id="pal-open" data-id="topbar.palette" aria-label="Командная строка">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><span>Поиск</span><kbd data-pal-kbd>Ctrl K</kbd>

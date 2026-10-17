@@ -85,6 +85,7 @@
     versions = [];
     Object.assign(f, { loader: '', game: '', channel: '' });
     paintSkeleton(h);
+    window.FNav?.project({ id, kind, title: h?.title || '', icon: h?.icon_url || '' });
     show('project');
     $('#view-project').closest('.main')?.scrollTo({ top: 0 });
     try {
@@ -95,6 +96,8 @@
       if (!k) kind = p.loaders.length && p.loaders.every((l) => l === 'datapack') ? 'datapack' : KIND_OF[p.project_type] || 'mod';
       presetFilters();
       paint();
+      window.FNav?.project({ id, kind, title: p.title, icon: p.icon_url || '' });
+      if (S.view === 'project') window.FNav?.note();
     } catch (e) {
       if (my !== seq) return;
       $('#proj-side').replaceChildren();
@@ -279,7 +282,7 @@
   // ---------- Wiring ----------
   document.body.append($('#menu-proj'));
   $('#proj-tabs').addEventListener('seg:change', (e) => { tab = e.detail.dataset.tab; if (p) paintPane(); });
-  $('#proj-back').addEventListener('click', () => show(back === 'project' ? 'discover' : back));
+  $('#proj-back').addEventListener('click', () => window.FNav?.back() || show(back === 'project' ? 'discover' : back));
   $('#menu-proj [data-do="open"]').addEventListener('click', () => p && invoke('open_link', { url: page() }).catch(fail));
   $('#menu-proj [data-do="copy"]').addEventListener('click', () => {
     if (!p) return;

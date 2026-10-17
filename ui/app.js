@@ -7,7 +7,6 @@ const call = (name, args = null) => invoke('action', { name, args });
 const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'empty' };
 const KIND = { microsoft: 'Microsoft', offline: 'Офлайн', provider: 'Сервис' };
 const STAGE = { idle: 'Подготовка', loader: 'Готовим загрузчик…', java: 'Java', version: 'Версия', libraries: 'Библиотеки', assets: 'Ресурсы', natives: 'Нативные файлы', launch: 'Запуск', done: 'Готово' };
-const TITLES = {}; // Pages carry their own H1; the top bar stays clean.
 const PLAY_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>';
 
 function el(tag, attrs = {}, ...kids) {
@@ -77,12 +76,12 @@ function show(view) {
   const lit = view === 'project' ? 'discover' : view;
   $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === lit ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   $$('#rail-list .tile').forEach((t) => (view === 'instance' && t.dataset.inst === S.current ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
-  $('#top-title').textContent = TITLES[view] ?? '';
   if (view === 'settings') requestAnimationFrame(() => { $('#set-seg')._place?.(false); $('#cover-seg')._place?.(false); $('#wall-seg')._place?.(false); });
   if (view === 'home') renderHome();
   if (view === 'create') prepareCreate();
   if (view === 'accounts') { renderAccountsPage(); loadProviders(); }
   if (view === 'discover') window.FMods?.discover();
+  window.FNav?.note();
 }
 function openInstance(id) {
   S.current = id;
@@ -251,6 +250,7 @@ $('#ip-tabs').addEventListener('click', (e) => {
   if (!t) return;
   $$('#ip-tabs [data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b === t)));
   $$('#view-instance .tab-body').forEach((b) => { b.hidden = b.id !== `tab-${t.dataset.tab}`; });
+  window.FNav?.note();
 });
 
 // ---------- Create instance (a page, not a dialog) ----------
@@ -556,6 +556,7 @@ document.addEventListener('keydown', (e) => {
 $('#set-seg').addEventListener('seg:change', (e) => {
   $$('#view-settings .set-pane').forEach((p) => { p.hidden = p.id !== `set-${e.detail.dataset.pane}`; });
   requestAnimationFrame(() => $('#theme-seg')._place?.(false));
+  window.FNav?.note();
 });
 // ---------- Themes: the core owns the choice; tokens/CSS switch live, templates on reload ----------
 async function applyTheme(cur, first = false) {
