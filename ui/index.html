@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="components-2.css">
   <link rel="stylesheet" href="dropdown.css">
   <link rel="stylesheet" href="packs.css">
+  <link rel="stylesheet" href="foreign.css">
   <link rel="stylesheet" href="layout.css">
   <link rel="stylesheet" href="shell.css">
   <link rel="stylesheet" href="shell-2.css">
@@ -37,6 +38,7 @@
   <script src="shots.js" defer></script>
   <script src="logs.js" defer></script>
   <script src="packs.js" defer></script>
+  <script src="foreign.js" defer></script>
   <script src="md.js" defer></script>
   <script src="project.js" defer></script>
   <script src="palette.js" defer></script>
@@ -234,6 +236,7 @@
           <div class="form-foot">
             <button type="button" class="btn btn-ghost" id="c-import" data-id="create.import"><span class="lbl">Импорт .mrpack</span></button>
             <input type="file" id="c-import-file" accept=".mrpack" hidden>
+            <button type="button" class="btn btn-ghost" id="c-foreign" data-id="create.foreign"><span class="lbl">Из других лаунчеров</span></button>
             <div class="spacer"></div>
             <button type="button" class="btn" id="c-cancel" data-id="create.cancel"><span class="lbl">Отмена</span></button>
             <button type="submit" class="btn btn-primary" id="c-submit" data-id="create.submit"><span class="lbl">Создать</span></button>
@@ -634,6 +637,21 @@
     <div class="actions">
       <button type="button" class="btn btn-ghost" data-close>Закрыть</button>
       <button type="submit" class="btn btn-primary" id="ex-submit"><span class="lbl"><span class="t">Экспортировать</span></span></button>
+    </div>
+  </form>
+
+  <form class="dialog dlg-foreign" id="dlg-foreign" data-id="dialog.foreign" role="dialog" aria-label="Импорт из других лаунчеров">
+    <h2>Импорт из других лаунчеров</h2>
+    <div class="fg-list" id="fg-list" data-id="foreign.list"></div>
+    <div class="play-status fg-status" id="fg-status" hidden>
+      <div class="line"><span id="fg-stage"></span><span class="mono num" id="fg-count"></span></div>
+      <div class="progress" id="fg-bar"><i></i></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" id="fg-pick" data-id="foreign.pick"><span class="lbl">Выбрать папку…</span></button>
+      <span class="fg-gap"></span>
+      <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+      <button type="submit" class="btn btn-primary" id="fg-submit" data-id="foreign.submit"><span class="lbl">Импортировать</span></button>
     </div>
   </form>
 
