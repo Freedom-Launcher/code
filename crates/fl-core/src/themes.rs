@@ -513,10 +513,24 @@ fn copy_tree(from: &Path, to: &Path, depth: u8) -> std::io::Result<()> {
 }
 
 /// Saves the active theme plus `ui` as a new installed theme named `name`; returns its id.
-pub fn save(data_dir: &Path, active: &str, name: &str, ui: UiCustom) -> R<String> {
+/// Saves the active theme plus the editor's edits (`ui`) and the user's base
+/// colours (`tokens`, already resolved to CSS custom properties) as a new theme.
+pub fn save(
+    data_dir: &Path,
+    active: &str,
+    name: &str,
+    ui: UiCustom,
+    tokens: BTreeMap<String, String>,
+) -> R<String> {
     let name = name.trim();
     if name.is_empty() || name.chars().count() > 60 {
         return Err("название: от 1 до 60 символов".into());
+    }
+    if tokens.len() > 60 {
+        return Err("слишком много цветов".into());
+    }
+    for (k, v) in &tokens {
+        check_token(k, v)?;
     }
     let id = new_id(data_dir, name);
     let to = dir(data_dir).join(&id);
@@ -541,6 +555,7 @@ pub fn save(data_dir: &Path, active: &str, name: &str, ui: UiCustom) -> R<String
     };
     let ui = m.ui.take().unwrap_or_default().layered(&ui).checked()?;
     m.ui = (ui != UiCustom::default()).then_some(ui);
+    m.tokens.extend(tokens);
     m.id = id.clone();
     m.name = name.to_string();
     m.version = "1.0.0".into();
@@ -565,16 +580,28 @@ mod save_tests {
         let d = std::env::temp_dir().join(format!("fl-theme-save-{}", std::process::id()));
         let _ = fs::remove_dir_all(&d);
         let ui: UiCustom = serde_json::from_value(json!({ "radius": { "card": 150 } })).unwrap();
-        let id = save(&d, "light", "Моя тема", ui).unwrap();
+        let id = save(&d, "light", "Моя тема", ui, BTreeMap::new()).unwrap();
         assert_eq!(id, "moya-tema");
         let m = load(&d, &id).unwrap();
         assert_eq!(m.base, Base::Light);
         assert_eq!(m.ui.unwrap().radius["card"], 150);
         let over: UiCustom = serde_json::from_value(json!({ "radius": { "card": 200 } })).unwrap();
-        let id2 = save(&d, &id, "Моя тема", over).unwrap();
+        let id2 = save(&d, &id, "Моя тема", over, BTreeMap::new()).unwrap();
         assert_eq!(id2, "moya-tema-2");
         assert_eq!(load(&d, &id2).unwrap().ui.unwrap().radius["card"], 300);
-        assert!(save(&d, "default", "  ", UiCustom::default()).is_err());
+        assert!(save(&d, "default", "  ", UiCustom::default(), BTreeMap::new()).is_err());
+        let t: BTreeMap<String, String> = [
+            ("--accent".to_string(), "#ff8800".to_string()),
+            ("--glass".to_string(), "rgba(14, 16, 22, var(--glass-a))".to_string()),
+        ]
+        .into();
+        let id3 = save(&d, "default", "Цвета", UiCustom::default(), t).unwrap();
+        let m3 = load(&d, &id3).unwrap();
+        assert_eq!(m3.tokens["--accent"], "#ff8800");
+        assert!(m3.tokens["--glass"].contains("var(--glass-a)"));
+        let bad: BTreeMap<String, String> =
+            [("--accent".to_string(), "url(x)".to_string())].into();
+        assert!(save(&d, "default", "Плохо", UiCustom::default(), bad).is_err());
         let _ = fs::remove_dir_all(&d);
     }
 }

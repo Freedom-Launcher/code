@@ -201,12 +201,22 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         #[derive(Deserialize)]
         struct A {
             name: String,
+            #[serde(default)]
+            tokens: std::collections::BTreeMap<String, String>,
         }
-        let A { name } = args(a)?;
+        let A { name, tokens } = args(a)?;
         let _g = c.state_lock.lock().await;
         let mut s: Settings = store::load(&c.path(SETTINGS))?;
-        let id =
-            themes::save(&c.data_dir, &s.theme, &name, s.ui.clone()).map_err(CoreError::BadArgs)?;
+        let baked = !tokens.is_empty();
+        let id = themes::save(&c.data_dir, &s.theme, &name, s.ui.clone(), tokens)
+            .map_err(CoreError::BadArgs)?;
+        if baked {
+            // The colours now live in the theme; keep only the other base's.
+            if let Ok(m) = themes::load(&c.data_dir, &id) {
+                let b = if m.base == themes::Base::Light { "light" } else { "dark" };
+                s.colors.remove(b);
+            }
+        }
         s.theme = id;
         s.ui = Default::default();
         store::save(&c.path(SETTINGS), &s, false)?;

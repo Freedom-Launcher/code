@@ -136,3 +136,14 @@ html[data-ue-dragging] .app, html[data-ue-dragging] .app * { cursor: grabbing !i
 }
 html[data-ue-dragging] .ue-sel { transition: opacity var(--d-2) var(--ease-out); box-shadow: none; }
 html[data-ue-dragging] .ue-sel .ue-tag { opacity: 0; }
+
+/* Save as theme: include own colours */
+.ue-col { gap: 6px; padding-inline: 8px 10px; flex: none; }
+.ue-col-sw { display: inline-flex; width: 22px; height: 12px; border-radius: 6px; overflow: hidden;
+  box-shadow: 0 0 0 1px var(--line-strong); transition: opacity .16s var(--ease), filter .16s var(--ease), transform .16s var(--ease);
+  background: linear-gradient(90deg, var(--c0) 0 33.4%, var(--c1) 33.4% 66.7%, var(--c2) 66.7%); }
+.ue-col[aria-pressed=false] { color: var(--text-3); }
+.ue-col[aria-pressed=false] .ue-col-sw { opacity: .35; filter: grayscale(1); transform: scale(.9); }
+.ue-col[aria-pressed=true] { color: var(--text); background: var(--accent-soft); }
+.ue .ue-foot-b .ue-col { height: 28px; border-radius: 7px; font-size: 12px; }
+.ue .ue-foot-b .ue-col:active { transform: scale(.97); }

@@ -130,7 +130,10 @@
   const fa = h('div', 'ue-foot-a'), fb = h('div', 'ue-foot-b'); fb.hidden = true;
   const nameIn = h('input', 'field ue-name'); nameIn.maxLength = 60; nameIn.placeholder = 'Название темы'; nameIn.setAttribute('aria-label', 'Название темы'); nameIn.spellcheck = false;
   const bOk = h('button', 'btn btn-primary', '<span class="lbl">Сохранить</span>'); bOk.type = 'button';
-  fa.append(bSave, bReset); fb.append(nameIn, bOk); foot.append(fa, fb);
+  const bCol = h('button', 'btn btn-ghost ue-col', '<span class="ue-col-sw"></span><span class="lbl">Цвета</span>'); bCol.type = 'button';
+  bCol.setAttribute('aria-pressed', 'true'); bCol.dataset.tip = 'Сохранить свои цвета в теме';
+  bCol.addEventListener('click', () => bCol.setAttribute('aria-pressed', String(bCol.getAttribute('aria-pressed') !== 'true')));
+  fa.append(bSave, bReset); fb.append(nameIn, bCol, bOk); foot.append(fa, fb);
   panel.append(head, tabs, body, foot);
   const hidSec = h('div', 'ue-sec'); const hidList = h('div', 'ue-picks');
   hidSec.append(h('h4', '', 'Скрытые'), hidList);
@@ -181,6 +184,10 @@
     const show = on ? fb : fa; fa.hidden = on; fb.hidden = !on;
     show.classList.remove('ue-in'); void show.offsetWidth; show.classList.add('ue-in');
     if (!on) return;
+    const own = window.FColors?.bake?.() || {};
+    bCol.hidden = !Object.keys(own).length; bCol.setAttribute('aria-pressed', 'true');
+    const sw = bCol.querySelector('.ue-col-sw'), cs = getComputedStyle(document.documentElement);
+    for (const [i, k] of ['--accent', '--surface-2', '--text'].entries()) sw.style.setProperty(`--c${i}`, own[k] || cs.getPropertyValue(k).trim());
     const t = typeof S !== 'undefined' && S.theme && !S.theme.builtin ? S.theme.name : '';
     nameIn.value = t ? `${t} 2` : 'Моя тема'; nameIn.focus(); nameIn.select();
   }
@@ -189,7 +196,9 @@
     bOk.disabled = true;
     try {
       clearTimeout(saveT); await call('settings.set', { ui });
-      const cur = await call('themes.save', { name });
+      const tokens = !bCol.hidden && bCol.getAttribute('aria-pressed') === 'true' ? (window.FColors?.bake?.() || {}) : {};
+      const cur = await call('themes.save', { name, tokens });
+      if (Object.keys(tokens).length) document.addEventListener('theme:applied', () => window.FColors?.baked?.(), { once: true });
       ui = blank(); past = []; future = []; base = cur.ui || null;
       apply(); sync(); saveMode(false);
       document.dispatchEvent(new CustomEvent('fl:theme', { detail: cur }));

@@ -408,5 +408,18 @@
       refresh();
     } catch (e) { console.warn('colors', e); }
   })();
-  window.FColors = { open: (t) => { const b = panel?.querySelector(`.col-tok[data-tok="${t}"] .col-pick`); if (b) openPicker(t, b); }, refresh };
+  // Theme save: the current base's colours as CSS custom properties, derived shades included.
+  function bake() {
+    const b = base(), out = {};
+    for (const [t, v] of Object.entries(colors[b] || {})) {
+      const c = parse(v);
+      if (!c || !NAMES[t]) continue;
+      if (t !== 'glass') out[`--${t}`] = v;
+      for (const [k, x] of derived(b, t, c)) out[k] = x;
+    }
+    return out;
+  }
+  // The colours now live in the theme: drop our copy without a repaint flash.
+  function baked() { delete colors[base()]; tv = null; persist(); refresh(); }
+  window.FColors = { bake, baked, open: (t) => { const b = panel?.querySelector(`.col-tok[data-tok="${t}"] .col-pick`); if (b) openPicker(t, b); }, refresh };
 })();
