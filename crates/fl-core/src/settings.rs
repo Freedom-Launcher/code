@@ -179,6 +179,14 @@ pub struct Look {
     pub browse: String,
     /// Results per catalog page: 10, 20 or 50.
     pub per_page: u32,
+    /// Window layout: `auto` (separate panels when a wallpaper is on) | `on` (always
+    /// separate panels) | `off` (everything flush to the window edges).
+    #[serde(default = "panels_auto")]
+    pub panels: String,
+}
+
+fn panels_auto() -> String {
+    "auto".into()
 }
 
 impl Default for Look {
@@ -195,6 +203,7 @@ impl Default for Look {
             full_width: false,
             browse: "pages".into(),
             per_page: 20,
+            panels: panels_auto(),
         }
     }
 }
@@ -228,6 +237,7 @@ impl Look {
         one_of("cover", &l.cover, &["big", "slim", "none"])?;
         one_of("palette_pos", &l.palette_pos, &["top", "bottom"])?;
         one_of("browse", &l.browse, &["pages", "scroll"])?;
+        one_of("panels", &l.panels, &["auto", "on", "off"])?;
         if ![10, 20, 50].contains(&l.per_page) {
             return Err(format!("per_page: «{}» — ожидается 10, 20 или 50", l.per_page));
         }

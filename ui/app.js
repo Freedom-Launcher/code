@@ -76,7 +76,7 @@ function show(view) {
   const lit = view === 'project' ? 'discover' : view;
   $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === lit ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   $$('#rail-list .tile').forEach((t) => (view === 'instance' && t.dataset.inst === S.current ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
-  if (view === 'settings') requestAnimationFrame(() => { $('#set-seg')._place?.(false); $('#cover-seg')._place?.(false); $('#wall-seg')._place?.(false); $('#browse-seg')._place?.(false); });
+  if (view === 'settings') requestAnimationFrame(() => { $('#set-seg')._place?.(false); $('#cover-seg')._place?.(false); $('#panels-seg')._place?.(false); $('#wall-seg')._place?.(false); $('#browse-seg')._place?.(false); });
   if (view === 'home') renderHome();
   if (view === 'create') prepareCreate();
   if (view === 'accounts') { renderAccountsPage(); loadProviders(); }
@@ -692,9 +692,9 @@ $('#theme-reload').addEventListener('click', () => { location.hash = 'settings';
 
 // Look (wallpaper, glass, cover, palette) lives in the core (settings.look).
 // localStorage keeps a mirror so the first paint is right before the core answers.
-const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page' };
-const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20 };
-const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'], browse: ['pages', 'scroll'] };
+const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels' };
+const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto' };
+const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'], browse: ['pages', 'scroll'], panels: ['auto', 'on', 'off'] };
 function lookFromCache() {
   const l = { ...LOOK_DEF };
   for (const [k, key] of Object.entries(LOOK_KEYS)) {
@@ -788,6 +788,8 @@ function applyLook() {
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
   document.documentElement.dataset.cover = S.look.cover;
   document.documentElement.dataset.width = S.look.full_width ? 'full' : 'center';
+  document.documentElement.dataset.panels = S.look.panels || 'auto';
+  $$('#panels-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.panelsSet === (S.look.panels || 'auto'))));
   $('#fx-wide').checked = !!S.look.full_width;
   $$('#cover-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.coverSet === document.documentElement.dataset.cover)));
   $$('#ip-cover-view button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.coverSet === document.documentElement.dataset.cover)));
@@ -799,6 +801,7 @@ $('#ip-cover-view').addEventListener('click', (e) => {
   $('#cover-seg')._place?.(false);
 });
 
+$('#panels-seg').addEventListener('seg:change', (e) => { setLook({ panels: e.detail.dataset.panelsSet }); applyLook(); });
 $('#cover-seg').addEventListener('seg:change', (e) => { setLook({ cover: e.detail.dataset.coverSet }); applyLook(); });
 $('#browse-seg').addEventListener('seg:change', (e) => { setLook({ browse: e.detail.dataset.browse }); document.dispatchEvent(new Event('look:browse')); });
 document.addEventListener('look:change', () => {
