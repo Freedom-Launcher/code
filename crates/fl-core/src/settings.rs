@@ -262,7 +262,8 @@ pub struct UiEl {
     pub radius: Option<u16>,
     /// Size, percent.
     pub scale: Option<u16>,
-    pub hide: bool,
+    /// `Some(false)` shows an element a theme hides.
+    pub hide: Option<bool>,
     /// Background, `#rrggbb` or `#rrggbbaa`.
     pub bg: Option<String>,
     /// Opacity, percent (10–100).
@@ -295,13 +296,14 @@ pub const UI_RADIUS: [&str; 8] = [
     "btn", "field", "card", "icon", "menu", "chip", "nav", "dialog",
 ];
 /// `(group, min %, max %)`.
-pub const UI_SIZE: [(&str, u16, u16); 6] = [
+pub const UI_SIZE: [(&str, u16, u16); 7] = [
     ("btn", 70, 150),
     ("field", 70, 150),
     ("text", 85, 130),
     ("gap", 60, 160),
     ("rail", 80, 150),
     ("top", 80, 180),
+    ("card", 60, 200),
 ];
 pub const UI_LAYOUT: [&str; 3] = ["rail", "filters", "project"];
 
@@ -342,7 +344,9 @@ impl UiCustom {
             let b = u.els.entry(id.clone()).or_default();
             b.radius = e.radius.or(b.radius);
             b.scale = e.scale.or(b.scale);
-            b.hide |= e.hide;
+            if e.hide.is_some() {
+                b.hide = e.hide;
+            }
             b.bg = e.bg.clone().or(b.bg.take());
             b.border_color = e.border_color.clone().or(b.border_color.take());
             for f in [
@@ -391,7 +395,7 @@ impl UiCustom {
                 return Err(format!("ui.els: неверный элемент «{id}»"));
             }
             if keep_visible(id) {
-                e.hide = false;
+                e.hide = None;
             }
             e.radius = e.radius.map(|r| r.min(64));
             e.scale = e.scale.map(|s| s.clamp(50, 200));
@@ -433,6 +437,21 @@ impl UiCustom {
             }
         }
         Ok(self)
+    }
+}
+
+#[cfg(test)]
+mod ui_more_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn card_size_and_unhide() {
+        let u: UiCustom = serde_json::from_value(json!({ "size": { "card": 500 }, "els": { "home.recent": { "hide": false } } })).unwrap();
+        let u = u.checked().unwrap();
+        assert_eq!(u.size["card"], 200);
+        let theme: UiCustom = serde_json::from_value(json!({ "els": { "home.recent": { "hide": true } } })).unwrap();
+        assert_eq!(theme.layered(&u).els["home.recent"].hide, Some(false));
     }
 }
 
@@ -493,7 +512,7 @@ mod tests {
         assert!(!u.radius.contains_key("btn"));
         assert_eq!(u.radius["card"], 150);
         assert_eq!(u.layout["rail"], "right");
-        assert!(u.els["x"].hide);
+        assert_eq!(u.els["x"].hide, Some(true));
     }
 
     #[test]
