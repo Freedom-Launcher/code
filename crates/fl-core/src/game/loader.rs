@@ -7,7 +7,7 @@
 
 use std::fs;
 
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use super::{
     download,
@@ -66,6 +66,44 @@ pub async fn quilt_latest(core: &Core, game: &str) -> Result<String, CoreError> 
     let bytes = get(core, &url).await.map_err(|_| missing())?;
     let list: Value = serde_json::from_slice(&bytes)?;
     pick_quilt(&list).ok_or_else(missing)
+}
+
+/// Numeric sort key of a loader version ("0.16.10" → [0, 16, 10]).
+pub(super) fn ver_key(v: &str) -> Vec<u64> {
+    v.split(['.', '-', '+']).map(|p| p.parse().unwrap_or(0)).collect()
+}
+
+/// Every loader build for a game version, newest first: `[{version, stable}]`.
+pub async fn versions(core: &Core, loader: &str, game: &str) -> Result<Vec<Value>, CoreError> {
+    let stable_guess = |v: &str| !v.contains('-') && !v.contains("beta") && !v.contains("rc");
+    let mut out: Vec<(String, bool)> = if let Some(meta) = meta_base(loader) {
+        let url = format!("{meta}/versions/loader/{game}");
+        let list: Value = serde_json::from_slice(&get(core, &url).await?)?;
+        list.as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|e| {
+                        let v = e["loader"]["version"].as_str()?;
+                        let st = e["loader"]["stable"].as_bool().unwrap_or_else(|| stable_guess(v));
+                        Some((v.to_owned(), st))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    } else {
+        super::forge::versions(core, loader, game)
+            .await?
+            .into_iter()
+            .map(|v| {
+                let st = stable_guess(&v);
+                (v, st)
+            })
+            .collect()
+    };
+    out.sort_by(|a, b| ver_key(&b.0).cmp(&ver_key(&a.0)));
+    out.dedup_by(|a, b| a.0 == b.0);
+    out.truncate(300);
+    Ok(out.into_iter().map(|(v, s)| json!({ "version": v, "stable": s })).collect())
 }
 
 fn pick_quilt(list: &Value) -> Option<String> {

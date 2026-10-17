@@ -1294,6 +1294,65 @@ fn register_game(r: &mut ActionRegistry) {
             .ok_or_else(|| CoreError::msg("Java установлена, но не запускается"))?;
         Ok(serde_json::to_value(j)?)
     });
+    r.register("loaders.versions", P::Public, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            loader: String,
+            game: String,
+        }
+        let A { loader, game } = args(a)?;
+        if loader == "vanilla" || !instances::LOADERS.contains(&loader.as_str()) {
+            return Err(CoreError::BadArgs(format!("unknown loader: {loader}")));
+        }
+        if game.is_empty() || game.len() > 32 || !game.chars().all(|ch| ch.is_ascii_alphanumeric() || "._-".contains(ch)) {
+            return Err(CoreError::BadArgs("bad game version".into()));
+        }
+        Ok(json!(crate::game::loader::versions(&c, &loader, &game).await?))
+    });
+    // Installation tab: another game version or loader for an existing instance.
+    r.register("instances.set_game", P::InstancesManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            version: String,
+            loader: String,
+            #[serde(default)]
+            loader_version: Option<String>,
+        }
+        let A { instance, version, loader, loader_version } = args(a)?;
+        if c.game_running.is_busy(&instance) {
+            return Err(CoreError::msg("Сначала закройте игру"));
+        }
+        let cur = instance_by_id(&c, &instance)?;
+        instances::validate(&cur.name, &version)?;
+        if !instances::LOADERS.contains(&loader.as_str()) {
+            return Err(CoreError::BadArgs(format!("unknown loader: {loader}")));
+        }
+        let loader_version = match (loader.as_str(), loader_version) {
+            ("vanilla", _) => String::new(),
+            (_, Some(v)) if !v.trim().is_empty() && v.len() <= 64 => v.trim().to_owned(),
+            _ => crate::game::loader::latest(&c, &loader, &version).await?,
+        };
+        let _g = c.state_lock.lock().await;
+        let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+        let i = s.instances.iter_mut().find(|i| i.id == instance).ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
+        i.version = version;
+        i.loader = loader;
+        i.loader_version = loader_version;
+        let out = serde_json::to_value(&*i)?;
+        store::save(&c.path(INSTANCES), &s, false)?;
+        Ok(out)
+    });
+    r.register("instances.unlink", P::InstancesManage, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let _g = c.state_lock.lock().await;
+        let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+        let i = s.instances.iter_mut().find(|i| i.id == instance).ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
+        i.pack = None;
+        let out = serde_json::to_value(&*i)?;
+        store::save(&c.path(INSTANCES), &s, false)?;
+        Ok(out)
+    });
     r.register("game.install", P::GameLaunch, true, |c, a| async move {
         let InstallArg { instance, verify } = args(a)?;
         service::install_instance(&c, &instance, verify).await

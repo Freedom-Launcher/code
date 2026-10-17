@@ -45,6 +45,25 @@ pub async fn latest(core: &Core, loader: &str, mc: &str) -> Result<String, CoreE
     found.ok_or_else(|| err(format!("{loader} is not available for {mc}")))
 }
 
+/// Every Forge / NeoForge build for a game version (unsorted).
+pub async fn versions(core: &Core, loader: &str, mc: &str) -> Result<Vec<String>, CoreError> {
+    let (url, prefix) = if loader == "forge" {
+        (format!("{FORGE_MAVEN}net/minecraftforge/forge/maven-metadata.xml"), format!("{mc}-"))
+    } else {
+        let mut p = mc.split('.').skip(1);
+        let pre = format!("{}.{}.", p.next().unwrap_or(""), p.next().unwrap_or("0"));
+        (format!("{NEO_MAVEN}net/neoforged/neoforge/maven-metadata.xml"), pre)
+    };
+    let xml = String::from_utf8_lossy(&get(core, &url).await?).into_owned();
+    Ok(xml
+        .split("<version>")
+        .skip(1)
+        .filter_map(|s| s.split('<').next())
+        .filter(|v| v.starts_with(&prefix))
+        .map(|v| if loader == "forge" { v[prefix.len()..].to_owned() } else { v.to_owned() })
+        .collect())
+}
+
 /// NeoForge versions follow the game: MC 1.21.4 → 21.4.x, MC 1.21 → 21.0.x.
 fn pick_neoforge(xml: &str, mc: &str) -> Option<String> {
     let mut p = mc.split('.').skip(1);
