@@ -41,6 +41,7 @@
   <script src="inst-settings.js" defer></script>
   <script src="folders.js" defer></script>
   <script src="updates.js" defer></script>
+  <script src="library.js" defer></script>
   <script src="motion.js" defer></script>
 </head>
 <body>
@@ -92,7 +93,7 @@
         <div class="home">
           <h1 class="home-h" id="home-greet">Привет</h1>
           <div class="home-recent" id="home-recent" data-id="home.recent"></div>
-          <div class="sec-head home-sec"><h2>Все сборки</h2></div>
+          <div class="sec-head home-sec lib-bar" data-id="home.library.bar"><h2>Все сборки</h2><span class="spacer"></span><label class="lib-q"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input class="field" id="lib-q" placeholder="Найти" spellcheck="false" data-id="home.library.search"></label><select class="field lib-sel" id="lib-sort" aria-label="Сортировка" data-id="home.library.sort"><option value="played">Последняя игра</option><option value="name">Название</option><option value="created">Дата создания</option><option value="time">Время в игре</option></select><select class="field lib-sel" id="lib-by" aria-label="Группировка" data-id="home.library.group"><option value="group">По группам</option><option value="loader">По загрузчику</option><option value="version">По версии</option><option value="none">Без групп</option></select></div>
           <div class="home-row" id="home-all" data-id="home.all"></div>
           <div data-slot="home.end"></div>
         </div>
@@ -373,6 +374,7 @@
   <div class="pop" id="menu-ctx-instance" data-id="menu.ctx.instance" role="menu">
     <button class="menu-item" id="cx-play"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>Играть</button>
     <button class="menu-item" id="cx-open"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3.5h-2.5v9h9V10M9 3.5h3.5V7M12.5 3.5 7.5 8.5"/></svg>Открыть сборку</button>
+    <button class="menu-item" id="cx-group"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2.5 4.5a1 1 0 0 1 1-1h3l1.5 1.5h4.5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z"/></svg>Группа…</button>
     <button class="menu-item" id="cx-verify"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>Проверить файлы</button>
     <div data-slot="menu.ctx.instance"></div>
   </div>
@@ -525,6 +527,17 @@
     </div>
   </form>
 
+  <form class="dialog dlg-group" id="dlg-group" data-id="dialog.instance.group" role="dialog" aria-label="Группа">
+    <h2>Группа</h2>
+    <input class="field" id="grp-name" maxlength="32" placeholder="Например, С друзьями" autocomplete="off" spellcheck="false">
+    <div class="grp-chips" id="grp-chips"></div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" id="grp-clear">Убрать из группы</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+      <button type="submit" class="btn btn-primary" id="grp-save"><span class="lbl">Сохранить</span></button>
+    </div>
+  </form>
   <form class="dialog" id="dlg-del" data-id="dialog.instance.delete" role="dialog" aria-label="Удалить сборку">
     <h2>Удалить «<span id="del-name"></span>»?</h2>
     <p class="hint">Миры, моды и настройки этой сборки удалятся с диска.</p>

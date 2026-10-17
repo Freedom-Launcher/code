@@ -384,8 +384,7 @@ function renderHome() {
     el('span', { class: `pl${isRunning(i.id) ? ' on' : ''}`, role: 'button', 'aria-label': `Играть: ${i.name}`, onclick: (e) => { e.stopPropagation(); togglePlay(i.id); } }, svgIco(isRunning(i.id) ? STOP_D : PLAY_D))));
   rc.push(el('button', { class: 'rc add', 'data-view': 'create', 'data-id': 'home.create' }, el('i', {}, '+'), el('span', { class: 't' }, el('b', {}, 'Новая сборка'))));
   $('#home-recent').replaceChildren(...rc);
-  const all = [...S.instances].sort((a, b) => a.created_at - b.created_at);
-  $('#home-all').replaceChildren(...all.map((i) => el('button', { class: 'hcard', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
+  if (window.FLib) window.FLib.render(); else $('#home-all').replaceChildren(...S.instances.map((i) => el('button', { class: 'hcard', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
     bg(el('i'), coverName(i)), el('b', {}, i.name), el('span', {}, instMeta(i)))));
   const c = byId(S.current) || recent()[0];
   const bar = $('#home-bar');
