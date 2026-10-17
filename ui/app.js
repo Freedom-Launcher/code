@@ -188,10 +188,50 @@ const isRunning = (id) => S.running.includes(id);
 // Covers: bundled art for now; the choice is per instance (later: own screenshots).
 const COVERS = ['dawn', 'forest', 'ocean', 'nether', 'end'];
 const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
-const coverName = (i) => localStorage.getItem(`fl.cover.${i.id}`) || COVERS[hash(i.id) % COVERS.length];
-const bg = (n, name) => { n.style.backgroundImage = `url("covers/${name}.jpg")`; return n; };
+// Own pictures: `fl.cover.<id>` = 'own' uses `fl.cover-own.<id>` (a stamp); `fl.icon.<id>` = stamp.
+const ART = navigator.userAgent.includes('Windows') ? 'http://art.localhost' : 'art://localhost';
+const coverName = (i) => {
+  const v = localStorage.getItem(`fl.cover.${i.id}`), o = localStorage.getItem(`fl.cover-own.${i.id}`);
+  return v === 'own' && o ? `cover:${i.id}:${o}` : COVERS.includes(v) ? v : COVERS[hash(i.id) % COVERS.length];
+};
+const iconName = (i) => { const v = localStorage.getItem(`fl.icon.${i.id}`); return v ? `icon:${i.id}:${v}` : coverName(i); };
+const coverSrc = (name) => { const m = /^(cover|icon):([^:]+):(.+)$/.exec(name); return m ? `${ART}/${encodeURIComponent(m[2])}/${m[1]}?v=${m[3]}` : `covers/${name}.jpg`; };
+const bg = (n, name) => { n.style.backgroundImage = `url("${coverSrc(name)}")`; return n; };
 function coverOpt(name, on, pick) {
   return bg(el('button', { type: 'button', class: 'cover-opt', 'aria-pressed': String(on), 'aria-label': name, 'data-id': `cover.${name}`, onclick: () => pick(name) }), name);
+}
+const X_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m4.5 4.5 7 7m0-7-7 7"/></svg>';
+function pickArt(i, kind, after) {
+  closeMenu();
+  return window.FCrop?.open({ kind, title: kind === 'icon' ? 'Иконка сборки' : 'Обложка сборки', save: async (bytes) => {
+    await invoke('set_art', bytes, { headers: { 'x-inst': i.id, 'x-kind': kind } });
+    const v = String(Date.now());
+    if (kind === 'icon') localStorage.setItem(`fl.icon.${i.id}`, v);
+    else { localStorage.setItem(`fl.cover-own.${i.id}`, v); localStorage.setItem(`fl.cover.${i.id}`, 'own'); applyWall(); }
+    renderInstances(); after?.();
+  } });
+}
+async function clearArt(i, kind, after) {
+  await invoke('clear_art', { instance: i.id, kind }).catch(() => {});
+  if (kind === 'icon') localStorage.removeItem(`fl.icon.${i.id}`);
+  else { localStorage.removeItem(`fl.cover-own.${i.id}`); if (localStorage.getItem(`fl.cover.${i.id}`) === 'own') localStorage.removeItem(`fl.cover.${i.id}`); applyWall(); }
+  renderInstances(); after?.();
+}
+// Own photo (if any), the bundled covers, then «+».
+function coverStrip(i, after) {
+  const cur = coverName(i), own = localStorage.getItem(`fl.cover-own.${i.id}`);
+  const pick = (x) => { localStorage.setItem(`fl.cover.${i.id}`, x); applyWall(); renderInstances(); after?.(); };
+  const out = [];
+  if (own) {
+    const o = coverOpt(`cover:${i.id}:${own}`, cur.startsWith('cover:'), () => pick('own'));
+    o.classList.add('is-own'); o.setAttribute('aria-label', 'Своё фото'); o.dataset.id = 'cover.own';
+    o.append(el('span', { class: 'cover-x', role: 'button', 'aria-label': 'Убрать фото', 'data-tip': 'Убрать фото', html: X_SVG, onclick: (e) => { e.stopPropagation(); clearArt(i, 'cover', after); } }));
+    out.push(o);
+  }
+  out.push(...COVERS.map((n) => coverOpt(n, n === cur, () => pick(n))));
+  out.push(el('button', { type: 'button', class: 'cover-opt cover-add', 'aria-label': 'Своё фото', 'data-tip': 'Своё фото', 'data-id': 'cover.add',
+    html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>', onclick: () => pickArt(i, 'cover', after) }));
+  return out;
 }
 function renderRail() {
   const list = [...S.instances].sort((a, b) => a.created_at - b.created_at);
@@ -199,7 +239,7 @@ function renderRail() {
     const t = bg(el('button', {
       class: 'tile', 'data-inst': i.id, 'data-ctx': 'menu-ctx-instance', 'data-tip': i.name,
       'data-id': `rail.instance.${i.id}`, 'aria-label': i.name, onclick: () => openInstance(i.id),
-    }, isRunning(i.id) ? el('i', { class: 'live' }) : ''), coverName(i));
+    }, isRunning(i.id) ? el('i', { class: 'live' }) : ''), iconName(i));
     if (S.view === 'instance' && i.id === S.current) t.setAttribute('aria-current', 'page');
     return t;
   }));
@@ -236,13 +276,7 @@ function renderInstancePage() {
 function renderCoverPick() {
   const i = byId(S.current);
   if (!i) return;
-  const cur = coverName(i);
-  $('#cover-pick').replaceChildren(...COVERS.map((n) => coverOpt(n, n === cur, (x) => {
-    localStorage.setItem(`fl.cover.${i.id}`, x);
-    applyWall();
-    closeMenu();
-    renderInstances();
-  })));
+  $('#cover-pick').replaceChildren(...coverStrip(i, closeMenu));
 }
 $('#ip-cover-btn').addEventListener('click', renderCoverPick);
 $('#ip-tabs').addEventListener('click', (e) => {
@@ -380,7 +414,7 @@ function renderHome() {
   const acc = S.accounts.accounts.find((a) => a.id === S.accounts.selected);
   $('#home-greet').textContent = `${greet(new Date().getHours())}${acc ? `, ${acc.name}` : ''}`;
   const rc = recent().slice(0, 5).map((i) => el('button', { class: 'rc', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.recent.${i.id}`, onclick: () => openInstance(i.id) },
-    bg(el('i'), coverName(i)), el('span', { class: 't' }, el('b', {}, i.name), el('span', {}, instMeta(i))),
+    bg(el('i'), iconName(i)), el('span', { class: 't' }, el('b', {}, i.name), el('span', {}, instMeta(i))),
     el('span', { class: `pl${isRunning(i.id) ? ' on' : ''}`, role: 'button', 'aria-label': `Играть: ${i.name}`, onclick: (e) => { e.stopPropagation(); togglePlay(i.id); } }, svgIco(isRunning(i.id) ? STOP_D : PLAY_D))));
   rc.push(el('button', { class: 'rc add', 'data-view': 'create', 'data-id': 'home.create' }, el('i', {}, '+'), el('span', { class: 't' }, el('b', {}, 'Новая сборка'))));
   $('#home-recent').replaceChildren(...rc);
@@ -391,7 +425,7 @@ function renderHome() {
   bar.hidden = !c;
   if (!c) return;
   bar.dataset.inst = c.id;
-  bg($('#hb-cover'), coverName(c));
+  bg($('#hb-cover'), iconName(c));
   $('#hb-name').textContent = c.name;
   $('#hb-meta').textContent = instMeta(c);
   $('#hb-played').textContent = playedText(c);
@@ -512,6 +546,7 @@ $('#mi-dup').addEventListener('click', async () => {
     const copy = await call('instances.duplicate', { instance: src });
     const cover = localStorage.getItem(`fl.cover.${src}`);
     if (cover) localStorage.setItem(`fl.cover.${copy.id}`, cover);
+    for (const k of ['cover-own', 'icon']) { const v = localStorage.getItem(`fl.${k}.${src}`); if (v) localStorage.setItem(`fl.${k}.${copy.id}`, v); }
     await reloadInstances();
     openInstance(copy.id);
     toast('Сборка скопирована');
@@ -528,7 +563,7 @@ $('#dlg-del').addEventListener('submit', async (ev) => {
   const id = S.current;
   try {
     await run($('#del-submit'), 'instances.delete', { instance: id });
-    localStorage.removeItem(`fl.cover.${id}`);
+    for (const k of ['cover', 'cover-own', 'icon']) localStorage.removeItem(`fl.${k}.${id}`);
     closeDlg();
     $('#del-submit').dataset.state = 'idle';
     S.instances = await call('instances.list');
@@ -654,7 +689,7 @@ function applyWall() {
   const i = byId(S.current);
   const mode = S.look.wall;
   const v = S.look.wall_stamp;
-  const url = mode === 'custom' && v ? `${WALL_URL}?v=${v}` : mode === 'cover' && i ? `covers/${coverName(i)}.jpg` : '';
+  const url = mode === 'custom' && v ? `${WALL_URL}?v=${v}` : mode === 'cover' && i ? coverSrc(coverName(i)) : '';
   const root = document.documentElement;
   root.dataset.wall = url ? 'on' : 'off';
   if (url) root.style.setProperty('--wall', `url("${url}")`);

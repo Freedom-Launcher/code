@@ -51,7 +51,7 @@
     recent().forEach((i) => {
       const on = isRunning(i.id);
       add('inst', `inst.${i.id}`, i.name, null, (o) => (o.alt || on ? openInstance(i.id) : play(i.id, true)),
-        { s: instMeta(i), k: `${i.loader || 'vanilla'} ${i.version} сборка`, cover: coverName(i), live: on, hint: on ? 'Открыть' : 'Играть', alt: !on && 'Открыть' });
+        { s: instMeta(i), k: `${i.loader || 'vanilla'} ${i.version} сборка`, cover: iconName(i), live: on, hint: on ? 'Открыть' : 'Играть', alt: !on && 'Открыть' });
     });
     add('go', 'go.home', 'Библиотека', 'home', () => show('home'), { k: 'библиотека главная домой сборки library home' });
     add('go', 'go.create', 'Новая сборка', 'plus', () => show('create'), { k: 'создать new instance', keys: [MOD, 'N'] });

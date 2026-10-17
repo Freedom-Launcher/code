@@ -63,7 +63,7 @@
       case 'instance': {
         const i = byId(e.inst);
         if (!i) return [lib];
-        const ico = bg(el('i', { class: 'cr-ico', 'aria-hidden': 'true' }), coverName(i));
+        const ico = bg(el('i', { class: 'cr-ico', 'aria-hidden': 'true' }), iconName(i));
         const out = [lib, { t: i.name, ico, go: () => go({ view: 'instance', inst: i.id, sub: 'content' }) }];
         if (e.sub && e.sub !== 'content') out.push({ t: label('#ip-tabs', 'tab', e.sub) });
         return out;

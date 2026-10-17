@@ -258,14 +258,16 @@
   function paintCovers() {
     const i = st.inst;
     if (!i) return;
-    const cur = coverName(i);
-    $('#isx-covers').replaceChildren(...COVERS.map((n) => coverOpt(n, n === cur, (x) => {
-      localStorage.setItem(`fl.cover.${i.id}`, x);
-      applyWall();
-      renderInstances();
-      paintCovers();
-    })));
+    $('#isx-covers').replaceChildren(...coverStrip(i, paintCovers));
+    const own = !!localStorage.getItem(`fl.icon.${i.id}`);
+    bg($('#isx-icon'), iconName(i));
+    $('#isx-icon-clear').hidden = !own;
   }
+
+  const iconPick = () => st.inst && pickArt(st.inst, 'icon', paintCovers);
+  $('#isx-icon').addEventListener('click', iconPick);
+  $('#isx-icon-pick').addEventListener('click', iconPick);
+  $('#isx-icon-clear').addEventListener('click', () => st.inst && clearArt(st.inst, 'icon', paintCovers));
 
   // ---------- Open / save ----------
   async function open(id, sec) {

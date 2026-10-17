@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="inst-settings.css">
   <link rel="stylesheet" href="game-settings.css">
   <link rel="stylesheet" href="colors.css">
+  <link rel="stylesheet" href="crop.css">
   <link rel="stylesheet" href="nav.css">
   <link rel="stylesheet" href="editor.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
@@ -46,6 +47,7 @@
   <script src="folders.js" defer></script>
   <script src="game-settings.js" defer></script>
   <script src="colors.js" defer></script>
+  <script src="crop.js" defer></script>
   <script src="updates.js" defer></script>
   <script src="library.js" defer></script>
   <script src="nav.js" defer></script>
@@ -487,6 +489,7 @@
         <section class="isx-sec" data-sec="general">
           <div class="isx-block"><label class="label" for="isx-name">Название</label><input class="field" id="isx-name" maxlength="64" required></div>
           <div class="isx-block"><label class="label" for="isx-group">Группа</label><input class="field" id="isx-group" maxlength="32" placeholder="Без группы" autocomplete="off"></div>
+          <div class="isx-block"><div class="label">Иконка</div><div class="isx-icon-row"><button type="button" class="isx-icon" id="isx-icon" aria-label="Сменить иконку" data-tip="Сменить иконку" data-id="instance.icon"></button><div class="isx-icon-acts"><button type="button" class="btn btn-sm" id="isx-icon-pick">Выбрать фото</button><button type="button" class="btn btn-ghost btn-sm" id="isx-icon-clear">Как обложка</button></div></div></div>
           <div class="isx-block"><div class="label">Обложка</div><div class="cover-strip" id="isx-covers"></div></div>
           <div class="isx-block"><div class="label">Действия</div><div class="isx-acts">
             <button type="button" class="btn btn-sm" data-isx-act="mi-folder"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg>Папка</button>

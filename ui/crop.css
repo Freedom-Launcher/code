@@ -1,0 +1,58 @@
+/* Crop dialog for own instance pictures */
+.crop-ov { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(4, 5, 8, .5);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity var(--d-3) var(--ease-out); }
+.crop-ov[data-open] { opacity: 1; pointer-events: auto; }
+.crop { width: min(740px, calc(100vw - 48px)); padding: var(--s-5); border-radius: var(--r-window); background: var(--surface-1);
+  box-shadow: var(--shadow-pop), inset 0 0 0 1px var(--line); transform: translateY(10px) scale(.97); transition: transform var(--d-4) var(--ease-spring); }
+.crop-ov[data-open] .crop { transform: none; }
+.crop h2 { margin: 0 0 var(--s-4); font: var(--w-semibold) var(--text-xl)/1.2 var(--font-display); letter-spacing: var(--tracking-title); }
+.crop-body { display: grid; grid-template-columns: minmax(0, 1fr) 168px; gap: var(--s-4); }
+.crop-stage { position: relative; height: 380px; border-radius: 12px; overflow: hidden;
+  background: repeating-conic-gradient(var(--surface-2) 0 25%, var(--surface-3) 0 50%) 0 0 / 18px 18px; box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow var(--d-2); }
+.crop-stage:focus-within { box-shadow: inset 0 0 0 1px var(--line), 0 0 0 3px var(--accent-soft); }
+.crop-cv { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; outline: none; cursor: grab; }
+.crop-side { display: flex; flex-direction: column; justify-content: space-between; gap: 12px; padding-top: 2px; }
+.crop-pv { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.crop-pv canvas { display: block; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line), 0 8px 20px -10px rgba(0, 0, 0, .6); }
+.crop-pv .pv-ico-l { width: 96px; height: 96px; border-radius: calc(22px * var(--rk-icon, 1)); flex-basis: 100%; max-width: 96px; }
+.crop-pv .pv-ico-m { width: 48px; height: 48px; border-radius: calc(11px * var(--rk-icon, 1)); }
+.crop-pv .pv-ico-s { width: 28px; height: 28px; border-radius: calc(7px * var(--rk-icon, 1)); }
+.crop-pv .pv-cov-l { width: 168px; height: 94px; border-radius: 10px; }
+.crop-pv .pv-cov-s { width: 92px; height: 52px; border-radius: calc(8px * var(--rk-icon, 1)); }
+.crop-meta { font-size: 11px; color: var(--text-3); }
+.crop-zoom { display: flex; align-items: center; gap: 10px; margin-top: var(--s-3); padding-right: calc(168px + var(--s-4)); color: var(--text-3); }
+.crop-zoom svg { width: 14px; height: 14px; flex: none; }
+.crop-zoom .crop-sl { flex: 1; min-width: 0; }
+.crop .actions { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-5); }
+.crop .actions .spacer { flex: 1; }
+
+/* Own photo tiles in cover strips */
+.cover-opt.cover-add { display: grid; place-items: center; opacity: 1; background: transparent; color: var(--text-3);
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  transition: color var(--d-2), box-shadow var(--d-2), background-color var(--d-2), transform var(--d-2) var(--ease-spring); }
+.cover-opt.cover-add svg { width: 18px; height: 18px; transition: transform var(--d-3) var(--ease-spring); }
+.cover-opt.cover-add:hover { color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.cover-opt.cover-add:hover svg { transform: rotate(90deg) scale(1.1); }
+.cover-opt.cover-add:active { transform: scale(.95); }
+.cover-opt.is-own { position: relative; background-size: cover; background-position: center; }
+.cover-x { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%;
+  background: rgba(0, 0, 0, .62); color: #fff; opacity: 0; transform: scale(.7);
+  transition: opacity var(--d-2), transform var(--d-3) var(--ease-spring), background-color var(--d-2); }
+.cover-x svg { width: 10px; height: 10px; }
+.cover-opt.is-own:hover .cover-x, .cover-opt.is-own:focus-visible .cover-x { opacity: 1; transform: none; }
+.cover-x:hover { background: var(--danger); }
+
+/* Instance icon block (instance settings → Общее) */
+.isx-icon-row { display: flex; align-items: center; gap: 14px; }
+.isx-icon { position: relative; width: 64px; height: 64px; flex: none; padding: 0; border: 0; overflow: hidden; cursor: pointer;
+  border-radius: calc(15px * var(--rk-icon, 1)); background: var(--surface-3) center / cover no-repeat;
+  box-shadow: inset 0 0 0 1px var(--line), 0 8px 20px -12px rgba(0, 0, 0, .7); transition: transform var(--d-3) var(--ease-spring); }
+.isx-icon::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .42); opacity: 0; transition: opacity var(--d-2); }
+.isx-icon::after { content: ""; position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; background: #fff;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M2.5 5.5h2.2l1.3-1.8h4l1.3 1.8h2.2v7h-11z'/%3E%3Ccircle cx='8' cy='9' r='2.2'/%3E%3C/svg%3E") center / contain no-repeat;
+  opacity: 0; transform: scale(.7); transition: opacity var(--d-2), transform var(--d-3) var(--ease-spring); }
+.isx-icon:hover { transform: translateY(-1px); }
+.isx-icon:hover::before { opacity: 1; }
+.isx-icon:hover::after { opacity: 1; transform: none; }
+.isx-icon:active { transform: scale(.96); }
+.isx-icon-acts { display: flex; gap: 6px; }#isx-covers .cover-opt.cover-add { width: 52px; }
