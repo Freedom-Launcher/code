@@ -1450,6 +1450,8 @@ fn register_mods(r: &mut ActionRegistry) {
             #[serde(default)]
             offset: u32,
             #[serde(default)]
+            limit: Option<u32>,
+            #[serde(default)]
             categories: Vec<String>,
             #[serde(default)]
             sort: String,
@@ -1507,8 +1509,8 @@ fn register_mods(r: &mut ActionRegistry) {
             open_source: a.open_source,
             exclude: &a.exclude,
             sort: &a.sort,
-            offset: a.offset,
-            limit: 20,
+            offset: a.offset.min(10_000),
+            limit: a.limit.unwrap_or(20).clamp(5, 50),
         };
         let page = modrinth::search(&c, &q).await?;
         Ok(json!({ "supported": true, "hits": page.hits, "total_hits": page.total_hits }))

@@ -78,6 +78,10 @@ pub struct Look {
     pub palette_blur: bool,
     /// Screens fill the whole window instead of a centered column.
     pub full_width: bool,
+    /// Catalog results: `pages` (numbered, as in Modrinth) | `scroll` (endless).
+    pub browse: String,
+    /// Results per catalog page: 10, 20 or 50.
+    pub per_page: u32,
 }
 
 impl Default for Look {
@@ -92,6 +96,8 @@ impl Default for Look {
             palette_pos: "top".into(),
             palette_blur: true,
             full_width: false,
+            browse: "pages".into(),
+            per_page: 20,
         }
     }
 }
@@ -124,6 +130,10 @@ impl Look {
         one_of("wall", &l.wall, &["cover", "custom", "off"])?;
         one_of("cover", &l.cover, &["big", "slim", "none"])?;
         one_of("palette_pos", &l.palette_pos, &["top", "bottom"])?;
+        one_of("browse", &l.browse, &["pages", "scroll"])?;
+        if ![10, 20, 50].contains(&l.per_page) {
+            return Err(format!("per_page: «{}» — ожидается 10, 20 или 50", l.per_page));
+        }
         l.wall_blur = l.wall_blur.min(40);
         l.glass_blur = l.glass_blur.min(60);
         l.glass_density = l.glass_density.min(100);

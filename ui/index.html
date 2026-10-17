@@ -279,6 +279,10 @@
               <div class="disc-chips" id="disc-chips" data-id="discover.active-filters" hidden></div>
               <div class="mod-grid" id="disc-results" data-id="discover.results"></div>
               <button class="btn disc-more" id="disc-more" data-id="discover.more" hidden><span class="lbl">Ещё</span></button>
+              <div class="disc-pager" id="disc-pager" data-id="discover.pager" hidden>
+                <nav class="pg" id="disc-pages" aria-label="Страницы"></nav>
+                <select class="field pg-per" id="disc-per" aria-label="На странице" data-id="discover.per-page"><option value="10">10 на странице</option><option value="20">20 на странице</option><option value="50">50 на странице</option></select>
+              </div>
             </div>
           </div>
           <div data-slot="discover.end"></div>
@@ -332,6 +336,8 @@
                 <label class="switch"><input type="checkbox" id="fx-wide" data-id="settings.layout.full-width"><i></i></label></div>
               <div class="r"><div class="grow"><div class="t">Анимации</div></div>
                 <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
+              <div class="r"><div class="grow"><div class="t">Каталог</div></div>
+                <div class="seg" id="browse-seg" data-id="settings.catalog.mode"><button data-browse="pages" aria-selected="true">Страницы</button><button data-browse="scroll">Лента</button></div></div>
               <div class="r"><div class="grow"><div class="t">Командная строка</div><div class="s" data-pal-kbd>Ctrl K</div></div>
                 <div class="seg" id="pal-pos-seg" data-id="settings.palette.position"><button data-pal-pos="top" aria-selected="true">Сверху</button><button data-pal-pos="bottom">Снизу</button></div></div>
               <div class="r"><div class="grow"><div class="t">Размывать фон под строкой</div></div>

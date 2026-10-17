@@ -162,7 +162,9 @@
   let env = new Set(), oss = false, excl = new Set();
   const verCache = new Map();
   const toggle = (set, v) => (set.has(v) ? set.delete(v) : set.add(v));
-  let offset = 0;
+  let offset = 0, page = 1, pages = 1;
+  const per = () => S.look.per_page || 20;
+  const paged = () => (S.look.browse || 'pages') === 'pages';
   let seq = 0;
   let have = new Set();
   let timer = 0;
@@ -351,7 +353,7 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
   function searchArgs() {
     const free = !target;
     const e = lk() && env.size ? (env.size === 2 ? 'both' : [...env][0]) : null;
-    return { instance: kind === 'modpack' ? null : target, kind, query, offset, sort, categories: [...cats], exclude: [...excl], open_source: oss,
+    return { instance: kind === 'modpack' ? null : target, kind, query, offset, limit: per(), sort, categories: [...cats], exclude: [...excl], open_source: oss,
       ...(free && lk() && loaders.size ? { loaders: order.filter((l) => loaders.has(l)) } : {}),
       ...(free && vers.size ? { versions: [...vers] } : {}),
       ...(e ? { environment: e } : {}) };
@@ -431,7 +433,7 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
     const more = $('#disc-more');
     $('.disc-side > .disc-hide').hidden = kind === 'modpack' || !target;
     $('#disc-reset').hidden = !items().length;
-    if (reset) { offset = 0; box.dataset.state = 'loading'; }
+    if (reset) { page = typeof reset === 'number' ? reset : 1; offset = paged() ? (page - 1) * per() : 0; box.dataset.state = 'loading'; }
     const my = ++seq;
     let res = null;
     try {
@@ -443,10 +445,47 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
     if (!res) return;
     offset += res.hits.length;
     const cards = res.hits.filter((h) => !hide || !have.has(h.project_id)).map(card);
+    cards.forEach((c, i) => c.style.setProperty('--i', Math.min(i, 12)));
     if (reset) box.replaceChildren(...(cards.length ? cards : [empty('Ничего не найдено')]));
     else box.append(...cards);
-    more.hidden = offset >= res.total_hits;
+    // Modrinth serves at most 10 000 results per query.
+    const total = Math.min(res.total_hits, 10000);
+    pages = Math.max(1, Math.ceil(total / per()));
+    more.hidden = paged() || offset >= total;
+    pager(total);
+    if (reset && typeof reset === 'number') $('#view-discover').closest('.main')?.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  // ---------- Pages (Modrinth style) or endless scroll ----------
+  const ARR = (d) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+  function nums() {
+    const out = [], add = (n) => out.push(n);
+    const lo = Math.max(2, page - 1), hi = Math.min(pages - 1, page + 1);
+    add(1);
+    if (lo > 2) add(lo === 3 ? 2 : '…');
+    for (let n = lo; n <= hi; n++) add(n);
+    if (hi < pages - 1) add(hi === pages - 2 ? pages - 1 : '…');
+    if (pages > 1) add(pages);
+    return out;
+  }
+  function pager(total) {
+    const box = $('#disc-pager');
+    box.hidden = !paged() || !total;
+    if (box.hidden) return;
+    const go = (n) => () => { if (n !== page && n >= 1 && n <= pages) search(n); };
+    const btn = (cls, html, n, lbl) => el('button', { type: 'button', class: `pg-b ${cls}`, 'aria-label': lbl, disabled: n < 1 || n > pages || n === page, html, onclick: go(n) });
+    const list = nums().map((n) => (n === '…' ? el('span', { class: 'pg-gap' }, '…')
+      : el('button', { type: 'button', class: 'pg-b pg-n', 'aria-current': n === page ? 'page' : null, onclick: go(n) }, String(n))));
+    $('#disc-pages').replaceChildren(btn('pg-arrow', ARR('M10 3.5 5.5 8l4.5 4.5'), page - 1, 'Предыдущая'), ...list, btn('pg-arrow', ARR('M6 3.5 10.5 8 6 12.5'), page + 1, 'Следующая'));
+    $('#disc-per').value = String(per());
+  }
+  $('#disc-per').addEventListener('change', (e) => { setLook({ per_page: +e.target.value }); search(true); });
+  // Endless mode: load the next page when the end comes into view.
+  if (window.IntersectionObserver) new IntersectionObserver((es) => {
+    const m = $('#disc-more');
+    if (es[0].isIntersecting && !paged() && !m.hidden && S.view === 'discover' && !$('#disc-results').dataset.state) search(false);
+  }, { rootMargin: '600px' }).observe($('#disc-more'));
+  document.addEventListener('look:browse', () => { if (S.view === 'discover') search(true); });
 
   function card(h) {
     const k = kind;
@@ -562,6 +601,11 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
   $('#disc-reset').addEventListener('click', resetAll);
   initFilters();
   $('#disc-more').addEventListener('click', () => search(false));
+  document.addEventListener('keydown', (e) => {
+    if (S.view !== 'discover' || !paged() || e.target.matches('input, textarea, select') || e.altKey || e.ctrlKey) return;
+    if (e.key === 'PageDown' && page < pages) { e.preventDefault(); search(page + 1); }
+    if (e.key === 'PageUp' && page > 1) { e.preventDefault(); search(page - 1); }
+  });
 
   // The project page reuses the catalog's install flow and context.
   const context = () => ({ target: target && byId(target), kind, have });

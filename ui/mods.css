@@ -224,3 +224,24 @@ html[data-l-filters="right"] .disc-body[data-filters="off"] .disc-side { transfo
 @keyframes w-pulse { 50% { opacity: .45; } }
 [data-motion="off"] .w-list .w-row, [data-motion="off"] .w-skel .sk { animation: none; }
 @media (hover: none) { .w-row .btn-icon { opacity: 1; } }
+
+/* Pages, Modrinth style. */
+.disc-pager { display: flex; align-items: center; justify-content: center; gap: var(--s-3); margin: 22px 0 6px; position: relative; }
+.disc-pager[hidden] { display: none; }
+.pg { display: flex; align-items: center; gap: 4px; }
+.pg-b { min-width: 34px; height: 34px; padding: 0 10px; border: 0; border-radius: calc(9px * var(--rk-btn, 1)); background: var(--surface-2);
+  color: var(--text-2); font: var(--w-medium) var(--text-md)/1 var(--font-ui); font-variant-numeric: tabular-nums; cursor: pointer;
+  display: grid; place-items: center; transition: background 120ms ease, color 120ms ease, transform 160ms var(--ease-spring); }
+.pg-b svg { width: 16px; height: 16px; }
+.pg-b:hover:not(:disabled):not([aria-current]) { background: var(--surface-3); color: var(--text); }
+.pg-b:active:not(:disabled) { transform: scale(.92); }
+.pg-b[aria-current] { background: var(--accent); color: var(--on-accent); cursor: default; box-shadow: var(--shadow-accent); }
+.pg-b:disabled:not([aria-current]) { opacity: .35; cursor: default; }
+.pg-arrow { padding: 0; }
+.pg-gap { min-width: 22px; text-align: center; color: var(--text-3); }
+.disc-pager .pg-per, .disc-pager .dd-btn { position: absolute; right: 0; width: auto; }
+@media (max-width: 900px) { .disc-pager { flex-direction: column; } .disc-pager .pg-per, .disc-pager .dd-btn { position: static; } }
+.mod-grid:not([data-state]) > .mod-card { animation: card-in 260ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 18ms); }
+@keyframes card-in { from { opacity: 0; transform: translateY(6px); } }
+[data-motion="off"] .mod-grid > .mod-card { animation: none; }
+@media (prefers-reduced-motion: reduce) { .mod-grid > .mod-card { animation: none; } }
