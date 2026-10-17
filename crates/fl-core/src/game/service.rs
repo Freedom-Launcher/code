@@ -250,7 +250,13 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
     {
         Some(p) if std::path::Path::new(p).is_file() => std::path::PathBuf::from(p),
         Some(p) => return Err(CoreError::msg(format!("Java not found: {p}"))),
-        None => java::ensure(core, v.java_version.as_ref(), Arc::new(Progress::default())).await?,
+        None => {
+            let major = java::component_for(v.java_version.as_ref()).1;
+            match global.javas.get(&major.to_string()).map(std::path::PathBuf::from) {
+                Some(p) if p.is_file() => p,
+                _ => java::ensure(core, v.java_version.as_ref(), Arc::new(Progress::default())).await?,
+            }
+        }
     };
     let opts = LaunchOptions {
         java: java.clone(),

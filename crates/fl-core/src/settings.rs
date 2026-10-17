@@ -23,6 +23,41 @@ pub struct Settings {
     /// Changed only by `instances.move_root`, which moves the folders too.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub instances_dir: Option<String>,
+    /// Java location per major version ("8" → path), as in Modrinth's
+    /// "Java N location". Used when an instance sets no Java of its own.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub javas: BTreeMap<String, String>,
+}
+
+/// Checks a `javas` map from the UI: majors 8–40, paths up to 1024 chars, no control chars.
+pub fn check_javas(m: &BTreeMap<String, String>) -> Result<(), String> {
+    if m.len() > 16 {
+        return Err("javas: слишком много значений".into());
+    }
+    for (k, v) in m {
+        let ok_major = k.parse::<u32>().is_ok_and(|n| (8..=40).contains(&n));
+        if !ok_major || v.trim().is_empty() || v.len() > 1024 || v.chars().any(char::is_control) {
+            return Err(format!("javas: bad entry {k}"));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod javas_tests {
+    use super::*;
+    #[test]
+    fn javas_checked() {
+        let mut m = BTreeMap::new();
+        m.insert("21".to_string(), "C:/jdk/bin/java.exe".to_string());
+        assert!(check_javas(&m).is_ok());
+        m.insert("x".to_string(), "p".to_string());
+        assert!(check_javas(&m).is_err());
+        let mut m = BTreeMap::new();
+        m.insert("17".to_string(), "a\nb".replace("\\n", "\n"));
+        m.insert("17".to_string(), "bad\u{7}".to_string());
+        assert!(check_javas(&m).is_err());
+    }
 }
 
 pub const LOADER_ORDER: [&str; 4] = ["neoforge", "fabric", "quilt", "forge"];
@@ -52,6 +87,7 @@ impl Default for Settings {
             ui: UiCustom::default(),
             game: Default::default(),
             instances_dir: None,
+            javas: BTreeMap::new(),
         }
     }
 }

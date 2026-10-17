@@ -91,6 +91,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             loader_priority: Option<Vec<String>>,
             ui: Option<Value>,
             game: Option<instances::InstanceSettings>,
+            javas: Option<std::collections::BTreeMap<String, String>>,
         }
         let A {
             look,
@@ -99,7 +100,11 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             loader_priority,
             ui,
             game,
+            javas,
         } = args(a)?;
+        if let Some(j) = &javas {
+            crate::settings::check_javas(j).map_err(CoreError::BadArgs)?;
+        }
         if let Some(g) = &game {
             g.validate()?;
         }
@@ -133,6 +138,9 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         }
         if let Some(g) = game {
             s.game = g;
+        }
+        if let Some(j) = javas {
+            s.javas = j.into_iter().map(|(k, v)| (k, v.trim().to_owned())).collect();
         }
         store::save(&c.path(SETTINGS), &s, false)?;
         Ok(serde_json::to_value(s)?)
