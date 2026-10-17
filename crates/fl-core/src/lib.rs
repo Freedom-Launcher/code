@@ -20,6 +20,7 @@ pub mod addons;
 mod builtin;
 pub mod error;
 pub mod export;
+pub mod foreign;
 pub mod game;
 pub mod instances;
 pub mod keychain;

@@ -468,6 +468,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         },
     );
     register_instance_manage(r);
+    register_foreign(r);
     register_game(r);
     register_mods(r);
     register_import(r);
@@ -1058,6 +1059,96 @@ fn copy_dir(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()>
 }
 
 /// A readable folder name for `name` that no other instance or existing folder uses.
+/// Import from other launchers (Э6). Internal: reads folders outside the launcher.
+fn register_foreign(r: &mut ActionRegistry) {
+    r.register("foreign.scan", P::Internal, false, |_c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            #[serde(default)]
+            path: Option<String>,
+        }
+        let A { path } = args(if a.is_null() { json!({}) } else { a })?;
+        let found = tokio::task::spawn_blocking(move || match path {
+            Some(p) => crate::foreign::scan_folder(std::path::Path::new(&p)),
+            None => crate::foreign::scan(),
+        })
+        .await
+        .map_err(|e| CoreError::msg(e.to_string()))?;
+        Ok(serde_json::to_value(found)?)
+    });
+    // Progress is polled with `game.progress { instance: <token> }`.
+    r.register("foreign.import", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            path: String,
+            token: String,
+            #[serde(default)]
+            name: Option<String>,
+            #[serde(default)]
+            version: Option<String>,
+        }
+        let a: A = args(a)?;
+        uuid::Uuid::parse_str(&a.token).map_err(|_| CoreError::BadArgs("bad token".into()))?;
+        let p = service::progress_for(&c, &a.token);
+        p.set_stage("prepare");
+        let src = std::path::PathBuf::from(&a.path);
+        let f = tokio::task::spawn_blocking(move || crate::foreign::inspect(&src))
+            .await
+            .map_err(|e| CoreError::msg(e.to_string()))?
+            .ok_or_else(|| CoreError::BadArgs("В этой папке нет сборки".into()))?;
+        let name = a.name.map(|n| n.trim().to_owned()).filter(|n| !n.is_empty()).unwrap_or_else(|| f.name.clone());
+        let mc = if f.mc.is_empty() { a.version.unwrap_or_default() } else { f.mc.clone() };
+        if mc.trim().is_empty() {
+            return Err(CoreError::BadArgs("Выберите версию Minecraft".into()));
+        }
+        instances::validate(&name, &mc)?;
+        let loader = f.loader.clone();
+        let loader_version = match loader.as_str() {
+            "vanilla" => String::new(),
+            _ if !f.loader_version.is_empty() => f.loader_version.clone(),
+            _ => crate::game::loader::latest(&c, &loader, &mc).await?,
+        };
+        let dir = {
+            let _g = c.state_lock.lock().await;
+            let s: InstanceStore = store::load(&c.path(INSTANCES))?;
+            let dir = free_dir(&c, &s, &name, None);
+            std::fs::create_dir_all(c.instances_root().join(&dir))?;
+            dir
+        };
+        let game_dir = c.instances_root().join(&dir);
+        p.set_stage("copy");
+        let (from, to, pp) = (std::path::PathBuf::from(&f.game_dir), game_dir.clone(), p.clone());
+        let res = tokio::task::spawn_blocking(move || crate::foreign::copy_content(&from, &to, &pp))
+            .await
+            .map_err(|e| CoreError::msg(e.to_string()))?;
+        if let Err(e) = res {
+            p.set_stage("error");
+            let _ = std::fs::remove_dir_all(&game_dir);
+            return Err(CoreError::msg(format!("Не удалось скопировать файлы: {e}")));
+        }
+        let _g = c.state_lock.lock().await;
+        let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+        let inst = Instance {
+            id: uuid::Uuid::new_v4().to_string(),
+            dir,
+            name,
+            version: mc,
+            loader,
+            loader_version,
+            created_at: unix_now(),
+            last_played: 0,
+            playtime_secs: 0,
+            settings: Default::default(),
+            pack: None,
+            group: String::new(),
+        };
+        s.instances.push(inst.clone());
+        store::save(&c.path(INSTANCES), &s, false)?;
+        p.set_stage("done");
+        Ok(serde_json::to_value(inst)?)
+    });
+}
+
 fn free_dir(c: &Core, s: &InstanceStore, name: &str, own: Option<&str>) -> String {
     let root = c.instances_root();
     let mut taken: Vec<String> = s
