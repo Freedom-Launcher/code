@@ -62,7 +62,11 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         Ok(serde_json::to_value(s)?)
     });
     r.register("safe.restore_theme", P::Internal, true, |c, _| async move {
-        update_settings(&c, |s| s.theme = "default".into()).await
+        update_settings(&c, |s| {
+            s.theme = "default".into();
+            s.colors.clear();
+        })
+        .await
     });
     r.register(
         "safe.disable_addons",
@@ -92,6 +96,9 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             ui: Option<Value>,
             game: Option<instances::InstanceSettings>,
             javas: Option<std::collections::BTreeMap<String, String>>,
+            colors: Option<
+                std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
+            >,
         }
         let A {
             look,
@@ -101,7 +108,11 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             ui,
             game,
             javas,
+            colors,
         } = args(a)?;
+        if let Some(m) = &colors {
+            crate::settings::check_colors(m).map_err(CoreError::BadArgs)?;
+        }
         if let Some(j) = &javas {
             crate::settings::check_javas(j).map_err(CoreError::BadArgs)?;
         }
@@ -141,6 +152,13 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         }
         if let Some(j) = javas {
             s.javas = j.into_iter().map(|(k, v)| (k, v.trim().to_owned())).collect();
+        }
+        if let Some(m) = colors {
+            s.colors = m
+                .into_iter()
+                .filter(|(_, t)| !t.is_empty())
+                .map(|(b, t)| (b, t.into_iter().map(|(k, v)| (k, v.to_ascii_lowercase())).collect()))
+                .collect();
         }
         store::save(&c.path(SETTINGS), &s, false)?;
         Ok(serde_json::to_value(s)?)

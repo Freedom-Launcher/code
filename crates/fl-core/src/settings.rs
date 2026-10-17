@@ -27,6 +27,66 @@ pub struct Settings {
     /// "Java N location". Used when an instance sets no Java of its own.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub javas: BTreeMap<String, String>,
+    /// Base colors picked by the user, per theme base ("dark" / "light"):
+    /// token name (without `--`) → `#rrggbb` or `#rrggbbaa`. Laid over the active theme.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub colors: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+/// Tokens the color editor may set. Shades (hover, press, soft, on-accent) are derived by the UI.
+pub const COLOR_TOKENS: [&str; 13] = [
+    "accent", "bg", "surface-1", "surface-2", "surface-3", "text", "text-2", "text-3",
+    "line", "line-strong", "danger", "warn", "glass",
+];
+
+fn is_hex_color(v: &str) -> bool {
+    let h = v.strip_prefix('#').unwrap_or("");
+    v.starts_with('#') && (h.len() == 6 || h.len() == 8) && h.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// Checks a `colors` map from the UI: bases dark/light, known tokens, hex values only.
+pub fn check_colors(m: &BTreeMap<String, BTreeMap<String, String>>) -> Result<(), String> {
+    for (base, t) in m {
+        if base != "dark" && base != "light" {
+            return Err(format!("colors: «{base}» — ожидается dark или light"));
+        }
+        for (k, v) in t {
+            if !COLOR_TOKENS.contains(&k.as_str()) {
+                return Err(format!("colors.{base}: неизвестный цвет «{k}»"));
+            }
+            if !is_hex_color(v) {
+                return Err(format!("colors.{base}.{k}: «{v}» — ожидается #rrggbb или #rrggbbaa"));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod colors_tests {
+    use super::*;
+    #[test]
+    fn colors_checked() {
+        let mut t = BTreeMap::new();
+        t.insert("accent".to_string(), "#8ab4ff".to_string());
+        t.insert("line".to_string(), "#ffffff14".to_string());
+        let mut m = BTreeMap::new();
+        m.insert("dark".to_string(), t.clone());
+        assert!(check_colors(&m).is_ok());
+        t.insert("accent".to_string(), "red".to_string());
+        m.insert("dark".to_string(), t.clone());
+        assert!(check_colors(&m).is_err());
+        t.remove("accent");
+        t.insert("--x".to_string(), "#000000".to_string());
+        m.insert("dark".to_string(), t);
+        assert!(check_colors(&m).is_err());
+        let mut m = BTreeMap::new();
+        m.insert("sepia".to_string(), BTreeMap::new());
+        assert!(check_colors(&m).is_err());
+        for bad in ["#12345", "#1234567", "#gggggg", "#ffffff;", "#ffffffff00"] {
+            assert!(!is_hex_color(bad), "{bad}");
+        }
+    }
 }
 
 /// Checks a `javas` map from the UI: majors 8–40, paths up to 1024 chars, no control chars.
@@ -88,6 +148,7 @@ impl Default for Settings {
             game: Default::default(),
             instances_dir: None,
             javas: BTreeMap::new(),
+            colors: BTreeMap::new(),
         }
     }
 }
