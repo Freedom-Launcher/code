@@ -275,7 +275,7 @@
   let pk = null;
 
   function draw(fromInput) {
-    const { hsv, a, t } = pk, rgb = fromHsv(hsv), hex = toHex({ ...rgb, a: ALPHA.has(t) ? a : 1 });
+    const { hsv, a, t } = pk, rgb = fromHsv(hsv), hex = toHex({ ...rgb, a: hasA() ? a : 1 });
     pop.style.setProperty('--c', toHex(rgb));
     sv.style.setProperty('--h', hsv.h.toFixed(1));
     sv.style.setProperty('--x', hsv.s.toFixed(4)); sv.style.setProperty('--y', (1 - hsv.v).toFixed(4));
@@ -286,14 +286,15 @@
     pre.querySelectorAll('.cp-p').forEach((p) => p.setAttribute('aria-pressed', String(p.dataset.c === hex)));
     return hex;
   }
-  const change = (fromInput) => set(pk.t, draw(fromInput));
+  const hasA = () => (pk?.custom ? !!pk.custom.alpha : ALPHA.has(pk?.t));
+  const change = (fromInput) => { const x = draw(fromInput); if (pk.custom) { pk.custom.cur = x; pk.custom.onChange?.(x); } else set(pk.t, x); };
   function take(c) { // keeps the hue of greys, so the thumb does not jump to red
     const h = toHsv(c);
     if (!h.s && pk) h.h = pk.hsv.h;
     pk.hsv = h;
-    if (ALPHA.has(pk.t)) pk.a = c.a;
+    if (hasA()) pk.a = c.a;
   }
-  function syncPicker() { take(parse(value(pk.t))); draw(); }
+  function syncPicker() { take(parse(pk.custom ? pk.custom.cur : value(pk.t))); draw(); }
 
   function place() {
     const r = pk.anchor.getBoundingClientRect();
@@ -304,6 +305,7 @@
   }
   function openPicker(t, anchor) {
     if (pk) closePicker(false, true);
+    pop.classList.remove('cp-top');
     const v = value(t);
     pk = { t, a: 1, hsv: { h: 0, s: 0, v: 0 }, anchor, was: own()[t] ?? null, wasV: v };
     take(parse(v));
@@ -332,7 +334,7 @@
     pop.removeAttribute('data-open');
     pop.inert = true;
     if (instant) requestAnimationFrame(() => pop.removeAttribute('data-instant'));
-    pk = null;
+    const cu = pk.custom; pk = null; cu?.onClose?.();
   }
 
   function drag(node, fn) {
@@ -375,9 +377,9 @@
   pre.addEventListener('click', (e) => {
     const p = e.target.closest('.cp-p');
     if (!p || !pk) return;
-    if (p.classList.contains('is-theme')) { set(pk.t, null); syncPicker(); } else { take(parse(p.dataset.c)); change(); }
+    if (p.classList.contains('is-theme')) { if (pk.custom) { pk.custom.cur = pk.custom.def; pk.custom.onChange?.(null); } else set(pk.t, null); syncPicker(); } else { take(parse(p.dataset.c)); change(); }
   });
-  q('.cp-was').addEventListener('click', () => { if (!pk) return; set(pk.t, pk.was); syncPicker(); });
+  q('.cp-was').addEventListener('click', () => { if (!pk) return; if (pk.custom) { pk.custom.cur = pk.custom.v0; pk.custom.onChange?.(pk.custom.was); } else set(pk.t, pk.was); syncPicker(); });
   const drop = q('.cp-drop');
   if ('EyeDropper' in window) {
     drop.addEventListener('click', async () => {
@@ -386,7 +388,7 @@
   } else drop.hidden = true;
 
   pop.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePicker(true); } });
-  document.addEventListener('pointerdown', (e) => { if (pk && !pop.contains(e.target) && !e.target.closest('.col-pick')) closePicker(false); }, true);
+  document.addEventListener('pointerdown', (e) => { if (pk && !pop.contains(e.target) && !e.target.closest('.col-pick, .ue-sw')) closePicker(false); }, true);
   addEventListener('resize', () => pk && place());
   document.addEventListener('scroll', () => pk && place(), true);
 
@@ -421,5 +423,33 @@
   }
   // The colours now live in the theme: drop our copy without a repaint flash.
   function baked() { delete colors[base()]; tv = null; persist(); refresh(); }
-  window.FColors = { bake, baked, open: (t) => { const b = panel?.querySelector(`.col-tok[data-tok="${t}"] .col-pick`); if (b) openPicker(t, b); }, refresh };
+  function cssHex(v) {
+    if (!v) return null;
+    let c = parse(v);
+    if (!c && cv) { cv.fillStyle = '#000'; cv.fillStyle = String(v).trim(); c = parse(cv.fillStyle); }
+    return c ? toHex(c) : null;
+  }
+  // The same popover for any colour (interface editor): own value, default and callbacks.
+  function pick(anchor, o) {
+    if (pk) closePicker(false, true);
+    const d = cssHex(o.def) || '#808080', v = cssHex(o.own) || cssHex(o.value) || d;
+    pk = { t: null, custom: { ...o, cur: v, v0: v, def: d, was: o.own ?? null }, a: 1, hsv: { h: 0, s: 0, v: 0 }, anchor };
+    take(parse(v));
+    q('.cp-title').textContent = o.title;
+    q('.cp-was').style.setProperty('--c', v);
+    alpha.hidden = !o.alpha;
+    const fam = [...new Set(Object.values(PRESETS[base()] || {}).flat())].filter((c) => c !== d).slice(0, 11);
+    pre.innerHTML = [d, ...fam].map((c, i) => `<button type="button" class="cp-p${i ? '' : ' is-theme'}" data-c="${c}" aria-label="${i ? c.toUpperCase() : 'Как в теме'}" data-tip="${i ? c.toUpperCase() : 'Как в теме'}"></button>`).join('');
+    pre.querySelectorAll('.cp-p').forEach((p) => p.style.setProperty('--c', p.dataset.c));
+    draw();
+    pop.classList.add('cp-top');
+    pop.inert = false;
+    pop.setAttribute('aria-label', o.title);
+    pop.setAttribute('data-instant', '');
+    place();
+    pop.removeAttribute('data-instant');
+    anchor.setAttribute('aria-expanded', 'true');
+    requestAnimationFrame(() => { pop.setAttribute('data-open', ''); sv.focus({ preventScroll: true }); });
+  }
+  window.FColors = { bake, baked, pick, close: () => closePicker(false, true), open: (t) => { const b = panel?.querySelector(`.col-tok[data-tok="${t}"] .col-pick`); if (b) openPicker(t, b); }, refresh };
 })();

@@ -147,3 +147,22 @@ html[data-ue-dragging] .ue-sel .ue-tag { opacity: 0; }
 .ue-col[aria-pressed=true] { color: var(--text); background: var(--accent-soft); }
 .ue .ue-foot-b .ue-col { height: 28px; border-radius: 7px; font-size: 12px; }
 .ue .ue-foot-b .ue-col:active { transform: scale(.97); }
+
+/* Per-row reset + colour swatches */
+.ue-vw { display: inline-flex; align-items: center; gap: 4px; justify-self: end; min-height: 20px; }
+.ue .ue-rst { width: 20px; height: 20px; min-width: 0; padding: 0; border-radius: 6px; color: var(--text-3); opacity: 0;
+  transform: scale(.6) rotate(-70deg); pointer-events: none;
+  transition: opacity var(--d-2), transform var(--d-3) var(--ease-spring), color var(--d-2), background-color var(--d-2); }
+.ue .ue-rst svg { width: 12px; height: 12px; }
+.ue .ue-rst:disabled { opacity: 0; }
+.ue-row[data-changed] .ue-rst:not(:disabled) { opacity: 1; transform: none; pointer-events: auto; }
+.ue .ue-rst:hover { color: var(--text); background: var(--hover); }
+.ue .ue-rst:active { transform: scale(.88) rotate(-40deg); }
+.ue-sw { --c: transparent; width: 34px; height: 20px; border: 0; padding: 0; border-radius: 6px; cursor: pointer;
+  background: linear-gradient(var(--c), var(--c)), repeating-conic-gradient(#8a8a8a 0 25%, #c8c8c8 0 50%) 0 0 / 8px 8px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), 0 0 0 1px var(--line-strong);
+  transition: transform var(--d-2) var(--ease-spring), box-shadow var(--d-2); }
+.ue-sw:hover { transform: scale(1.06); }
+.ue-sw:active { transform: scale(.94); }
+.ue-sw[aria-expanded=true] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.cp.cp-top { z-index: 90; }

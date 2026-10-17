@@ -16,6 +16,26 @@
   };
   const keepVisible = (id) => ['app', 'main', 'rail', 'rail.settings', 'safe'].includes(id) || /^(settings|view\.settings|palette)/.test(id);
   const blank = () => ({ radius: {}, size: {}, layout: {}, els: {}, order: {} });
+  const EL_KEYS = ['radius', 'scale', 'bg', 'opacity', 'bright', 'contrast', 'saturate', 'blur', 'border', 'border_color', 'shadow'];
+  const HEX = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i;
+  const SHADOW = [null, '0 1px 2px rgba(0, 0, 0, .18)', '0 2px 6px -1px rgba(0, 0, 0, .24), 0 1px 2px rgba(0, 0, 0, .12)',
+    '0 10px 24px -8px rgba(0, 0, 0, .34), 0 2px 4px rgba(0, 0, 0, .14)', '0 22px 48px -12px rgba(0, 0, 0, .48), 0 4px 10px rgba(0, 0, 0, .18)'];
+  const num = (x, lo, hi) => (x == null || !Number.isFinite(+x) ? null : Math.min(hi, Math.max(lo, Math.round(+x))));
+  // Per-element look. Only checked numbers and #hex reach the stylesheet.
+  function elDecl(e) {
+    const d = [], f = [];
+    if (HEX.test(e.bg || '')) d.push(`background: ${e.bg} !important`);
+    const op = num(e.opacity, 10, 100); if (op != null && op !== 100) d.push(`opacity: ${op / 100} !important`);
+    for (const [k, fn, lo, hi] of [['bright', 'brightness', 30, 200], ['contrast', 'contrast', 30, 200], ['saturate', 'saturate', 0, 300]]) {
+      const x = num(e[k], lo, hi); if (x != null && x !== 100) f.push(`${fn}(${x / 100})`);
+    }
+    if (f.length) d.push(`filter: ${f.join(' ')} !important`);
+    const bl = num(e.blur, 0, 40); if (bl) d.push(`backdrop-filter: blur(${bl}px) saturate(1.4) !important`, `-webkit-backdrop-filter: blur(${bl}px) saturate(1.4) !important`);
+    const bw = num(e.border, 0, 6), bc = HEX.test(e.border_color || '') ? e.border_color : null;
+    if (bw) d.push(`border: ${bw}px solid ${bc || 'var(--line-strong)'} !important`); else if (bc) d.push(`border-color: ${bc} !important`);
+    const sh = num(e.shadow, 0, 4); if (sh) d.push(`box-shadow: ${SHADOW[sh]} !important`);
+    return d;
+  }
   const cap = (k) => `l${k[0].toUpperCase()}${k.slice(1)}`;
   const q = (id) => `[data-id="${id}"]`;
   let base = null, ui = blank(), past = [], future = [], sel = null, hov = null, isOpen = false, saveT = 0, drag = false, safe = false;
@@ -35,7 +55,7 @@
     const u = JSON.parse(JSON.stringify({ ...blank(), ...b }));
     for (const g of ['radius', 'size']) for (const [k, v] of Object.entries(o[g])) u[g][k] = Math.round(((u[g][k] ?? 100) * v) / 100);
     Object.assign(u.layout, o.layout); Object.assign(u.order, o.order);
-    for (const [id, e] of Object.entries(o.els)) { const x = (u.els[id] ||= {}); if (e.radius != null) x.radius = e.radius; if (e.scale != null) x.scale = e.scale; x.hide = !!(x.hide || e.hide); }
+    for (const [id, e] of Object.entries(o.els)) { const x = (u.els[id] ||= {}); for (const k of EL_KEYS) if (e[k] != null) x[k] = e[k]; x.hide = !!(x.hide || e.hide); }
     return u;
   }
   function apply() {
@@ -48,6 +68,7 @@
       const d = [];
       if (e.radius != null) d.push(`border-radius: ${e.radius}px !important`);
       if (e.scale != null && e.scale !== 100) d.push(`zoom: ${e.scale / 100}`);
+      d.push(...elDecl(e));
       if (e.hide && !keepVisible(id)) d.push('display: none !important');
       if (d.length) out.push(`${q(id)} { ${d.join('; ')} }`);
     }
@@ -71,7 +92,7 @@
   function undo() { if (!past.length) return; future.push(snap()); ui = JSON.parse(past.pop()); apply(); sync(); save(); }
   function redo() { if (!future.length) return; past.push(snap()); ui = JSON.parse(future.pop()); apply(); sync(); save(); }
   const elOf = (u, id) => (u.els[id] ||= {});
-  function tidy(u, id) { const e = u.els[id]; if (e && e.radius == null && (e.scale == null || e.scale === 100) && !e.hide) delete u.els[id]; }
+  function tidy(u, id) { const e = u.els[id]; if (e && !e.hide && EL_KEYS.every((k) => e[k] == null || (k === 'scale' && e[k] === 100))) delete u.els[id]; }
 
   // ---------- Building blocks ----------
   function h(tag, cls, html) { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; }
@@ -82,19 +103,23 @@
     pick: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 2.5 13 7l-4.3 1.2L6.8 12.6z"/></svg>',
     back: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>',
     save: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M8 1.8 9.6 6l4.4.3-3.4 2.8 1.1 4.3L8 11l-3.7 2.4 1.1-4.3L2 6.3 6.4 6z"/></svg>',
+    reset: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.9 8.6A5.2 5.2 0 1 0 4.4 4.3L2.8 5.9"/><path d="M2.8 2.9v3h3"/></svg>',
     fwd: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg>',
   };
   const ib = (ico, tip) => { const b = h('button', 'btn btn-ghost btn-icon ue-ib', ICO[ico]); b.type = 'button'; b.dataset.tip = tip; b.setAttribute('aria-label', tip); return b; };
   let rows = [];
+  const rstBtn = (fn) => { const b = ib('reset', 'Сбросить'); b.classList.add('ue-rst'); b.addEventListener('click', fn); return b; };
   // A slider row. Double-click on the label resets it.
   function slider({ label, min, max, get, set, changed, fmt = (x) => `${x}%`, reset }) {
     const r = h('div', 'ue-row'), l = h('span', 'l'), v = h('span', 'v num'), i = h('input', 'ue-sl');
     l.textContent = label; i.type = 'range'; i.min = min; i.max = max; i.step = 1; i.setAttribute('aria-label', label);
-    r.append(l, v, i);
+    const w = h('span', 'ue-vw'); if (reset) w.append(rstBtn(() => commit(reset))); w.append(v);
+    r.append(l, w, i);
     r._sync = () => {
       const x = get(); if (!drag || document.activeElement !== i) i.value = x;
       v.textContent = fmt(x); i.style.setProperty('--p', `${((x - min) / (max - min)) * 100}%`);
       r.toggleAttribute('data-changed', changed());
+      const rb = w.firstElementChild; if (rb !== v) rb.disabled = !r.hasAttribute('data-changed');
     };
     i.addEventListener('input', () => { liveSet((u) => set(u, +i.value)); r._sync(); });
     i.addEventListener('change', () => { drag = false; sync(); });
@@ -112,6 +137,24 @@
       s.querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.v === v)));
       s._place?.(false); r.toggleAttribute('data-changed', v !== def);
     };
+    rows.push(r); return r;
+  }
+  // A colour row: swatch opens the shared colour picker (colors.js).
+  function colorRow(id, node, label, key, defVar, prop) {
+    const r = h('div', 'ue-row ue-row-seg'), l = h('span', 'l'), w = h('span', 'ue-vw'), sw = h('button', 'ue-sw');
+    l.textContent = label; sw.type = 'button'; sw.setAttribute('aria-label', label); sw.setAttribute('aria-haspopup', 'dialog'); sw.setAttribute('aria-expanded', 'false');
+    const own = () => ui.els[id]?.[key] ?? null;
+    const def = () => getComputedStyle(root).getPropertyValue(defVar).trim();
+    const now = () => { const v = getComputedStyle(node)[prop]; return v && !/^(transparent|rgba\(\s*0,\s*0,\s*0,\s*0\s*\))$/.test(v) ? v : def(); };
+    const rst = rstBtn(() => { window.FColors?.close?.(); commit((u) => { if (u.els[id]) { u.els[id][key] = null; tidy(u, id); } }); });
+    w.append(rst, sw); r.append(l, w);
+    const put = (hex) => { liveSet((u) => { elOf(u, id)[key] = hex ? hex.toLowerCase() : null; tidy(u, id); }); r._sync(); };
+    sw.addEventListener('click', () => {
+      const P = window.FColors; if (!P?.pick) return;
+      if (sw.getAttribute('aria-expanded') === 'true') { P.close(); return; }
+      P.pick(sw, { title: label, own: own(), value: now(), def: def(), alpha: true, onChange: put, onClose: () => { drag = false; sync(); } });
+    });
+    r._sync = () => { const o = own(); sw.style.setProperty('--c', o || now()); r.toggleAttribute('data-changed', o != null); rst.disabled = o == null; };
     rows.push(r); return r;
   }
   const sec = (title, ...kids) => { const s = h('div', 'ue-sec'); s.append(h('h4', '', title), ...kids); return s; };
@@ -268,13 +311,25 @@
       r._sync = () => { const i = list().indexOf(ci); bA.disabled = i <= 0; bB.disabled = i >= n - 1; r.toggleAttribute('data-changed', !!ui.order[pid]); };
       rows.push(r); s.append(r);
     }
+    const nm = (label, key, min, max, neutral, fmt) => slider({
+      label, min, max, fmt, get: () => ui.els[id]?.[key] ?? neutral, changed: () => ui.els[id]?.[key] != null,
+      set: (u, x) => { elOf(u, id)[key] = x === neutral ? null : x; tidy(u, id); }, reset: (u) => { if (u.els[id]) { u.els[id][key] = null; tidy(u, id); } },
+    });
+    const px = (x) => `${x} px`;
+    const extra = [
+      sec('Фон', colorRow(id, node, 'Цвет', 'bg', '--surface-2', 'backgroundColor'), nm('Непрозрачность', 'opacity', 10, 100, 100), nm('Размытие', 'blur', 0, 40, 0, px)),
+      sec('Эффекты', nm('Яркость', 'bright', 30, 200, 100), nm('Контраст', 'contrast', 30, 200, 100), nm('Насыщенность', 'saturate', 0, 300, 100)),
+      sec('Рамка', nm('Толщина', 'border', 0, 6, 0, px), colorRow(id, node, 'Цвет', 'border_color', '--line-strong', 'borderTopColor')),
+      sec('Тень', nm('Глубина', 'shadow', 0, 4, 0, (x) => ['Нет', 'Слабая', 'Средняя', 'Сильная', 'Глубокая'][x] ?? x)),
+    ];
     const f = h('div', 'ue-elf'), br = h('button', 'btn btn-ghost', '<span class="lbl">Сбросить элемент</span>'); br.type = 'button';
     br.addEventListener('click', () => commit((u) => delete u.els[id]));
     f.append(br);
-    pEl.append(hd, s, f);
+    pEl.append(hd, s, ...extra, f);
     sync();
   }
   function select(n) {
+    window.FColors?.close?.();
     if (!n) { sel = null; renderEl(); return; }
     const id = n.dataset.id;
     const had = ui.els[id]?.radius != null;

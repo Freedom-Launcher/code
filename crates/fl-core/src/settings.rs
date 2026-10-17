@@ -263,7 +263,33 @@ pub struct UiEl {
     /// Size, percent.
     pub scale: Option<u16>,
     pub hide: bool,
+    /// Background, `#rrggbb` or `#rrggbbaa`.
+    pub bg: Option<String>,
+    /// Opacity, percent (10–100).
+    pub opacity: Option<u16>,
+    /// Brightness, contrast, saturation: percent (100 = unchanged).
+    pub bright: Option<u16>,
+    pub contrast: Option<u16>,
+    pub saturate: Option<u16>,
+    /// Background blur (frosted glass), px.
+    pub blur: Option<u16>,
+    /// Border width, px, and its colour.
+    pub border: Option<u16>,
+    pub border_color: Option<String>,
+    /// Shadow strength, 0–4.
+    pub shadow: Option<u16>,
 }
+
+/// `(field, min, max, neutral)` for the per-element numbers above.
+pub const UI_EL_NUM: [(&str, u16, u16, u16); 7] = [
+    ("opacity", 10, 100, 100),
+    ("bright", 30, 200, 100),
+    ("contrast", 30, 200, 100),
+    ("saturate", 0, 300, 100),
+    ("blur", 0, 40, 0),
+    ("border", 0, 6, 0),
+    ("shadow", 0, 4, 0),
+];
 
 pub const UI_RADIUS: [&str; 8] = [
     "btn", "field", "card", "icon", "menu", "chip", "nav", "dialog",
@@ -317,6 +343,19 @@ impl UiCustom {
             b.radius = e.radius.or(b.radius);
             b.scale = e.scale.or(b.scale);
             b.hide |= e.hide;
+            b.bg = e.bg.clone().or(b.bg.take());
+            b.border_color = e.border_color.clone().or(b.border_color.take());
+            for f in [
+                (&mut b.opacity, e.opacity),
+                (&mut b.bright, e.bright),
+                (&mut b.contrast, e.contrast),
+                (&mut b.saturate, e.saturate),
+                (&mut b.blur, e.blur),
+                (&mut b.border, e.border),
+                (&mut b.shadow, e.shadow),
+            ] {
+                *f.0 = f.1.or(*f.0);
+            }
         }
         u.order.extend(over.order.clone());
         u.radius.retain(|_, v| *v != 100);
@@ -356,6 +395,28 @@ impl UiCustom {
             }
             e.radius = e.radius.map(|r| r.min(64));
             e.scale = e.scale.map(|s| s.clamp(50, 200));
+            for c in [&mut e.bg, &mut e.border_color] {
+                if let Some(v) = c.as_mut() {
+                    if !is_hex_color(v) {
+                        return Err(format!("ui.els.{id}: цвет «{v}» — ожидается #rrggbb"));
+                    }
+                    *v = v.to_ascii_lowercase();
+                }
+            }
+            for (f, (_, lo, hi, neutral)) in [
+                &mut e.opacity,
+                &mut e.bright,
+                &mut e.contrast,
+                &mut e.saturate,
+                &mut e.blur,
+                &mut e.border,
+                &mut e.shadow,
+            ]
+            .into_iter()
+            .zip(UI_EL_NUM)
+            {
+                *f = f.map(|x| x.clamp(lo, hi)).filter(|x| *x != neutral);
+            }
         }
         self.els.retain(|_, e| *e != UiEl::default());
         for (id, o) in &self.order {
@@ -398,6 +459,21 @@ mod tests {
         assert!(bad(json!({ "order": { "rail": [0, 0] } })));
         assert!(bad(json!({ "els": { "a\"]{": {} } })));
         assert!(bad(json!({ "css": "x" })));
+        assert!(bad(json!({ "els": { "x": { "bg": "red; x" } } })));
+        assert!(bad(json!({ "els": { "x": { "border_color": "url(a)" } } })));
+        let e: UiCustom = serde_json::from_value(json!({ "els": {
+            "a": { "bg": "#FF0000AA", "opacity": 5, "bright": 999, "blur": 12, "shadow": 9 },
+            "b": { "contrast": 100, "border": 0 }
+        } }))
+        .unwrap();
+        let e = e.checked().unwrap();
+        let a = &e.els["a"];
+        assert_eq!(a.bg.as_deref(), Some("#ff0000aa"));
+        assert_eq!((a.opacity, a.bright, a.blur, a.shadow), (Some(10), Some(200), Some(12), Some(4)));
+        assert!(!e.els.contains_key("b"), "neutral values are dropped");
+        let top: UiCustom = serde_json::from_value(json!({ "els": { "a": { "blur": 4 } } })).unwrap();
+        let l = e.layered(&top);
+        assert_eq!((l.els["a"].blur, l.els["a"].bg.as_deref()), (Some(4), Some("#ff0000aa")));
     }
 
     use super::*;
