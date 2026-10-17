@@ -24,7 +24,7 @@
 .rc.add > i { display: grid; place-items: center; font-style: normal; font-size: 22px; color: var(--text-3); }
 .home-sec { margin-top: 34px; }
 .home-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(164px * var(--sz-card, 1))), 1fr)); gap: 20px 18px; }
-.hcard { min-width: 0; padding: 0; border: 0; border-radius: calc(12px * var(--rk-card, 1)); background: none; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.hcard { display: block; width: 100%; min-width: 0; padding: 0; border: 0; border-radius: calc(12px * var(--rk-card, 1)); background: none; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
 .hcard > i {
   display: block; aspect-ratio: 1; border-radius: calc(12px * var(--rk-card, 1)); background: var(--surface-3) center / cover no-repeat;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(255, 255, 255, .1);

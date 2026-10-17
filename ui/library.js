@@ -46,7 +46,8 @@
     const list = S.instances
       .filter((i) => !term || [i.name, i.version, LOADER_NAMES[i.loader] || 'vanilla', i.group || ''].some((s) => s.toLocaleLowerCase('ru').includes(term)))
       .sort(SORT[sortSel.value] || SORT.played);
-    grid.classList.toggle('is-grouped', bySel.value !== 'none');
+    // Only real group sections switch the row to block layout; a flat list must stay a grid.
+    grid.classList.remove('is-grouped');
     if (!list.length) return grid.replaceChildren(el('p', { class: 'lib-none' }, term ? 'Ничего не найдено' : ''));
     const key = KEY[bySel.value];
     if (!key) return grid.replaceChildren(...list.map(card));
@@ -54,6 +55,7 @@
     for (const i of list) { const k = key(i); groups.has(k) || groups.set(k, []); groups.get(k).push(i); }
     const names = [...groups.keys()].sort((a, b) => (!a) - (!b) || (bySel.value === 'version' ? coll.compare(verKey(b), verKey(a)) : coll.compare(a, b)));
     if (bySel.value === 'group' && names.length === 1 && !names[0]) return grid.replaceChildren(...list.map(card));
+    grid.classList.add('is-grouped');
     grid.replaceChildren(...names.map((n) => {
       const [h, closed] = head(n, groups.get(n).length);
       return el('section', { class: `lib-g${closed ? ' is-shut' : ''}` }, h, el('div', { class: 'home-row' }, ...(closed ? [] : groups.get(n).map(card))));
