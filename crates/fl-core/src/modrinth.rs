@@ -286,6 +286,47 @@ pub struct Project {
     pub title: String,
     #[serde(default)]
     pub icon_url: Option<String>,
+    #[serde(default)]
+    pub slug: String,
+    #[serde(default)]
+    pub team: String,
+    #[serde(default)]
+    pub organization: Option<String>,
+    #[serde(default)]
+    pub license: Option<License>,
+    #[serde(default)]
+    pub client_side: String,
+    #[serde(default)]
+    pub server_side: String,
+}
+
+/// A team member as `/teams` returns it (only what the content list needs).
+#[derive(Debug, Clone, Deserialize)]
+pub struct Member {
+    #[serde(default)]
+    pub team_id: String,
+    #[serde(default)]
+    pub role: String,
+    #[serde(default)]
+    pub ordering: i64,
+    pub user: MemberUser,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MemberUser {
+    pub id: String,
+    pub username: String,
+    #[serde(default)]
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Organization {
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub icon_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -573,6 +614,55 @@ pub async fn projects(core: &Core, ids: &[String]) -> Result<Vec<Project>, CoreE
         out.extend(page);
     }
     Ok(out)
+}
+
+/// Members of several teams at once: one list per team id, in input order.
+pub async fn teams(core: &Core, ids: &[String]) -> Result<Vec<Vec<Member>>, CoreError> {
+    let mut out = Vec::new();
+    for chunk in ids.chunks(100) {
+        let url = format!("{API}/teams?ids={}", encode(&json!(chunk).to_string()));
+        let page: Vec<Vec<Member>> = core.http().get(url).send().await?.error_for_status()?.json().await?;
+        out.extend(page);
+    }
+    Ok(out)
+}
+
+/// Organizations by id (Modrinth API v3).
+pub async fn organizations(core: &Core, ids: &[String]) -> Result<Vec<Organization>, CoreError> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let url = format!(
+        "https://api.modrinth.com/v3/organizations?ids={}",
+        encode(&json!(ids).to_string())
+    );
+    Ok(core.http().get(url).send().await?.error_for_status()?.json().await?)
+}
+
+/// Several versions by id, in chunks.
+pub async fn versions_by_ids(core: &Core, ids: &[String]) -> Result<Vec<Version>, CoreError> {
+    let mut out = Vec::new();
+    for chunk in ids.chunks(100) {
+        let url = format!("{API}/versions?ids={}", encode(&json!(chunk).to_string()));
+        let page: Vec<Version> = core.http().get(url).send().await?.error_for_status()?.json().await?;
+        out.extend(page);
+    }
+    Ok(out)
+}
+
+/// One version by id.
+pub async fn version(core: &Core, id: &str) -> Result<Version, CoreError> {
+    let url = format!("{API}/version/{}", encode(id));
+    Ok(core.http().get(url).send().await?.error_for_status()?.json().await?)
+}
+
+/// The publisher of a project: its organization, else the team owner.
+pub fn owner_of<'a>(members: &'a [Member]) -> Option<&'a MemberUser> {
+    members
+        .iter()
+        .find(|m| m.role == "Owner")
+        .or_else(|| members.iter().min_by_key(|m| m.ordering))
+        .map(|m| &m.user)
 }
 
 /// For each sha1, the newest version of the same project that fits `mc` and

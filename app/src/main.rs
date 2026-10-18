@@ -115,6 +115,59 @@ async fn open_instance_folder(
         .map_err(|e| e.to_string())
 }
 
+/// Highlights a content file in the system file manager («Показать файл»).
+#[tauri::command]
+async fn reveal_content(state: tauri::State<'_, AppCore>, args: Value) -> Result<(), String> {
+    let core = Arc::clone(&state.0);
+    let v = core
+        .dispatch(&Caller::BuiltinUi, "mods.path", args)
+        .await
+        .map_err(|e| e.to_string())?;
+    let path = v["path"].as_str().ok_or("no file")?.to_owned();
+    tauri_plugin_opener::reveal_item_in_dir(path).map_err(|e| e.to_string())
+}
+
+/// «Загрузить файлы»: native multi-file picker, then the core copies the files in.
+#[tauri::command]
+async fn pick_content(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+    args: Value,
+    ext: String,
+) -> Result<Value, String> {
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter("Файлы", &[ext.trim_start_matches('.')])
+            .blocking_pick_files()
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|p| p.into_path().ok())
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    if picked.is_empty() {
+        return Ok(serde_json::json!({ "added": [] }));
+    }
+    add_content(state, args, picked).await
+}
+
+/// Files dropped onto the content tab.
+#[tauri::command]
+async fn drop_content(state: tauri::State<'_, AppCore>, args: Value, paths: Vec<String>) -> Result<Value, String> {
+    add_content(state, args, paths).await
+}
+
+async fn add_content(state: tauri::State<'_, AppCore>, mut args: Value, paths: Vec<String>) -> Result<Value, String> {
+    args["paths"] = serde_json::json!(paths);
+    let core = Arc::clone(&state.0);
+    core.dispatch(&Caller::BuiltinUi, "mods.add_files", args)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Native folder picker (Settings → Игра → «Папка сборок»); `None` if cancelled.
 #[tauri::command]
 async fn pick_folder(app: tauri::AppHandle, title: Option<String>) -> Result<Option<String>, String> {
@@ -713,6 +766,9 @@ fn main() {
             pick_mrpack,
             stage_mrpack_path,
             pick_folder,
+            reveal_content,
+            pick_content,
+            drop_content,
             updater::update_check,
             updater::update_install,
             updater::update_progress

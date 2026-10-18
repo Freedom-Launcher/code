@@ -1813,6 +1813,115 @@ fn register_mods(r: &mut ActionRegistry) {
         mods::remove(&content_root(&c, &i, kind, world.as_deref())?, kind, &file)?;
         Ok(json!({ "file": file }))
     });
+    // The list with Modrinth metadata filled in (author, license, sides,
+    // required projects); unindexed files are identified by hash.
+    r.register("mods.meta", P::Network, false, |c, a| async move {
+        let KindArg {
+            instance,
+            kind,
+            world,
+        } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let root = content_root(&c, &i, kind, world.as_deref())?;
+        Ok(serde_json::to_value(mods::refresh_meta(&c, &root, kind).await?)?)
+    });
+    // Every version of the project behind a file, with `compatible`.
+    r.register("mods.versions", P::Network, false, |c, a| async move {
+        let ModArg {
+            instance,
+            file,
+            kind,
+            world,
+            ..
+        } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let loaders = content_loaders(&i, kind)?;
+        let gd = content_root(&c, &i, kind, world.as_deref())?;
+        let t = mods::Target {
+            game_dir: &gd,
+            kind,
+            mc: &i.version,
+            loaders: &loaders,
+        };
+        Ok(serde_json::to_value(mods::versions_for(&c, t, &file).await?)?)
+    });
+    // Switches a file to another version of its project (update or downgrade).
+    r.register("mods.switch", P::InstancesManage, true, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            file: String,
+            version: String,
+            #[serde(default)]
+            kind: Kind,
+            #[serde(default)]
+            world: Option<String>,
+        }
+        let a: A = args(a)?;
+        let i = instance_by_id(&c, &a.instance)?;
+        let loaders = content_loaders(&i, a.kind)?;
+        idle(&c, &i)?;
+        let gd = content_root(&c, &i, a.kind, a.world.as_deref())?;
+        let t = mods::Target {
+            game_dir: &gd,
+            kind: a.kind,
+            mc: &i.version,
+            loaders: &loaders,
+        };
+        let title = mods::switch(&c, t, &a.file, &a.version).await?;
+        Ok(json!({ "title": title }))
+    });
+    // «Заморозить версию»: updates skip a frozen file.
+    r.register("mods.lock", P::InstancesManage, true, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            file: String,
+            locked: bool,
+            #[serde(default)]
+            kind: Kind,
+            #[serde(default)]
+            world: Option<String>,
+        }
+        let a: A = args(a)?;
+        let i = instance_by_id(&c, &a.instance)?;
+        let root = content_root(&c, &i, a.kind, a.world.as_deref())?;
+        mods::set_locked(&root, a.kind, &a.file, a.locked)?;
+        Ok(json!({ "file": a.file, "locked": a.locked }))
+    });
+    // Where a content file is on disk («Показать файл»).
+    r.register("mods.path", P::Internal, false, |c, a| async move {
+        let ModArg {
+            instance,
+            file,
+            kind,
+            world,
+            ..
+        } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let root = content_root(&c, &i, kind, world.as_deref())?;
+        let path = mods::path_of(&root, kind, &file)?;
+        Ok(json!({ "path": path.to_string_lossy() }))
+    });
+    // Copies files the user picked (native dialog or drop) into the instance.
+    r.register("mods.add_files", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            paths: Vec<String>,
+            #[serde(default)]
+            kind: Kind,
+            #[serde(default)]
+            world: Option<String>,
+        }
+        let a: A = args(a)?;
+        let i = instance_by_id(&c, &a.instance)?;
+        idle(&c, &i)?;
+        let root = content_root(&c, &i, a.kind, a.world.as_deref())?;
+        let paths: Vec<std::path::PathBuf> = a.paths.iter().map(std::path::PathBuf::from).collect();
+        let added = mods::add_files(&root, a.kind, &paths)?;
+        Ok(json!({ "added": added }))
+    });
     // Newer fitting versions of installed Modrinth content of one kind.
     r.register("mods.updates", P::Network, false, |c, a| async move {
         let KindArg {
