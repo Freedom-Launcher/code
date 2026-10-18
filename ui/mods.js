@@ -37,117 +37,13 @@
   }
 
   // ---------- Instance tab ----------
-  let inst = null;
-  let ikind = 'mod';
-  let installed = [];
-  let updates = new Map();
-  let iseq = 0;
-  let iworld = null;
-  // Where the tab's content lives: data packs belong to one world.
-  const loc = () => ({ instance: inst, kind: ikind, ...(ikind === 'datapack' ? { world: iworld } : {}) });
-
-  async function instance(i) {
-    inst = i?.id || null;
-    const my = ++iseq;
-    if (!supports(i, ikind)) ikind = modded(i) ? 'mod' : 'resourcepack';
-    $$('#mods-kind button').forEach((b) => { b.hidden = !supports(i, b.dataset.kind); });
-    selectSeg($('#mods-kind'), ikind);
-    installed = [];
-    updates = new Map();
-    paintAll();
-    $('#mods-filter').value = '';
-    $('#mods-tools').hidden = !i;
-    const wsel = $('#mods-world');
-    wsel.hidden = true;
-    paintList();
-    if (!i) return;
-    if (ikind === 'datapack') {
-      const ws = await call('instances.worlds', { instance: i.id }).catch(() => []);
-      if (my !== iseq) return;
-      if (!ws.some((w) => w.id === iworld)) iworld = ws[0]?.id || null;
-      wsel.replaceChildren(...ws.map((w) => el('option', { value: w.id, selected: w.id === iworld }, w.name)));
-      wsel.hidden = !ws.length;
-      paintList();
-      if (!iworld) return;
-    }
-    const at = loc();
-    try { installed = await call('mods.list', at); } catch (e) { fail(e); }
-    if (my !== iseq) return;
-    paintList();
-    // Network check after the list is on screen; silent when offline.
-    const u = await call('mods.updates', at).catch(() => []);
-    if (my !== iseq) return;
-    updates = new Map(u.map((x) => [x.file, x]));
-    paintList();
-    paintAll();
-  }
-
-  function paintAll() {
-    const b = $('#mods-update-all');
-    b.hidden = !updates.size;
-    b.querySelector('.lbl').textContent = `Обновить все · ${updates.size}`;
-  }
-
-  async function update(btn, file) {
-    const args = loc();
-    if (file) args.file = file;
-    const r = await run(btn, 'mods.update', args).catch(() => null);
-    if (!r) return;
-    const n = r.updated.length;
-    toast(n === 0 ? 'Обновлений нет' : n === 1 ? `${r.updated[0]} обновлён` : `Обновлено: ${n}`);
-    instance(byId(inst));
-  }
-  $('#mods-update-all').addEventListener('click', (e) => update(e.currentTarget));
-
-  function paintList() {
-    const box = $('#mods-list');
-    if (!inst) { box.replaceChildren(); return; }
-    const q = $('#mods-filter').value.trim().toLowerCase();
-    const rows = installed.filter((m) => !q || m.title.toLowerCase().includes(q));
-    if (ikind === 'datapack' && !iworld) box.replaceChildren(empty('Миров пока нет'));
-    else if (!installed.length) box.replaceChildren(empty(KINDS[ikind].none));
-    else if (!rows.length) box.replaceChildren(empty('Ничего не найдено'));
-    else box.replaceChildren(el('div', { class: 'mod-list' }, ...rows.map(row)));
-  }
-
-  function row(m) {
-    const kind = ikind;
-    const at = loc();
-    const r = el('div', { class: `mod-row${m.enabled ? '' : ' is-off'}`, 'data-id': `${kind}.${m.file}` });
-    const sw = el('input', { type: 'checkbox', checked: m.enabled, 'aria-label': m.title });
-    sw.addEventListener('change', async () => {
-      try {
-        await call('mods.toggle', { ...at, file: m.file, enabled: sw.checked });
-        m.enabled = sw.checked;
-        r.classList.toggle('is-off', !m.enabled);
-      } catch (e) { sw.checked = !sw.checked; fail(e); }
-    });
-    const del = el('button', { class: 'btn btn-icon btn-ghost', 'data-tip': 'Удалить', 'aria-label': 'Удалить', html: TRASH });
-    del.addEventListener('click', async () => {
-      try {
-        await call('mods.remove', { ...at, file: m.file });
-        installed = installed.filter((x) => x !== m);
-        paintList();
-      } catch (e) { fail(e); }
-    });
-    const u = updates.get(m.file);
-    const ver = el('span', { class: 'mono' }, m.version_number || m.file);
-    if (u) ver.append(el('em', { class: 'upd' }, ` → ${u.version_number}`));
-    r.append(icon(m.icon_url, m.title), el('div', { class: 't' }, el('b', {}, m.title), ver));
-    if (u) {
-      const ub = el('button', { class: 'btn btn-sm', 'data-id': `${kind}.${m.file}.update` }, el('span', { class: 'lbl' }, 'Обновить'));
-      ub.addEventListener('click', () => update(ub, m.file));
-      r.append(ub);
-    }
-    r.append(el('label', { class: 'switch' }, sw, el('i')), del);
-    return r;
-  }
-  $('#mods-filter').addEventListener('input', paintList);
-  $('#mods-kind').addEventListener('seg:change', (e) => { ikind = e.detail.dataset.kind; instance(byId(inst)); });
-  // «Добавить» opens the browser on the same kind and instance.
+  // The list itself lives in content.js (FContent); the catalog keeps its scope.
+  const instance = (i) => window.FContent.instance(i);
   // «Добавить» opens the catalog scoped to this instance, as in Modrinth App.
-  $('#mods-add').addEventListener('click', () => { kind = ikind; target = inst; dworld = iworld; scope = inst; });
-  $('#mods-world').addEventListener('change', (e) => { iworld = e.target.value; instance(byId(inst)); });
+  $('#mods-add').addEventListener('click', () => {
+    const st = window.FContent.state();
+    kind = st.kind; target = st.inst; dworld = st.world; scope = st.inst;
+  });
 
   // ---------- Modrinth browser ----------
   let kind = 'modpack';
@@ -203,7 +99,7 @@
   $('#disc-scope-back').addEventListener('click', () => {
     const id = scope;
     if (!byId(id)) return show('home');
-    if ($(`#mods-kind [data-kind="${kind}"]`)) ikind = kind;
+    window.FContent.setKind(kind);
     openInstance(id);
   });
 
@@ -546,7 +442,8 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
     const name = byId(at.instance)?.name || '';
     toast(r.added.length > 1 ? `Установлено: ${r.added.join(', ')}` : `${h.title} → ${name}`);
     if (at.instance === target && at.kind === kind) { setInstalled(b); refreshHave().then(markHave).catch(() => {}); }
-    if (at.instance === inst && at.kind === ikind) instance(byId(inst));
+    const st = window.FContent.state();
+    if (at.instance === st.inst && at.kind === st.kind) window.FContent.reload();
   }
 
   // «Установить» without a chosen instance asks where, like Modrinth's install modal.

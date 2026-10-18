@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="shell-2.css">
   <link rel="stylesheet" href="home.css">
   <link rel="stylesheet" href="mods.css">
+  <link rel="stylesheet" href="content.css">
   <link rel="stylesheet" href="project.css">
   <link rel="stylesheet" href="glass.css">
   <link rel="stylesheet" href="palette.css">
@@ -33,6 +34,8 @@
   <script src="themes.js" defer></script>
   <script src="addons.js" defer></script>
   <script src="app.js" defer></script>
+  <script src="content.js" defer></script>
+  <script src="content-ops.js" defer></script>
   <script src="mods.js" defer></script>
   <script src="worlds.js" defer></script>
   <script src="shots.js" defer></script>
@@ -158,7 +161,7 @@
             <div class="table-empty"><b>Миров пока нет</b></div>
           </div>
           <div class="tab-body" id="tab-content" data-id="instance.content">
-            <div class="toolbar" id="mods-tools">
+            <div class="toolbar ct-tools" id="mods-tools">
               <nav class="seg" id="mods-kind" data-id="instance.content.kind">
                 <button data-kind="mod" aria-selected="true">Моды</button>
                 <button data-kind="resourcepack">Ресурспаки</button>
@@ -167,13 +170,28 @@
               </nav>
               <select class="field disc-target" id="mods-world" aria-label="Мир" data-id="instance.content.world" hidden></select>
               <label class="field-wrap grow">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
-                <input class="field" id="mods-filter" placeholder="Найти в сборке" data-id="instance.content.search">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+                <input class="field" id="mods-filter" placeholder="Найти в сборке" data-id="instance.content.search" autocomplete="off" spellcheck="false">
               </label>
-              <button class="btn" id="mods-update-all" data-id="instance.content.update-all" hidden><span class="lbl">Обновить все</span></button>
-              <button class="btn" id="mods-add" data-view="discover" data-id="instance.content.add"><span class="lbl">Добавить</span></button>
+              <button class="btn btn-ghost ct-tool" id="ct-sort" type="button" data-menu="menu-ct-sort" data-id="instance.content.sort" aria-label="Сортировка"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3v10M2.5 11l2 2 2-2M8.5 4h5M8.5 8h3.5M8.5 12h2"/></svg><span id="ct-sort-lbl">А–Я</span></button>
+              <button class="btn btn-ghost ct-tool" id="ct-filter" type="button" data-menu="pop-ct-filter" data-id="instance.content.filter"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M4.5 8h7M6.5 12h3"/></svg><span>Фильтр</span><b class="ct-count" id="ct-filter-n" hidden></b></button>
+              <button class="btn btn-icon btn-ghost" id="ct-upload" type="button" data-tip="Загрузить файлы" aria-label="Загрузить файлы" data-id="instance.content.upload"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10.5V3M5 6l3-3 3 3M3 10v3h10v-3"/></svg></button>
+              <button class="btn btn-icon btn-ghost" id="ct-refresh" type="button" data-tip="Обновить список" aria-label="Обновить список" data-id="instance.content.refresh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8a5 5 0 1 1-1.46-3.54M13 2.8v2.7h-2.7"/></svg></button>
+              <button class="btn" id="mods-update-all" type="button" data-id="instance.content.update-all" hidden><span class="lbl">Обновить все</span></button>
+              <button class="btn btn-primary" id="mods-add" type="button" data-view="discover" data-id="instance.content.add"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5v9M3.5 8h9"/></svg><span class="lbl">Добавить</span></button>
             </div>
+            <div class="ct-pills" id="ct-pills" data-id="instance.content.pills" role="tablist" aria-label="Быстрые фильтры"></div>
             <div id="mods-list" data-id="instance.mods"></div>
+            <div class="ct-bar" id="ct-bar" data-id="instance.content.selection" role="toolbar" aria-label="Выбранное">
+              <b class="ct-bar-n" id="ct-bar-n"></b>
+              <button class="btn btn-sm btn-ghost" id="ct-bar-clear" type="button">Снять</button>
+              <i class="ct-bar-sep"></i>
+              <button class="btn btn-sm btn-ghost ct-ok" id="ct-bar-update" type="button" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v7m-3-3 3 3 3-3M3.5 13h9"/></svg><span class="lbl">Обновить</span></button>
+              <button class="btn btn-sm btn-ghost" id="ct-bar-on" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5"/><path d="m5.8 8 1.6 1.6L10.4 6.5"/></svg><span class="lbl">Включить</span></button>
+              <button class="btn btn-sm btn-ghost" id="ct-bar-off" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5"/><path d="M5.5 8h5"/></svg><span class="lbl">Выключить</span></button>
+              <button class="btn btn-sm btn-ghost" id="ct-bar-share" type="button" data-menu="menu-ct-share"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10V2.5M5 5.5l3-3 3 3M3.5 9v4h9V9"/></svg><span class="lbl">Поделиться</span></button>
+              <button class="btn btn-sm btn-ghost ct-danger" id="ct-bar-del" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg><span class="lbl">Удалить</span></button>
+            </div>
           </div>
           <div class="tab-body" id="tab-shots" data-id="instance.shots" hidden></div>
           <div class="tab-body" id="tab-logs" data-id="instance.logs" hidden>
@@ -405,6 +423,24 @@
     <button class="menu-item" data-view="accounts" data-id="menu.account.manage"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4.5h10M3 8h10M3 11.5h6"/></svg>Управление аккаунтами</button>
   </div>
 
+  <div class="pop" id="menu-ct-sort" data-id="menu.content.sort" role="menu">
+    <div class="menu-label">Сортировка</div>
+    <button class="menu-item" data-sort="az"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.5 5.5 4l2.5 8.5M3.8 10h3.4M10 4.5h3.5l-3.5 7h3.5"/></svg>Название А–Я</button>
+    <button class="menu-item" data-sort="za"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4.5h3.5l-3.5 7h3.5M3 12.5 5.5 4l2.5 8.5M3.8 10h3.4"/></svg>Название Я–А</button>
+    <button class="menu-item" data-sort="new"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/></svg>Сначала новые</button>
+    <button class="menu-item" data-sort="old"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3L6 9.5"/></svg>Сначала старые</button>
+    <button class="menu-item" data-sort="author"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="2.5"/><path d="M3.5 13a4.5 4.5 0 0 1 9 0"/></svg>По автору</button>
+    <button class="menu-item" data-sort="size"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13V9M6.3 13V6M9.7 13V8M13 13V3"/></svg>По размеру</button>
+  </div>
+  <div class="pop ct-fpop" id="pop-ct-filter" data-id="menu.content.filter" role="dialog" aria-label="Фильтр"></div>
+  <div class="pop" id="menu-ct-row" data-id="menu.content.row" role="menu"></div>
+  <div class="pop" id="menu-ct-share" data-id="menu.content.share" role="menu">
+    <div class="menu-label">Скопировать</div>
+    <button class="menu-item" data-share="names"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h10M3 8h10M3 11.5h6"/></svg>Названия</button>
+    <button class="menu-item" data-share="files"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2.5h5l3 3v8H4z"/><path d="M9 2.5v3h3"/></svg>Имена файлов</button>
+    <button class="menu-item" data-share="links"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9a2.5 2.5 0 0 0 3.5 0l2-2A2.5 2.5 0 0 0 9 3.5l-.7.7M9 7a2.5 2.5 0 0 0-3.5 0l-2 2A2.5 2.5 0 0 0 7 12.5l.7-.7"/></svg>Ссылки</button>
+    <button class="menu-item" data-share="md"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11v7h-11z"/><path d="M4.5 9.5v-3l1.5 1.5 1.5-1.5v3M10.5 6.5v3m-1.2-1.2 1.2 1.2 1.2-1.2"/></svg>Markdown</button>
+  </div>
   <div class="pop" id="menu-ctx-instance" data-id="menu.ctx.instance" role="menu">
     <button class="menu-item" id="cx-play"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>Играть</button>
     <button class="menu-item" id="cx-open"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3.5h-2.5v9h9V10M9 3.5h3.5V7M12.5 3.5 7.5 8.5"/></svg>Открыть сборку</button>
@@ -584,6 +620,37 @@
       <button type="submit" class="btn btn-primary" id="grp-save"><span class="lbl">Сохранить</span></button>
     </div>
   </form>
+  <form class="dialog" id="dlg-ct-confirm" data-id="dialog.content.confirm" role="dialog" aria-label="Подтверждение">
+    <h2 id="ctc-title"></h2>
+    <p class="hint" id="ctc-text"></p>
+    <ul class="ctc-list" id="ctc-list" hidden></ul>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+      <button type="submit" class="btn btn-danger" id="ctc-submit"><span class="lbl">Удалить</span></button>
+    </div>
+  </form>
+
+  <form class="dialog ctv" id="dlg-ct-ver" data-id="dialog.content.version" role="dialog" aria-label="Сменить версию">
+    <header class="ctv-head">
+      <i class="mod-ico" id="ctv-ico" aria-hidden="true"></i>
+      <div class="ctv-name"><h2 id="ctv-title"></h2><span id="ctv-cur"></span></div>
+      <button type="button" class="btn btn-icon btn-ghost" data-close aria-label="Закрыть"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="m4.5 4.5 7 7m0-7-7 7"/></svg></button>
+    </header>
+    <div class="ctv-body">
+      <div class="ctv-side">
+        <label class="field-wrap"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input class="field" id="ctv-q" placeholder="Найти версию" autocomplete="off" spellcheck="false"></label>
+        <div class="ctv-list" id="ctv-list" role="listbox" aria-label="Версии"></div>
+        <label class="check ctv-all"><input type="checkbox" id="ctv-all">Несовместимые версии</label>
+      </div>
+      <div class="ctv-log" id="ctv-log"></div>
+    </div>
+    <footer class="ctv-foot">
+      <span class="ctv-warn" id="ctv-warn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 14 13H2z"/><path d="M8 6.5v3M8 11.3v.1"/></svg>Перед сменой версии сохраните копию мира</span>
+      <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+      <button type="submit" class="btn btn-primary" id="ctv-submit" disabled><span class="lbl">Выберите версию</span></button>
+    </footer>
+  </form>
+
   <form class="dialog" id="dlg-del" data-id="dialog.instance.delete" role="dialog" aria-label="Удалить сборку">
     <h2>Удалить «<span id="del-name"></span>»?</h2>
     <p class="hint">Миры, моды и настройки этой сборки удалятся с диска.</p>
