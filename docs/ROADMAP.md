@@ -11,6 +11,15 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Content tab like Modrinth App (0.3.4)
+
+- Instance «Контент» tab rebuilt after Modrinth App's content page (`ui/content.js`, `ui/content-ops.js`, `ui/content.css`): search over title, file, author and version; sort A–Я / Я–А / newest / oldest / author / size and by the version column, remembered per instance; quick pills Все / Обновления / Включённые / Выключенные.
+- «Фильтр»: author (with avatars, searchable), environment (client only / server only / both), open source (OSI licenses), update available, not from Modrinth, frozen. Options that would match everything are hidden, as in Modrinth.
+- Rows: icon and title open the project page; author avatar and name (or «Загружен вручную»); version and file name with middle truncation; one icon slot — green update, «Заменить версию» or lock; toggle; delete with confirmation (Shift deletes at once); ⋯ menu — open page, switch version, show file, copy link, freeze / unfreeze.
+- Multi-select (Shift for ranges) with a floating bar: update, enable, disable, copy names / file names / links / Markdown, delete. Deleting or disabling something other content needs warns with the list.
+- «Заменить версию» dialog: searchable versions with release / beta / alpha, «Текущая», incompatible versions on demand, changelog beside the list; update, roll back or install anyway.
+- Core: list entries carry author, license, client/server side, dependencies, size, date added (`mods.meta` fills them and identifies files by hash); `mods.versions`, `mods.switch`, `mods.lock` (frozen files skip updates), `mods.add_files`; app commands `reveal_content`, `pick_content`. Upload files and refresh in the toolbar.
+
 ## Import from other launchers, layout, scoped catalog (0.3.3)
 
 - Import from other launchers: Prism Launcher / MultiMC, CurseForge, ATLauncher, GDLauncher, Modrinth App, the official launcher and any game folder (`foreign.rs`, Internal `foreign.scan` / `foreign.import`). Name, version and loader come from each launcher's metadata, otherwise from `logs/latest.log` and the mods. Only game content is copied (mods, configs, packs, worlds, options, servers). Dialog grouped by launcher, «Выбрать папку…», progress; also in Ctrl K.
