@@ -359,7 +359,7 @@ async fn stage_mrpack_path(path: String, state: tauri::State<'_, AppCore>) -> Re
 async fn set_art(
     request: tauri::ipc::Request<'_>,
     state: tauri::State<'_, AppCore>,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
         return Err("Нужна картинка".into());
     };
@@ -378,7 +378,11 @@ fn art_protocol(app: &tauri::AppHandle, req: &tauri::http::Request<Vec<u8>>) -> 
     let path = req.uri().path().trim_start_matches('/');
     let found = path.split_once('/').and_then(|(id, kind)| {
         let state = app.try_state::<AppCore>()?;
-        fl_core::art::read(&state.0.data_dir, id, kind)
+        if id == "lib" {
+            fl_core::art::lib_read(&state.0.data_dir, kind)
+        } else {
+            fl_core::art::read(&state.0.data_dir, id, kind)
+        }
     });
     let Some((bytes, mime)) = found else {
         return Response::builder().status(404).body(Vec::new()).unwrap();
@@ -387,7 +391,7 @@ fn art_protocol(app: &tauri::AppHandle, req: &tauri::http::Request<Vec<u8>>) -> 
         .status(200)
         .header("Content-Type", mime)
         .header("X-Content-Type-Options", "nosniff")
-        .header("Cache-Control", "private, max-age=31536000, immutable")
+        .header("Cache-Control", if path.starts_with("lib/") { "private, max-age=31536000, immutable" } else { "no-cache" })
         .body(bytes)
         .unwrap()
 }

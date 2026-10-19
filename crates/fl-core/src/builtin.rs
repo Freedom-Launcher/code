@@ -1350,6 +1350,31 @@ fn register_instance_manage(r: &mut ActionRegistry) {
             Ok(serde_json::to_value(copy)?)
         },
     );
+    // Pictures cropped before, offered again in the cover and icon pickers.
+    r.register("art.library", P::InstancesRead, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            kind: String,
+        }
+        let A { kind } = args(a)?;
+        Ok(json!({ "kind": kind, "items": crate::art::library(&c.data_dir, &kind) }))
+    });
+    r.register("art.use", P::InstancesManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            id: String,
+        }
+        let A { instance, id } = args(a)?;
+        instance_by_id(&c, &instance)?;
+        let kind = crate::art::use_lib(&c.data_dir, &instance, &id)?;
+        Ok(json!({ "instance": instance, "kind": kind, "id": id }))
+    });
+    r.register("art.forget", P::InstancesManage, false, |c, a| async move {
+        let IdArg { id } = args(a)?;
+        crate::art::lib_remove(&c.data_dir, &id)?;
+        Ok(json!({ "id": id, "removed": true }))
+    });
     // The UI opens it with the shell (Tauri opener).
     r.register(
         "instances.folder",
