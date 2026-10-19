@@ -20,12 +20,22 @@
   const ghostOn = () => isOpen && localStorage.getItem('fl.ue.ghost') !== 'off';
   const keepVisible = (id) => ['app', 'main', 'rail', 'rail.settings', 'safe'].includes(id) || /^(settings|view\.settings|palette)/.test(id);
   const blank = () => ({ radius: {}, size: {}, layout: {}, els: {}, order: {} });
-  const EL_KEYS = ['radius', 'scale', 'bg', 'opacity', 'bright', 'contrast', 'saturate', 'blur', 'border', 'border_color', 'shadow'];
+  const EL_KEYS = ['radius', 'scale', 'bg', 'opacity', 'bright', 'contrast', 'saturate', 'blur', 'border', 'border_color', 'shadow', 'w', 'h', 'x', 'y'];
   const HEX = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i;
   const SHADOW = [null, '0 1px 2px rgba(0, 0, 0, .18)', '0 2px 6px -1px rgba(0, 0, 0, .24), 0 1px 2px rgba(0, 0, 0, .12)',
     '0 10px 24px -8px rgba(0, 0, 0, .34), 0 2px 4px rgba(0, 0, 0, .14)', '0 22px 48px -12px rgba(0, 0, 0, .48), 0 4px 10px rgba(0, 0, 0, .18)'];
   const num = (x, lo, hi) => (x == null || !Number.isFinite(+x) ? null : Math.min(hi, Math.max(lo, Math.round(+x))));
   // Per-element look. Only checked numbers and #hex reach the stylesheet.
+  // Size and place set by dragging the selection's edges / grip. Real width/height, never
+  // zoom: zoom on a glass panel re-rasterises its backdrop, which is what broke the background.
+  const clampN = (v, lo, hi) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : null);
+  function geo(e) {
+    const d = [], w = clampN(e.w, 24, 4000), hh = clampN(e.h, 24, 4000), x = clampN(e.x, -4000, 4000) || 0, y = clampN(e.y, -4000, 4000) || 0;
+    if (w) d.push(`width: ${w}px !important`, 'max-width: none !important', 'min-width: 0 !important', 'flex: none !important', 'box-sizing: border-box !important');
+    if (hh) d.push(`height: ${hh}px !important`, 'min-height: 0 !important', 'max-height: none !important', 'box-sizing: border-box !important');
+    if (x || y) d.push(`translate: ${x}px ${y}px !important`, 'z-index: 3');
+    return d;
+  }
   function elDecl(e) {
     const d = [], f = [];
     if (HEX.test(e.bg || '')) d.push(`background: ${e.bg} !important`);
@@ -72,7 +82,7 @@
       const d = [];
       if (e.radius != null) d.push(`border-radius: ${e.radius}px !important`);
       if (e.scale != null && e.scale !== 100 && !isCard(id)) d.push(`zoom: ${e.scale / 100}`);
-      d.push(...elDecl(e));
+      d.push(...geo(e), ...elDecl(e));
       if (e.hide && !keepVisible(id)) d.push(...(ghostOn() ? ['opacity: .36 !important', 'outline: 1.5px dashed var(--accent) !important', 'outline-offset: -1.5px !important'] : ['display: none !important']));
       if (d.length) out.push(`${q(id)} { ${d.join('; ')} }`);
     }
@@ -110,6 +120,8 @@
     save: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M8 1.8 9.6 6l4.4.3-3.4 2.8 1.1 4.3L8 11l-3.7 2.4 1.1-4.3L2 6.3 6.4 6z"/></svg>',
     reset: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.9 8.6A5.2 5.2 0 1 0 4.4 4.3L2.8 5.9"/><path d="M2.8 2.9v3h3"/></svg>',
     eye: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.6 8S4 3.5 8 3.5 14.4 8 14.4 8 12 12.5 8 12.5 1.6 8 1.6 8z"/><circle cx="8" cy="8" r="2"/></svg>',
+    move: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v12M2 8h12M6 4l2-2 2 2M6 12l2 2 2-2M4 6 2 8l2 2M12 6l2 2-2 2"/></svg>',
+    min: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 8 5.5l4 4"/></svg>',
     fwd: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg>',
   };
   const ib = (ico, tip) => { const b = h('button', 'btn btn-ghost btn-icon ue-ib', ICO[ico]); b.type = 'button'; b.dataset.tip = tip; b.setAttribute('aria-label', tip); return b; };
@@ -170,7 +182,8 @@
   const head = h('div', 'ue-head'); const title = h('b', '', 'Интерфейс');
   const bUndo = ib('undo', 'Отменить · Ctrl Z'), bRedo = ib('redo', 'Повторить · Ctrl Shift Z');
   const bDone = h('button', 'btn btn-primary', '<span class="lbl">Готово</span>'); bDone.type = 'button';
-  head.append(title, bUndo, bRedo, bDone);
+  const bMin = ib('min', 'Свернуть'); bMin.classList.add('ue-min');
+  head.append(title, bUndo, bRedo, bMin, bDone);
   const tabs = h('div', 'seg ue-tabs', '<button type="button" data-tab="gen" aria-selected="true">Общее</button><button type="button" data-tab="el">Элемент</button>');
   const body = h('div', 'ue-body'), pGen = h('div', 'ue-pane'), pEl = h('div', 'ue-pane'); pEl.hidden = true;
   body.append(pGen, pEl);
@@ -203,6 +216,28 @@
   );
   document.body.append(panel);
   window.FUI.initSegs(panel);
+  const fit = (x, y) => [Math.min(Math.max(8, x), innerWidth - panel.offsetWidth - 8), Math.min(Math.max(8, y), innerHeight - 44)];
+  function float(x, y) {
+    [x, y] = fit(x, y);
+    panel.dataset.free = ''; Object.assign(panel.style, { left: `${x}px`, top: `${y}px`, right: 'auto', maxHeight: `${innerHeight - y - 12}px`, transformOrigin: 'top left' });
+    return [x, y];
+  }
+  function dock() { delete panel.dataset.free; panel.style.cssText = ''; localStorage.removeItem('fl.ue.pos'); }
+  function setMin(on) { panel.toggleAttribute('data-min', on); bMin.dataset.tip = on ? 'Развернуть' : 'Свернуть'; localStorage.setItem('fl.ue.min', on ? '1' : ''); }
+  bMin.addEventListener('click', () => setMin(!panel.hasAttribute('data-min')));
+  let mv = null;
+  head.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target.closest('button, input')) return;
+    const r = panel.getBoundingClientRect(); mv = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    head.setPointerCapture(e.pointerId); panel.dataset.moving = '';
+  });
+  head.addEventListener('pointermove', (e) => { if (mv) mv.at = float(e.clientX - mv.dx, e.clientY - mv.dy); });
+  const endMv = () => { if (!mv) return; if (mv.at) localStorage.setItem('fl.ue.pos', JSON.stringify(mv.at)); mv = null; delete panel.dataset.moving; };
+  head.addEventListener('pointerup', endMv); head.addEventListener('lostpointercapture', endMv);
+  head.addEventListener('dblclick', (e) => { if (!e.target.closest('button')) dock(); });
+  try { const at = JSON.parse(localStorage.getItem('fl.ue.pos') || 'null'); if (Array.isArray(at)) requestAnimationFrame(() => float(...at)); } catch { /* none */ }
+  if (localStorage.getItem('fl.ue.min')) setMin(true);
+  addEventListener('resize', () => { if (panel.dataset.free != null) float(parseFloat(panel.style.left), parseFloat(panel.style.top)); });
   const hl = h('div', 'ue-hl', '<span class="ue-tag"></span>'), sb = h('div', 'ue-sel', '<span class="ue-tag"></span>');
   document.body.append(hl, sb);
 
@@ -333,6 +368,15 @@
       set: (u, x) => { elOf(u, id)[key] = x === neutral ? null : x; tidy(u, id); }, reset: (u) => { if (u.els[id]) { u.els[id][key] = null; tidy(u, id); } },
     });
     const px = (x) => `${x} px`;
+    const gr = h('div', 'ue-row ue-row-seg ue-geo'), gv = h('span', 'v'), gp = h('div', 'ue-pair');
+    const gRst = rstBtn(() => commit((u) => { const e = u.els[id]; if (e) { e.w = e.h = e.x = e.y = null; tidy(u, id); } }));
+    gp.append(gv, gRst); gr.append(h('span', 'l', 'Размер и место'), gp);
+    gr._sync = () => {
+      const e = ui.els[id] || {}, on = [e.w, e.h, e.x, e.y].some((v) => v != null);
+      gv.textContent = on ? `${e.w ?? 'авто'} × ${e.h ?? 'авто'}${e.x || e.y ? ` · ${e.x || 0}, ${e.y || 0}` : ''}` : 'авто';
+      gRst.hidden = !on; gr.toggleAttribute('data-changed', on);
+    };
+    rows.push(gr); s.append(gr);
     const extra = [
       sec('Фон', colorRow(id, node, 'Цвет', 'bg', '--surface-2', 'backgroundColor'), nm('Непрозрачность', 'opacity', 10, 100, 100), nm('Размытие', 'blur', 0, 40, 0, px)),
       sec('Эффекты', nm('Яркость', 'bright', 30, 200, 100), nm('Контраст', 'contrast', 30, 200, 100), nm('Насыщенность', 'saturate', 0, 300, 100)),
@@ -352,6 +396,7 @@
     const had = ui.els[id]?.radius != null;
     sel = { id, node: n, base: had ? ui.els[id].radius : Math.round(parseFloat(getComputedStyle(n).borderTopLeftRadius) || 0) };
     const r = n.getBoundingClientRect();
+    if (panel.dataset.free != null) { renderEl(); tab('el'); return; }
     const side = panel.dataset.side, covered = side === 'right' ? r.right > innerWidth - 330 : r.left < 330;
     const fits = side === 'right' ? r.left > 330 : r.right < innerWidth - 330;
     if (covered && fits) panel.dataset.side = side === 'right' ? 'left' : 'right';
@@ -373,8 +418,23 @@
       if (!isOpen || e.altKey || e.target.closest?.('.ue, .palette')) return;
       const n = pickable(e.target); if (!n) return;
       e.preventDefault(); e.stopPropagation();
+      if (ev === 'pointerdown' && ctx.hasAttribute('data-open')) window.FUI.closeMenu?.();
       if (ev === 'click' && !noClick) select(n);
+      if (ev === 'contextmenu') { select(n); openCtx(n, e.clientX, e.clientY); }
     }, true);
+  }
+  const ctx = h('div', 'pop ue-ctx'); ctx.dataset.id = 'editor.ctx'; ctx.setAttribute('role', 'menu');
+  document.body.append(ctx);
+  function openCtx(n, x, y) {
+    const id = n.dataset.id, e = ui.els[id] || {};
+    const item = (label, fn, cls = '') => { const b = h('button', `menu-item ${cls}`, label); b.type = 'button'; b.addEventListener('click', () => { window.FUI.closeMenu?.(); fn(); }); return b; };
+    const kids = [h('div', 'menu-label', name(id, n)),
+      item('Настроить…', () => { setMin(false); if (!panel.hasAttribute('data-open')) open(); tab('el'); })];
+    if ([e.w, e.h, e.x, e.y].some((v) => v != null)) kids.push(item('Вернуть размер и место', () => commit((u) => { const el = u.els[id]; if (el) { el.w = el.h = el.x = el.y = null; tidy(u, id); } })));
+    if (!keepVisible(id)) kids.push(item('Скрыть', () => commit((u) => { elOf(u, id).hide = true; })));
+    if (ui.els[id]) kids.push(h('div', 'menu-sep'), item('Сбросить элемент', () => commit((u) => delete u.els[id]), 'is-danger'));
+    ctx.replaceChildren(...kids);
+    window.FUI.openMenuAt(ctx, x, y);
   }
   let dg = null, noClick = false;
   const motion = () => root.dataset.motion !== 'off' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -444,6 +504,47 @@
   }, true);
   addEventListener('pointerup', endDrag, true); addEventListener('pointercancel', endDrag, true);
   addEventListener('blur', endDrag);
+
+  // ---------- Resize by edges, move by the grip ----------
+  for (const d of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']) { const k = h('i', `ue-rz ue-rz-${d}`); k.dataset.rz = d; sb.append(k); }
+  const grip = h('button', 'ue-grip', ICO.move); grip.type = 'button'; grip.dataset.rz = 'move'; grip.dataset.tip = 'Перетащить · двойной щелчок вернёт на место'; grip.setAttribute('aria-label', 'Переместить');
+  sb.append(grip);
+  let rz = null;
+  sb.addEventListener('pointerdown', (e) => {
+    const t = e.target.closest('[data-rz]'); if (!t || !sel || e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    const cur = ui.els[sel.id] || {}, r = sel.node.getBoundingClientRect();
+    const z = cur.scale && cur.scale !== 100 && !isCard(sel.id) ? cur.scale / 100 : 1;
+    rz = { d: t.dataset.rz, id: sel.id, x0: e.clientX, y0: e.clientY, z, w: r.width / z, h: r.height / z, x: cur.x || 0, y: cur.y || 0, snap: snap() };
+    push(); t.setPointerCapture(e.pointerId); root.dataset.ueResizing = rz.d;
+  });
+  sb.addEventListener('pointermove', (e) => {
+    if (!rz) return;
+    const dx = e.clientX - rz.x0, dy = e.clientY - rz.y0, el = elOf(ui, rz.id), d = rz.d, R = Math.round;
+    if (d === 'move') { el.x = R(rz.x + dx) || null; el.y = R(rz.y + dy) || null; }
+    else {
+      // Dragging the left / top edge keeps the opposite edge where it is.
+      if (d.includes('e')) el.w = Math.max(24, R(rz.w + dx / rz.z));
+      if (d.includes('w')) { el.w = Math.max(24, R(rz.w - dx / rz.z)); el.x = R(rz.x + (rz.w - el.w) * rz.z) || null; }
+      if (d.includes('s')) el.h = Math.max(24, R(rz.h + dy / rz.z));
+      if (d.includes('n')) { el.h = Math.max(24, R(rz.h - dy / rz.z)); el.y = R(rz.y + (rz.h - el.h) * rz.z) || null; }
+    }
+    apply();
+  });
+  function endRz() {
+    if (!rz) return;
+    const r = rz; rz = null; delete root.dataset.ueResizing;
+    tidy(ui, r.id);
+    if (snap() === r.snap) past.pop(); else save();
+    sync();
+  }
+  sb.addEventListener('pointerup', endRz); sb.addEventListener('pointercancel', endRz); sb.addEventListener('lostpointercapture', endRz);
+  sb.addEventListener('dblclick', (e) => {
+    const t = e.target.closest('[data-rz]'); if (!t || !sel) return;
+    e.preventDefault(); e.stopPropagation();
+    const id = sel.id, mv = t.dataset.rz === 'move';
+    commit((u) => { const el = u.els[id]; if (!el) return; if (mv) el.x = el.y = null; else { if (/[ew]/.test(t.dataset.rz)) el.w = el.x = null; if (/[ns]/.test(t.dataset.rz)) el.h = el.y = null; } tidy(u, id); });
+  });
 
   function place(box, n) {
     const r = n?.isConnected ? n.getBoundingClientRect() : null;

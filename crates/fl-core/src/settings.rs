@@ -289,6 +289,12 @@ pub struct UiEl {
     pub border_color: Option<String>,
     /// Shadow strength, 0–4.
     pub shadow: Option<u16>,
+    /// Box size set by dragging its edges, px.
+    pub w: Option<u16>,
+    pub h: Option<u16>,
+    /// Free offset from its place, px.
+    pub x: Option<i16>,
+    pub y: Option<i16>,
 }
 
 /// `(field, min, max, neutral)` for the per-element numbers above.
@@ -354,6 +360,10 @@ impl UiCustom {
             let b = u.els.entry(id.clone()).or_default();
             b.radius = e.radius.or(b.radius);
             b.scale = e.scale.or(b.scale);
+            b.w = e.w.or(b.w);
+            b.h = e.h.or(b.h);
+            b.x = e.x.or(b.x);
+            b.y = e.y.or(b.y);
             if e.hide.is_some() {
                 b.hide = e.hide;
             }
@@ -409,6 +419,10 @@ impl UiCustom {
             }
             e.radius = e.radius.map(|r| r.min(64));
             e.scale = e.scale.map(|s| s.clamp(50, 200));
+            e.w = e.w.map(|v| v.clamp(24, 4000));
+            e.h = e.h.map(|v| v.clamp(24, 4000));
+            e.x = e.x.map(|v| v.clamp(-4000, 4000)).filter(|v| *v != 0);
+            e.y = e.y.map(|v| v.clamp(-4000, 4000)).filter(|v| *v != 0);
             for c in [&mut e.bg, &mut e.border_color] {
                 if let Some(v) = c.as_mut() {
                     if !is_hex_color(v) {
@@ -491,6 +505,9 @@ mod tests {
         assert_eq!(u.size["btn"], 120);
         assert_eq!(u.els.keys().collect::<Vec<_>>(), ["home.recent"]);
         assert_eq!(u.order.keys().collect::<Vec<_>>(), ["nav"]);
+        let u = ok(json!({ "els": { "home.recent": { "w": 10, "h": 9000, "x": -5000, "y": 0 } } }));
+        let e = &u.els["home.recent"];
+        assert_eq!((e.w, e.h, e.x, e.y), (Some(24), Some(4000), Some(-4000), None));
         assert!(bad(json!({ "css": "x" })));
         assert!(bad(json!({ "els": { "x": { "bg": "red; x" } } })));
         assert!(bad(json!({ "els": { "x": { "border_color": "url(a)" } } })));

@@ -174,3 +174,45 @@ html[data-ue-dragging] .ue-sel .ue-tag { opacity: 0; }
 .ue-chip-hid { display: inline-flex; align-items: center; gap: 6px; }
 .ue-chip-hid svg { width: 13px; height: 13px; flex: none; opacity: .7; }
 .ue-chip-hid:hover svg { opacity: 1; color: var(--accent); }
+
+/* Resize handles and move grip on the selection */
+.ue-rz { position: absolute; z-index: 1; pointer-events: auto; touch-action: none; }
+.ue-rz-n, .ue-rz-s { left: 12px; right: 12px; height: 12px; cursor: ns-resize; }
+.ue-rz-n { top: -6px; } .ue-rz-s { bottom: -6px; }
+.ue-rz-e, .ue-rz-w { top: 12px; bottom: 12px; width: 12px; cursor: ew-resize; }
+.ue-rz-e { right: -6px; } .ue-rz-w { left: -6px; }
+.ue-rz-ne, .ue-rz-nw, .ue-rz-se, .ue-rz-sw { width: 14px; height: 14px; }
+.ue-rz-ne { top: -7px; right: -7px; cursor: nesw-resize; } .ue-rz-sw { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.ue-rz-nw { top: -7px; left: -7px; cursor: nwse-resize; } .ue-rz-se { bottom: -7px; right: -7px; cursor: nwse-resize; }
+.ue-rz::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; translate: -50% -50%;
+  border-radius: 2.5px; background: #fff; box-shadow: 0 0 0 1.5px var(--accent), 0 1px 3px rgba(0, 0, 0, .4);
+  transition: scale var(--d-2) var(--ease-out);
+}
+.ue-rz-n::after, .ue-rz-s::after { width: 18px; height: 5px; border-radius: 3px; }
+.ue-rz-e::after, .ue-rz-w::after { width: 5px; height: 18px; border-radius: 3px; }
+.ue-rz:hover::after, html[data-ue-resizing] .ue-rz::after { scale: 1.2; }
+.ue-sel[style*="width: 0"] .ue-rz, html[data-ue-dragging] .ue-rz, html[data-ue-dragging] .ue-grip { display: none; }
+.ue-grip {
+  position: absolute; right: -1px; bottom: calc(100% + 6px); width: 22px; height: 20px; padding: 0; display: grid; place-items: center;
+  border: 0; border-radius: 6px; background: var(--accent); color: var(--on-accent); cursor: grab; pointer-events: auto; touch-action: none;
+}
+.ue-grip svg { width: 13px; height: 13px; }
+.ue-grip:active, html[data-ue-resizing="move"] .ue-grip { cursor: grabbing; }
+.ue-sel[data-below] .ue-grip { bottom: auto; top: calc(100% + 6px); }
+html[data-ue-resizing] .ue-sel { transition: opacity var(--d-2) var(--ease-out); }
+html[data-ue-resizing] .ue-sel .ue-tag { opacity: 0; }
+html[data-ue-resizing] .app { user-select: none; }
+
+/* Floating: drag by the header, collapse to it */
+.ue-head { cursor: grab; touch-action: none; user-select: none; }
+.ue[data-moving] { transition: none; }
+.ue[data-moving] .ue-head { cursor: grabbing; }
+.ue-min svg { transition: transform var(--d-3) var(--ease-out); }
+.ue[data-min] .ue-min svg { transform: rotate(180deg); }
+.ue[data-min] > :not(.ue-head) { display: none; }
+.ue[data-min] .ue-head { padding-bottom: 10px; }
+
+/* Right-click menu while editing */
+.ue-ctx { z-index: 90; min-width: 210px; }
+.ue-ctx .menu-label { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
