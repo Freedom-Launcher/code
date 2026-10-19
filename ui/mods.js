@@ -103,7 +103,15 @@
     openInstance(id);
   });
 
+  // Coming back to the catalog keeps the page and the scroll position as long as
+  // the query is the same (Modrinth App behaviour); a changed query starts over.
+  let lastSig = '', lastTop = 0;
+  const mainEl = $('#view-discover').closest('.main');
+  mainEl?.addEventListener('scroll', () => { if (S.view === 'discover') lastTop = mainEl.scrollTop; }, { passive: true });
+  const sig = () => { const a = searchArgs(); delete a.offset; return JSON.stringify([a, hide, dworld, scope, paged() ? page : 0]); };
+
   function discover() {
+    const top = lastTop;
     paintScope();
     selectSeg($('#disc-kind'), kind);
     $('#disc-q').placeholder = KINDS[kind].search;
@@ -116,7 +124,16 @@
     paintLoaders();
     paintCats();
     paintVersions(); paintEnv(); paintChips();
-    paintWorlds().then(() => search(true));
+    paintWorlds().then(async () => {
+      const box = $('#disc-results');
+      if (lastSig && sig() === lastSig && box.children.length && !box.dataset.state) {
+        await refreshHave().catch(() => {});
+        markHave();
+        requestAnimationFrame(() => mainEl?.scrollTo({ top }));
+        return;
+      }
+      search(true);
+    });
   }
 
   async function paintWorlds() {
@@ -382,6 +399,7 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
     pages = Math.max(1, Math.ceil(total / per()));
     more.hidden = paged() || offset >= total;
     pager(total);
+    lastSig = sig();
     if (reset && typeof reset === 'number') $('#view-discover').closest('.main')?.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
