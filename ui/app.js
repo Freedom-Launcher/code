@@ -630,13 +630,16 @@ $('#mi-install').addEventListener('click', () => play(S.current, false));
 
 // ---------- Instance management: settings, folder, duplicate, delete ----------
 async function reloadInstances() { S.instances = await call('instances.list'); renderInstances(); }
+// Menu actions work on the right-clicked instance when invoked from the context menu,
+// otherwise on the open one: both menus share the same handlers.
+function actInst() { return S.ctxAct || S.current; }
 $('#mi-folder').addEventListener('click', () => {
   closeMenu();
-  invoke('open_instance_folder', { instance: S.current }).catch((e) => toast(String(e), { error: true }));
+  invoke('open_instance_folder', { instance: actInst() }).catch((e) => toast(String(e), { error: true }));
 });
 $('#mi-dup').addEventListener('click', async () => {
   closeMenu();
-  const src = S.current;
+  const src = actInst();
   try {
     const copy = await call('instances.duplicate', { instance: src });
     const cover = localStorage.getItem(`fl.cover.${src}`);
@@ -648,20 +651,28 @@ $('#mi-dup').addEventListener('click', async () => {
   } catch (e) { toast(String(e), { error: true }); }
 });
 $('#mi-del').addEventListener('click', () => {
-  const i = byId(S.current);
+  closeMenu();
+  const i = byId(actInst());
   if (!i) return;
+  $('#dlg-del').dataset.inst = i.id;
   $('#del-name').textContent = i.name;
   openDlg('dlg-del');
 });
 $('#dlg-del').addEventListener('submit', async (ev) => {
   ev.preventDefault();
-  const id = S.current;
+  const id = ev.currentTarget.dataset.inst || S.current;
   try {
     await run($('#del-submit'), 'instances.delete', { instance: id });
     for (const k of ['cover', 'cover-own', 'icon']) localStorage.removeItem(`fl.${k}.${id}`);
     closeDlg();
     $('#del-submit').dataset.state = 'idle';
     S.instances = await call('instances.list');
+    if (id !== S.current && byId(S.current)) {
+      renderRail();
+      if (S.view === 'home') renderHome();
+      toast('Сборка удалена');
+      return;
+    }
     const next = recent()[0];
     if (next) { S.current = next.id; localStorage.setItem('fl.current', next.id); } else localStorage.removeItem('fl.current');
     // The rail must be rebuilt, otherwise the deleted tile stays and leads nowhere.
@@ -672,7 +683,19 @@ $('#dlg-del').addEventListener('submit', async (ev) => {
 });
 // Right-click menu on instance cards/rows.
 const ctxInst = () => $('#menu-ctx-instance')._host?.dataset.inst;
-$('#cx-play').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(), true); });
+$('#menu-ctx-instance').addEventListener('ctx-open', (e) => {
+  const on = isRunning(e.detail.dataset.inst), b = $('#cx-play');
+  b.lastChild.textContent = on ? 'Остановить' : 'Играть';
+  b.querySelector('svg').innerHTML = on ? STOP_D : PLAY_D;
+});
+$('#cx-play').addEventListener('click', () => { FUI.closeMenu(); const id = ctxInst(); isRunning(id) ? stopGame(id) : play(id, true); });
+for (const [cx, mi] of [['cx-settings', 'mi-settings'], ['cx-folder', 'mi-folder'], ['cx-dup', 'mi-dup'], ['cx-export', 'mi-export'], ['cx-del', 'mi-del']]) {
+  $(`#${cx}`).addEventListener('click', () => {
+    FUI.closeMenu();
+    S.ctxAct = ctxInst();
+    try { $(`#${mi}`).click(); } finally { S.ctxAct = null; }
+  });
+}
 $('#cx-open').addEventListener('click', () => { FUI.closeMenu(); openInstance(ctxInst()); });
 $('#cx-verify').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(), false); });
 

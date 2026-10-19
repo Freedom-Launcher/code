@@ -326,7 +326,7 @@
   });
 
   // ---------- Entry points ----------
-  $('#mi-settings').addEventListener('click', () => { closeMenu(); open(S.current); });
+  $('#mi-settings').addEventListener('click', () => { closeMenu(); open(actInst()); });
   addEventListener('resize', placeInk);
   window.FInstSettings = { open, section };
 })();

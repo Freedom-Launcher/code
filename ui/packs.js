@@ -82,13 +82,15 @@
     });
     return b;
   }
+  let exInst = null;
   $('#mi-export').addEventListener('click', async () => {
     closeMenu();
+    exInst = actInst() || cur;
     const f = $('#dlg-export'), b = $('#ex-submit');
     delete f.dataset.done; $('#ex-done').hidden = true; label(b, 'Экспортировать'); b.disabled = true;
     $('#ex-list').replaceChildren(el('div', { class: 'disc-none' }, 'Загрузка…'));
     openDlg('dlg-export');
-    const r = await call('instances.export_candidates', { instance: cur }).catch((e) => { toast(String(e), { error: true }); return null; });
+    const r = await call('instances.export_candidates', { instance: exInst }).catch((e) => { toast(String(e), { error: true }); return null; });
     if (!r) return;
     $('#ex-name').value = r.name; $('#ex-ver').value = r.version;
     picked = new Set(r.candidates.filter((c) => c.selected).map((c) => c.path));
@@ -105,7 +107,7 @@
     }
     b.disabled = true; b.dataset.state = 'loading';
     try {
-      const r = await call('instances.export', { instance: cur, paths: [...picked], name: $('#ex-name').value, version: $('#ex-ver').value });
+      const r = await call('instances.export', { instance: exInst, paths: [...picked], name: $('#ex-name').value, version: $('#ex-ver').value });
       f.dataset.done = '1';
       $('#ex-done').replaceChildren(el('b', {}, r.file), el('span', {}, `${r.linked} с Modrinth · ${r.bundled} в архиве`));
       $('#ex-done').hidden = false;
