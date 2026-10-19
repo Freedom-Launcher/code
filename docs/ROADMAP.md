@@ -11,6 +11,15 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Grouped settings, statistics, drag and drop (0.3.5)
+
+- Settings rebuilt after Modrinth App's settings modal (`ui/settings.js`, `ui/settings.css`): a side nav grouped into Оформление (Внешний вид, Обои и стекло, Интерфейс), Игра (Параметры сборок, Статистика) and Система (Плагины, Клавиши, О лаунчере), with a sliding marker; each topic is a card with a label. Cards whose rows are all hidden disappear.
+- Settings search: `/` focuses it, results filter rows across all sections, Enter jumps to the first match. Every single setting is also in Ctrl K (only when typing); picking one opens its section, scrolls to the row and highlights it.
+- «Статистика»: total time in game, instance count, launched this week, most played instances with bars (from `playtime_secs` / `last_played`).
+- «Клавиши»: every shortcut in one list. «О лаунчере»: version, link to all releases, updates.
+- Drag and drop from the file manager (Tauri `onDragDropEvent`, `ui/drop.js`): a `.mrpack` anywhere imports a modpack; other files on an instance page go into its open content section (`drop_content`), with an overlay that says what will happen.
+- Old pane names keep working: `launcher` opens «Внешний вид», `addons` stays «Плагины».
+
 ## Content tab like Modrinth App (0.3.4)
 
 - Instance «Контент» tab rebuilt after Modrinth App's content page (`ui/content.js`, `ui/content-ops.js`, `ui/content.css`): search over title, file, author and version; sort A–Я / Я–А / newest / oldest / author / size and by the version column, remembered per instance; quick pills Все / Обновления / Включённые / Выключенные.
