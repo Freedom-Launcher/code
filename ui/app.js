@@ -270,7 +270,9 @@ function coverStrip(i, after) {
   return out;
 }
 function renderRail() {
-  const list = [...S.instances].sort((a, b) => a.created_at - b.created_at);
+  // Hidden instances leave the rail too (unless open); pinned ones come first.
+  const hid = new Set(JSON.parse(localStorage.getItem('fl.lib.hidden') || '[]')), pin = new Set(JSON.parse(localStorage.getItem('fl.lib.pin') || '[]'));
+  const list = S.instances.filter((i) => !hid.has(i.id) || i.id === S.current).sort((a, b) => pin.has(b.id) - pin.has(a.id) || a.created_at - b.created_at);
   $('#rail-list').replaceChildren(...list.map((i) => {
     const t = bg(el('button', {
       class: 'tile', 'data-inst': i.id, 'data-ctx': 'menu-ctx-instance', 'data-tip': i.name,

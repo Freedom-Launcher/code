@@ -105,3 +105,19 @@ html[data-motion="on"] .lib-g .hcard { animation: fl-card-in 360ms var(--ease-ou
 .grp-chips .chip:hover { background: var(--surface-3); color: var(--text); }
 .lib-bar .dd-btn.field { width: auto; flex: none; min-width: 156px; }
 .lib-bar .lib-q .field { flex: none; }
+
+/* Library: pinned, hidden, drag to reorder or regroup. */
+.hcard { position: relative; user-select: none; -webkit-user-drag: none; }
+.hcard > .pin { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(0, 0, 0, .5); color: #fff; backdrop-filter: blur(8px); }
+.hcard > .pin svg { width: 13px; height: 13px; }
+.hcard.is-hid { opacity: .5; }
+.hcard.is-dragging { opacity: .3; }
+.hcard.is-over::before { content: ""; position: absolute; top: 4px; left: -10px; width: 3px; aspect-ratio: auto; height: calc(100% - 8px); border-radius: 2px; background: var(--accent); }
+.hcard.is-over.is-after::before { left: auto; right: -10px; }
+.lib-g { border-radius: var(--r-card); transition: background-color var(--d-3, .16s) ease, box-shadow var(--d-3, .16s) ease; }
+.lib-g.is-over { background: var(--accent-soft); box-shadow: 0 0 0 8px var(--accent-soft); }
+.lib-ghost { position: fixed; left: 0; top: 0; z-index: 80; pointer-events: none; opacity: .94; animation: none !important; transition: none; }
+.lib-ghost > i { box-shadow: var(--shadow-pop); }
+.lib-hid { height: 32px; }
+.lib-hid[hidden] { display: none; }
+.lib-hid[aria-pressed="true"] { color: var(--accent); }
