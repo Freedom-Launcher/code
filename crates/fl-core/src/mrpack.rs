@@ -186,8 +186,9 @@ pub fn extract_overrides<R: Read + Seek>(
             if let Some(p) = dest.parent() {
                 std::fs::create_dir_all(p)?;
             }
-            let mut out = std::fs::File::create(&dest)?;
+            let mut out = std::io::BufWriter::with_capacity(1 << 20, std::fs::File::create(&dest)?);
             total += std::io::copy(&mut e.by_ref().take(MAX_OVERRIDES - total + 1), &mut out)?;
+            std::io::Write::flush(&mut out)?;
             if total > MAX_OVERRIDES {
                 return Err(bad("Сборка слишком большая"));
             }
@@ -214,12 +215,21 @@ pub fn stage_file(data_dir: &Path, src: &Path) -> Result<String, CoreError> {
     if len > MAX_PACK_FILE || f.read_exact(&mut magic).is_err() || &magic != b"PK\x03\x04" {
         return Err(bad("Это не сборка Modrinth (.mrpack)"));
     }
+    // A pack picked from disk is read in place: copying a 9 GB pack doubled disk use
+    // and wrote gigabytes for nothing. Only a small pointer file goes under `imports/`.
     let (token, dest) = new_staged(data_dir)?;
-    let mut tmp = dest.as_os_str().to_owned();
-    tmp.push(".part");
-    std::fs::copy(src, &tmp)?;
-    std::fs::rename(&tmp, &dest)?;
+    let abs = std::fs::canonicalize(src)?;
+    std::fs::write(dest.with_extension("ref"), abs.to_string_lossy().as_bytes())?;
     Ok(token)
+}
+
+/// Forgets a staged pack. Deletes only what lives under `imports/`, never the user's own file.
+pub fn release(data_dir: &Path, token: &str) {
+    if let Ok(id) = uuid::Uuid::parse_str(token) {
+        let base = data_dir.join("imports").join(id.to_string());
+        let _ = std::fs::remove_file(base.with_extension("mrpack"));
+        let _ = std::fs::remove_file(base.with_extension("ref"));
+    }
 }
 
 /// A fresh token and the path its pack will live at.
@@ -234,7 +244,11 @@ pub fn new_staged(data_dir: &Path) -> Result<(String, PathBuf), CoreError> {
 
 pub fn staged(data_dir: &Path, token: &str) -> Result<PathBuf, CoreError> {
     let id = uuid::Uuid::parse_str(token).map_err(|_| bad("bad import token"))?;
-    Ok(data_dir.join("imports").join(format!("{id}.mrpack")))
+    let base = data_dir.join("imports").join(id.to_string());
+    if let Ok(src) = std::fs::read_to_string(base.with_extension("ref")) {
+        return Ok(PathBuf::from(src));
+    }
+    Ok(base.with_extension("mrpack"))
 }
 #[cfg(test)]
 mod tests {
@@ -396,6 +410,11 @@ mod tests {
         std::fs::write(&src, b"PK\x03\x04more").unwrap();
         let t2 = stage_file(&d, &src).unwrap();
         assert_eq!(std::fs::read(staged(&d, &t2).unwrap()).unwrap(), b"PK\x03\x04more");
+        release(&d, &t2);
+        assert!(src.exists(), "the user's own pack must survive release");
+        assert!(!d.join("imports").join(format!("{t2}.ref")).exists());
+        release(&d, &t);
+        assert!(!staged(&d, &t).unwrap().exists());
         std::fs::write(&src, b"nope").unwrap();
         assert!(stage_file(&d, &src).is_err());
         std::fs::remove_dir_all(&d).unwrap();

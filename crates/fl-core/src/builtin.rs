@@ -959,7 +959,7 @@ fn register_import(r: &mut ActionRegistry) {
             let A { token } = args(a)?;
             let path = mrpack::staged(&c.data_dir, &token)?;
             let res = import_mrpack(&c, &token, &path, None).await;
-            let _ = std::fs::remove_file(&path);
+            mrpack::release(&c.data_dir, &token);
             res
         },
     );
