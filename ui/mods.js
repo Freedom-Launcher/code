@@ -544,6 +544,14 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
   $('#disc-target').addEventListener('change', (e) => { target = e.target.value || null; paintLoaders(); paintVersions(); paintChips(); paintWorlds().then(() => search(true)); });
   $('#disc-world').addEventListener('change', (e) => { dworld = e.target.value; search(true); });
   $('#disc-sort').addEventListener('change', (e) => { sort = e.target.value; search(true); });
+  // Grid or list, remembered between sessions.
+  const paintView = (v) => {
+    $('#disc-results').dataset.view = v;
+    $$('#disc-view > button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.v === v)));
+    requestAnimationFrame(() => $('#disc-view')._place?.(false));
+  };
+  paintView(localStorage.getItem('fl.disc.view') === 'list' ? 'list' : 'grid');
+  $('#disc-view').addEventListener('seg:change', (e) => { const v = e.detail.dataset.v; localStorage.setItem('fl.disc.view', v); paintView(v); });
   $('#disc-hide').addEventListener('change', (e) => { hide = e.target.checked; search(true); });
   $('#disc-reset').addEventListener('click', resetAll);
   initFilters();
