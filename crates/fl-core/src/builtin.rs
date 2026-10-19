@@ -601,24 +601,39 @@ async fn fetch_pack(c: &Core, v: &modrinth::Version) -> Result<std::path::PathBu
         .find(|f| f.primary)
         .or_else(|| v.files.iter().find(is_pack))
         .ok_or_else(|| CoreError::msg("В этой версии нет файла сборки"))?;
-    if !f.url.starts_with("https://cdn.modrinth.com/") || f.size as usize > mrpack::MAX_PACK {
+    if !f.url.starts_with("https://cdn.modrinth.com/") || f.size as u64 > mrpack::MAX_PACK_FILE {
         return Err(CoreError::msg("Файл сборки не прошёл проверку"));
     }
-    let bytes = c
-        .http()
-        .get(&f.url)
-        .send()
-        .await?
-        .error_for_status()?
-        .bytes()
-        .await?;
-    if !f.hashes.sha1.is_empty()
-        && !crate::game::download::sha1_hex(&bytes).eq_ignore_ascii_case(&f.hashes.sha1)
-    {
+    // Streamed to disk: big packs never sit in memory.
+    use sha1::Digest;
+    use std::io::Write;
+    let mut resp = c.http().get(&f.url).send().await?.error_for_status()?;
+    let (_, dest) = mrpack::new_staged(&c.data_dir)?;
+    let mut tmp = dest.as_os_str().to_owned();
+    tmp.push(".part");
+    let tmp = std::path::PathBuf::from(tmp);
+    let mut out = std::io::BufWriter::new(std::fs::File::create(&tmp)?);
+    let mut h = sha1::Sha1::new();
+    let mut got: u64 = 0;
+    while let Some(chunk) = resp.chunk().await? {
+        got += chunk.len() as u64;
+        if got > mrpack::MAX_PACK_FILE {
+            drop(out);
+            let _ = std::fs::remove_file(&tmp);
+            return Err(CoreError::msg("Файл сборки не прошёл проверку"));
+        }
+        h.update(&chunk);
+        out.write_all(&chunk)?;
+    }
+    out.flush()?;
+    drop(out);
+    let sum: String = h.finalize().iter().map(|b| format!("{b:02x}")).collect();
+    if !f.hashes.sha1.is_empty() && !sum.eq_ignore_ascii_case(&f.hashes.sha1) {
+        let _ = std::fs::remove_file(&tmp);
         return Err(CoreError::msg("Файл сборки повреждён, попробуйте ещё раз"));
     }
-    let staged = mrpack::stage(&c.data_dir, &bytes)?;
-    mrpack::staged(&c.data_dir, &staged)
+    std::fs::rename(&tmp, &dest)?;
+    Ok(dest)
 }
 
 /// Pack versions an instance can move to: same loader (any for vanilla), newest first.

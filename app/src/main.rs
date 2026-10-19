@@ -340,12 +340,8 @@ async fn pick_mrpack(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) ->
 }
 
 fn stage_mrpack_file(data_dir: &std::path::Path, path: &std::path::Path) -> Result<String, String> {
-    let len = std::fs::metadata(path).map_err(|e| format!("Не удалось открыть файл: {e}"))?.len();
-    if len as usize > fl_core::mrpack::MAX_PACK {
-        return Err("Сборка больше 512 МБ".into());
-    }
-    let bytes = std::fs::read(path).map_err(|e| format!("Не удалось прочитать файл: {e}"))?;
-    fl_core::mrpack::stage(data_dir, &bytes).map_err(|e| e.to_string())
+    std::fs::metadata(path).map_err(|e| format!("Не удалось открыть файл: {e}"))?;
+    fl_core::mrpack::stage_file(data_dir, path).map_err(|e| e.to_string())
 }
 
 /// Stages a `.mrpack` dropped onto the window (path from the drag-drop event).

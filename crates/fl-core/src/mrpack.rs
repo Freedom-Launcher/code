@@ -22,8 +22,10 @@ const HOSTS: &[&str] = &[
 ];
 /// Cap for unpacked overrides, against zip bombs.
 const MAX_OVERRIDES: u64 = 4 << 30;
-/// Largest pack file accepted from the UI.
+/// Largest pack held in memory (the browser fallback upload).
 pub const MAX_PACK: usize = 512 << 20;
+/// Largest pack file staged from disk or downloaded; the file is streamed, never read whole.
+pub const MAX_PACK_FILE: u64 = 32 << 30;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -204,6 +206,32 @@ pub fn stage(data_dir: &Path, bytes: &[u8]) -> Result<String, CoreError> {
     Ok(token)
 }
 
+/// Copies a pack from disk under `imports/` without loading it into memory.
+pub fn stage_file(data_dir: &Path, src: &Path) -> Result<String, CoreError> {
+    let mut f = std::fs::File::open(src)?;
+    let len = f.metadata()?.len();
+    let mut magic = [0u8; 4];
+    if len > MAX_PACK_FILE || f.read_exact(&mut magic).is_err() || &magic != b"PK\x03\x04" {
+        return Err(bad("Это не сборка Modrinth (.mrpack)"));
+    }
+    let (token, dest) = new_staged(data_dir)?;
+    let mut tmp = dest.as_os_str().to_owned();
+    tmp.push(".part");
+    std::fs::copy(src, &tmp)?;
+    std::fs::rename(&tmp, &dest)?;
+    Ok(token)
+}
+
+/// A fresh token and the path its pack will live at.
+pub fn new_staged(data_dir: &Path) -> Result<(String, PathBuf), CoreError> {
+    let token = uuid::Uuid::new_v4().to_string();
+    let path = staged(data_dir, &token)?;
+    if let Some(d) = path.parent() {
+        std::fs::create_dir_all(d)?;
+    }
+    Ok((token, path))
+}
+
 pub fn staged(data_dir: &Path, token: &str) -> Result<PathBuf, CoreError> {
     let id = uuid::Uuid::parse_str(token).map_err(|_| bad("bad import token"))?;
     Ok(data_dir.join("imports").join(format!("{id}.mrpack")))
@@ -364,6 +392,12 @@ mod tests {
         let t = stage(&d, b"PK\x03\x04rest").unwrap();
         assert!(staged(&d, &t).unwrap().exists());
         assert!(staged(&d, "../../x").is_err());
+        let src = d.join("big.mrpack");
+        std::fs::write(&src, b"PK\x03\x04more").unwrap();
+        let t2 = stage_file(&d, &src).unwrap();
+        assert_eq!(std::fs::read(staged(&d, &t2).unwrap()).unwrap(), b"PK\x03\x04more");
+        std::fs::write(&src, b"nope").unwrap();
+        assert!(stage_file(&d, &src).is_err());
         std::fs::remove_dir_all(&d).unwrap();
     }
 }
