@@ -1614,6 +1614,15 @@ fn content_loaders(i: &Instance, kind: Kind) -> Result<Vec<&'static str>, CoreEr
     })
 }
 
+/// Mods are loaded once at start and their jars stay open, so changing them waits for the
+/// game to close. Resource packs, shaders and datapacks are picked up live.
+fn idle_kind(c: &Core, i: &Instance, kind: Kind) -> Result<(), CoreError> {
+    if kind == Kind::Mod {
+        idle(c, i)?;
+    }
+    Ok(())
+}
+
 fn idle(c: &Core, i: &Instance) -> Result<(), CoreError> {
     if c.game_running.is_busy(&i.id) {
         return Err(CoreError::msg("Сначала закройте игру"));
@@ -1789,7 +1798,6 @@ fn register_mods(r: &mut ActionRegistry) {
             let a: A = args(a)?;
             let i = instance_by_id(&c, &a.instance)?;
             let loaders = content_loaders(&i, a.kind)?;
-            idle(&c, &i)?;
             let gd = content_root(&c, &i, a.kind, a.world.as_deref())?;
             let t = mods::Target {
                 game_dir: &gd,
@@ -1810,7 +1818,7 @@ fn register_mods(r: &mut ActionRegistry) {
             world,
         } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
-        idle(&c, &i)?;
+        idle_kind(&c, &i, kind)?;
         let root = content_root(&c, &i, kind, world.as_deref())?;
         mods::set_enabled(&root, kind, &file, enabled)?;
         Ok(json!({ "file": file, "enabled": enabled }))
@@ -1824,7 +1832,7 @@ fn register_mods(r: &mut ActionRegistry) {
             ..
         } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
-        idle(&c, &i)?;
+        idle_kind(&c, &i, kind)?;
         mods::remove(&content_root(&c, &i, kind, world.as_deref())?, kind, &file)?;
         Ok(json!({ "file": file }))
     });
@@ -1875,7 +1883,7 @@ fn register_mods(r: &mut ActionRegistry) {
         let a: A = args(a)?;
         let i = instance_by_id(&c, &a.instance)?;
         let loaders = content_loaders(&i, a.kind)?;
-        idle(&c, &i)?;
+        idle_kind(&c, &i, a.kind)?;
         let gd = content_root(&c, &i, a.kind, a.world.as_deref())?;
         let t = mods::Target {
             game_dir: &gd,
@@ -1931,7 +1939,6 @@ fn register_mods(r: &mut ActionRegistry) {
         }
         let a: A = args(a)?;
         let i = instance_by_id(&c, &a.instance)?;
-        idle(&c, &i)?;
         let root = content_root(&c, &i, a.kind, a.world.as_deref())?;
         let paths: Vec<std::path::PathBuf> = a.paths.iter().map(std::path::PathBuf::from).collect();
         let added = mods::add_files(&root, a.kind, &paths)?;
@@ -1977,7 +1984,7 @@ fn register_mods(r: &mut ActionRegistry) {
         } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
         let loaders = content_loaders(&i, kind)?;
-        idle(&c, &i)?;
+        idle_kind(&c, &i, kind)?;
         let gd = content_root(&c, &i, kind, world.as_deref())?;
         let t = mods::Target {
             game_dir: &gd,
