@@ -704,6 +704,29 @@ fn tray(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Writes every panic to `<data>/logs/crash-<unix>.log`. With `panic = "unwind"`
+/// a failed background task ends alone and the launcher (and the game) keep running.
+fn crash_log_hook(dir: std::path::PathBuf) {
+    let prev = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let thread = std::thread::current();
+        let text = format!(
+            "Freedom Launcher {}\nthread: {}\n{}\n\n{}\n",
+            env!("CARGO_PKG_VERSION"),
+            thread.name().unwrap_or("?"),
+            info,
+            std::backtrace::Backtrace::force_capture()
+        );
+        let _ = std::fs::create_dir_all(&dir);
+        let _ = std::fs::write(dir.join(format!("crash-{now}.log")), text);
+        prev(info);
+    }));
+}
+
 fn main() {
     let started = Instant::now();
     let safe_mode = std::env::args().any(|a| a == "--safe") || shift_held();
@@ -732,6 +755,7 @@ fn main() {
         .setup(move |app| {
             tray(app)?;
             let data_dir = app.path().app_data_dir()?;
+            crash_log_hook(data_dir.join("logs"));
             let core = Core::new(data_dir, started, safe_mode)?;
             app.manage(AppCore(core));
             if safe_mode {

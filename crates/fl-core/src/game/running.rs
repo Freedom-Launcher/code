@@ -42,7 +42,7 @@ fn reap(g: &mut Inner) {
 
 impl Running {
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
-        self.inner.lock().expect("running lock")
+        self.inner.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     /// Reserves the instance for a launch; `false` if it is starting or running.
