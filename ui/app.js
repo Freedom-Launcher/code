@@ -82,6 +82,7 @@ function show(view) {
   if (view === 'create') prepareCreate();
   if (view === 'accounts') { renderAccountsPage(); loadProviders(); }
   if (view === 'discover') window.FMods?.discover();
+  if (view === 'skins') window.FSkins?.shown();
   window.FNav?.note();
 }
 // A finished install or import opens the instance only if the user is still waiting on

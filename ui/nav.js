@@ -85,6 +85,7 @@
       }
       case 'settings': return [{ t: 'Настройки', go: () => go({ view: 'settings', sub: 'look' }) }, { t: label('#set-seg', 'pane', e.sub) }];
       case 'accounts': return [{ t: 'Аккаунты' }];
+      case 'skins': return [{ t: 'Скины' }];
       default: return [lib];
     }
   }

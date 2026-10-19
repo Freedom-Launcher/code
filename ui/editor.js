@@ -12,7 +12,7 @@
     rail: 'Боковая панель', 'rail.logo': 'Логотип', 'rail.instances': 'Сборки в панели', topbar: 'Верхняя панель', main: 'Основная область',
     'instance.hero': 'Обложка сборки', 'instance.tabs': 'Вкладки сборки', 'instance.content.kind': 'Типы контента', 'discover.filters': 'Фильтры',
     'discover.kind': 'Типы контента', 'project.header': 'Шапка проекта', 'project.sidebar': 'Панель проекта', 'project.tabs': 'Вкладки проекта',
-    'view.home': 'Библиотека', 'view.instance': 'Сборка', 'view.discover': 'Каталог', 'view.create': 'Новая сборка', 'view.accounts': 'Аккаунты', 'view.project': 'Проект',
+    'view.home': 'Библиотека', 'view.instance': 'Сборка', 'view.discover': 'Каталог', 'view.create': 'Новая сборка', 'view.accounts': 'Аккаунты', 'view.project': 'Проект', 'view.skins': 'Скины',
   };
   const FIXED_IDS = new Set(['home.all', 'home.recent', 'rail.instances']);
   const FIXED = (p) => FIXED_IDS.has(p.dataset.id) || p.hasAttribute('data-ue-fixed');

@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="nav.css">
   <link rel="stylesheet" href="editor.css">
   <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="skins.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
   <script src="ui.js" defer></script>
   <script src="dropdown.js" defer></script>
@@ -60,6 +61,7 @@
   <script src="drop.js" defer></script>
   <script src="nav.js" defer></script>
   <script src="motion.js" defer></script>
+  <script src="skins.js" defer></script>
 </head>
 <body>
   <div id="app" class="app" data-id="app" hidden>
@@ -77,6 +79,9 @@
       <div class="rail-grow"></div>
       <button class="rail-btn" data-view="discover" data-tip="Каталог" data-id="rail.discover" aria-label="Каталог">
         <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="m10.2 5.8-1.4 3-3 1.4 1.4-3z"/></svg>
+      </button>
+      <button class="rail-btn" data-view="skins" data-tip="Скины" data-id="rail.skins" aria-label="Скины">
+        <svg viewBox="0 0 16 16"><path d="M5.6 2.5 2.4 4.4l1.3 2.5 1.6-.7v7.3h5.4V6.2l1.6.7 1.3-2.5-3.2-1.9c-.4 1-1.3 1.6-2.4 1.6s-2-.6-2.4-1.6z"/></svg>
       </button>
       <button class="rail-btn" data-view="settings" data-tip="Настройки" data-id="rail.settings" aria-label="Настройки">
         <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.7M8 12.5v1.7M1.8 8h1.7M12.5 8h1.7M3.6 3.6l1.2 1.2M11.2 11.2l1.2 1.2M3.6 12.4l1.2-1.2M11.2 4.8l1.2-1.2"/></svg>
@@ -276,6 +281,28 @@
             <button class="btn btn-ghost" data-view="settings" data-pane="addons" data-id="accounts.add.provider"><span class="lbl">Сторонний сервис</span></button>
           </div>
           <div data-slot="accounts.end"></div>
+        </div>
+      </section>
+      <section class="view" id="view-skins" data-id="view.skins">
+        <div class="narrow skins" data-id="skins.page">
+          <h1 class="page-h">Скины</h1>
+          <div class="sk-empty" id="sk-empty" data-id="skins.empty" hidden><p id="sk-empty-t"></p><button class="btn btn-primary" data-open="dlg-login"><span class="lbl">Войти через Microsoft</span></button></div>
+          <div class="sk-body" id="sk-body">
+            <div class="sk-main" data-id="skins.current">
+              <div class="sk-stage"><img id="sk-front" alt="" draggable="false"></div>
+              <div class="sk-side">
+                <div class="sk-name" id="sk-name"></div>
+                <div class="seg" id="sk-variant" data-id="skins.variant" aria-label="Модель рук"><button type="button" data-v="classic" aria-selected="true">Классическая</button><button type="button" data-v="slim">Тонкая</button></div>
+                <div class="sk-acts"><button class="btn btn-primary" id="sk-upload" type="button"><span class="lbl">Загрузить скин</span></button><button class="btn btn-ghost" id="sk-reset" type="button"><span class="lbl">Сбросить</span></button></div>
+              </div>
+            </div>
+            <h2 class="sk-h" id="sk-saved-h">Сохранённые</h2>
+            <div class="sk-grid" id="sk-saved" data-id="skins.saved"></div>
+            <h2 class="sk-h" id="sk-capes-h">Плащ</h2>
+            <div class="sk-grid capes" id="sk-capes" data-id="skins.capes"></div>
+          </div>
+          <input type="file" id="sk-file" accept="image/png" hidden>
+          <div data-slot="skins.end"></div>
         </div>
       </section>
       <section class="view" id="view-discover" data-id="view.discover">

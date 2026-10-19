@@ -55,6 +55,7 @@
     });
     add('go', 'go.home', 'Библиотека', 'home', () => show('home'), { k: 'библиотека главная домой сборки library home' });
     add('go', 'go.create', 'Новая сборка', 'plus', () => show('create'), { k: 'создать new instance', keys: [MOD, 'N'] });
+    add('go', 'go.skins', 'Скины', 'user', () => show('skins'), { k: 'скины скин плащ модель рук skin skins cape' });
     add('go', 'go.discover', 'Каталог', 'compass', () => show('discover'), { k: 'каталог обзор моды сборки модпаки ресурспаки шейдеры датапаки modrinth browse mods modpacks' });
     add('go', 'go.accounts', 'Аккаунты', 'user', () => show('accounts'), { k: 'профиль вход microsoft account login' });
     [['look', 'Внешний вид', 'тема оформление раскладка анимации theme'], ['wall', 'Обои и стекло', 'фон картинка прозрачность wallpaper glass'],
