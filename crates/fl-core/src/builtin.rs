@@ -312,6 +312,52 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             "data_url": png.map(|p| format!("data:image/png;base64,{}", crate::skins::b64_encode(&p)))
         }))
     });
+    // Skins page: the official Minecraft services API for the account's own profile.
+    r.register("skins.profile", P::AccountsRead, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { id: String }
+        let A { id } = args(a)?;
+        crate::skins::profile(&c, &id).await
+    });
+    r.register("skins.upload", P::AccountsManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { id: String, variant: String, data: String }
+        let A { id, variant, data } = args(a)?;
+        let b64 = data.rsplit(',').next().unwrap_or_default();
+        let png = crate::skins::b64_decode(b64).ok_or_else(|| CoreError::BadArgs("bad image".into()))?;
+        crate::skins::upload(&c, &id, &variant, &png).await
+    });
+    r.register("skins.use", P::AccountsManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { id: String, name: String }
+        let A { id, name } = args(a)?;
+        crate::skins::use_saved(&c, &id, &name).await
+    });
+    r.register("skins.variant", P::AccountsManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { id: String, variant: String }
+        let A { id, variant } = args(a)?;
+        crate::skins::set_variant(&c, &id, &variant).await
+    });
+    r.register("skins.reset", P::AccountsManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { id: String }
+        let A { id } = args(a)?;
+        crate::skins::reset(&c, &id).await
+    });
+    r.register("skins.cape", P::AccountsManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { id: String, cape: Option<String> }
+        let A { id, cape } = args(a)?;
+        crate::skins::set_cape(&c, &id, cape.as_deref()).await
+    });
+    r.register("skins.forget", P::AccountsManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { name: String }
+        let A { name } = args(a)?;
+        crate::skins::forget_saved(&c, &name)?;
+        Ok(json!({ "ok": true }))
+    });
     r.register(
         "accounts.select",
         P::AccountsManage,

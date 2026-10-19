@@ -7,7 +7,7 @@
 
 use std::{fs, time::Duration};
 
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{
     accounts::{Account, AccountKind},
@@ -112,6 +112,198 @@ pub fn session_skin(v: &Value) -> Option<String> {
     t["textures"]["SKIN"]["url"].as_str().map(str::to_owned)
 }
 
+// ---------- Changing the skin (official Minecraft services API) ----------
+
+const TEX_HOST: &str = "https://textures.minecraft.net/";
+
+/// A valid Minecraft token for the account, refreshed (and saved) when it is about to expire.
+async fn token(core: &Core, id: &str) -> Result<(Account, String), CoreError> {
+    let path = core.path("accounts.json");
+    let mut s = crate::accounts::load_store(&path)?;
+    let acc = s.accounts.iter_mut().find(|a| a.id == id)
+        .ok_or_else(|| CoreError::BadArgs("unknown account".into()))?;
+    if acc.kind != AccountKind::Microsoft {
+        return Err(CoreError::msg("Скин меняется только у аккаунта Microsoft"));
+    }
+    let sec = acc.secrets.clone().ok_or_else(|| CoreError::msg("Войдите через Microsoft снова"))?;
+    if sec.mc_expires_at > unix_now() + 60 {
+        return Ok((acc.clone(), sec.mc_access_token));
+    }
+    let fresh = msauth::refresh(core, &sec.refresh_token).await?;
+    acc.name = fresh.name;
+    acc.owns_game = fresh.owns_game;
+    acc.secrets = fresh.secrets;
+    let t = acc.secrets.as_ref().map(|x| x.mc_access_token.clone()).unwrap_or_default();
+    let out = acc.clone();
+    crate::accounts::save_store(&path, &s)?;
+    Ok((out, t))
+}
+
+fn data_url(png: &[u8]) -> String { format!("data:image/png;base64,{}", b64_encode(png)) }
+
+async fn png_at(core: &Core, url: &str) -> Option<Vec<u8>> {
+    let url = url.replacen("http://", "https://", 1);
+    if !url.starts_with(TEX_HOST) { return None; }
+    let b = core.http().get(&url).send().await.ok()?.error_for_status().ok()?.bytes().await.ok()?;
+    b.starts_with(b"\x89PNG").then(|| b.to_vec())
+}
+
+/// Width and height from the PNG header.
+pub fn png_size(b: &[u8]) -> Option<(u32, u32)> {
+    if b.len() < 24 || !b.starts_with(b"\x89PNG\r\n\x1a\n") || &b[12..16] != b"IHDR" { return None; }
+    Some((u32::from_be_bytes(b[16..20].try_into().ok()?), u32::from_be_bytes(b[20..24].try_into().ok()?)))
+}
+
+pub fn check_skin(b: &[u8]) -> Result<(), CoreError> {
+    match png_size(b) {
+        Some((64, 64) | (64, 32)) => Ok(()),
+        Some(_) => Err(CoreError::msg("Скин должен быть 64×64 или 64×32")),
+        None => Err(CoreError::msg("Нужна картинка PNG")),
+    }
+}
+
+/// `multipart/form-data` body for the upload (reqwest is built without multipart).
+pub fn multipart(variant: &str, png: &[u8]) -> (String, Vec<u8>) {
+    let b = format!("fl{}", uuid::Uuid::new_v4().simple());
+    let mut body = format!("--{b}\r\nContent-Disposition: form-data; name=\"variant\"\r\n\r\n{variant}\r\n--{b}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"skin.png\"\r\nContent-Type: image/png\r\n\r\n").into_bytes();
+    body.extend_from_slice(png);
+    body.extend_from_slice(format!("\r\n--{b}--\r\n").as_bytes());
+    (format!("multipart/form-data; boundary={b}"), body)
+}
+
+/// Saved skins live in `skins/<variant>-<16hex>.png`, like the Modrinth App skin library.
+pub fn valid_name(n: &str) -> bool {
+    let Some(rest) = n.strip_prefix("classic-").or_else(|| n.strip_prefix("slim-")) else { return false };
+    rest.len() == 20 && rest.ends_with(".png") && rest[..16].bytes().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+}
+
+fn lib_dir(core: &Core) -> std::path::PathBuf { core.data_dir.join("skins") }
+
+fn keep(core: &Core, variant: &str, png: &[u8]) -> Result<String, CoreError> {
+    use sha1::Digest;
+    let h: String = sha1::Sha1::digest(png).iter().map(|b| format!("{b:02x}")).collect();
+    let name = format!("{variant}-{}.png", &h[..16]);
+    let path = lib_dir(core).join(&name);
+    if !path.exists() { crate::game::download::write_atomic(&path, png)?; }
+    Ok(name)
+}
+
+fn saved(core: &Core) -> Vec<Value> {
+    let mut v: Vec<_> = fs::read_dir(lib_dir(core)).into_iter().flatten().flatten()
+        .filter_map(|e| {
+            let n = e.file_name().to_string_lossy().into_owned();
+            let t = e.metadata().and_then(|m| m.modified()).ok()?;
+            valid_name(&n).then_some((t, n))
+        }).collect();
+    v.sort_by(|a, b| b.0.cmp(&a.0));
+    v.into_iter().take(48).filter_map(|(_, n)| {
+        let png = fs::read(lib_dir(core).join(&n)).ok()?;
+        Some(json!({ "name": n, "variant": n.split('-').next(), "img": data_url(&png) }))
+    }).collect()
+}
+
+async fn ok(r: reqwest::Response) -> Result<(), CoreError> {
+    match r.status().as_u16() {
+        200..=299 => Ok(()),
+        429 => Err(CoreError::msg("Слишком много изменений подряд, подождите минуту")),
+        401 | 403 => Err(CoreError::msg("Войдите через Microsoft снова")),
+        400 => Err(CoreError::msg("Mojang не принял этот скин")),
+        s => Err(CoreError::msg(format!("Сервис скинов ответил {s}"))),
+    }
+}
+
+/// Drops the cached head so the chip and menu pick up the new skin.
+fn forget_head(core: &Core, acc: &Account) {
+    let _ = fs::remove_file(core.data_dir.join("cache").join("skins").join(format!("{}.png", acc.uuid.replace('-', ""))));
+}
+fn api(path: &str) -> String { format!("{}{path}", msauth::MC_PROFILE_URL) }
+
+/// Current skin, capes and the local skin library for the skins page.
+pub async fn profile(core: &Core, id: &str) -> Result<Value, CoreError> {
+    let (acc, t) = token(core, id).await?;
+    let r = core.http().get(msauth::MC_PROFILE_URL).bearer_auth(&t).send().await?;
+    if r.status().as_u16() == 404 {
+        return Err(CoreError::msg("У этого аккаунта нет профиля Minecraft"));
+    }
+    let r = r.error_for_status().map_err(|_| CoreError::msg("Войдите через Microsoft снова"))?;
+    let v: Value = r.json().await?;
+    let skins = v["skins"].as_array().cloned().unwrap_or_default();
+    let cur = skins.iter().find(|s| s["state"] == "ACTIVE").or(skins.first());
+    let mut skin = Value::Null;
+    if let Some(c) = cur {
+        let img = match c["url"].as_str() { Some(u) => png_at(core, u).await.map(|p| data_url(&p)), None => None };
+        skin = json!({ "variant": c["variant"].as_str().unwrap_or("CLASSIC").to_lowercase(), "img": img });
+    }
+    let mut capes = Vec::new();
+    for c in v["capes"].as_array().cloned().unwrap_or_default() {
+        let img = match c["url"].as_str() { Some(u) => png_at(core, u).await.map(|p| data_url(&p)), None => None };
+        capes.push(json!({ "id": c["id"], "alias": c["alias"], "active": c["state"] == "ACTIVE", "img": img }));
+    }
+    Ok(json!({ "name": v["name"].as_str().unwrap_or(&acc.name), "skin": skin, "capes": capes, "saved": saved(core) }))
+}
+
+fn variant(v: &str) -> Result<&'static str, CoreError> {
+    match v { "classic" => Ok("classic"), "slim" => Ok("slim"), _ => Err(CoreError::BadArgs("variant".into())) }
+}
+
+/// Uploads a skin to the account and keeps a copy in the local library.
+pub async fn upload(core: &Core, id: &str, var: &str, png: &[u8]) -> Result<Value, CoreError> {
+    let var = variant(var)?;
+    check_skin(png)?;
+    let (acc, t) = token(core, id).await?;
+    let (ct, body) = multipart(var, png);
+    ok(core.http().post(api("/skins")).bearer_auth(&t).header("content-type", ct).body(body).send().await?).await?;
+    keep(core, var, png)?;
+    forget_head(core, &acc);
+    profile(core, id).await
+}
+
+/// Puts a skin from the library back on.
+pub async fn use_saved(core: &Core, id: &str, name: &str) -> Result<Value, CoreError> {
+    if !valid_name(name) { return Err(CoreError::BadArgs("bad skin".into())); }
+    let png = fs::read(lib_dir(core).join(name)).map_err(|_| CoreError::msg("Скин не найден"))?;
+    upload(core, id, name.split('-').next().unwrap_or("classic"), &png).await
+}
+
+/// Switches the arm model of the current skin (re-uploads the same picture).
+pub async fn set_variant(core: &Core, id: &str, var: &str) -> Result<Value, CoreError> {
+    let var = variant(var)?;
+    let (acc, t) = token(core, id).await?;
+    let v: Value = core.http().get(msauth::MC_PROFILE_URL).bearer_auth(&t).send().await?.error_for_status()?.json().await?;
+    let url = active_skin(&v).ok_or_else(|| CoreError::msg("Сначала загрузите скин"))?;
+    let png = png_at(core, &url).await.ok_or_else(|| CoreError::msg("Не удалось получить текущий скин"))?;
+    let (ct, body) = multipart(var, &png);
+    ok(core.http().post(api("/skins")).bearer_auth(&t).header("content-type", ct).body(body).send().await?).await?;
+    forget_head(core, &acc);
+    profile(core, id).await
+}
+
+/// Back to the default skin.
+pub async fn reset(core: &Core, id: &str) -> Result<Value, CoreError> {
+    let (acc, t) = token(core, id).await?;
+    ok(core.http().delete(api("/skins/active")).bearer_auth(&t).send().await?).await?;
+    forget_head(core, &acc);
+    profile(core, id).await
+}
+
+/// Shows one of the account's own capes, or hides the cape (`None`).
+pub async fn set_cape(core: &Core, id: &str, cape: Option<&str>) -> Result<Value, CoreError> {
+    let (_, t) = token(core, id).await?;
+    let h = core.http();
+    let r = match cape {
+        Some(c) => h.put(api("/capes/active")).bearer_auth(&t).json(&json!({ "capeId": c })).send().await?,
+        None => h.delete(api("/capes/active")).bearer_auth(&t).send().await?,
+    };
+    ok(r).await?;
+    profile(core, id).await
+}
+
+pub fn forget_saved(core: &Core, name: &str) -> Result<(), CoreError> {
+    if !valid_name(name) { return Err(CoreError::BadArgs("bad skin".into())); }
+    let _ = fs::remove_file(lib_dir(core).join(name));
+    Ok(())
+}
+
 const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 pub fn b64_encode(data: &[u8]) -> String {
@@ -159,6 +351,27 @@ mod tests {
         }
         assert_eq!(b64_encode(b"foobar"), "Zm9vYmFy");
         assert_eq!(b64_encode(b"fo"), "Zm8=");
+    }
+
+    #[test]
+    fn skin_checks() {
+        let mut png = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
+        png.extend_from_slice(&64u32.to_be_bytes());
+        png.extend_from_slice(&32u32.to_be_bytes());
+        assert_eq!(png_size(&png), Some((64, 32)));
+        assert!(check_skin(&png).is_ok());
+        png[23] = 65;
+        assert!(check_skin(&png).is_err());
+        assert!(check_skin(b"GIF89a").is_err());
+        let (ct, body) = multipart("slim", b"PNGDATA");
+        let b = ct.split("boundary=").nth(1).unwrap();
+        let text = String::from_utf8_lossy(&body);
+        assert!(text.starts_with(&format!("--{b}\r\n")) && text.ends_with(&format!("--{b}--\r\n")));
+        assert!(text.contains("name=\"variant\"\r\n\r\nslim\r\n") && text.contains("PNGDATA"));
+        assert!(valid_name("slim-0123456789abcdef.png"));
+        assert!(!valid_name("slim-0123456789ABCDEF.png"));
+        assert!(!valid_name("../classic-0123456789abcdef.png"));
+        assert!(!valid_name("wide-0123456789abcdef.png"));
     }
 
     #[test]
