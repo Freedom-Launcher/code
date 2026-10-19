@@ -178,6 +178,7 @@
               </label>
               <button class="btn btn-ghost ct-tool" id="ct-sort" type="button" data-menu="menu-ct-sort" data-id="instance.content.sort" aria-label="Сортировка"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3v10M2.5 11l2 2 2-2M8.5 4h5M8.5 8h3.5M8.5 12h2"/></svg><span id="ct-sort-lbl">А–Я</span></button>
               <button class="btn btn-ghost ct-tool" id="ct-filter" type="button" data-menu="pop-ct-filter" data-id="instance.content.filter"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M4.5 8h7M6.5 12h3"/></svg><span>Фильтр</span><b class="ct-count" id="ct-filter-n" hidden></b></button>
+              <button class="btn btn-icon btn-ghost" id="ct-view" type="button" data-menu="menu-ct-view" data-tip="Вид" aria-label="Вид" data-id="instance.content.view"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2.5" width="4.5" height="11" rx="1.2"/><rect x="9" y="2.5" width="4.5" height="11" rx="1.2"/></svg></button>
               <button class="btn btn-icon btn-ghost" id="ct-upload" type="button" data-tip="Загрузить файлы" aria-label="Загрузить файлы" data-id="instance.content.upload"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10.5V3M5 6l3-3 3 3M3 10v3h10v-3"/></svg></button>
               <button class="btn btn-icon btn-ghost" id="ct-refresh" type="button" data-tip="Обновить список" aria-label="Обновить список" data-id="instance.content.refresh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8a5 5 0 1 1-1.46-3.54M13 2.8v2.7h-2.7"/></svg></button>
               <button class="btn" id="mods-update-all" type="button" data-id="instance.content.update-all" hidden><span class="lbl">Обновить все</span></button>
@@ -499,6 +500,12 @@
     <button class="menu-item" data-sort="old"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3L6 9.5"/></svg>Сначала старые</button>
     <button class="menu-item" data-sort="author"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="2.5"/><path d="M3.5 13a4.5 4.5 0 0 1 9 0"/></svg>По автору</button>
     <button class="menu-item" data-sort="size"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13V9M6.3 13V6M9.7 13V8M13 13V3"/></svg>По размеру</button>
+  </div>
+  <div class="pop" id="menu-ct-view" data-id="menu.content.view" role="menu">
+    <div class="menu-label">Вид</div>
+    <button class="menu-item" data-cols="1"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>Список</button>
+    <button class="menu-item" data-cols="2"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2.5" width="4.5" height="11" rx="1.2"/><rect x="9" y="2.5" width="4.5" height="11" rx="1.2"/></svg>Две колонки</button>
+    <button class="menu-item" data-cols="3"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="3" height="11" rx="1"/><rect x="6.5" y="2.5" width="3" height="11" rx="1"/><rect x="11" y="2.5" width="3" height="11" rx="1"/></svg>Три колонки</button>
   </div>
   <div class="pop ct-fpop" id="pop-ct-filter" data-id="menu.content.filter" role="dialog" aria-label="Фильтр"></div>
   <div class="pop" id="menu-ct-row" data-id="menu.content.row" role="menu"></div>

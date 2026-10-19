@@ -40,6 +40,7 @@
 
   let inst = null, kind = 'mod', world = null, items = [], updates = new Map(), seq = 0, loading = false;
   let sort = 'az', pill = 'all', anchor = null;
+  let cols = Math.min(3, Math.max(1, +localStorage.getItem('fl.ct.cols') || 1));
   const sel = new Set();
   const metaDone = new Set();
   const f = { author: new Set(), env: new Set(), props: new Set() };
@@ -154,7 +155,7 @@
     $('#ct-filter-n').hidden = !fn;
     $('#ct-filter-n').textContent = String(fn);
     $('#ct-filter').classList.toggle('is-on', !!fn);
-    $('#ct-filter').hidden = $('#ct-sort').hidden = items.length < 2;
+    $('#ct-filter').hidden = $('#ct-sort').hidden = $('#ct-view').hidden = items.length < 2;
   }
 
   function paintPills() {
@@ -184,7 +185,7 @@
     }
     const rows = visible();
     if (!rows.length) { box.replaceChildren(empty('Ничего не найдено', textBtn('Сбросить фильтры', reset))); return; }
-    box.replaceChildren(el('div', { class: 'ct-list' }, head(rows), ...rows.map(row)));
+    box.replaceChildren(el('div', { class: `ct-list${cols > 1 ? ' is-grid' : ''}`, 'data-cols': cols }, head(rows), ...rows.map(row)));
   }
 
   function skeleton() {
@@ -496,6 +497,9 @@
     sessionStorage.setItem(`fl.ct.pill.${inst}.${kind}`, pill);
     paint();
   });
+  function setCols(n) { cols = n; localStorage.setItem('fl.ct.cols', String(n)); paintList(); }
+  $('#ct-view').addEventListener('click', () => $$('#menu-ct-view [data-cols]').forEach((b) => b.classList.toggle('is-on', +b.dataset.cols === cols)));
+  $('#menu-ct-view').addEventListener('click', (e) => { const b = e.target.closest('[data-cols]'); if (b) { FUI.closeMenu(); setCols(+b.dataset.cols); } });
   $('#ct-sort').addEventListener('click', () => $$('#menu-ct-sort [data-sort]').forEach((b) => b.classList.toggle('is-on', b.dataset.sort === sort)));
   $('#menu-ct-sort').addEventListener('click', (e) => { const b = e.target.closest('[data-sort]'); if (b) setSort(b.dataset.sort); });
   $('#ct-filter').addEventListener('click', paintFilter);

@@ -157,7 +157,7 @@ body.ct-shift .ct-del.btn-icon { color: var(--danger); }
 #ct-bar-clear { color: var(--text-3); }
 
 /* Menus */
-#menu-ct-sort .menu-item.is-on, #menu-ct-sort .menu-item.is-on > svg { color: var(--accent); }
+#menu-ct-sort .menu-item.is-on, #menu-ct-sort .menu-item.is-on > svg, #menu-ct-view .menu-item.is-on, #menu-ct-view .menu-item.is-on > svg { color: var(--accent); }
 #menu-ct-row { min-width: 220px; }
 
 /* Filter popover */
@@ -251,3 +251,35 @@ body.ct-shift .ct-del.btn-icon { color: var(--danger); }
 .drop-card b { font: var(--w-semibold) var(--text-lg)/1.25 var(--font-display); }
 .drop-s { max-width: 360px; color: var(--text-3); font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (prefers-reduced-motion: reduce) { .drop-ov[data-on] .drop-ic svg { animation: none; } }
+
+/* Columns (Вид → 2 / 3): compact cards, only what you scan for */
+#mods-list { container: ctlist / inline-size; }
+.ct-list.is-grid {
+  --cols: 2; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: var(--s-2);
+  overflow: visible; border-radius: 0; background: none; box-shadow: none;
+}
+.ct-list.is-grid[data-cols="3"] { --cols: 3; }
+.ct-list.is-grid .ct-head { grid-column: 1 / -1; grid-template-columns: 20px minmax(0, 1fr) auto; height: 30px; padding: 0 var(--s-1) 0 var(--s-3); box-shadow: none; }
+.ct-list.is-grid .ct-head .ct-col:first-of-type { grid-column: auto; }
+.ct-list.is-grid .ct-head .ct-col:nth-of-type(2) { display: none; }
+.ct-list.is-grid .ct-row, .ct-list.is-grid .ct-row + .ct-row {
+  grid-template-columns: 40px minmax(0, 1fr) auto; gap: var(--s-3); min-height: 64px; padding: var(--s-2) var(--s-1) var(--s-2) var(--s-3);
+  border-radius: var(--r-card); background: color-mix(in srgb, var(--surface-1) 55%, transparent); box-shadow: inset 0 0 0 1px var(--line);
+  transition: background-color var(--d-2) var(--ease-out), box-shadow var(--d-2) var(--ease-out);
+}
+.ct-list.is-grid .ct-row:hover { background: color-mix(in srgb, var(--surface-2) 80%, transparent); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.ct-list.is-grid .ct-row.is-sel { background: color-mix(in srgb, var(--accent) 8%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 60%, transparent); }
+.ct-list.is-grid .ct-row.is-sel::before { display: none; }
+.ct-list.is-grid .ct-ver, .ct-list.is-grid .ct-del, .ct-list.is-grid .ct-swap, .ct-list.is-grid .ct-slot { display: none; }
+.ct-list.is-grid .ct-acts .switch { margin: 0 4px; }
+.ct-list.is-grid .ct-row .ct-sel {
+  position: absolute; left: 4px; top: 4px; z-index: 1; opacity: 0; transform: scale(.85);
+  transition: opacity var(--d-2) var(--ease-out), transform var(--d-3) var(--ease-spring);
+}
+.ct-list.is-grid .ct-row:hover .ct-sel, .ct-list.is-grid .ct-row.is-sel .ct-sel, .has-sel .ct-list.is-grid .ct-sel,
+.ct-list.is-grid .ct-row .ct-sel:focus-within { opacity: 1; transform: none; }
+.ct-list.is-grid[data-cols="3"] .ct-by { font-size: var(--text-xs); }
+.ct-list.is-grid[data-cols="3"] .ct-row .mod-ico { width: 36px; height: 36px; }
+.ct-list.is-grid[data-cols="3"] .ct-row { grid-template-columns: 36px minmax(0, 1fr) auto; }
+@container ctlist (max-width: 760px) { .ct-list.is-grid[data-cols="3"] { --cols: 2; } }
+@container ctlist (max-width: 480px) { .ct-list.is-grid { --cols: 1; } }
