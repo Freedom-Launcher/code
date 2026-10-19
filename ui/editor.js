@@ -359,8 +359,11 @@
   }
 
   // ---------- Picking ----------
+  // Only ids the core keeps: a file name or world name with spaces picks its row's container.
+  const OK_ID = /^[a-z0-9._-]{1,64}$/;
   function pickable(t) {
-    const n = t?.closest?.('[data-id]');
+    let n = t?.closest?.('[data-id]');
+    while (n && !OK_ID.test(n.dataset.id)) n = n.parentElement?.closest('[data-id]');
     if (!n || n.id === 'app' || n.closest('.ue') || !n.closest('#app')) return null;
     return n;
   }
@@ -489,6 +492,7 @@
     try { safe = !!(await call('app.info'))?.safe_mode; } catch { /* not in the app */ }
     if (safe) return;
     try { const st = await call('settings.get'); if (st?.ui) ui = { ...blank(), ...st.ui }; } catch { /* defaults */ }
+    for (const id of Object.keys(ui.els)) if (!OK_ID.test(id)) delete ui.els[id];
     try { const cur = await call('themes.current'); if (cur?.ui) base = cur.ui; } catch { /* none */ }
     apply(); sync();
   })();

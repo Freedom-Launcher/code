@@ -400,10 +400,10 @@ impl UiCustom {
         if self.els.len() > 400 || self.order.len() > 100 {
             return Err("ui: слишком много правок".into());
         }
+        // A bad id (a file name with spaces, say) is dropped, never fails the whole save:
+        // one such edit used to make every later save fail, so all sizes were lost on restart.
+        self.els.retain(|id, _| ui_id(id));
         for (id, e) in &mut self.els {
-            if !ui_id(id) {
-                return Err(format!("ui.els: неверный элемент «{id}»"));
-            }
             if keep_visible(id) {
                 e.hide = None;
             }
@@ -433,19 +433,16 @@ impl UiCustom {
             }
         }
         self.els.retain(|_, e| *e != UiEl::default());
-        for (id, o) in &self.order {
+        self.order.retain(|id, o| {
             if !ui_id(id) || o.len() > 64 {
-                return Err(format!("ui.order: неверный контейнер «{id}»"));
+                return false;
             }
             let mut seen = vec![false; o.len()];
-            for &i in o {
+            o.iter().all(|&i| {
                 let i = usize::from(i);
-                if i >= o.len() || seen[i] {
-                    return Err("ui.order: нужна перестановка".into());
-                }
-                seen[i] = true;
-            }
-        }
+                i < o.len() && !std::mem::replace(&mut seen[i], true)
+            })
+        });
         Ok(self)
     }
 }
@@ -485,8 +482,15 @@ mod tests {
             |v: Value| serde_json::from_value::<UiCustom>(v).map_or(true, |u| u.checked().is_err());
         assert!(bad(json!({ "radius": { "x": 1 } })));
         assert!(bad(json!({ "layout": { "rail": "top" } })));
-        assert!(bad(json!({ "order": { "rail": [0, 0] } })));
-        assert!(bad(json!({ "els": { "a\"]{": {} } })));
+        let ok = |v: Value| serde_json::from_value::<UiCustom>(v).unwrap().checked().unwrap();
+        let u = ok(json!({
+            "size": { "btn": 120 },
+            "els": { "a\"]{": { "radius": 4 }, "content.mods.Big Mod+1.jar": { "radius": 4 }, "home.recent": { "radius": 4 } },
+            "order": { "rail": [0, 0], "nav": [1, 0] }
+        }));
+        assert_eq!(u.size["btn"], 120);
+        assert_eq!(u.els.keys().collect::<Vec<_>>(), ["home.recent"]);
+        assert_eq!(u.order.keys().collect::<Vec<_>>(), ["nav"]);
         assert!(bad(json!({ "css": "x" })));
         assert!(bad(json!({ "els": { "x": { "bg": "red; x" } } })));
         assert!(bad(json!({ "els": { "x": { "border_color": "url(a)" } } })));
