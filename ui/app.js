@@ -84,6 +84,12 @@ function show(view) {
   if (view === 'discover') window.FMods?.discover();
   window.FNav?.note();
 }
+// A finished install or import opens the instance only if the user is still waiting on
+// the create page; anywhere else it stays a toast with «Открыть».
+function landed(id, text) {
+  if (S.view === 'create') { if (text) toast(text); openInstance(id); return; }
+  toast(text || 'Сборка готова', { action: { label: 'Открыть', run: () => openInstance(id) } });
+}
 function openInstance(id) {
   S.current = id;
   localStorage.setItem('fl.current', id);
@@ -460,8 +466,7 @@ async function runImport(stage) {
     S.instances = await call('instances.list');
     renderInstances();
     btn.dataset.state = 'success';
-    toast(`${created.name} импортирована`);
-    openInstance(created.id);
+    landed(created.id, `${created.name} импортирована`);
   } catch (e) {
     btn.dataset.state = 'error';
     toast(String(e), { error: true });

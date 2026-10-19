@@ -92,7 +92,7 @@
   document.addEventListener('pointerdown', hideTip);
 
   // ---------- Toasts ----------
-  function toast(text, { error = false, ms = 3200 } = {}) {
+  function toast(text, { error = false, ms = 3200, action = null } = {}) {
     const box = $('#toasts');
     if (!box) return;
     const t = document.createElement('div');
@@ -101,8 +101,15 @@
     const dot = document.createElement('span'); dot.className = 'dot';
     const msg = document.createElement('span'); msg.textContent = text;
     t.append(dot, msg);
+    const leave = () => { if (t.classList.contains('is-leaving')) return; t.classList.add('is-leaving'); t.addEventListener('animationend', () => t.remove(), { once: true }); };
+    if (action) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'toast-act'; b.textContent = action.label;
+      b.addEventListener('click', () => { leave(); action.run(); });
+      t.append(b); t.classList.add('has-act');
+    }
     box.append(t);
-    setTimeout(() => { t.classList.add('is-leaving'); t.addEventListener('animationend', () => t.remove(), { once: true }); }, ms);
+    setTimeout(leave, action ? Math.max(ms, 6000) : ms);
   }
 
   // ---------- Progress ----------

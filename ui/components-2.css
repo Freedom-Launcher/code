@@ -121,3 +121,11 @@
 .upd-row[data-state="available"] .upd-dot { transform: scale(1); animation: upd-pulse 2s var(--ease-out) infinite; }
 @keyframes upd-pulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .upd-row[data-state="available"] .upd-dot { animation: none; } }
+
+/* Toast with an action («Открыть») */
+.toast.has-act { padding-right: 6px; }
+.toast.has-act > span:last-of-type { flex: 1; }
+.toast-act { margin-left: 0; flex: none; padding: 4px 10px; border: 0; border-radius: var(--r-control); background: var(--accent-soft); color: var(--accent);
+  font: inherit; font-weight: 600; cursor: pointer; transition: background-color var(--d-2), transform var(--d-3) var(--ease-spring); }
+.toast-act:hover { background: var(--accent); color: #fff; }
+.toast-act:active { transform: scale(.96); }

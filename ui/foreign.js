@@ -127,8 +127,8 @@
     if (failed.length) toast(failed.join('\n'), { error: true });
     if (!made.length) { paint(); return; }
     closeDlg();
-    toast(made.length === 1 ? `${made[0].name} импортирована` : `Импортировано сборок: ${made.length}`);
-    if (made.length === 1) openInstance(made[0].id); else show('home');
+    if (made.length === 1) landed(made[0].id, `${made[0].name} импортирована`);
+    else toast(`Импортировано сборок: ${made.length}`, { action: { label: 'Открыть', run: () => show('home') } });
   });
 
   $('#c-foreign')?.addEventListener('click', open);

@@ -488,8 +488,7 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
       lbl.textContent = 'Установлена';
       S.instances = await call('instances.list');
       renderInstances();
-      toast(`${created.name} установлена`);
-      openInstance(created.id);
+      landed(created.id, `${created.name} установлена`);
     } catch (e) {
       clearInterval(poll);
       b.disabled = false;
