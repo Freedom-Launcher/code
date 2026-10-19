@@ -11,6 +11,16 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Editor freedom, hot install, content columns (0.3.6)
+
+- Interface editor floats: drag it by its header anywhere (position remembered, double-click the header docks it back), collapse it to the header. It no longer covers the right side for good.
+- Any element can be resized by its 4 edges and corners and moved freely with the grip on its outline (`UiEl.w/h/x/y`); double-click a handle resets it. Real width/height and `translate` are used, never `zoom`, so glass panels keep their background.
+- Right-click on an element while editing: Настроить…, Вернуть размер и место, Скрыть, Сбросить элемент.
+- Fix: edits (sizes and the rest) were lost after a restart or login. One element with an invalid id (a file name with spaces) made the core reject every later save; bad ids are now dropped and never picked.
+- Hot install like Modrinth App: resource packs, shaders and datapacks install and change while the game runs; new mods install too. Only toggling, removing or switching mods that are already loaded waits for the game to close.
+- Content tab «Вид»: list, two or three columns with compact cards (less info per item), remembered.
+- `.mrpack` import streams from disk and network; the 512 MB cap is now 32 GB.
+
 ## Grouped settings, statistics, drag and drop (0.3.5)
 
 - Settings rebuilt after Modrinth App's settings modal (`ui/settings.js`, `ui/settings.css`): a side nav grouped into Оформление (Внешний вид, Обои и стекло, Интерфейс), Игра (Параметры сборок, Статистика) and Система (Плагины, Клавиши, О лаунчере), with a sliding marker; each topic is a card with a label. Cards whose rows are all hidden disappear.
