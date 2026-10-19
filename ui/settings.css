@@ -88,3 +88,9 @@ html[data-wall="on"][data-theme="light"] .set-ink, html[data-wall="on"][data-the
 }/* A card whose rows are all hidden (e.g. glass with wallpaper off) disappears with its label. */
 .set-card:not(:has(> :not([hidden]))) { display: none; }
 .set-label:not(:has(+ .set-card > :not([hidden]))) { display: none; }
+
+/* Small windows: a control that does not fit moves under its label instead of off the card */
+.set-main .r { flex-wrap: wrap; row-gap: 8px; }
+.set-main .r > .grow { flex: 1 1 220px; }
+.set-main .r > :not(.grow) { max-width: 100%; }
+.set-main .r .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }

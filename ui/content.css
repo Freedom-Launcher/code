@@ -283,3 +283,8 @@ body.ct-shift .ct-del.btn-icon { color: var(--danger); }
 .ct-list.is-grid[data-cols="3"] .ct-row { grid-template-columns: 36px minmax(0, 1fr) auto; }
 @container ctlist (max-width: 760px) { .ct-list.is-grid[data-cols="3"] { --cols: 2; } }
 @container ctlist (max-width: 480px) { .ct-list.is-grid { --cols: 1; } }
+
+/* Small windows: the search takes its own line before anything is clipped */
+.ct-tools .field-wrap.grow { flex: 1 1 200px; min-width: 160px; }
+.ct-tools .field-wrap .field { min-width: 0; width: 100%; }
+.ct-tools > .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }

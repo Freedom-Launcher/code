@@ -141,6 +141,12 @@
     if (e.key === 'Escape') { closeMenu(); closeDlg(); hideTip(); }
   });
   addEventListener('resize', () => { closeMenu(); $$('.seg').forEach((s) => s._place && s._place(true)); });
+  if (window.ResizeObserver) {
+    let t = 0;
+    new ResizeObserver(() => { cancelAnimationFrame(t); t = requestAnimationFrame(() => $$('.seg').forEach((s) => s._place && s._place(true))); }).observe(document.documentElement);
+  }
+  // Windows sometimes restores a minimised window without a resize event.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) dispatchEvent(new Event('resize')); });
 
   // Dev check: every visible region needs a data-id, every interactive element a data-action or handler id.
   function devCheck() {

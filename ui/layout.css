@@ -238,3 +238,35 @@
 .card-inst .art.glyph .ico { width: 34%; height: 34%; stroke-width: 1.2; }
 .card-inst:hover .art.glyph { background: color-mix(in srgb, var(--ic) 19%, var(--surface-2)); }
 .inst-ico.xl.glyph .ico { stroke-width: 1.3; }
+
+/* ---------- Small windows: nothing in the title bar is ever pushed off-screen ---------- */
+.top > .nav-ctl, .top > .win-ctl, .top > .account-btn { flex: none; }
+.top > .spacer { min-width: 4px; }
+.pal-trigger { width: auto; flex: 0 1 260px; min-width: 120px; }
+.running { flex: 0 1 auto; min-width: 0; }
+#running-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+.account-btn .acc-txt b, .account-btn .acc-txt .sub { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1060px) { .crumbs-t .cr-t { max-width: 150px; } #running-text { max-width: 120px; } }
+@media (max-width: 940px) {
+  .pal-trigger { flex: none; min-width: 0; width: 30px; padding: 0; justify-content: center; }
+  .pal-trigger > span, .pal-trigger > kbd { display: none; }
+  .account-btn .acc-txt { display: none; }
+  .crumbs-t .cr-t { max-width: 110px; }
+}
+@media (max-width: 1000px) {
+  .inst-body { padding-left: 20px; padding-right: 20px; }
+  .play-status { margin-left: 20px; margin-right: 20px; }
+}
+
+/* scale2: grid tracks never grow past the window */
+.app { grid-template-columns: 60px minmax(0, 1fr); grid-template-rows: 44px minmax(0, 1fr); width: 100vw; max-width: 100vw; overflow: hidden; }
+.top { min-width: 0; overflow: hidden; }
+.main { max-width: 100%; }
+.main > .view { min-width: 0; max-width: 100%; }
+
+/* scale3: compact palette button + crumbs first */
+@media (max-width: 940px) {
+  .top > .pal-trigger { flex: none; width: 30px; min-width: 30px; padding: 0; justify-content: center; }
+  .top > .spacer { flex: 1 1 0; }
+}
+.top > .crumbs-t { flex: 0 1 auto; min-width: 60px; }

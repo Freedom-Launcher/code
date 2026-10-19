@@ -31,7 +31,7 @@
   const clampN = (v, lo, hi) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : null);
   function geo(e) {
     const d = [], w = clampN(e.w, 24, 4000), hh = clampN(e.h, 24, 4000), x = clampN(e.x, -4000, 4000) || 0, y = clampN(e.y, -4000, 4000) || 0;
-    if (w) d.push(`width: ${w}px !important`, 'max-width: none !important', 'min-width: 0 !important', 'flex: none !important', 'box-sizing: border-box !important');
+    if (w) d.push(`width: ${w}px !important`, 'max-width: 100% !important', 'min-width: 0 !important', 'flex: none !important', 'box-sizing: border-box !important');
     if (hh) d.push(`height: ${hh}px !important`, 'min-height: 0 !important', 'max-height: none !important', 'box-sizing: border-box !important');
     if (x || y) d.push(`translate: ${x}px ${y}px !important`, 'z-index: 3');
     return d;
