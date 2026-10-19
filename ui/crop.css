@@ -88,3 +88,10 @@
 #c-covers .cover-opt.cover-add svg { width: 15px; height: 15px; }
 #c-covers .cover-x { top: 2px; right: 2px; width: 15px; height: 15px; }
 #c-covers .cover-x svg { width: 8px; height: 8px; }
+
+/* Pictures cropped before: flow inside the strip; icon history under the icon row */
+.cover-lib { display: contents; }
+.isx-icons { margin-top: 10px; }
+.isx-icons:not(:has(.cover-opt)) { display: none; }
+.isx-icons .cover-opt { width: 40px; height: 40px; border-radius: calc(10px * var(--rk-icon, 1)); }
+.isx-icons .cover-x { top: 1px; right: 1px; width: 15px; height: 15px; }

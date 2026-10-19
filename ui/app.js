@@ -202,11 +202,39 @@ function coverOpt(name, on, pick) {
   return bg(el('button', { type: 'button', class: 'cover-opt', 'aria-pressed': String(on), 'aria-label': name, 'data-id': `cover.${name}`, onclick: () => pick(name) }), name);
 }
 const X_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m4.5 4.5 7 7m0-7-7 7"/></svg>';
+// Pictures cropped before (any instance), newest first; one click puts one on this instance.
+// Stamps are content hashes from the core, so a URL always means the same picture.
+const artStamp = (name) => (/^(?:icon|cover)-([0-9a-f]{16})\./.exec(name || '') || [])[1] || String(Date.now());
+const artLibCache = {};
+const artLib = (kind) => (artLibCache[kind] ??= call('art.library', { kind }).then((r) => r.items || []).catch(() => []));
+const artLibDrop = () => { for (const k in artLibCache) delete artLibCache[k]; };
+function libOpts(i, kind, after) {
+  const box = el('span', { class: 'cover-lib' });
+  const key = kind === 'icon' ? `fl.icon.${i.id}` : `fl.cover-own.${i.id}`;
+  artLib(kind).then((items) => {
+    const cur = localStorage.getItem(key);
+    box.replaceChildren(...items.filter((n) => artStamp(n) !== cur).slice(0, 16).map((n) => {
+      const h = artStamp(n);
+      const o = el('button', { type: 'button', class: `cover-opt is-own is-lib${kind === 'icon' ? ' is-icon' : ''}`, 'aria-pressed': 'false',
+        'aria-label': kind === 'icon' ? 'Прежняя иконка' : 'Прежняя обложка', 'data-id': `cover.lib.${h.slice(0, 8)}`, onclick: async () => {
+          try { await call('art.use', { instance: i.id, id: n }); } catch (e) { toast(String(e), { error: true }); return; }
+          localStorage.setItem(key, h);
+          if (kind === 'cover') { localStorage.setItem(`fl.cover.${i.id}`, 'own'); applyWall(); }
+          renderInstances(); after?.();
+        } });
+      o.style.backgroundImage = `url("${ART}/lib/${encodeURIComponent(n)}")`;
+      o.append(el('span', { class: 'cover-x', role: 'button', 'aria-label': 'Убрать из списка', 'data-tip': 'Убрать из списка', html: X_SVG,
+        onclick: async (e) => { e.stopPropagation(); await call('art.forget', { id: n }).catch(() => {}); artLibDrop(); o.remove(); } }));
+      return o;
+    }));
+  });
+  return box;
+}
 function pickArt(i, kind, after) {
   closeMenu();
   return window.FCrop?.open({ kind, title: kind === 'icon' ? 'Иконка сборки' : 'Обложка сборки', save: async (bytes) => {
-    await invoke('set_art', bytes, { headers: { 'x-inst': i.id, 'x-kind': kind } });
-    const v = String(Date.now());
+    const v = artStamp(await invoke('set_art', bytes, { headers: { 'x-inst': i.id, 'x-kind': kind } }));
+    artLibDrop();
     if (kind === 'icon') localStorage.setItem(`fl.icon.${i.id}`, v);
     else { localStorage.setItem(`fl.cover-own.${i.id}`, v); localStorage.setItem(`fl.cover.${i.id}`, 'own'); applyWall(); }
     renderInstances(); after?.();
@@ -229,6 +257,7 @@ function coverStrip(i, after) {
     o.append(el('span', { class: 'cover-x', role: 'button', 'aria-label': 'Убрать фото', 'data-tip': 'Убрать фото', html: X_SVG, onclick: (e) => { e.stopPropagation(); clearArt(i, 'cover', after); } }));
     out.push(o);
   }
+  out.push(libOpts(i, 'cover', after));
   out.push(...COVERS.map((n) => coverOpt(n, n === cur, () => pick(n))));
   out.push(el('button', { type: 'button', class: 'cover-opt cover-add', 'aria-label': 'Своё фото', 'data-tip': 'Своё фото', 'data-id': 'cover.add',
     html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>', onclick: () => pickArt(i, 'cover', after) }));
@@ -329,12 +358,13 @@ async function applyCreateArt(id) {
   for (const kind of ['cover', 'icon']) {
     const p = createOwn[kind]; if (!p) continue;
     try {
-      await invoke('set_art', p.bytes, { headers: { 'x-inst': id, 'x-kind': kind } });
-      localStorage.setItem(kind === 'icon' ? `fl.icon.${id}` : `fl.cover-own.${id}`, String(Date.now()));
+      const name = await invoke('set_art', p.bytes, { headers: { 'x-inst': id, 'x-kind': kind } });
+      localStorage.setItem(kind === 'icon' ? `fl.icon.${id}` : `fl.cover-own.${id}`, artStamp(name));
     } catch (e) { toast(String(e), { error: true }); if (kind === 'cover' && createCover === 'own') createCover = COVERS[0]; }
   }
   localStorage.setItem(`fl.cover.${id}`, createCover);
   createOwn = { cover: null, icon: null };
+  artLibDrop();
   applyWall();
 }
 function prepareCreate() {
@@ -426,7 +456,7 @@ async function runImport(stage) {
     const created = await call('instances.import_mrpack', { token });
     clearInterval(poll);
     progress($('#ci-bar'), 1);
-    localStorage.setItem(`fl.cover.${created.id}`, createCover);
+    await applyCreateArt(created.id);
     S.instances = await call('instances.list');
     renderInstances();
     btn.dataset.state = 'success';

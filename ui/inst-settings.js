@@ -259,6 +259,9 @@
     const i = st.inst;
     if (!i) return;
     $('#isx-covers').replaceChildren(...coverStrip(i, paintCovers));
+    let ics = $('#isx-icons');
+    if (!ics) { ics = el('div', { class: 'cover-strip isx-icons', id: 'isx-icons' }); $('.isx-icon-row').after(ics); }
+    ics.replaceChildren(libOpts(i, 'icon', paintCovers));
     const own = !!localStorage.getItem(`fl.icon.${i.id}`);
     bg($('#isx-icon'), iconName(i));
     $('#isx-icon-clear').hidden = !own;
