@@ -11,6 +11,18 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Skins, library order, tester feedback (0.3.7)
+
+- Skins page (rail, Ctrl K): current skin, arm model (classic/slim), upload PNG 64×64 or 64×32, reset, saved skins library (`<data>/skins/<variant>-<hash>.png`), capes. Official Minecraft services API with the account's own token only.
+- Library: pin and hide instances (right-click), «Скрытые · N» toggle, drag cards to reorder (switches sort to «Вручную») and between groups. Local to this computer (`fl.lib.pin/hidden/order`).
+- Instance right-click menu equals the instance page menu (settings, folder, duplicate, export, delete); Play turns into Stop while running.
+- Catalog: grid/list toggle next to sort (remembered); coming back keeps the page and scroll when the query is the same.
+- A finished install or import no longer yanks you to the instance: it opens only from the create page, elsewhere a toast with «Открыть».
+- Cover and icon pickers offer previously cropped pictures (art library, × removes); content-hash stamps and no-cache slot URLs fix the icon showing the cover.
+- The game no longer closes with the launcher: it is spawned in its own process group outside the launcher's job; panics unwind and write `logs/crash-<time>.log`.
+- Small windows: grid tracks `minmax(0,1fr)`, top bar ellipsis, wrapping tool and settings rows; fixed at 820×540 without a restart.
+- `.mrpack` picked or dropped from disk is read in place instead of being copied to `imports/` (a 9 GB pack no longer needs 9 GB extra disk and writes); buffered override writes.
+
 ## Editor freedom, hot install, content columns (0.3.6)
 
 - Interface editor floats: drag it by its header anywhere (position remembered, double-click the header docks it back), collapse it to the header. It no longer covers the right side for good.
