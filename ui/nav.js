@@ -13,7 +13,7 @@
     const v = S.view || 'home';
     const e = { view: v };
     if (v === 'instance') { e.inst = S.current; e.sub = sel('#ip-tabs')?.dataset.tab || 'content'; }
-    if (v === 'settings') e.sub = sel('#set-seg')?.dataset.pane || 'game';
+    if (v === 'settings') e.sub = sel('#set-seg')?.dataset.pane || 'look';
     if (v === 'discover') { e.sub = sel('#disc-kind')?.dataset.kind || 'modpack'; const sc = window.FMods?.scopeOf?.(); if (sc) e.inst = sc; }
     if (v === 'project' && proj) { e.proj = { ...proj }; e.sub = proj.id; }
     return e;
@@ -45,7 +45,8 @@
         await window.FProject?.open(e.proj.id, e.proj.kind, { project_id: e.proj.id, title: e.proj.title, icon_url: e.proj.icon });
       } else {
         show(byId(e.inst) || e.view !== 'instance' ? e.view : 'home');
-        const b = e.view === 'settings' ? $(`#set-seg [data-pane="${e.sub}"]`) : e.view === 'discover' ? $(`#disc-kind [data-kind="${e.sub}"]`) : null;
+        if (e.view === 'settings') window.FSettings?.open(e.sub);
+        const b = e.view === 'discover' ? $(`#disc-kind [data-kind="${e.sub}"]`) : null;
         if (b && b.getAttribute('aria-selected') !== 'true') b.click();
       }
     } finally { replaying = false; }
@@ -82,7 +83,7 @@
         ico?.classList.add('cr-ico');
         return [{ t: 'Каталог', go: toKind('modpack') }, { t: label('#disc-kind', 'kind', p.kind || 'mod'), go: toKind(p.kind || 'mod') }, { t: p.title || '…', ico }];
       }
-      case 'settings': return [{ t: 'Настройки', go: () => go({ view: 'settings', sub: 'game' }) }, { t: label('#set-seg', 'pane', e.sub) }];
+      case 'settings': return [{ t: 'Настройки', go: () => go({ view: 'settings', sub: 'look' }) }, { t: label('#set-seg', 'pane', e.sub) }];
       case 'accounts': return [{ t: 'Аккаунты' }];
       default: return [lib];
     }

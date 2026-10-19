@@ -10,7 +10,7 @@
 
   function show() {
     row.dataset.state = st.found ? 'available' : 'idle';
-    sub.textContent = st.found ? `Доступна ${st.found.version} · у вас ${st.current}` : `Версия ${st.current}`;
+    sub.textContent = st.found ? `Доступна ${st.found.version} · у вас ${st.current}` : (st.current ? `Версия ${st.current}` : `Freedom Launcher`);
     FUI.swapText ? FUI.swapText(lbl, st.found ? 'Обновить' : 'Проверить') : (lbl.textContent = st.found ? 'Обновить' : 'Проверить');
   }
 
@@ -20,7 +20,7 @@
       st.current = r.current || st.current;
       st.found = r.available ? r : null;
       show();
-      if (st.found && quiet) toast(`Доступна версия ${st.found.version} — Настройки → Лаунчер`);
+      if (st.found && quiet) toast(`Доступна версия ${st.found.version} — Настройки → О лаунчере`);
       if (!st.found && !quiet) toast('У вас последняя версия');
     } catch (e) {
       if (!quiet) throw e;

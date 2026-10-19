@@ -42,7 +42,7 @@
   applyPal();
 
   // ---------- Commands ----------
-  const openSettings = (p) => { show('settings'); $(`#set-seg button[data-pane="${p}"]`)?.click(); };
+  const openSettings = (p) => window.FSettings?.open(p);
   const folder = (cmd, args) => invoke(cmd, args).catch((e) => toast(String(e), { error: true }));
   const label = (b) => b.textContent.trim();
   function commands() {
@@ -57,8 +57,12 @@
     add('go', 'go.create', 'Новая сборка', 'plus', () => show('create'), { k: 'создать new instance', keys: [MOD, 'N'] });
     add('go', 'go.discover', 'Каталог', 'compass', () => show('discover'), { k: 'каталог обзор моды сборки модпаки ресурспаки шейдеры датапаки modrinth browse mods modpacks' });
     add('go', 'go.accounts', 'Аккаунты', 'user', () => show('accounts'), { k: 'профиль вход microsoft account login' });
-    [['game', 'Игра', 'память java ram'], ['launcher', 'Лаунчер', 'тема обои стекло анимации theme'], ['addons', 'Плагины', 'плагины аддоны дополнения addons plugins']]
-      .forEach(([p, t, k]) => add('go', `set.${p}`, `Настройки · ${t}`, 'gear', () => openSettings(p), { k: `settings ${k}` }));
+    [['look', 'Внешний вид', 'тема оформление раскладка анимации theme'], ['wall', 'Обои и стекло', 'фон картинка прозрачность wallpaper glass'],
+      ['ui', 'Интерфейс', 'редактор командная строка каталог'], ['game', 'Параметры сборок', 'java память ram окно хуки папка'],
+      ['stats', 'Статистика', 'время в игре часы playtime stats'], ['addons', 'Плагины', 'плагины аддоны дополнения addons plugins'],
+      ['keys', 'Клавиши', 'горячие клавиши сочетания shortcuts hotkeys'], ['about', 'О лаунчере', 'версия обновления update about']]
+      .forEach(([p, t, k]) => add('go', `set.${p}`, `Настройки · ${t}`, 'gear', () => openSettings(p), { k: `settings настройки ${k}` }));
+    (window.FSettings?.entries() || []).forEach((x) => add('go', x.id, x.t, 'gear', x.go, { s: `Настройки · ${x.s}`, k: `settings настройки ${x.k}`, deep: true }));
     add('act', 'act.ui-edit', 'Настроить интерфейс', 'gear', () => window.FEditor?.open(), { k: 'редактор интерфейса вид углы скругление размер кнопок расположение панели customize editor layout', keys: [MOD, 'Shift', 'E'] });
     add('act', 'act.foreign', 'Импорт из других лаунчеров', 'import', () => window.FForeign?.open(), { k: 'prism multimc curseforge atlauncher gdlauncher modrinth app перенос импорт import launcher' });
     add('act', 'act.import', 'Импорт .mrpack', 'import', () => { show('create'); $('#c-import')?.click(); }, { k: 'modpack модпак import файл' });
@@ -118,7 +122,7 @@
     if (!raw) {
       const rec = u.map((id) => all.find((c) => c.id === id)).filter(Boolean).slice(0, 4);
       const seen = new Set(rec.map((c) => c.id));
-      const rest = (g, n = 99) => all.filter((c) => c.g === g && !seen.has(c.id)).slice(0, n);
+      const rest = (g, n = 99) => all.filter((c) => c.g === g && !seen.has(c.id) && !c.deep).slice(0, n);
       return [['recent', rec], ['inst', rest('inst', 5)], ['go', rest('go')], ['act', rest('act')]].filter(([, l]) => l.length);
     }
     const qs = [...new Set([norm(raw), norm(swap(raw.toLowerCase()))])];

@@ -53,7 +53,7 @@ document.addEventListener('click', async (ev) => {
   const v = ev.target.closest('[data-view]');
   if (v) {
     show(v.dataset.view);
-    if (v.dataset.pane) $(`#set-seg button[data-pane="${v.dataset.pane}"]`)?.click();
+    if (v.dataset.pane) window.FSettings?.open(v.dataset.pane);
     closeMenu();
     return;
   }
@@ -77,7 +77,7 @@ function show(view) {
   const lit = view === 'project' ? 'discover' : view;
   $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === lit ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   $$('#rail-list .tile').forEach((t) => (view === 'instance' && t.dataset.inst === S.current ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
-  if (view === 'settings') requestAnimationFrame(() => { $('#set-seg')._place?.(false); $('#cover-seg')._place?.(false); $('#panels-seg')._place?.(false); $('#wall-seg')._place?.(false); $('#browse-seg')._place?.(false); });
+  if (view === 'settings') requestAnimationFrame(() => { window.FSettings?.shown(); $('#cover-seg')._place?.(false); $('#panels-seg')._place?.(false); $('#wall-seg')._place?.(false); $('#browse-seg')._place?.(false); });
   if (view === 'home') renderHome();
   if (view === 'create') prepareCreate();
   if (view === 'accounts') { renderAccountsPage(); loadProviders(); }
@@ -649,7 +649,6 @@ document.addEventListener('keydown', (e) => {
 
 // ---------- Settings: sections, theme + effects (look is kept in the core, see syncLook) ----------
 $('#set-seg').addEventListener('seg:change', (e) => {
-  $$('#view-settings .set-pane').forEach((p) => { p.hidden = p.id !== `set-${e.detail.dataset.pane}`; });
   requestAnimationFrame(() => $('#theme-seg')._place?.(false));
   window.FNav?.note();
 });

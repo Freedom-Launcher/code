@@ -28,6 +28,7 @@
   <link rel="stylesheet" href="crop.css">
   <link rel="stylesheet" href="nav.css">
   <link rel="stylesheet" href="editor.css">
+  <link rel="stylesheet" href="settings.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
   <script src="ui.js" defer></script>
   <script src="dropdown.js" defer></script>
@@ -55,6 +56,8 @@
   <script src="crop.js" defer></script>
   <script src="updates.js" defer></script>
   <script src="library.js" defer></script>
+  <script src="settings.js" defer></script>
+  <script src="drop.js" defer></script>
   <script src="nav.js" defer></script>
   <script src="motion.js" defer></script>
 </head>
@@ -351,40 +354,54 @@
         <div class="pop" id="menu-proj" role="menu" data-id="project.menu"><button class="menu-item" data-do="open">Открыть на Modrinth</button><button class="menu-item" data-do="copy">Скопировать ссылку</button></div>
       </section>
       <section class="view" id="view-settings" data-id="view.settings">
-        <div class="narrow">
-          <h1 class="page-h">Настройки</h1>
-          <div class="seg set-tabs" id="set-seg" data-id="settings.sections"><button data-pane="game" aria-selected="true">Игра</button><button data-pane="launcher">Лаунчер</button><button data-pane="addons">Плагины</button></div>
-          <div class="set-pane" id="set-game" data-id="settings.game">
-            <div class="rows">
-              <div class="r gs-root" id="gs-root-row" data-id="settings.game.root"><div class="grow"><div class="t">Папка сборок</div><div class="s" id="gs-root"></div><div class="progress gs-root-prog" id="gs-root-prog" hidden><i></i></div></div>
-                <button class="btn btn-ghost" id="gs-root-reset" hidden><span class="lbl">По умолчанию</span></button>
-                <button class="btn" id="gs-root-pick"><span class="lbl">Изменить</span></button></div>
-            </div>
-          </div>
-          <div class="set-pane" id="set-launcher" data-id="settings.launcher" hidden>
-            <div class="rows">
-              <div class="r upd-row" id="upd-row" data-id="settings.updates"><div class="grow"><div class="t">Обновления<i class="upd-dot" aria-hidden="true"></i></div><div class="s" id="upd-sub"></div><div class="progress upd-prog" id="upd-prog" hidden><i></i></div></div>
-                <button class="btn" id="upd-btn"><span class="lbl"><span class="t">Проверить</span></span></button></div>
-              <div class="r"><div class="grow"><div class="t">Обложка сборки</div></div>
-                <div class="seg" id="cover-seg"><button data-cover-set="big" aria-selected="true">Большая</button><button data-cover-set="slim">Узкая</button><button data-cover-set="none">Нет</button></div></div>
+      <div class="set-wrap">
+      <aside class="set-side" data-id="settings.side">
+        <h1 class="page-h">Настройки</h1>
+        <label class="set-search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.25"/><path d="m10.2 10.2 3.3 3.3"/></svg><input id="set-q" type="search" placeholder="Поиск" autocomplete="off" spellcheck="false" aria-label="Поиск настроек"><kbd>/</kbd></label>
+        <nav class="set-nav" id="set-seg" data-id="settings.sections"><i class="set-ink"></i>
+          <div class="set-cat">Оформление</div>
+          <button type="button" data-pane="look" aria-selected="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.8 13.2 6l-5.7 5.7H4.3V8.5z"/><path d="m8.4 4.4 3.2 3.2M3 13.5h3"/></svg><span>Внешний вид</span></button>
+          <button type="button" data-pane="wall"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5"/><path d="m2.5 10.5 3.2-3.2 3 3 1.5-1.5 3.3 3.3"/><circle cx="10.5" cy="6.3" r=".9"/></svg><span>Обои и стекло</span></button>
+          <button type="button" data-pane="ui"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M6 3v10M6 7h7.5"/></svg><span>Интерфейс</span></button>
+          <div class="set-cat">Игра</div>
+          <button type="button" data-pane="game"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5 13.5 5.5v5L8 13.5 2.5 10.5v-5zM2.5 5.5 8 8.5l5.5-3M8 8.5v5"/></svg><span>Параметры сборок</span></button>
+          <button type="button" data-pane="stats"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13V9M6.3 13V6M9.7 13V8M13 13V3"/></svg><span>Статистика</span></button>
+          <div class="set-cat">Система</div>
+          <button type="button" data-pane="addons"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><path d="M11.25 9v4.5M9 11.25h4.5"/></svg><span>Плагины</span></button>
+          <button type="button" data-pane="keys"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="4" width="13" height="8" rx="1.5"/><path d="M4.3 6.8h.01M6.8 6.8h.01M9.2 6.8h.01M11.7 6.8h.01M5 9.4h6"/></svg><span>Клавиши</span></button>
+          <button type="button" data-pane="about"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 7.4v3.1M8 5.3v.01"/></svg><span>О лаунчере</span></button>
+        </nav>
+      </aside>
+      <div class="set-main" id="set-main" data-id="settings.main">
+        <div class="set-pane" data-pane="look" data-id="settings.pane.look" hidden>
+          <h2 class="set-h">Внешний вид</h2>
+          <div class="set-label">Тема</div>
+          <div class="rows set-card" data-id="settings.look.theme">
               <div class="r"><div class="grow"><div class="t">Тема</div></div>
                 <div class="seg" id="theme-seg" data-id="settings.theme"><button data-theme-set="default" aria-selected="true">Тёмная</button><button data-theme-set="light">Светлая</button></div></div>
               <div class="r"><div class="grow"><div class="t">Папка тем</div></div>
                 <button class="btn btn-ghost" id="theme-reload" data-id="settings.theme.reload"><span class="lbl">Обновить</span></button>
                 <button class="btn" id="theme-folder" data-id="settings.theme.folder"><span class="lbl">Открыть</span></button></div>
-              <div class="r"><div class="grow"><div class="t">Интерфейс</div></div><button class="btn" id="ui-edit-open" data-id="settings.ui.edit"><span class="lbl">Настроить</span><kbd>Ctrl Shift E</kbd></button></div>
+          </div>
+          <div class="set-label">Раскладка</div>
+          <div class="rows set-card" data-id="settings.look.layout">
               <div class="r"><div class="grow"><div class="t">Панели</div></div>
                 <div class="seg" id="panels-seg" data-id="settings.layout.panels"><button data-panels-set="auto" aria-selected="true">Авто</button><button data-panels-set="on">Отдельно</button><button data-panels-set="off">Вплотную</button></div></div>
               <div class="r"><div class="grow"><div class="t">На весь экран</div></div>
                 <label class="switch"><input type="checkbox" id="fx-wide" data-id="settings.layout.full-width"><i></i></label></div>
+              <div class="r"><div class="grow"><div class="t">Обложка сборки</div></div>
+                <div class="seg" id="cover-seg"><button data-cover-set="big" aria-selected="true">Большая</button><button data-cover-set="slim">Узкая</button><button data-cover-set="none">Нет</button></div></div>
+          </div>
+          <div class="set-label">Движение</div>
+          <div class="rows set-card" data-id="settings.look.motion">
               <div class="r"><div class="grow"><div class="t">Анимации</div></div>
                 <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
-              <div class="r"><div class="grow"><div class="t">Каталог</div></div>
-                <div class="seg" id="browse-seg" data-id="settings.catalog.mode"><button data-browse="pages" aria-selected="true">Страницы</button><button data-browse="scroll">Лента</button></div></div>
-              <div class="r"><div class="grow"><div class="t">Командная строка</div><div class="s" data-pal-kbd>Ctrl K</div></div>
-                <div class="seg" id="pal-pos-seg" data-id="settings.palette.position"><button data-pal-pos="top" aria-selected="true">Сверху</button><button data-pal-pos="bottom">Снизу</button></div></div>
-              <div class="r"><div class="grow"><div class="t">Размывать фон под строкой</div></div>
-                <label class="switch"><input type="checkbox" id="pal-blur" checked data-id="settings.palette.blur"><i></i></label></div>
+          </div>
+        </div>
+        <div class="set-pane" data-pane="wall" data-id="settings.pane.wall" hidden>
+          <h2 class="set-h">Обои и стекло</h2>
+          <div class="set-label">Обои</div>
+          <div class="rows set-card" data-id="settings.wall.image">
               <div class="r"><div class="grow"><div class="t">Обои</div></div>
                 <div class="seg" id="wall-seg" data-id="settings.wall"><button data-wall-set="cover" aria-selected="true">Обложка</button><button data-wall-set="custom">Своя</button><button data-wall-set="off">Нет</button></div></div>
               <div class="r" id="wall-file-row" hidden><div class="grow"><div class="t">Картинка</div></div>
@@ -392,22 +409,73 @@
                 <button class="btn" id="wall-pick" data-id="settings.wall.pick"><span class="lbl">Выбрать…</span></button></div>
               <div class="r" id="wall-blur-row"><div class="grow"><div class="t">Размытие обоев</div><div class="s" id="wall-blur-val"></div></div>
                 <input class="range" type="range" id="wall-blur" min="0" max="40" step="2" data-id="settings.wall.blur"></div>
+          </div>
+          <div class="set-label">Стекло</div>
+          <div class="rows set-card" data-id="settings.wall.glass">
               <div class="r" id="glass-blur-row"><div class="grow"><div class="t">Размытие стекла</div><div class="s" id="glass-blur-val"></div></div>
                 <input class="range" type="range" id="glass-blur" min="0" max="60" step="2" data-id="settings.glass.blur"></div>
               <div class="r" id="wall-glass-row"><div class="grow"><div class="t">Прозрачность</div><div class="s" id="wall-glass-val"></div></div>
                 <input class="range" type="range" id="wall-glass" min="0" max="100" step="1" data-id="settings.wall.glass"></div>
+          </div>
+        </div>
+        <div class="set-pane" data-pane="ui" data-id="settings.pane.ui" hidden>
+          <h2 class="set-h">Интерфейс</h2>
+          <div class="set-label">Редактор</div>
+          <div class="rows set-card" data-id="settings.ui.editor">
+              <div class="r"><div class="grow"><div class="t">Интерфейс</div></div><button class="btn" id="ui-edit-open" data-id="settings.ui.edit"><span class="lbl">Настроить</span><kbd>Ctrl Shift E</kbd></button></div>
+          </div>
+          <div class="set-label">Командная строка</div>
+          <div class="rows set-card" data-id="settings.ui.palette">
+              <div class="r"><div class="grow"><div class="t">Командная строка</div><div class="s" data-pal-kbd>Ctrl K</div></div>
+                <div class="seg" id="pal-pos-seg" data-id="settings.palette.position"><button data-pal-pos="top" aria-selected="true">Сверху</button><button data-pal-pos="bottom">Снизу</button></div></div>
+              <div class="r"><div class="grow"><div class="t">Размывать фон под строкой</div></div>
+                <label class="switch"><input type="checkbox" id="pal-blur" checked data-id="settings.palette.blur"><i></i></label></div>
+          </div>
+          <div class="set-label">Каталог</div>
+          <div class="rows set-card" data-id="settings.ui.catalog">
+              <div class="r"><div class="grow"><div class="t">Каталог</div></div>
+                <div class="seg" id="browse-seg" data-id="settings.catalog.mode"><button data-browse="pages" aria-selected="true">Страницы</button><button data-browse="scroll">Лента</button></div></div>
+          </div>
+        </div>
+        <div class="set-pane" data-pane="game" data-id="settings.pane.game" hidden>
+          <h2 class="set-h">Параметры сборок</h2>
+          <div class="set-game" id="set-game" data-id="settings.game">
+            <div class="rows">
+              <div class="r gs-root" id="gs-root-row" data-id="settings.game.root"><div class="grow"><div class="t">Папка сборок</div><div class="s" id="gs-root"></div><div class="progress gs-root-prog" id="gs-root-prog" hidden><i></i></div></div>
+                <button class="btn btn-ghost" id="gs-root-reset" hidden><span class="lbl">По умолчанию</span></button>
+                <button class="btn" id="gs-root-pick"><span class="lbl">Изменить</span></button></div>
             </div>
           </div>
-          <div class="set-pane" id="set-addons" data-id="settings.addons" hidden>
-            <div class="rows" id="addon-list"></div>
-            <div class="rows">
+        </div>
+        <div class="set-pane" data-pane="stats" data-id="settings.pane.stats" hidden>
+          <h2 class="set-h">Статистика</h2>
+          <div class="set-stats" id="set-stats" data-id="settings.stats"></div>
+        </div>
+        <div class="set-pane" data-pane="addons" data-id="settings.pane.addons" hidden>
+          <h2 class="set-h">Плагины</h2>
+          <div class="rows set-card" id="addon-list" data-id="settings.addons.list"></div>
+          <div class="rows set-card" data-id="settings.addons.folder">
               <div class="r"><div class="grow"><div class="t">Папка плагинов</div></div>
                 <button class="btn btn-ghost" id="addon-reload" data-id="settings.addons.reload"><span class="lbl">Обновить</span></button>
                 <button class="btn" id="addon-folder" data-id="settings.addons.folder"><span class="lbl">Открыть</span></button></div>
-            </div>
           </div>
-          <div data-slot="settings.end"></div>
         </div>
+        <div class="set-pane" data-pane="keys" data-id="settings.pane.keys" hidden>
+          <h2 class="set-h">Клавиши</h2>
+          <div id="set-keys" data-id="settings.keys"></div>
+        </div>
+        <div class="set-pane" data-pane="about" data-id="settings.pane.about" hidden>
+          <h2 class="set-h">О лаунчере</h2>
+          <div class="set-about" data-id="settings.about.card"><span class="set-mark" aria-hidden="true">F</span><div class="grow"><b>Freedom Launcher</b><span id="set-ver"></span></div><button type="button" class="btn btn-ghost" id="set-releases"><span class="lbl">Все версии</span></button></div>
+          <div class="rows set-card" data-id="settings.updates.card">
+              <div class="r upd-row" id="upd-row" data-id="settings.updates"><div class="grow"><div class="t">Обновления<i class="upd-dot" aria-hidden="true"></i></div><div class="s" id="upd-sub"></div><div class="progress upd-prog" id="upd-prog" hidden><i></i></div></div>
+                <button class="btn" id="upd-btn"><span class="lbl"><span class="t">Проверить</span></span></button></div>
+          </div>
+        </div>
+        <div class="set-none" id="set-none" hidden>Ничего не найдено</div>
+        <div data-slot="settings.end"></div>
+      </div>
+      </div>
       </section>
     </main>
   </div>

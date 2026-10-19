@@ -238,3 +238,16 @@ body.ct-shift .ct-del.btn-icon { color: var(--danger); }
 .ctv-warn { flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 6px; color: var(--text-3); font-size: var(--text-sm); }
 .ctv-warn[hidden] { display: inline-flex; visibility: hidden; }
 .ctv-warn svg { width: 14px; height: 14px; flex: none; color: var(--warn); }
+/* ---------- Drag and drop from the file manager ---------- */
+.drop-ov { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: var(--s-6); background: color-mix(in srgb, var(--bg) 55%, transparent); backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity var(--d-3) var(--ease-out); }
+.drop-ov::before { content: ""; position: absolute; inset: 14px; border-radius: var(--r-window); border: 2px dashed color-mix(in srgb, var(--accent) 55%, transparent); }
+.drop-ov[data-on] { opacity: 1; }
+.drop-card { position: relative; display: grid; justify-items: center; gap: 6px; padding: var(--s-6) var(--s-7); border-radius: var(--r-window); background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--line), var(--shadow-pop); transform: scale(var(--pop-scale)); transition: transform var(--d-5) var(--ease-spring); }
+.drop-ov[data-on] .drop-card { transform: none; }
+.drop-ic { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 6px; border-radius: calc(14px * var(--rk-icon, 1)); background: var(--accent-soft); color: var(--accent); }
+.drop-ic svg { width: 26px; height: 26px; }
+.drop-ov[data-on] .drop-ic svg { animation: drop-bob 1.2s var(--ease-out) infinite alternate; }
+@keyframes drop-bob { to { transform: translateY(-3px); } }
+.drop-card b { font: var(--w-semibold) var(--text-lg)/1.25 var(--font-display); }
+.drop-s { max-width: 360px; color: var(--text-3); font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (prefers-reduced-motion: reduce) { .drop-ov[data-on] .drop-ic svg { animation: none; } }

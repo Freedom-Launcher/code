@@ -445,10 +445,19 @@
   async function upload() {
     try {
       const r = await invoke('pick_content', { args: loc(), ext: KINDS[kind].ext });
-      if (!r.added.length) return;
-      toast(r.added.length === 1 ? `Добавлен ${r.added[0]}` : `Добавлено файлов: ${r.added.length}`);
-      metaDone.delete(JSON.stringify(loc()));
-      reload();
+      if (r.added.length) added(r);
+    } catch (e) { fail(e); }
+  }
+  function added(r) {
+    toast(r.added.length === 1 ? `Добавлен ${r.added[0]}` : `Добавлено файлов: ${r.added.length}`);
+    metaDone.delete(JSON.stringify(loc()));
+    reload();
+  }
+  /** Files dropped onto the content tab; the core skips anything that does not fit the section. */
+  async function drop(paths) {
+    try {
+      const r = await invoke('drop_content', { args: loc(), paths });
+      if (r.added.length) added(r); else toast(`Сюда подходят только файлы ${KINDS[kind].ext}`, { error: true });
     } catch (e) { fail(e); }
   }
 
@@ -522,5 +531,7 @@
     reload,
     state: () => ({ inst, kind, world }),
     setKind: (k) => { if (KINDS[k]) kind = k; },
+    drop,
+    kind: () => kind,
   };
 })();

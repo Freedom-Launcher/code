@@ -46,9 +46,6 @@
 .acc-tag.on { color: var(--accent); background: var(--accent-soft); }
 .acc-actions { display: flex; gap: 8px; margin-top: 18px; }
 
-/* Settings */
-.set-tabs { margin-bottom: 18px; }
-.set-pane[hidden] { display: none; }
 /* ---------- Fluid layout: use the window when it grows (maximized / large screens) ---------- */
 /* One gutter for every page, from 36px at 1100px up to 64px on wide screens. */
 :root { --gutter: clamp(28px, 3.2vw, 64px); }
@@ -65,22 +62,9 @@
 .cover-strip { flex-wrap: wrap; }
 .cover-opt { width: clamp(92px, 7vw, 132px); height: auto; aspect-ratio: 92 / 58; }
 .pick button { height: clamp(64px, 7vh, 84px); }
-@media (min-width: 1440px) {
-  /* Settings: both panes side by side instead of switching tabs. */
-  #view-settings .set-tabs { display: none; }
-  #view-settings .narrow { display: grid; grid-template-columns: 1fr 1fr; column-gap: 48px; align-content: start; }
-  #view-settings .page-h, #view-settings [data-slot] { grid-column: 1 / -1; }
-  #view-settings .set-pane[hidden] { display: block !important; }
-  #view-settings .set-pane::before { display: block; margin: 0 0 6px; color: var(--text-3); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em; }
-  #set-game::before { content: "Игра"; }
-  #set-launcher::before { content: "Лаунчер"; }
-  #set-addons { grid-column: 1 / -1; margin-top: var(--s-6); }
-  #set-addons::before { content: "Плагины"; }
-}
 
 /* ---------- Addons (M3) ---------- */
 .addon-frame { display: block; width: 100%; height: 0; border: 0; background: transparent; color-scheme: normal; }
-#set-addons .rows + .rows { margin-top: var(--s-4); }
 .addon-row { align-items: flex-start; }
 .addon-row .t .badge { margin-left: var(--s-1); vertical-align: 1px; }
 .addon-perms { display: flex; flex-wrap: wrap; gap: var(--s-1); margin-top: var(--s-2); }
@@ -89,10 +73,6 @@
 .addon-perms .chip.tier-extended { color: var(--danger); }
 .addon-perms .chip.is-new { box-shadow: inset 0 0 0 1px var(--line-strong); }
 .r .s.is-error { color: var(--danger); }
-@media (min-width: 1440px) {
-  /* Column labels need air under the page title once the tabs are gone. */
-  #view-settings .page-h { margin-bottom: 26px; }
-}
 
 /* ---------- Layout: «На весь экран» (look.full_width) ---------- */
 html[data-width="full"] .home,
