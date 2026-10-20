@@ -829,19 +829,17 @@ function applyWall() {
   $('#wall-blur-row').hidden = $('#wall-glass-row').hidden = $('#glass-blur-row').hidden = mode === 'off';
   applyMenusPlate();
 }
-const PLATE_FF = { ui: 'var(--font-ui)', system: 'system-ui, "Segoe UI", -apple-system, sans-serif', mono: 'var(--font-mono)', serif: 'Georgia, "Times New Roman", serif' };
 function applyMenusPlate() {
   const root = document.documentElement, L = S.look;
   root.style.setProperty('--pop-a', String(L.menu_density / 100));
   root.style.setProperty('--pop-blur', `${L.menu_blur}px`);
   root.style.setProperty('--plate-s', String(L.plate_size / 100));
-  root.style.setProperty('--plate-ff', PLATE_FF[L.plate_font] || PLATE_FF.ui);
+  root.style.removeProperty('--plate-ff');
   root.style.setProperty('--plate-fw', String(L.plate_weight));
   root.dataset.plateMeta = L.plate_meta ? 'on' : 'off';
   $('#pop-alpha').value = L.menu_density; $('#pop-alpha-val').textContent = `${L.menu_density}%`;
   $('#pop-blur').value = L.menu_blur; $('#pop-blur-val').textContent = L.menu_blur ? `${L.menu_blur} px` : 'Без размытия';
   $('#plate-size').value = L.plate_size; $('#plate-size-val').textContent = `${L.plate_size}%`;
-  $$('#plate-font button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.v === L.plate_font)));
   $$('#plate-weight button').forEach((b) => b.setAttribute('aria-selected', String(+b.dataset.v === L.plate_weight)));
   $('#plate-meta').checked = !!L.plate_meta;
 }
@@ -866,7 +864,6 @@ $('#wall-glass').addEventListener('input', (e) => { setLook({ glass_density: 100
 $('#pop-alpha').addEventListener('input', (e) => { setLook({ menu_density: +e.target.value }); applyMenusPlate(); });
 $('#pop-blur').addEventListener('input', (e) => { setLook({ menu_blur: +e.target.value }); applyMenusPlate(); });
 $('#plate-size').addEventListener('input', (e) => { setLook({ plate_size: +e.target.value }); applyMenusPlate(); });
-$('#plate-font').addEventListener('seg:change', (e) => { setLook({ plate_font: e.detail.dataset.v }); applyMenusPlate(); });
 $('#plate-weight').addEventListener('seg:change', (e) => { setLook({ plate_weight: +e.detail.dataset.v }); applyMenusPlate(); });
 $('#plate-meta').addEventListener('change', (e) => { setLook({ plate_meta: e.target.checked }); applyMenusPlate(); });
 // Launcher font: a preset or the user's own file (served by the core at font://localhost/f).

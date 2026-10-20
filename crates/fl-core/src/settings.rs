@@ -185,7 +185,8 @@ pub struct Look {
     pub menu_blur: u32,
     /// Instance name on cards: size, percent of the default.
     pub plate_size: u32,
-    /// Instance name font: `ui` | `system` | `mono` | `serif`.
+    /// Legacy (≤0.3.10): plate font. Kept so old settings load; the UI ignores it —
+    /// card names always use the launcher font (`ui_font`).
     pub plate_font: String,
     /// Instance name weight, 400–800.
     pub plate_weight: u32,
