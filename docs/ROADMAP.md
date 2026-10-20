@@ -11,6 +11,16 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Polish from feedback (0.3.9)
+
+- Skins: separate «Сохранить» (library only, new `skins.save`) and «Сохранить и надеть»; vanilla skins can go «В библиотеку» without wearing. The left column keeps its width with long names (ellipsis + tooltip); the 3D canvas follows its stage, so editor resizing works on the skins page.
+- Content tab: toolbar, quick filters and the column header stay pinned while scrolling.
+- Menus follow their button while the page scrolls and close once it leaves the screen.
+- Settings → «Обои и стекло» → «Меню и списки»: opacity and blur for menus and dropdowns.
+- Settings → «Внешний вид» → «Карточки сборок»: name size, font (Inter, system, mono, serif), weight, subtitle on/off.
+- Library cards: any edge or corner in the interface editor resizes all cards (via «Размер карточек»); double-click resets.
+- «Скрыть с панели» and «Скрыть в библиотеке» are separate (`fl.rail.hidden` / `fl.lib.hidden`); the old shared list becomes panel-only.
+
 ## Skins redo, play on hover (0.3.8)
 
 - Skins page rebuilt: live 3D stage (skinview3d, MIT, lazy-loaded) with drag rotate, click to wave, idle/walk/run/fly animations, elytra toggle, nametag.
