@@ -191,6 +191,12 @@ pub struct Look {
     pub plate_weight: u32,
     /// Show the line under the name (loader, version).
     pub plate_meta: bool,
+    /// Launcher font: `inter` | `system` | `serif` | `mono` | `custom` (the user's file).
+    pub ui_font: String,
+    /// Cache-buster of the user's own font file; 0 = none picked yet.
+    pub font_stamp: u64,
+    /// Display name of the user's font (its file name), up to 64 characters.
+    pub font_name: String,
     /// Window layout: `auto` (separate panels when a wallpaper is on) | `on` (always
     /// separate panels) | `off` (everything flush to the window edges).
     #[serde(default = "panels_auto")]
@@ -222,6 +228,9 @@ impl Default for Look {
             plate_font: "ui".into(),
             plate_weight: 600,
             plate_meta: true,
+            ui_font: "inter".into(),
+            font_stamp: 0,
+            font_name: String::new(),
         }
     }
 }
@@ -267,6 +276,8 @@ impl Look {
         l.menu_blur = l.menu_blur.min(60);
         l.plate_size = l.plate_size.clamp(80, 160);
         l.plate_weight = (l.plate_weight.clamp(400, 800) / 100) * 100;
+        one_of("ui_font", &l.ui_font, &["inter", "system", "serif", "mono", "custom"])?;
+        l.font_name = l.font_name.chars().filter(|c| !c.is_control()).take(64).collect();
         Ok(l)
     }
 }
@@ -618,6 +629,18 @@ mod tests {
             .unwrap();
         assert_eq!((m.menu_density, m.menu_blur, m.plate_size, m.plate_weight), (100, 60, 80, 800));
         assert!(Look::default().patch(&json!({"plate_font": "comic"})).is_err());
+    }
+
+    #[test]
+    fn patch_font() {
+        let name = format!("My\nFont{}", "x".repeat(90));
+        let l = Look::default()
+            .patch(&json!({"ui_font": "custom", "font_stamp": 7, "font_name": name}))
+            .unwrap();
+        assert_eq!((l.ui_font.as_str(), l.font_stamp), ("custom", 7));
+        assert!(l.font_name.starts_with("MyFont") && l.font_name.chars().count() == 64);
+        assert!(Look::default().patch(&json!({"ui_font": "comic"})).is_err());
+        assert_eq!(Look::default().ui_font, "inter");
     }
 
     #[test]

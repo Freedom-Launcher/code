@@ -42,6 +42,7 @@ pub mod store;
 pub mod themes;
 pub mod versions;
 pub mod wallpaper;
+pub mod fonts;
 
 pub use actions::{ActionRegistry, ActionSpec, Caller};
 pub use error::CoreError;

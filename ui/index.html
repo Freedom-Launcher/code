@@ -433,12 +433,21 @@
               <div class="r"><div class="grow"><div class="t">Обложка сборки</div></div>
                 <div class="seg" id="cover-seg"><button data-cover-set="big" aria-selected="true">Большая</button><button data-cover-set="slim">Узкая</button><button data-cover-set="none">Нет</button></div></div>
           </div>
+          <div class="set-label">Шрифт</div>
+          <div class="rows set-card" data-id="settings.look.font">
+              <div class="r"><div class="grow"><div class="t">Шрифт лаунчера</div></div>
+                <div class="seg" id="font-seg" data-id="settings.font"><button data-v="inter" aria-selected="true">Inter</button><button data-v="system" style="font-family:system-ui,'Segoe UI',sans-serif">Системный</button><button data-v="serif" style="font-family:Georgia,serif">С засечками</button><button data-v="mono" style="font-family:var(--font-mono)">Моно</button><button data-v="custom">Свой</button></div></div>
+              <div class="r" id="font-file-row" hidden><div class="grow"><div class="t">Файл шрифта</div><div class="s" id="font-file-name"></div></div>
+                <input type="file" id="font-file" accept=".ttf,.otf,.woff,.woff2" hidden>
+                <button class="btn btn-ghost" id="font-clear" data-id="settings.font.clear"><span class="lbl">Убрать</span></button>
+                <button class="btn" id="font-pick" data-id="settings.font.pick"><span class="lbl">Выбрать…</span></button></div>
+          </div>
           <div class="set-label">Карточки сборок</div>
           <div class="rows set-card" data-id="settings.look.plate">
               <div class="r"><div class="grow"><div class="t">Размер названия</div><div class="s" id="plate-size-val"></div></div>
                 <input class="range" type="range" id="plate-size" min="80" max="160" step="5" data-id="settings.plate.size"></div>
               <div class="r"><div class="grow"><div class="t">Шрифт названия</div></div>
-                <div class="seg" id="plate-font" data-id="settings.plate.font"><button data-v="ui" aria-selected="true">Inter</button><button data-v="system" style="font-family:system-ui,'Segoe UI',sans-serif">Системный</button><button data-v="mono" style="font-family:var(--font-mono)">Моно</button><button data-v="serif" style="font-family:Georgia,serif">С засечками</button></div></div>
+                <div class="seg" id="plate-font" data-id="settings.plate.font"><button data-v="ui" aria-selected="true">Как в лаунчере</button><button data-v="system" style="font-family:system-ui,'Segoe UI',sans-serif">Системный</button><button data-v="mono" style="font-family:var(--font-mono)">Моно</button><button data-v="serif" style="font-family:Georgia,serif">С засечками</button></div></div>
               <div class="r"><div class="grow"><div class="t">Насыщенность</div></div>
                 <div class="seg" id="plate-weight" data-id="settings.plate.weight"><button data-v="400" style="font-weight:400">Обычная</button><button data-v="500" style="font-weight:500">Средняя</button><button data-v="600" aria-selected="true" style="font-weight:600">Полужирная</button><button data-v="800" style="font-weight:800">Жирная</button></div></div>
               <div class="r"><div class="grow"><div class="t">Строка под названием</div><div class="s">Загрузчик и версия</div></div>

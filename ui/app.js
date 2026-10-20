@@ -755,9 +755,9 @@ $('#theme-reload').addEventListener('click', () => { location.hash = 'settings';
 
 // Look (wallpaper, glass, cover, palette) lives in the core (settings.look).
 // localStorage keeps a mirror so the first paint is right before the core answers.
-const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels', menu_density: 'fl.menu-a', menu_blur: 'fl.menu-blur', plate_size: 'fl.plate-size', plate_font: 'fl.plate-font', plate_weight: 'fl.plate-weight', plate_meta: 'fl.plate-meta' };
-const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto', menu_density: 92, menu_blur: 24, plate_size: 100, plate_font: 'ui', plate_weight: 600, plate_meta: true };
-const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'], browse: ['pages', 'scroll'], panels: ['auto', 'on', 'off'], plate_font: ['ui', 'system', 'mono', 'serif'] };
+const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels', menu_density: 'fl.menu-a', menu_blur: 'fl.menu-blur', plate_size: 'fl.plate-size', plate_font: 'fl.plate-font', plate_weight: 'fl.plate-weight', plate_meta: 'fl.plate-meta', ui_font: 'fl.ui-font', font_stamp: 'fl.font-v', font_name: 'fl.font-name' };
+const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto', menu_density: 92, menu_blur: 24, plate_size: 100, plate_font: 'ui', plate_weight: 600, plate_meta: true, ui_font: 'inter', font_stamp: 0, font_name: '' };
+const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'], browse: ['pages', 'scroll'], panels: ['auto', 'on', 'off'], plate_font: ['ui', 'system', 'mono', 'serif'], ui_font: ['inter', 'system', 'serif', 'mono', 'custom'] };
 function lookFromCache() {
   const l = { ...LOOK_DEF };
   for (const [k, key] of Object.entries(LOOK_KEYS)) {
@@ -766,7 +766,7 @@ function lookFromCache() {
     const d = LOOK_DEF[k];
     if (typeof d === 'number') l[k] = Math.max(0, Math.round(+v) || 0);
     else if (typeof d === 'boolean') l[k] = v !== 'off';
-    else if (LOOK_ENUM[k].includes(v)) l[k] = v;
+    else if (!LOOK_ENUM[k] || LOOK_ENUM[k].includes(v)) l[k] = v;
   }
   return l;
 }
@@ -869,7 +869,63 @@ $('#plate-size').addEventListener('input', (e) => { setLook({ plate_size: +e.tar
 $('#plate-font').addEventListener('seg:change', (e) => { setLook({ plate_font: e.detail.dataset.v }); applyMenusPlate(); });
 $('#plate-weight').addEventListener('seg:change', (e) => { setLook({ plate_weight: +e.detail.dataset.v }); applyMenusPlate(); });
 $('#plate-meta').addEventListener('change', (e) => { setLook({ plate_meta: e.target.checked }); applyMenusPlate(); });
+// Launcher font: a preset or the user's own file (served by the core at font://localhost/f).
+var userFace = null, userFaceV = 0;
+async function loadUserFont(v) {
+  if (userFace && userFaceV === v) return true;
+  const url = navigator.userAgent.includes('Windows') ? 'http://font.localhost/f' : 'font://localhost/f';
+  try {
+    const f = new FontFace('FL User Font', `url("${url}?v=${v}")`, { display: 'swap' });
+    await f.load();
+    if (userFace) document.fonts.delete(userFace);
+    document.fonts.add(f); userFace = f; userFaceV = v;
+    return true;
+  } catch (e) { console.warn('font', e); return false; }
+}
+async function applyFont() {
+  const root = document.documentElement, L = S.look, want = L.ui_font || 'inter';
+  $$('#font-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.v === want)));
+  $('#font-file-row').hidden = want !== 'custom';
+  $('#font-file-name').textContent = L.font_stamp ? (L.font_name || 'Свой шрифт') : 'Не выбран';
+  $('#font-clear').hidden = !L.font_stamp;
+  const FF = {
+    system: 'system-ui, "Segoe UI Variable Text", "Segoe UI", -apple-system, sans-serif',
+    serif: 'Georgia, "Times New Roman", serif',
+    mono: '"JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace',
+    custom: '"FL User Font", "Inter", "Segoe UI", system-ui, sans-serif',
+  };
+  let mode = want;
+  if (mode === 'custom' && !(L.font_stamp && await loadUserFont(L.font_stamp))) mode = 'inter';
+  if (FF[mode]) { root.style.setProperty('--font-ui', FF[mode]); root.style.setProperty('--font-display', FF[mode]); }
+  else { root.style.removeProperty('--font-ui'); root.style.removeProperty('--font-display'); }
+  root.dataset.font = mode;
+}
+$('#font-seg').addEventListener('seg:change', (e) => {
+  const v = e.detail.dataset.v;
+  setLook({ ui_font: v }); applyFont();
+  if (v === 'custom' && !S.look.font_stamp) $('#font-file').click();
+});
+$('#font-pick').addEventListener('click', () => $('#font-file').click());
+$('#font-file').addEventListener('change', async (e) => {
+  const f = e.target.files?.[0]; e.target.value = '';
+  if (!f) return;
+  if (f.size > 32 * 1024 * 1024) { toast('Шрифт больше 32 МБ', { error: true }); return; }
+  try {
+    await invoke('set_font', new Uint8Array(await f.arrayBuffer()));
+    setLook({ ui_font: 'custom', font_stamp: Date.now(), font_name: f.name.replace(/\.(ttf|otf|woff2?)$/i, '').slice(0, 64) });
+    await applyFont();
+    if (document.documentElement.dataset.font !== 'custom') toast('Не удалось применить шрифт', { error: true });
+  } catch (err) { toast(String(err), { error: true }); }
+});
+$('#font-clear').addEventListener('click', async () => {
+  try {
+    await invoke('clear_font');
+    setLook({ ui_font: S.look.ui_font === 'custom' ? 'inter' : S.look.ui_font, font_stamp: 0, font_name: '' });
+    applyFont();
+  } catch (err) { toast(String(err), { error: true }); }
+});
 function applyLook() {
+  applyFont();
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
   document.documentElement.dataset.cover = S.look.cover;

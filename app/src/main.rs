@@ -423,6 +423,42 @@ async fn clear_wallpaper(state: tauri::State<'_, AppCore>) -> Result<(), String>
     fl_core::wallpaper::clear(&state.0.data_dir).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn set_font(
+    request: tauri::ipc::Request<'_>,
+    state: tauri::State<'_, AppCore>,
+) -> Result<(), String> {
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err("Нужен файл шрифта".into());
+    };
+    fl_core::fonts::save(&state.0.data_dir, bytes).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn clear_font(state: tauri::State<'_, AppCore>) -> Result<(), String> {
+    fl_core::fonts::clear(&state.0.data_dir).map_err(|e| e.to_string())
+}
+
+/// Serves the user's font: `font://localhost/f` (Windows: `http://font.localhost/f`).
+/// Fonts are fetched in CORS mode, so the page origin has to be allowed.
+fn font_protocol(app: &tauri::AppHandle) -> tauri::http::Response<Vec<u8>> {
+    use tauri::http::Response;
+    let found = app
+        .try_state::<AppCore>()
+        .and_then(|state| fl_core::fonts::read(&state.0.data_dir));
+    let Some((bytes, mime)) = found else {
+        return Response::builder().status(404).body(Vec::new()).unwrap();
+    };
+    Response::builder()
+        .status(200)
+        .header("Content-Type", mime)
+        .header("Access-Control-Allow-Origin", "*")
+        .header("X-Content-Type-Options", "nosniff")
+        .header("Cache-Control", "no-store")
+        .body(bytes)
+        .unwrap()
+}
+
 /// Serves the user's wallpaper: `wall://localhost/w` (Windows: `http://wall.localhost/w`).
 fn wall_protocol(app: &tauri::AppHandle) -> tauri::http::Response<Vec<u8>> {
     use tauri::http::Response;
@@ -750,6 +786,7 @@ fn main() {
         .register_uri_scheme_protocol("theme", |ctx, req| theme_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("addon", |ctx, req| addon_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("wall", |ctx, _req| wall_protocol(ctx.app_handle()))
+        .register_uri_scheme_protocol("font", |ctx, _req| font_protocol(ctx.app_handle()))
         .register_uri_scheme_protocol("shot", |ctx, req| shot_protocol(ctx.app_handle(), &req))
         .register_uri_scheme_protocol("art", |ctx, req| art_protocol(ctx.app_handle(), &req))
         .register_asynchronous_uri_scheme_protocol("rimg", |ctx, req, responder| {
@@ -784,6 +821,8 @@ fn main() {
             open_exports_folder,
             set_wallpaper,
             clear_wallpaper,
+            set_font,
+            clear_font,
             set_art,
             clear_art,
             stage_mrpack,
