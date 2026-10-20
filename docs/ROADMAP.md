@@ -11,6 +11,11 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Launcher font, no black glitches (0.3.10)
+
+- Settings → «Внешний вид» → «Шрифт»: one font for the whole launcher — Inter, system, serif, mono, or the user's own TTF/OTF/WOFF/WOFF2 file (validated by its bytes, up to 32 MB, stored as `<data>/font.*`, served at `font://localhost/f`). «Убрать» returns to Inter. The name-plate font gains «Как в лаунчере».
+- Fixed black bands and boxes from 0.3.9: over a wallpaper the pinned Content toolbar and column header are see-through at rest and turn frosted only once they stick; menus and dropdowns get their backdrop blur only while open (closed menus with a backdrop filter painted black boxes in WebView2).
+
 ## Polish from feedback (0.3.9)
 
 - Skins: separate «Сохранить» (library only, new `skins.save`) and «Сохранить и надеть»; vanilla skins can go «В библиотеку» without wearing. The left column keeps its width with long names (ellipsis + tooltip); the 3D canvas follows its stage, so editor resizing works on the skins page.
