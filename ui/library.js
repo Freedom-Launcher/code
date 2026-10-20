@@ -31,9 +31,19 @@
     version: (i) => i.version,
   };
 
+  function playBtn(i) {
+    const on = isRunning(i.id), busy = S.playing === i.id;
+    return el('span', {
+      class: `hp${on ? ' on' : ''}${busy ? ' busy' : ''}`, role: 'button', title: on ? 'Остановить' : 'Играть',
+      'aria-label': `${on ? 'Остановить' : 'Играть'}: ${i.name}`, 'data-id': 'home.card.play',
+      onpointerdown: (e) => e.stopPropagation(),
+      onclick: (e) => { e.stopPropagation(); e.preventDefault(); if (!busy) togglePlay(i.id, true); },
+    }, svgIco(on ? STOP_D : PLAY_D));
+  }
+
   function card(i) {
     return el('button', { class: `hcard${hid.has(i.id) ? ' is-hid' : ''}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
-      bg(el('i'), coverName(i)), el('b', {}, i.name), el('span', {}, instMeta(i)),
+      bg(el('i', {}, playBtn(i)), coverName(i)), el('b', {}, i.name), el('span', {}, instMeta(i)),
       pin.has(i.id) ? el('em', { class: 'pin', 'aria-label': 'Закреплена', html: PIN_SVG }) : '');
   }
 

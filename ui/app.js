@@ -507,13 +507,13 @@ const instMeta = (i) => `${LOADER_NAMES[i.loader] || 'Vanilla'} · ${i.version}`
 const PLAY_D = '<path d="M5 3.5v9l7-4.5z"/>';
 const STOP_D = '<rect x="4" y="4" width="8" height="8" rx="1.5"/>';
 function svgIco(d) { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 16 16'); s.innerHTML = d; return s; }
-const togglePlay = (id) => (isRunning(id) ? stopGame(id) : play(id));
+const togglePlay = (id, stay = false) => (isRunning(id) ? stopGame(id) : play(id, true, stay));
 function renderHome() {
   const acc = S.accounts.accounts.find((a) => a.id === S.accounts.selected);
   $('#home-greet').textContent = `${greet(new Date().getHours())}${acc ? `, ${acc.name}` : ''}`;
   const rc = recent().slice(0, 5).map((i) => el('button', { class: 'rc', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.recent.${i.id}`, onclick: () => openInstance(i.id) },
     bg(el('i'), iconName(i)), el('span', { class: 't' }, el('b', {}, i.name), el('span', {}, instMeta(i))),
-    el('span', { class: `pl${isRunning(i.id) ? ' on' : ''}`, role: 'button', 'aria-label': `Играть: ${i.name}`, onclick: (e) => { e.stopPropagation(); togglePlay(i.id); } }, svgIco(isRunning(i.id) ? STOP_D : PLAY_D))));
+    el('span', { class: `pl${isRunning(i.id) ? ' on' : ''}`, role: 'button', 'aria-label': `Играть: ${i.name}`, onclick: (e) => { e.stopPropagation(); togglePlay(i.id, true); } }, svgIco(isRunning(i.id) ? STOP_D : PLAY_D))));
   rc.push(el('button', { class: 'rc add', 'data-view': 'create', 'data-id': 'home.create' }, el('i', {}, '+'), el('span', { class: 't' }, el('b', {}, 'Новая сборка'))));
   $('#home-recent').replaceChildren(...rc);
   if (window.FLib) window.FLib.render(); else $('#home-all').replaceChildren(...S.instances.map((i) => el('button', { class: 'hcard', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
@@ -566,14 +566,15 @@ async function stopGame(id = S.current) {
   await refreshRunning();
   toast('Игра закрыта');
 }
-async function play(id = S.current, launch = true) {
+async function play(id = S.current, launch = true, stay = false) {
   if (S.playing || !id) return;
   if (launch && isRunning(id)) { toast('Эта сборка уже запущена'); return; }
   if (launch && !S.accounts.selected) { toast('Сначала войдите в аккаунт', { error: true }); $('#account-btn').click(); return; }
   const inst = byId(id);
   S.playing = id;
   S.current = id;
-  if (S.view !== 'instance') openInstance(id); else renderInstancePage();
+  if (stay) renderHome?.();
+  else if (S.view !== 'instance') openInstance(id); else renderInstancePage();
   renderInstances();
   setRunning();
   const btn = $('#play');

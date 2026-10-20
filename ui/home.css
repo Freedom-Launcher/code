@@ -121,3 +121,29 @@ html[data-motion="on"] .lib-g .hcard { animation: fl-card-in 360ms var(--ease-ou
 .lib-hid { height: 32px; }
 .lib-hid[hidden] { display: none; }
 .lib-hid[aria-pressed="true"] { color: var(--accent); }
+
+/* Play on hover, like the Modrinth App instance card */
+.hcard > i { position: relative; }
+.hcard > i::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg, transparent 42%, rgba(0, 0, 0, .46)); opacity: 0; transition: opacity 180ms ease;
+}
+.hcard:hover > i::after, .hcard:focus-visible > i::after, .hcard > i:has(.hp.on, .hp.busy)::after { opacity: 1; }
+.hcard .hp {
+  position: absolute; right: 10px; bottom: 10px; z-index: 1; display: grid; place-items: center;
+  width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: var(--on-accent, #fff); cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .42), inset 0 0 0 1px rgba(255, 255, 255, .2);
+  opacity: 0; transform: translateY(6px) scale(.78); transform-origin: 50% 100%;
+  transition: opacity 160ms ease, transform 220ms var(--ease-out, ease), filter 140ms ease;
+}
+.hcard:hover .hp, .hcard:focus-visible .hp, .hcard .hp.on, .hcard .hp.busy { opacity: 1; transform: none; }
+.hcard .hp:hover { filter: brightness(1.12); transform: scale(1.07); }
+.hcard .hp:active { transform: scale(.93); }
+.hcard .hp svg { width: 16px; height: 16px; margin-left: 2px; fill: currentColor; }
+.hcard .hp.on { background: var(--danger, #e5484d); color: #fff; }
+.hcard .hp.on svg { width: 14px; height: 14px; margin-left: 0; }
+.hcard .hp.busy { cursor: progress; }
+.hcard .hp.busy svg { display: none; }
+.hcard .hp.busy::before { content: ""; width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: fl-hp-spin .8s linear infinite; }
+@keyframes fl-hp-spin { to { transform: rotate(360deg); } }
+html[data-motion="off"] .hcard .hp, html[data-motion="off"] .hcard > i::after { transition: none; }
