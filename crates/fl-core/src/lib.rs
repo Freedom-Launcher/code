@@ -36,6 +36,7 @@ pub mod relocate;
 pub mod rimg;
 pub mod settings;
 pub mod signing;
+pub mod skin_packs;
 pub mod skins;
 pub mod store;
 pub mod themes;

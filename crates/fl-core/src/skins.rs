@@ -188,7 +188,32 @@ fn keep(core: &Core, variant: &str, png: &[u8]) -> Result<String, CoreError> {
     Ok(name)
 }
 
+// ---------- Library metadata (skins/index.json) ----------
+
+#[derive(Default, serde::Serialize, serde::Deserialize)]
+struct Meta {
+    /// Manual order of saved skins; the rest follow, newest first.
+    #[serde(default)]
+    order: Vec<String>,
+    /// Cape worn with a saved skin: `Some(id)` or `None` (no cape). Missing = leave the cape alone.
+    #[serde(default)]
+    capes: std::collections::HashMap<String, Option<String>>,
+    /// Mojang texture key the saved skin got when it was last put on (marks it as active).
+    #[serde(default)]
+    keys: std::collections::HashMap<String, String>,
+}
+
+fn meta_path(core: &Core) -> std::path::PathBuf { lib_dir(core).join("index.json") }
+fn load_meta(core: &Core) -> Meta {
+    fs::read(meta_path(core)).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+}
+fn save_meta(core: &Core, m: &Meta) -> Result<(), CoreError> {
+    crate::game::download::write_atomic(&meta_path(core), &serde_json::to_vec(m)?)?;
+    Ok(())
+}
+
 fn saved(core: &Core) -> Vec<Value> {
+    let m = load_meta(core);
     let mut v: Vec<_> = fs::read_dir(lib_dir(core)).into_iter().flatten().flatten()
         .filter_map(|e| {
             let n = e.file_name().to_string_lossy().into_owned();
@@ -196,9 +221,12 @@ fn saved(core: &Core) -> Vec<Value> {
             valid_name(&n).then_some((t, n))
         }).collect();
     v.sort_by(|a, b| b.0.cmp(&a.0));
-    v.into_iter().take(48).filter_map(|(_, n)| {
+    v.sort_by_key(|(_, n)| m.order.iter().position(|o| o == n).unwrap_or(usize::MAX));
+    v.into_iter().take(96).filter_map(|(_, n)| {
         let png = fs::read(lib_dir(core).join(&n)).ok()?;
-        Some(json!({ "name": n, "variant": n.split('-').next(), "img": data_url(&png) }))
+        let cape = m.capes.get(&n).cloned();
+        Some(json!({ "name": n, "variant": n.split('-').next(), "img": data_url(&png), "key": m.keys.get(&n),
+                     "has_cape": cape.is_some(), "cape": cape.flatten() }))
     }).collect()
 }
 
@@ -218,90 +246,247 @@ fn forget_head(core: &Core, acc: &Account) {
 }
 fn api(path: &str) -> String { format!("{}{path}", msauth::MC_PROFILE_URL) }
 
-/// Current skin, capes and the local skin library for the skins page.
-pub async fn profile(core: &Core, id: &str) -> Result<Value, CoreError> {
-    let (acc, t) = token(core, id).await?;
-    let r = core.http().get(msauth::MC_PROFILE_URL).bearer_auth(&t).send().await?;
+/// Texture key: the last part of a textures.minecraft.net URL.
+pub fn tex_key(url: &str) -> Option<String> {
+    url.rsplit('/').next().filter(|k| k.len() >= 32 && k.bytes().all(|c| c.is_ascii_hexdigit())).map(str::to_owned)
+}
+
+async fn mc_profile(core: &Core, t: &str) -> Result<Value, CoreError> {
+    let r = core.http().get(msauth::MC_PROFILE_URL).bearer_auth(t).send().await?;
     if r.status().as_u16() == 404 {
         return Err(CoreError::msg("У этого аккаунта нет профиля Minecraft"));
     }
     let r = r.error_for_status().map_err(|_| CoreError::msg("Войдите через Microsoft снова"))?;
-    let v: Value = r.json().await?;
+    Ok(r.json().await?)
+}
+
+async fn render(core: &Core, acc: &Account, v: &Value) -> Result<Value, CoreError> {
     let skins = v["skins"].as_array().cloned().unwrap_or_default();
     let cur = skins.iter().find(|s| s["state"] == "ACTIVE").or(skins.first());
     let mut skin = Value::Null;
     if let Some(c) = cur {
-        let img = match c["url"].as_str() { Some(u) => png_at(core, u).await.map(|p| data_url(&p)), None => None };
-        skin = json!({ "variant": c["variant"].as_str().unwrap_or("CLASSIC").to_lowercase(), "img": img });
+        let url = c["url"].as_str().unwrap_or_default();
+        let img = png_at(core, url).await.map(|p| data_url(&p));
+        skin = json!({ "variant": c["variant"].as_str().unwrap_or("CLASSIC").to_lowercase(), "img": img, "key": tex_key(url) });
     }
-    let mut capes = Vec::new();
-    for c in v["capes"].as_array().cloned().unwrap_or_default() {
-        let img = match c["url"].as_str() { Some(u) => png_at(core, u).await.map(|p| data_url(&p)), None => None };
-        capes.push(json!({ "id": c["id"], "alias": c["alias"], "active": c["state"] == "ACTIVE", "img": img }));
-    }
+    let capes = futures_util::future::join_all(v["capes"].as_array().cloned().unwrap_or_default().into_iter().map(|c| async move {
+        let img = png_at(core, c["url"].as_str().unwrap_or_default()).await.map(|p| data_url(&p));
+        json!({ "id": c["id"], "alias": c["alias"], "active": c["state"] == "ACTIVE", "img": img })
+    })).await;
     Ok(json!({ "name": v["name"].as_str().unwrap_or(&acc.name), "skin": skin, "capes": capes, "saved": saved(core) }))
+}
+
+/// Current skin, capes and the local skin library for the skins page.
+pub async fn profile(core: &Core, id: &str) -> Result<Value, CoreError> {
+    let (acc, t) = token(core, id).await?;
+    let v = mc_profile(core, &t).await?;
+    render(core, &acc, &v).await
 }
 
 fn variant(v: &str) -> Result<&'static str, CoreError> {
     match v { "classic" => Ok("classic"), "slim" => Ok("slim"), _ => Err(CoreError::BadArgs("variant".into())) }
 }
 
-/// Uploads a skin to the account and keeps a copy in the local library.
-pub async fn upload(core: &Core, id: &str, var: &str, png: &[u8]) -> Result<Value, CoreError> {
+async fn put_skin(core: &Core, t: &str, var: &str, png: &[u8]) -> Result<(), CoreError> {
+    let (ct, body) = multipart(var, png);
+    ok(core.http().post(api("/skins")).bearer_auth(t).header("content-type", ct).body(body).send().await?).await
+}
+
+async fn put_cape(core: &Core, t: &str, cape: Option<&str>) -> Result<(), CoreError> {
+    let h = core.http();
+    ok(match cape {
+        Some(c) => h.put(api("/capes/active")).bearer_auth(t).json(&json!({ "capeId": c })).send().await?,
+        None => h.delete(api("/capes/active")).bearer_auth(t).send().await?,
+    }).await
+}
+
+/// Keeps the skin the account wears now in the library, so switching never loses it.
+async fn preserve(core: &Core, v: &Value) -> Option<()> {
+    let skins = v["skins"].as_array()?;
+    let cur = skins.iter().find(|s| s["state"] == "ACTIVE")?;
+    let url = cur["url"].as_str()?;
+    let key = tex_key(url)?;
+    let mut m = load_meta(core);
+    if crate::skin_packs::find(&key).is_some() || m.keys.values().any(|k| *k == key) { return Some(()); }
+    let png = png_at(core, url).await?;
+    let var = if cur["variant"].as_str()?.eq_ignore_ascii_case("slim") { "slim" } else { "classic" };
+    let name = keep(core, var, &png).ok()?;
+    m.keys.insert(name, key);
+    save_meta(core, &m).ok()
+}
+
+/// Puts a picture on the account; `name` is its library entry (its cape follows it).
+async fn wear(core: &Core, id: &str, var: &str, png: &[u8], name: Option<&str>) -> Result<Value, CoreError> {
     let var = variant(var)?;
     check_skin(png)?;
     let (acc, t) = token(core, id).await?;
-    let (ct, body) = multipart(var, png);
-    ok(core.http().post(api("/skins")).bearer_auth(&t).header("content-type", ct).body(body).send().await?).await?;
-    keep(core, var, png)?;
+    if let Ok(v) = mc_profile(core, &t).await { preserve(core, &v).await; }
+    put_skin(core, &t, var, png).await?;
+    if let Some(c) = name.and_then(|n| load_meta(core).capes.get(n).cloned()) {
+        put_cape(core, &t, c.as_deref()).await?;
+    }
     forget_head(core, &acc);
-    profile(core, id).await
+    let v = mc_profile(core, &t).await?;
+    if let (Some(n), Some(k)) = (name, active_skin(&v).as_deref().and_then(tex_key)) {
+        let mut m = load_meta(core);
+        m.keys.retain(|_, x| *x != k);
+        m.keys.insert(n.into(), k);
+        let _ = save_meta(core, &m);
+    }
+    render(core, &acc, &v).await
 }
 
-/// Puts a skin from the library back on.
-pub async fn use_saved(core: &Core, id: &str, name: &str) -> Result<Value, CoreError> {
+/// Uploads a new skin, keeps it in the library (with its cape) and puts it on.
+pub async fn upload(core: &Core, id: &str, var: &str, png: &[u8], cape: Option<Option<String>>) -> Result<Value, CoreError> {
+    let var = variant(var)?;
+    check_skin(png)?;
+    let name = keep(core, var, png)?;
+    if let Some(c) = cape {
+        let mut m = load_meta(core);
+        m.capes.insert(name.clone(), c);
+        save_meta(core, &m)?;
+    }
+    wear(core, id, var, png, Some(&name)).await
+}
+
+fn lib_png(core: &Core, name: &str) -> Result<Vec<u8>, CoreError> {
     if !valid_name(name) { return Err(CoreError::BadArgs("bad skin".into())); }
-    let png = fs::read(lib_dir(core).join(name)).map_err(|_| CoreError::msg("Скин не найден"))?;
-    upload(core, id, name.split('-').next().unwrap_or("classic"), &png).await
+    fs::read(lib_dir(core).join(name)).map_err(|_| CoreError::msg("Скин не найден"))
+}
+
+/// Puts a skin from the library back on, with its cape.
+pub async fn use_saved(core: &Core, id: &str, name: &str) -> Result<Value, CoreError> {
+    let png = lib_png(core, name)?;
+    wear(core, id, name.split('-').next().unwrap_or("classic"), &png, Some(name)).await
+}
+
+/// Changes a saved skin: picture, arm model, cape. Re-applies it when it is the one worn now.
+pub async fn edit(core: &Core, id: &str, name: &str, var: &str, png: Option<Vec<u8>>, cape: Option<Option<String>>) -> Result<Value, CoreError> {
+    let var = variant(var)?;
+    let old = lib_png(core, name)?;
+    let replaced = png.is_some();
+    let png = png.unwrap_or(old);
+    check_skin(&png)?;
+    let (acc, t) = token(core, id).await?;
+    let v = mc_profile(core, &t).await?;
+    let now = active_skin(&v).as_deref().and_then(tex_key);
+    let mut m = load_meta(core);
+    let was_on = now.is_some() && m.keys.get(name) == now.as_ref();
+    let new = keep(core, var, &png)?;
+    if new != name {
+        let _ = fs::remove_file(lib_dir(core).join(name));
+        for o in m.order.iter_mut() { if o == name { *o = new.clone(); } }
+        if let Some(c) = m.capes.remove(name) { m.capes.insert(new.clone(), c); }
+        if let Some(k) = m.keys.remove(name) { if !replaced { m.keys.insert(new.clone(), k); } }
+    }
+    if let Some(c) = cape { m.capes.insert(new.clone(), c); }
+    save_meta(core, &m)?;
+    if was_on { return wear(core, id, var, &png, Some(&new)).await; }
+    render(core, &acc, &v).await
 }
 
 /// Switches the arm model of the current skin (re-uploads the same picture).
 pub async fn set_variant(core: &Core, id: &str, var: &str) -> Result<Value, CoreError> {
     let var = variant(var)?;
     let (acc, t) = token(core, id).await?;
-    let v: Value = core.http().get(msauth::MC_PROFILE_URL).bearer_auth(&t).send().await?.error_for_status()?.json().await?;
+    let v = mc_profile(core, &t).await?;
     let url = active_skin(&v).ok_or_else(|| CoreError::msg("Сначала загрузите скин"))?;
     let png = png_at(core, &url).await.ok_or_else(|| CoreError::msg("Не удалось получить текущий скин"))?;
-    let (ct, body) = multipart(var, &png);
-    ok(core.http().post(api("/skins")).bearer_auth(&t).header("content-type", ct).body(body).send().await?).await?;
+    put_skin(core, &t, var, &png).await?;
     forget_head(core, &acc);
-    profile(core, id).await
+    let v = mc_profile(core, &t).await?;
+    render(core, &acc, &v).await
 }
 
-/// Back to the default skin.
+/// Back to the default skin (the current one stays in the library).
 pub async fn reset(core: &Core, id: &str) -> Result<Value, CoreError> {
     let (acc, t) = token(core, id).await?;
+    if let Ok(v) = mc_profile(core, &t).await { preserve(core, &v).await; }
     ok(core.http().delete(api("/skins/active")).bearer_auth(&t).send().await?).await?;
     forget_head(core, &acc);
-    profile(core, id).await
+    let v = mc_profile(core, &t).await?;
+    render(core, &acc, &v).await
 }
 
-/// Shows one of the account's own capes, or hides the cape (`None`).
+/// Shows one of the account's own capes, or hides it. The worn saved skin remembers the choice.
 pub async fn set_cape(core: &Core, id: &str, cape: Option<&str>) -> Result<Value, CoreError> {
-    let (_, t) = token(core, id).await?;
-    let h = core.http();
-    let r = match cape {
-        Some(c) => h.put(api("/capes/active")).bearer_auth(&t).json(&json!({ "capeId": c })).send().await?,
-        None => h.delete(api("/capes/active")).bearer_auth(&t).send().await?,
-    };
-    ok(r).await?;
-    profile(core, id).await
+    let (acc, t) = token(core, id).await?;
+    put_cape(core, &t, cape).await?;
+    let v = mc_profile(core, &t).await?;
+    if let Some(k) = active_skin(&v).as_deref().and_then(tex_key) {
+        let mut m = load_meta(core);
+        if let Some(n) = m.keys.iter().find(|(_, x)| **x == k).map(|(n, _)| n.clone()) {
+            m.capes.insert(n, cape.map(str::to_owned));
+            let _ = save_meta(core, &m);
+        }
+    }
+    render(core, &acc, &v).await
 }
 
 pub fn forget_saved(core: &Core, name: &str) -> Result<(), CoreError> {
     if !valid_name(name) { return Err(CoreError::BadArgs("bad skin".into())); }
     let _ = fs::remove_file(lib_dir(core).join(name));
-    Ok(())
+    let mut m = load_meta(core);
+    m.order.retain(|o| o != name);
+    m.capes.remove(name);
+    m.keys.remove(name);
+    save_meta(core, &m)
+}
+
+/// Manual order of the saved skins.
+pub fn reorder(core: &Core, names: Vec<String>) -> Result<(), CoreError> {
+    if names.len() > 512 || !names.iter().all(|n| valid_name(n)) { return Err(CoreError::BadArgs("names".into())); }
+    let mut m = load_meta(core);
+    m.order = names;
+    save_meta(core, &m)
+}
+
+/// Skins of the vanilla launcher, cached under `cache/skins/default/<key>.png`.
+pub async fn defaults(core: &Core) -> Vec<Value> {
+    let dir = core.data_dir.join("cache").join("skins").join("default");
+    let all = crate::skin_packs::DEFAULTS;
+    let mut out = Vec::with_capacity(all.len());
+    for chunk in all.chunks(12) {
+        let got = futures_util::future::join_all(chunk.iter().map(|d| {
+            let path = dir.join(format!("{}.png", d.0));
+            async move {
+                if let Ok(b) = fs::read(&path) { return Some(b); }
+                let b = png_at(core, &format!("{TEX_HOST}texture/{}", d.0)).await?;
+                let _ = crate::game::download::write_atomic(&path, &b);
+                Some(b)
+            }
+        })).await;
+        for (d, b) in chunk.iter().zip(got) {
+            out.push(json!({ "key": d.0, "name": d.1, "section": d.2, "variant": d.3, "img": b.map(|b| data_url(&b)) }));
+        }
+    }
+    out
+}
+
+/// Puts on a vanilla skin by its texture URL; falls back to uploading the picture.
+pub async fn use_default(core: &Core, id: &str, key: &str) -> Result<Value, CoreError> {
+    let d = crate::skin_packs::find(key).ok_or_else(|| CoreError::BadArgs("skin".into()))?;
+    let (acc, t) = token(core, id).await?;
+    if let Ok(v) = mc_profile(core, &t).await { preserve(core, &v).await; }
+    let url = format!("{TEX_HOST}texture/{}", d.0);
+    let r = core.http().post(api("/skins")).bearer_auth(&t).json(&json!({ "variant": d.3, "url": url })).send().await?;
+    if r.status().as_u16() == 429 || ok(r).await.is_err() {
+        let png = png_at(core, &url).await.ok_or_else(|| CoreError::msg("Не удалось получить скин"))?;
+        put_skin(core, &t, d.3, &png).await?;
+    }
+    forget_head(core, &acc);
+    let v = mc_profile(core, &t).await?;
+    render(core, &acc, &v).await
+}
+
+/// A PNG dropped from the file manager, checked as a skin.
+pub fn read_png(path: &str) -> Result<Value, CoreError> {
+    if !path.to_ascii_lowercase().ends_with(".png") { return Err(CoreError::msg("Нужна картинка PNG")); }
+    let len = fs::metadata(path)?.len();
+    if len > 2 << 20 { return Err(CoreError::msg("Файл слишком большой для скина")); }
+    let b = fs::read(path)?;
+    check_skin(&b)?;
+    Ok(json!({ "data": data_url(&b) }))
 }
 
 const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

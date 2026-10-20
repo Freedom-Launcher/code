@@ -319,19 +319,29 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         let A { id } = args(a)?;
         crate::skins::profile(&c, &id).await
     });
+    // `cape`: omitted = leave as is, "" = no cape, otherwise a cape id.
+    fn cape_arg(c: Option<String>) -> Option<Option<String>> { c.map(|c| (!c.is_empty()).then_some(c)) }
+    fn png_arg(d: &str) -> Result<Vec<u8>, CoreError> {
+        crate::skins::b64_decode(d.rsplit(',').next().unwrap_or_default()).ok_or_else(|| CoreError::BadArgs("bad image".into()))
+    }
     r.register("skins.upload", P::AccountsManage, false, |c, a| async move {
         #[derive(Deserialize)]
-        struct A { id: String, variant: String, data: String }
-        let A { id, variant, data } = args(a)?;
-        let b64 = data.rsplit(',').next().unwrap_or_default();
-        let png = crate::skins::b64_decode(b64).ok_or_else(|| CoreError::BadArgs("bad image".into()))?;
-        crate::skins::upload(&c, &id, &variant, &png).await
+        struct A { id: String, variant: String, data: String, #[serde(default)] cape: Option<String> }
+        let A { id, variant, data, cape } = args(a)?;
+        crate::skins::upload(&c, &id, &variant, &png_arg(&data)?, cape_arg(cape)).await
     });
     r.register("skins.use", P::AccountsManage, false, |c, a| async move {
         #[derive(Deserialize)]
         struct A { id: String, name: String }
         let A { id, name } = args(a)?;
         crate::skins::use_saved(&c, &id, &name).await
+    });
+    r.register("skins.edit", P::AccountsManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { id: String, name: String, variant: String, #[serde(default)] data: Option<String>, #[serde(default)] cape: Option<String> }
+        let A { id, name, variant, data, cape } = args(a)?;
+        let png = match data { Some(d) => Some(png_arg(&d)?), None => None };
+        crate::skins::edit(&c, &id, &name, &variant, png, cape_arg(cape)).await
     });
     r.register("skins.variant", P::AccountsManage, false, |c, a| async move {
         #[derive(Deserialize)]
@@ -349,7 +359,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         #[derive(Deserialize)]
         struct A { id: String, cape: Option<String> }
         let A { id, cape } = args(a)?;
-        crate::skins::set_cape(&c, &id, cape.as_deref()).await
+        crate::skins::set_cape(&c, &id, cape.as_deref().filter(|c| !c.is_empty())).await
     });
     r.register("skins.forget", P::AccountsManage, false, |c, a| async move {
         #[derive(Deserialize)]
@@ -357,6 +367,28 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         let A { name } = args(a)?;
         crate::skins::forget_saved(&c, &name)?;
         Ok(json!({ "ok": true }))
+    });
+    r.register("skins.order", P::AccountsManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { names: Vec<String> }
+        let A { names } = args(a)?;
+        crate::skins::reorder(&c, names)?;
+        Ok(json!({ "ok": true }))
+    });
+    r.register("skins.defaults", P::AccountsRead, false, |c, _a| async move {
+        Ok(json!({ "skins": crate::skins::defaults(&c).await }))
+    });
+    r.register("skins.default", P::AccountsManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { id: String, key: String }
+        let A { id, key } = args(a)?;
+        crate::skins::use_default(&c, &id, &key).await
+    });
+    r.register("skins.read", P::AccountsManage, false, |_c, a| async move {
+        #[derive(Deserialize)]
+        struct A { path: String }
+        let A { path } = args(a)?;
+        crate::skins::read_png(&path)
     });
     r.register(
         "accounts.select",
