@@ -754,9 +754,9 @@ $('#theme-reload').addEventListener('click', () => { location.hash = 'settings';
 
 // Look (wallpaper, glass, cover, palette) lives in the core (settings.look).
 // localStorage keeps a mirror so the first paint is right before the core answers.
-const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels' };
-const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto' };
-const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'], browse: ['pages', 'scroll'], panels: ['auto', 'on', 'off'] };
+const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels', menu_density: 'fl.menu-a', menu_blur: 'fl.menu-blur', plate_size: 'fl.plate-size', plate_font: 'fl.plate-font', plate_weight: 'fl.plate-weight', plate_meta: 'fl.plate-meta' };
+const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto', menu_density: 92, menu_blur: 24, plate_size: 100, plate_font: 'ui', plate_weight: 600, plate_meta: true };
+const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'], browse: ['pages', 'scroll'], panels: ['auto', 'on', 'off'], plate_font: ['ui', 'system', 'mono', 'serif'] };
 function lookFromCache() {
   const l = { ...LOOK_DEF };
   for (const [k, key] of Object.entries(LOOK_KEYS)) {
@@ -826,6 +826,23 @@ function applyWall() {
   $('#wall-glass').value = 100 - glass; $('#wall-glass-val').textContent = `${100 - glass}%`;
   $$('#wall-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.wallSet === mode)));
   $('#wall-blur-row').hidden = $('#wall-glass-row').hidden = $('#glass-blur-row').hidden = mode === 'off';
+  applyMenusPlate();
+}
+const PLATE_FF = { ui: 'var(--font-ui)', system: 'system-ui, "Segoe UI", -apple-system, sans-serif', mono: 'var(--font-mono)', serif: 'Georgia, "Times New Roman", serif' };
+function applyMenusPlate() {
+  const root = document.documentElement, L = S.look;
+  root.style.setProperty('--pop-a', String(L.menu_density / 100));
+  root.style.setProperty('--pop-blur', `${L.menu_blur}px`);
+  root.style.setProperty('--plate-s', String(L.plate_size / 100));
+  root.style.setProperty('--plate-ff', PLATE_FF[L.plate_font] || PLATE_FF.ui);
+  root.style.setProperty('--plate-fw', String(L.plate_weight));
+  root.dataset.plateMeta = L.plate_meta ? 'on' : 'off';
+  $('#pop-alpha').value = L.menu_density; $('#pop-alpha-val').textContent = `${L.menu_density}%`;
+  $('#pop-blur').value = L.menu_blur; $('#pop-blur-val').textContent = L.menu_blur ? `${L.menu_blur} px` : 'Без размытия';
+  $('#plate-size').value = L.plate_size; $('#plate-size-val').textContent = `${L.plate_size}%`;
+  $$('#plate-font button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.v === L.plate_font)));
+  $$('#plate-weight button').forEach((b) => b.setAttribute('aria-selected', String(+b.dataset.v === L.plate_weight)));
+  $('#plate-meta').checked = !!L.plate_meta;
 }
 $('#wall-seg').addEventListener('seg:change', (e) => {
   const mode = e.detail.dataset.wallSet;
@@ -845,6 +862,12 @@ $('#wall-file').addEventListener('change', async (e) => {
 $('#wall-blur').addEventListener('input', (e) => { setLook({ wall_blur: +e.target.value }); applyWall(); });
 $('#glass-blur').addEventListener('input', (e) => { setLook({ glass_blur: +e.target.value }); applyWall(); });
 $('#wall-glass').addEventListener('input', (e) => { setLook({ glass_density: 100 - +e.target.value }); applyWall(); });
+$('#pop-alpha').addEventListener('input', (e) => { setLook({ menu_density: +e.target.value }); applyMenusPlate(); });
+$('#pop-blur').addEventListener('input', (e) => { setLook({ menu_blur: +e.target.value }); applyMenusPlate(); });
+$('#plate-size').addEventListener('input', (e) => { setLook({ plate_size: +e.target.value }); applyMenusPlate(); });
+$('#plate-font').addEventListener('seg:change', (e) => { setLook({ plate_font: e.detail.dataset.v }); applyMenusPlate(); });
+$('#plate-weight').addEventListener('seg:change', (e) => { setLook({ plate_weight: +e.detail.dataset.v }); applyMenusPlate(); });
+$('#plate-meta').addEventListener('change', (e) => { setLook({ plate_meta: e.target.checked }); applyMenusPlate(); });
 function applyLook() {
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';

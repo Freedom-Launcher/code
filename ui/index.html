@@ -433,6 +433,17 @@
               <div class="r"><div class="grow"><div class="t">Обложка сборки</div></div>
                 <div class="seg" id="cover-seg"><button data-cover-set="big" aria-selected="true">Большая</button><button data-cover-set="slim">Узкая</button><button data-cover-set="none">Нет</button></div></div>
           </div>
+          <div class="set-label">Карточки сборок</div>
+          <div class="rows set-card" data-id="settings.look.plate">
+              <div class="r"><div class="grow"><div class="t">Размер названия</div><div class="s" id="plate-size-val"></div></div>
+                <input class="range" type="range" id="plate-size" min="80" max="160" step="5" data-id="settings.plate.size"></div>
+              <div class="r"><div class="grow"><div class="t">Шрифт названия</div></div>
+                <div class="seg" id="plate-font" data-id="settings.plate.font"><button data-v="ui" aria-selected="true">Inter</button><button data-v="system" style="font-family:system-ui,'Segoe UI',sans-serif">Системный</button><button data-v="mono" style="font-family:var(--font-mono)">Моно</button><button data-v="serif" style="font-family:Georgia,serif">С засечками</button></div></div>
+              <div class="r"><div class="grow"><div class="t">Насыщенность</div></div>
+                <div class="seg" id="plate-weight" data-id="settings.plate.weight"><button data-v="400" style="font-weight:400">Обычная</button><button data-v="500" style="font-weight:500">Средняя</button><button data-v="600" aria-selected="true" style="font-weight:600">Полужирная</button><button data-v="800" style="font-weight:800">Жирная</button></div></div>
+              <div class="r"><div class="grow"><div class="t">Строка под названием</div><div class="s">Загрузчик и версия</div></div>
+                <label class="switch"><input type="checkbox" id="plate-meta" checked data-id="settings.plate.meta"><i></i></label></div>
+          </div>
           <div class="set-label">Движение</div>
           <div class="rows set-card" data-id="settings.look.motion">
               <div class="r"><div class="grow"><div class="t">Анимации</div></div>
@@ -450,6 +461,13 @@
                 <button class="btn" id="wall-pick" data-id="settings.wall.pick"><span class="lbl">Выбрать…</span></button></div>
               <div class="r" id="wall-blur-row"><div class="grow"><div class="t">Размытие обоев</div><div class="s" id="wall-blur-val"></div></div>
                 <input class="range" type="range" id="wall-blur" min="0" max="40" step="2" data-id="settings.wall.blur"></div>
+          </div>
+          <div class="set-label">Меню и списки</div>
+          <div class="rows set-card" data-id="settings.wall.menus">
+              <div class="r"><div class="grow"><div class="t">Непрозрачность</div><div class="s" id="pop-alpha-val"></div></div>
+                <input class="range" type="range" id="pop-alpha" min="40" max="100" step="1" data-id="settings.menus.alpha"></div>
+              <div class="r"><div class="grow"><div class="t">Размытие под меню</div><div class="s" id="pop-blur-val"></div></div>
+                <input class="range" type="range" id="pop-blur" min="0" max="60" step="2" data-id="settings.menus.blur"></div>
           </div>
           <div class="set-label">Стекло</div>
           <div class="rows set-card" data-id="settings.wall.glass">

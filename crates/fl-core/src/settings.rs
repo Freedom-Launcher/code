@@ -179,6 +179,18 @@ pub struct Look {
     pub browse: String,
     /// Results per catalog page: 10, 20 or 50.
     pub per_page: u32,
+    /// Menus and dropdown lists: density, percent (100 = opaque).
+    pub menu_density: u32,
+    /// Blur behind menus and dropdown lists, px.
+    pub menu_blur: u32,
+    /// Instance name on cards: size, percent of the default.
+    pub plate_size: u32,
+    /// Instance name font: `ui` | `system` | `mono` | `serif`.
+    pub plate_font: String,
+    /// Instance name weight, 400–800.
+    pub plate_weight: u32,
+    /// Show the line under the name (loader, version).
+    pub plate_meta: bool,
     /// Window layout: `auto` (separate panels when a wallpaper is on) | `on` (always
     /// separate panels) | `off` (everything flush to the window edges).
     #[serde(default = "panels_auto")]
@@ -204,6 +216,12 @@ impl Default for Look {
             browse: "pages".into(),
             per_page: 20,
             panels: panels_auto(),
+            menu_density: 92,
+            menu_blur: 24,
+            plate_size: 100,
+            plate_font: "ui".into(),
+            plate_weight: 600,
+            plate_meta: true,
         }
     }
 }
@@ -244,6 +262,11 @@ impl Look {
         l.wall_blur = l.wall_blur.min(40);
         l.glass_blur = l.glass_blur.min(60);
         l.glass_density = l.glass_density.min(100);
+        one_of("plate_font", &l.plate_font, &["ui", "system", "mono", "serif"])?;
+        l.menu_density = l.menu_density.min(100);
+        l.menu_blur = l.menu_blur.min(60);
+        l.plate_size = l.plate_size.clamp(80, 160);
+        l.plate_weight = (l.plate_weight.clamp(400, 800) / 100) * 100;
         Ok(l)
     }
 }
@@ -590,6 +613,11 @@ mod tests {
             .patch(&json!({"wall_blur": 900, "glass_blur": 61, "glass_density": 300}))
             .unwrap();
         assert_eq!((l.wall_blur, l.glass_blur, l.glass_density), (40, 60, 100));
+        let m = Look::default()
+            .patch(&json!({"menu_density": 300, "menu_blur": 99, "plate_size": 10, "plate_weight": 950}))
+            .unwrap();
+        assert_eq!((m.menu_density, m.menu_blur, m.plate_size, m.plate_weight), (100, 60, 80, 800));
+        assert!(Look::default().patch(&json!({"plate_font": "comic"})).is_err());
     }
 
     #[test]
