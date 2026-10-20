@@ -4,7 +4,7 @@
 // version switcher — searchable list with channels, «Текущая» and
 // incompatible versions, the changelog beside it.
 (() => {
-  const CDN = /^https:\/\/cdn\.modrinth\.com\/[^"'\\()\s]+$/;
+  const CDN = /^https:\/\/(?:cdn\.modrinth\.com|media\.forgecdn\.net)\/[^"'\\()\s]+$/;
   const CH = { release: ['R', 'Релиз'], beta: ['B', 'Бета'], alpha: ['A', 'Альфа'] };
   const fmtDate = (s) => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' }); };
   const fail = (e) => toast(String(e), { error: true });

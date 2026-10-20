@@ -15,7 +15,7 @@
   const OSI = new Set('0BSD AFL-3.0 AGPL-3.0 Apache-2.0 Artistic-2.0 BSD-2-Clause BSD-3-Clause BSL-1.0 CDDL-1.0 ECL-2.0 EPL-1.0 EPL-2.0 EUPL-1.1 EUPL-1.2 GPL-2.0 GPL-3.0 ISC LGPL-2.1 LGPL-3.0 MIT MPL-2.0 NCSA OSL-3.0 PostgreSQL Python-2.0 Unlicense UPL-1.0 Zlib'.split(' '));
   const SORTS = { az: 'А–Я', za: 'Я–А', new: 'Новые', old: 'Старые', author: 'Автор', size: 'Размер', ver: 'Версия', verd: 'Версия' };
   const ENV = { client: 'Только клиент', server: 'Только сервер', both: 'Клиент и сервер' };
-  const PROPS = { upd: 'Есть обновление', open: 'Открытый код', ext: 'Не с Modrinth', lock: 'Заморожены' };
+  const PROPS = { upd: 'Есть обновление', open: 'Открытый код', ext: 'Не из каталога', lock: 'Заморожены' };
   const svg = (d, w = 1.5) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
   const I = {
     upd: svg('<path d="M8 3v7m-3-3 3 3 3-3M3.5 13h9"/>', 1.7),
@@ -46,7 +46,10 @@
   const f = { author: new Set(), env: new Set(), props: new Set() };
   const loc = () => ({ instance: inst, kind, ...(kind === 'datapack' ? { world } : {}) });
   const typeOf = () => kind;
-  const link = (m) => (m.slug ? `https://modrinth.com/${typeOf()}/${m.slug}` : '');
+  const CF_CLASS = { mod: 'mc-mods', resourcepack: 'texture-packs', shader: 'shaders', datapack: 'data-packs' };
+  const link = (m) => (!m.slug ? '' : String(m.project_id || '').startsWith('cf:')
+    ? `https://www.curseforge.com/minecraft/${CF_CLASS[typeOf()] || 'mc-mods'}/${m.slug}`
+    : `https://modrinth.com/${typeOf()}/${m.slug}`);
 
   // ---------- Facets ----------
   const envOf = (m) => {

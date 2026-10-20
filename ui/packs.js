@@ -16,7 +16,7 @@
   function paint() {
     const i = cur && byId(cur), p = i?.pack;
     $('#ip-pack').hidden = $('#ip-pack-sep').hidden = !p;
-    if (p) $('#ip-pack').textContent = `Modrinth ${p.version_number}`.trim();
+    if (p) $('#ip-pack').textContent = `${String(p.project_id || '').startsWith('cf:') ? 'CurseForge' : 'Modrinth'} ${p.version_number}`.trim();
     $('#mi-pack').hidden = !p;
     if (busy) return;
     const u = $('#ip-update'), up = !!(info?.update && info.latest);

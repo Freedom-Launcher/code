@@ -10,7 +10,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{game::download, modrinth, modrinth::Kind, store, Core, CoreError};
+use crate::{catalog, curseforge, game::download, modrinth, modrinth::Kind, store, Core, CoreError};
 
 const OFF: &str = ".disabled";
 /// Guards against dependency cycles and runaway chains.
@@ -244,8 +244,8 @@ pub async fn install(
             return Err(CoreError::msg("too many dependencies"));
         }
         let (project, versions) = futures_util::future::try_join(
-            modrinth::project(core, &id),
-            modrinth::versions(core, &id, mc, t.loaders),
+            catalog::project(core, &id),
+            catalog::versions(core, &id, mc, t.loaders),
         )
         .await?;
         let chosen = match version_id.filter(|_| id == project_id) {
@@ -255,9 +255,30 @@ pub async fn install(
             None => modrinth::pick(&versions, mc, t.loaders),
         };
         let v = chosen.ok_or_else(|| {
-            CoreError::msg(format!("{}: нет подходящей версии для {mc}", project.title))
+            let site_only = curseforge::is_cf(&id)
+                && versions
+                    .iter()
+                    .any(|v| v.files.is_empty() && v.game_versions.iter().any(|g| g == mc));
+            if site_only {
+                CoreError::msg(format!(
+                    "{}: автор разрешает скачивать его только с сайта CurseForge",
+                    project.title
+                ))
+            } else {
+                CoreError::msg(format!("{}: нет подходящей версии для {mc}", project.title))
+            }
         })?;
         let f = v.primary_file().expect("chosen versions have files");
+        // A dependency already present from the other catalog (same title or file) is not doubled.
+        if id != project_id {
+            let dup = idx.contains_key(&f.filename)
+                || idx.values().any(|s| s.title.eq_ignore_ascii_case(&project.title));
+            if dup {
+                have.push(project.id.clone());
+                have.push(id);
+                continue;
+            }
+        }
         let bytes = fetch_checked(core, kind, f).await?;
         download::write_atomic(&dir(game_dir, kind).join(&f.filename), &bytes)?;
         idx.insert(
@@ -404,25 +425,77 @@ async fn pending(
 ) -> Result<Vec<(String, PathBuf, modrinth::Version)>, CoreError> {
     let idx = load_index(t.game_dir, t.kind)?;
     let files = hashed(t.game_dir, t.kind).await?;
-    let hashes: Vec<String> = files.iter().map(|f| f.2.clone()).collect();
+    let is_cf = |f: &str| idx.get(f).is_some_and(|s| curseforge::is_cf(&s.project_id));
+    let hashes: Vec<String> = files
+        .iter()
+        .filter(|f| !is_cf(&f.0))
+        .map(|f| f.2.clone())
+        .collect();
     let (any, rel) = futures_util::future::try_join(
         modrinth::latest_by_hash(core, &hashes, t.mc, t.loaders, false),
         modrinth::latest_by_hash(core, &hashes, t.mc, t.loaders, true),
     )
     .await?;
+    let cf_new = cf_latest(core, t, &idx, &files).await;
     let mut out = Vec::new();
     for (file, path, h) in files {
         let Some(src) = idx.get(&file) else { continue };
         if src.locked {
             continue;
         }
-        if let Some(v) = choose_update(&src.version_id, &h, any.get(&h), rel.get(&h)) {
+        let pick = if curseforge::is_cf(&src.project_id) {
+            cf_new
+                .get(&src.project_id)
+                .and_then(|(a, r)| choose_update(&src.version_id, &h, a.as_ref(), r.as_ref()))
+        } else {
+            choose_update(&src.version_id, &h, any.get(&h), rel.get(&h))
+        };
+        if let Some(v) = pick {
             if v.project_id == src.project_id {
                 out.push((file, path, v.clone()));
             }
         }
     }
     Ok(out)
+}
+
+type Newest = (Option<modrinth::Version>, Option<modrinth::Version>);
+
+/// For each CurseForge project in the index: its newest fitting file and newest
+/// fitting release. A project that fails to load just gets no update offered.
+async fn cf_latest(
+    core: &Core,
+    t: Target<'_>,
+    idx: &Index,
+    files: &[(String, PathBuf, String)],
+) -> std::collections::HashMap<String, Newest> {
+    let mut ids: Vec<String> = files
+        .iter()
+        .filter_map(|f| idx.get(&f.0))
+        .map(|s| s.project_id.clone())
+        .filter(|p| curseforge::is_cf(p))
+        .collect();
+    ids.sort();
+    ids.dedup();
+    let mut out = std::collections::HashMap::new();
+    let fits = |v: &modrinth::Version| {
+        v.game_versions.iter().any(|g| g == t.mc)
+            && v.loaders.iter().any(|l| t.loaders.contains(&l.as_str()))
+            && v.primary_file().is_some()
+    };
+    for chunk in ids.chunks(8) {
+        let got = futures_util::future::join_all(
+            chunk.iter().map(|id| catalog::versions(core, id, t.mc, t.loaders)),
+        )
+        .await;
+        for (id, r) in chunk.iter().zip(got) {
+            let Ok(vs) = r else { continue };
+            let any = vs.iter().find(|v| fits(v)).cloned();
+            let rel = vs.iter().find(|v| v.version_type == "release" && fits(v)).cloned();
+            out.insert(id.clone(), (any, rel));
+        }
+    }
+    out
 }
 
 /// Puts version `v` in place of `file`: the new file is written before the
@@ -483,7 +556,7 @@ pub async fn versions_for(core: &Core, t: Target<'_>, file: &str) -> Result<Vec<
     let src = idx
         .get(file)
         .ok_or_else(|| CoreError::BadArgs(format!("not from Modrinth: {file}")))?;
-    let all = modrinth::project_versions(core, &src.project_id).await?;
+    let all = catalog::project_versions(core, &src.project_id).await?;
     Ok(all
         .into_iter()
         .filter(|v| v.primary_file().is_some())
@@ -503,7 +576,7 @@ pub async fn switch(core: &Core, t: Target<'_>, file: &str, version_id: &str) ->
         .get(file)
         .map(|s| s.project_id.clone())
         .ok_or_else(|| CoreError::BadArgs(format!("not from Modrinth: {file}")))?;
-    let v = modrinth::version(core, version_id).await?;
+    let v = catalog::version(core, &project, version_id).await?;
     if v.project_id != project {
         return Err(CoreError::BadArgs("version of another project".into()));
     }
@@ -576,7 +649,7 @@ pub async fn refresh_meta(core: &Core, game_dir: &Path, kind: Kind) -> Result<Ve
     fill_projects(core, &mut idx).await?;
     let vids: Vec<String> = idx
         .values()
-        .filter(|s| s.published.is_empty() && !s.version_id.is_empty())
+        .filter(|s| s.published.is_empty() && !s.version_id.is_empty() && !curseforge::is_cf(&s.version_id))
         .map(|s| s.version_id.clone())
         .collect();
     if !vids.is_empty() {
@@ -599,6 +672,11 @@ async fn fill_projects(core: &Core, idx: &mut Index) -> Result<(), CoreError> {
         .collect();
     need.sort();
     need.dedup();
+    let (cf_need, need): (Vec<String>, Vec<String>) =
+        need.into_iter().partition(|id| curseforge::is_cf(id));
+    if !cf_need.is_empty() {
+        fill_cf(core, idx, &cf_need).await;
+    }
     if need.is_empty() {
         return Ok(());
     }
@@ -646,6 +724,57 @@ async fn fill_projects(core: &Core, idx: &mut Index) -> Result<(), CoreError> {
                 s.author = author.clone();
             }
         }
+    }
+    Ok(())
+}
+
+/// Title, slug, icon and author of CurseForge entries. Best effort: without a key
+/// or network the list simply keeps what it has.
+async fn fill_cf(core: &Core, idx: &mut Index, ids: &[String]) {
+    let nums: Vec<u64> = ids.iter().filter_map(|i| curseforge::num(i)).collect();
+    let Ok(ms) = curseforge::mods(core, &nums).await else {
+        return;
+    };
+    for m in &ms {
+        let id = curseforge::cid(m.id);
+        for s in idx.values_mut().filter(|s| s.project_id == id) {
+            s.slug = m.slug.clone();
+            if s.title.is_empty() {
+                s.title = m.name.clone();
+            }
+            if s.icon_url.is_none() {
+                s.icon_url = curseforge::icon(m);
+            }
+            if s.author.is_none() {
+                s.author = curseforge::author(m);
+            }
+        }
+    }
+}
+
+/// Records where files a pack brought came from. `entries` are (path in the
+/// instance, origin); files not on disk (or not content) are skipped.
+pub fn index_sources(game_dir: &Path, entries: &[(String, Source)]) -> Result<(), CoreError> {
+    for kind in [Kind::Mod, Kind::ResourcePack, Kind::Shader] {
+        let folder = kind.folder();
+        let mine: Vec<(&str, &Source)> = entries
+            .iter()
+            .filter_map(|(p, s)| p.strip_prefix(folder)?.strip_prefix('/').map(|f| (f, s)))
+            .collect();
+        if mine.is_empty() {
+            continue;
+        }
+        let d = dir(game_dir, kind);
+        let mut idx = load_index(game_dir, kind)?;
+        for (f, s) in mine {
+            if check_file(kind, f).is_err() {
+                continue;
+            }
+            if d.join(f).exists() || d.join(format!("{f}{OFF}")).exists() {
+                idx.insert(f.to_owned(), s.clone());
+            }
+        }
+        save_index(game_dir, kind, &idx)?;
     }
     Ok(())
 }

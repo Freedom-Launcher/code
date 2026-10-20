@@ -11,7 +11,7 @@ use crate::{
     addons,
     game::service,
     instances::{self, Instance, InstanceStore},
-    modrinth, mods, mrpack, msauth,
+    catalog, curseforge, modrinth, mods, mrpack, msauth,
     settings::Settings,
     store, themes, unix_now, versions, Core, CoreError, Permission as P,
 };
@@ -648,7 +648,7 @@ async fn install_modpack(
     loaders: &[String],
     token: &str,
 ) -> Result<Value, CoreError> {
-    let versions = modrinth::project_versions(c, project).await?;
+    let versions = catalog::project_versions(c, project).await?;
     let v = match version {
         Some(id) => versions.iter().find(|v| v.id == id),
         None => {
@@ -677,7 +677,10 @@ fn pack_ref(v: &modrinth::Version) -> instances::PackRef {
 
 /// Downloads a pack version's `.mrpack` (cdn.modrinth.com only, SHA1-checked) into `imports/`.
 async fn fetch_pack(c: &Core, v: &modrinth::Version) -> Result<std::path::PathBuf, CoreError> {
-    let is_pack = |f: &&modrinth::VersionFile| f.filename.ends_with(".mrpack");
+    let is_pack = |f: &&modrinth::VersionFile| {
+        f.filename.ends_with(".mrpack")
+            || (f.filename.ends_with(".zip") && curseforge::download_ok(&f.url))
+    };
     let f = v
         .files
         .iter()
@@ -685,7 +688,8 @@ async fn fetch_pack(c: &Core, v: &modrinth::Version) -> Result<std::path::PathBu
         .find(|f| f.primary)
         .or_else(|| v.files.iter().find(is_pack))
         .ok_or_else(|| CoreError::msg("В этой версии нет файла сборки"))?;
-    if !f.url.starts_with("https://cdn.modrinth.com/") || f.size as u64 > mrpack::MAX_PACK_FILE {
+    let host_ok = f.url.starts_with("https://cdn.modrinth.com/") || curseforge::download_ok(&f.url);
+    if !host_ok || f.size as u64 > mrpack::MAX_PACK_FILE {
         return Err(CoreError::msg("Файл сборки не прошёл проверку"));
     }
     // Streamed to disk: big packs never sit in memory.
@@ -743,7 +747,7 @@ fn register_packs(r: &mut ActionRegistry) {
         let Some(pack) = i.pack.clone() else {
             return Ok(json!({ "pack": null }));
         };
-        let vs = modrinth::project_versions(&c, &pack.project_id).await?;
+        let vs = catalog::project_versions(&c, &pack.project_id).await?;
         let latest = latest_pack(&i, &vs);
         let at = |id: &str| vs.iter().position(|v| v.id == id).unwrap_or(usize::MAX);
         let row = |v: &modrinth::Version| json!({ "id": v.id, "version_number": v.version_number, "version_type": v.version_type,
@@ -845,8 +849,8 @@ async fn update_pack(
     let pack = i
         .pack
         .clone()
-        .ok_or_else(|| CoreError::msg("Эта сборка установлена не с Modrinth"))?;
-    let vs = modrinth::project_versions(c, &pack.project_id).await?;
+        .ok_or_else(|| CoreError::msg("Эта сборка установлена не из каталога"))?;
+    let vs = catalog::project_versions(c, &pack.project_id).await?;
     let v = match version {
         Some(id) => vs.iter().find(|v| v.id == id),
         None => latest_pack(&i, &vs),
@@ -867,9 +871,10 @@ async fn apply_pack(
 ) -> Result<Value, CoreError> {
     let file = std::fs::File::open(path)?;
     let mut z = zip::ZipArchive::new(file)
-        .map_err(|_| CoreError::BadArgs("Это не сборка Modrinth (.mrpack)".into()))?;
-    let mut plan = mrpack::plan(mrpack::read_index(&mut z)?, std::path::Path::new(""))?;
+        .map_err(|_| CoreError::BadArgs("Это не сборка Modrinth или CurseForge".into()))?;
+    let mut plan = read_plan(c, &mut z).await?;
     instances::validate(&i.name, &plan.mc)?;
+    let blocked = std::mem::take(&mut plan.blocked);
     if plan.loader != "vanilla" && plan.loader_version.is_empty() {
         plan.loader_version = crate::game::loader::latest(c, &plan.loader, &plan.mc).await?;
     }
@@ -900,7 +905,8 @@ async fn apply_pack(
     it.loader = plan.loader;
     it.loader_version = plan.loader_version;
     it.pack = Some(pack);
-    let out = serde_json::to_value(&*it)?;
+    let mut out = serde_json::to_value(&*it)?;
+    out["blocked"] = json!(blocked);
     store::save(&c.path(INSTANCES), &s, false)?;
     p.set_stage("done");
     Ok(out)
@@ -1058,12 +1064,13 @@ async fn import_mrpack(
     let file = std::fs::File::open(path)
         .map_err(|_| CoreError::BadArgs("Файл сборки не найден, выберите его снова".into()))?;
     let mut z = zip::ZipArchive::new(file)
-        .map_err(|_| CoreError::BadArgs("Это не сборка Modrinth (.mrpack)".into()))?;
+        .map_err(|_| CoreError::BadArgs("Это не сборка Modrinth или CurseForge".into()))?;
     let p = service::progress_for(c, token);
     p.set_stage("prepare");
     // Paths stay relative until the folder is known.
-    let mut plan = mrpack::plan(mrpack::read_index(&mut z)?, std::path::Path::new(""))?;
+    let mut plan = read_plan(c, &mut z).await?;
     instances::validate(&plan.name, &plan.mc)?;
+    let blocked = std::mem::take(&mut plan.blocked);
     if plan.loader != "vanilla" && plan.loader_version.is_empty() {
         plan.loader_version = crate::game::loader::latest(c, &plan.loader, &plan.mc).await?;
     }
@@ -1099,7 +1106,21 @@ async fn import_mrpack(
     s.instances.push(inst.clone());
     store::save(&c.path(INSTANCES), &s, false)?;
     p.set_stage("done");
-    Ok(serde_json::to_value(inst)?)
+    let mut out = serde_json::to_value(inst)?;
+    out["blocked"] = json!(blocked);
+    Ok(out)
+}
+
+/// A pack's plan: a Modrinth `.mrpack`, or a CurseForge export (`manifest.json`).
+async fn read_plan(
+    c: &Core,
+    z: &mut zip::ZipArchive<std::fs::File>,
+) -> Result<mrpack::Plan, CoreError> {
+    if curseforge::is_pack(z) {
+        let m = curseforge::read_manifest(z)?;
+        return curseforge::pack_plan(c, m).await;
+    }
+    mrpack::plan(mrpack::read_index(z)?, std::path::Path::new(""))
 }
 
 async fn fill_from_pack(
@@ -1136,10 +1157,15 @@ async fn fill_from_pack(
     p.set_stage("files");
     crate::game::download::fetch_all(c.http(), tasks, std::sync::Arc::clone(p)).await?;
     p.set_stage("overrides");
-    mrpack::extract_overrides(z, game_dir)?;
+    mrpack::extract_overrides_from(z, game_dir, &plan.overrides)?;
     store::save(&game_dir.join(instances::PACK_FILES), &owned, false)?;
-    // Best effort: without it the mods still work, just without icons/updates.
-    let _ = mods::index_known(c, game_dir, &jars).await;
+    if plan.index.is_empty() {
+        // Best effort: without it the mods still work, just without icons/updates.
+        let _ = mods::index_known(c, game_dir, &jars).await;
+    } else {
+        // A CurseForge pack names every file's origin itself.
+        mods::index_sources(game_dir, &plan.index)?;
+    }
     Ok(())
 }
 
@@ -1745,7 +1771,7 @@ fn project_arg(a: Value) -> Result<String, CoreError> {
         id: String,
     }
     let A { id } = args(a)?;
-    if !modrinth::valid_project_id(&id) {
+    if !catalog::valid_id(&id) {
         return Err(CoreError::msg("Неверный проект"));
     }
     Ok(id)
@@ -1786,6 +1812,9 @@ fn register_mods(r: &mut ActionRegistry) {
             open_source: bool,
             #[serde(default)]
             exclude: Vec<String>,
+            /// `modrinth` (default) or `curseforge`.
+            #[serde(default)]
+            source: String,
         }
         let a: A = args(a)?;
         let (mc, loaders) = match a.instance.as_deref().filter(|s| !s.is_empty()) {
@@ -1833,7 +1862,11 @@ fn register_mods(r: &mut ActionRegistry) {
             offset: a.offset.min(10_000),
             limit: a.limit.unwrap_or(20).clamp(5, 50),
         };
-        let page = modrinth::search(&c, &q).await?;
+        let page = if a.source == "curseforge" {
+            curseforge::search(&c, &q).await?
+        } else {
+            modrinth::search(&c, &q).await?
+        };
         Ok(json!({ "supported": true, "hits": page.hits, "total_hits": page.total_hits }))
     });
     // Category filters Modrinth offers for a kind, grouped by header.
@@ -1841,13 +1874,13 @@ fn register_mods(r: &mut ActionRegistry) {
     r.register("modrinth.project", P::Network, false, |c, a| async move {
         let id = project_arg(a)?;
         Ok(serde_json::to_value(
-            modrinth::project_page(&c, &id).await?,
+            catalog::project_page(&c, &id).await?,
         )?)
     });
     r.register("modrinth.versions", P::Network, false, |c, a| async move {
         let id = project_arg(a)?;
         Ok(serde_json::to_value(
-            modrinth::project_versions(&c, &id).await?,
+            catalog::project_versions(&c, &id).await?,
         )?)
     });
     r.register("mods.categories", P::Network, false, |c, a| async move {
@@ -1855,8 +1888,14 @@ fn register_mods(r: &mut ActionRegistry) {
         struct A {
             #[serde(default)]
             kind: Kind,
+            #[serde(default)]
+            source: String,
         }
-        let A { kind } = args(a)?;
+        let A { kind, source } = args(a)?;
+        if source == "curseforge" {
+            let cats = curseforge::categories(&c, kind).await?;
+            return Ok(json!(curseforge::category_rows(kind, &cats)));
+        }
         let tags: Vec<Value> = c
             .http()
             .get(format!("{}/tag/category", modrinth::API))

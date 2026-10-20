@@ -20,7 +20,7 @@
   };
   const modded = (i) => supports(i, 'mod');
   const fmtN = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)} млн` : n >= 1e3 ? `${Math.round(n / 1e3)} тыс` : String(n));
-  const CDN = /^https:\/\/cdn\.modrinth\.com\/[^"'\\()\s]+$/;
+  const CDN = /^https:\/\/(?:cdn\.modrinth\.com|media\.forgecdn\.net)\/[^"'\\()\s]+$/;
   const TRASH = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>';
   const fail = (e) => toast(String(e), { error: true });
   const empty = (title, ...rest) => el('div', { class: 'table-empty' }, el('b', {}, title), ...rest);
@@ -47,6 +47,10 @@
 
   // ---------- Modrinth browser ----------
   let kind = 'modpack';
+  // The catalog searched: Modrinth or CurseForge, remembered between sessions.
+  let src = localStorage.getItem('fl.disc.src') === 'curseforge' ? 'curseforge' : 'modrinth';
+  const SRC_NAME = { modrinth: 'Modrinth', curseforge: 'CurseForge' };
+  const cf = () => src === 'curseforge';
   let target = null;
   let scope = null; // instance the catalog is scoped to («Установка в …»)
   let dworld = null;
@@ -67,6 +71,7 @@
   let have = new Set();
   let timer = 0;
   const catCache = new Map();
+  const catLabels = new Map(), headLabels = new Map();
 
   const instLabel = (i) => `${i.name} · ${LOADER_NAMES[i.loader] || LOADER_NAMES.vanilla} ${i.version}`;
   // The query/install context: an instance (and world) narrows the results,
@@ -114,7 +119,9 @@
     const top = lastTop;
     paintScope();
     selectSeg($('#disc-kind'), kind);
-    $('#disc-q').placeholder = KINDS[kind].search;
+    $$('#disc-src button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.src === src)));
+    requestAnimationFrame(() => $('#disc-src')._place?.(false));
+    $('#disc-q').placeholder = `${KINDS[kind].many} на ${SRC_NAME[src]}`;
     const list = S.instances.filter((i) => supports(i, kind));
     if (!list.some((i) => i.id === target)) target = null;
     const sel = $('#disc-target');
@@ -148,10 +155,11 @@
   }
 
   async function paintCats() {
-    const k = kind;
-    if (!catCache.has(k)) catCache.set(k, call('mods.categories', { kind: k }).catch(() => { catCache.delete(k); return []; }));
-    const list = await catCache.get(k);
-    if (k !== kind) return;
+    const k = kind, s = src, key = `${s}:${k}`;
+    if (!catCache.has(key)) catCache.set(key, call('mods.categories', { kind: k, source: s }).catch(() => { catCache.delete(key); return []; }));
+    const list = await catCache.get(key);
+    if (k !== kind || s !== src) return;
+    for (const c of list) { if (c.label) catLabels.set(c.name, c.label); if (c.header_label) headLabels.set(c.header, c.header_label); }
     // Modrinth's sidebar: one group per tag header.
     const groups = new Map();
     for (const c of list) {
@@ -163,7 +171,7 @@
     const order = ['categories', 'features', 'resolutions', 'performance impact'];
     const heads = [...groups.keys()].sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
     $('#disc-cats').replaceChildren(...heads.map((h) => el('section', { class: 'disc-group' },
-      el('h3', {}, gh(HEAD_RU[h] || catName(h))),
+      el('h3', {}, gh(HEAD_RU[h] || headLabels.get(h) || catName(h))),
       el('div', { class: 'disc-gb' }, el('div', { class: 'disc-opts' }, ...groups.get(h).map((c) => catOpt(c.name)))))));
     $$('#disc-cats .disc-group').forEach((g) => { g.dataset.g = `cat:${g.querySelector('.disc-gh span').textContent}`; });
     applyClosed();
@@ -265,7 +273,8 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
     })) : [el('div', { class: 'disc-none' }, 'Ничего')]));
   }
   function paintEnv() {
-    $('#disc-env-g').hidden = !lk();
+    $('#disc-env-g').hidden = !lk() || cf();
+    $('#disc-lic-g').hidden = cf();
     $('#disc-env').replaceChildren(...Object.keys(ENV_RU).map((x) => opt(ENV_RU[x], env.has(x), `discover.env.${x}`, (b) => {
       toggle(env, x); b.setAttribute('aria-pressed', String(env.has(x))); changed();
     })));
@@ -278,7 +287,8 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
       mark(); changed();
     });
     const x = el('button', { class: 'disc-x', type: 'button', title: 'Исключить', 'aria-label': 'Исключить', 'data-id': `discover.exclude.${n}`, html: BAN });
-    const w = el('div', { class: 'disc-optw' }, b, x);
+    // CurseForge cannot exclude a category.
+    const w = el('div', { class: 'disc-optw' }, b, cf() ? null : x);
     const mark = () => { b.setAttribute('aria-pressed', String(cats.has(n))); w.dataset.mode = excl.has(n) ? 'exclude' : ''; };
     x.addEventListener('click', () => { if (!excl.delete(n)) { excl.add(n); cats.delete(n); } mark(); changed(); });
     mark();
@@ -298,8 +308,8 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
   }
   function searchArgs() {
     const free = !target;
-    const e = lk() && env.size ? (env.size === 2 ? 'both' : [...env][0]) : null;
-    return { instance: kind === 'modpack' ? null : target, kind, query, offset, limit: per(), sort, categories: [...cats], exclude: [...excl], open_source: oss,
+    const e = !cf() && lk() && env.size ? (env.size === 2 ? 'both' : [...env][0]) : null;
+    return { instance: kind === 'modpack' ? null : target, kind, query, offset, limit: per(), sort, categories: [...cats], exclude: cf() ? [] : [...excl], open_source: !cf() && oss, source: src,
       ...(free && lk() && loaders.size ? { loaders: order.filter((l) => loaders.has(l)) } : {}),
       ...(free && vers.size ? { versions: [...vers] } : {}),
       ...(e ? { environment: e } : {}) };
@@ -366,7 +376,7 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
     foliage: 'Листва', 'path-tracing': 'Трассировка пути', pbr: 'PBR', reflections: 'Отражения', shadows: 'Тени',
     cartoon: 'Мультяшные', fantasy: 'Фэнтези', 'semi-realistic': 'Полуреализм',
   };
-  const catName = (n) => CAT_RU[n] || n.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
+  const catName = (n) => CAT_RU[n] || catLabels.get(n) || n.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
 
   async function refreshHave() {
     if (!target || kind === 'modpack' || (kind === 'datapack' && !dworld)) { have = new Set(); return; }
@@ -507,6 +517,7 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
       S.instances = await call('instances.list');
       renderInstances();
       landed(created.id, `${created.name} установлена`);
+      if (created.blocked?.length) toast(`Не скачано (автор разрешает только сайт CurseForge): ${created.blocked.join(', ')}`, { error: true });
     } catch (e) {
       clearInterval(poll);
       b.disabled = false;
@@ -538,6 +549,15 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
     if (e.detail.dataset.kind === kind) return;
     kind = e.detail.dataset.kind;
     cats = new Set(); excl = new Set();
+    discover();
+    window.FNav?.note();
+  });
+  $('#disc-src').addEventListener('seg:change', (e) => {
+    const s = e.detail.dataset.src;
+    if (s === src) return;
+    src = s;
+    localStorage.setItem('fl.disc.src', s);
+    cats = new Set(); excl = new Set(); env.clear(); oss = false;
     discover();
     window.FNav?.note();
   });

@@ -18,6 +18,8 @@ pub mod art;
 pub mod actions;
 pub mod addons;
 mod builtin;
+pub mod catalog;
+pub mod curseforge;
 pub mod error;
 pub mod export;
 pub mod foreign;

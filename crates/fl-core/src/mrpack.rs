@@ -68,6 +68,12 @@ pub struct Plan {
     pub loader: String,
     pub loader_version: String,
     pub tasks: Vec<Task>,
+    /// Archive folder copied over the instance (`overrides` unless a CurseForge pack says otherwise).
+    pub overrides: String,
+    /// Files that could not be downloaded (CurseForge files kept on its site only).
+    pub blocked: Vec<String>,
+    /// Catalog origin of downloaded files by path in the instance (CurseForge packs).
+    pub index: Vec<(String, crate::mods::Source)>,
 }
 
 fn bad(m: impl Into<String>) -> CoreError {
@@ -163,6 +169,9 @@ pub fn plan(idx: PackIndex, game_dir: &Path) -> Result<Plan, CoreError> {
         loader,
         loader_version,
         tasks,
+        overrides: "overrides".into(),
+        blocked: Vec::new(),
+        index: Vec::new(),
     })
 }
 
@@ -171,8 +180,18 @@ pub fn extract_overrides<R: Read + Seek>(
     z: &mut zip::ZipArchive<R>,
     game_dir: &Path,
 ) -> Result<u64, CoreError> {
+    extract_overrides_from(z, game_dir, "overrides")
+}
+
+/// `extract_overrides` with the pack's own overrides folder (CurseForge packs name it).
+pub fn extract_overrides_from<R: Read + Seek>(
+    z: &mut zip::ZipArchive<R>,
+    game_dir: &Path,
+    overrides: &str,
+) -> Result<u64, CoreError> {
+    let main = format!("{}/", overrides.trim_matches('/'));
     let mut total = 0u64;
-    for prefix in ["overrides/", "client-overrides/"] {
+    for prefix in [main.as_str(), "client-overrides/"] {
         for i in 0..z.len() {
             let mut e = z.by_index(i).map_err(|e| bad(e.to_string()))?;
             let Some(rest) = e.name().strip_prefix(prefix).map(str::to_owned) else {

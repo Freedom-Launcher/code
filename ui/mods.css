@@ -44,6 +44,8 @@
 
 /* Content kinds, sort, category chips. */
 .disc-kind { margin: 10px 0 16px; }
+.disc-segs { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 10px 0 16px; }
+.disc-segs > .seg { margin: 0; }
 .seg > button[hidden] { display: none; }
 .disc-sort { width: auto; flex: none; }
 .disc-filters { display: flex; align-items: flex-start; gap: 16px; margin: -4px 0 18px; }

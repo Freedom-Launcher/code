@@ -428,6 +428,9 @@ pub struct ProjectPage {
     pub donation_urls: Vec<Donation>,
     #[serde(default)]
     pub gallery: Vec<GalleryImage>,
+    /// The project's page on its catalog's site (CurseForge; Modrinth's is built from the slug).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub web_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

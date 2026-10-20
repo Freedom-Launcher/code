@@ -72,7 +72,8 @@
     if (m) { open(m[2], KIND_OF[m[1]]); return; }
     invoke('open_link', { url }).catch(fail);
   }
-  const page = () => `https://modrinth.com/${p.project_type || 'mod'}/${p.slug}`;
+  const isCf = () => String(p?.id || '').startsWith('cf:');
+  const page = () => p.web_url || `https://modrinth.com/${p.project_type || 'mod'}/${p.slug}`;
   const hit = () => ({ project_id: p.id, slug: p.slug, title: p.title });
 
   async function open(id, k, h) {
@@ -92,6 +93,7 @@
       const [proj, vs] = await Promise.all([call('modrinth.project', { id }), call('modrinth.versions', { id })]);
       if (my !== seq) return;
       p = proj;
+      $('#menu-proj [data-do="open"]').textContent = isCf() ? 'Открыть на CurseForge' : 'Открыть на Modrinth';
       versions = vs || [];
       if (!k) kind = p.loaders.length && p.loaders.every((l) => l === 'datapack') ? 'datapack' : KIND_OF[p.project_type] || 'mod';
       presetFilters();
@@ -150,7 +152,7 @@
     more.addEventListener('click', (e) => { e.stopPropagation(); const r = more.getBoundingClientRect(); openMenuAt($('#menu-proj'), r.right - 220, r.bottom + 6); });
     const stats = el('div', { class: 'proj-stats' },
       el('span', {}, el('b', {}, FMods.fmtN(p.downloads)), ' загрузок'),
-      el('span', {}, el('b', {}, FMods.fmtN(p.followers)), ' подписчиков'),
+      el('span', {}, el('b', {}, FMods.fmtN(p.followers)), isCf() ? ' лайков' : ' подписчиков'),
       p.updated ? el('span', {}, `обновлён ${ago(p.updated)}`) : null);
     const tags = el('div', { class: 'proj-tags' }, ...p.categories.filter((c) => !LOADER_NAMES[c] && !PLATFORM[c]).map((c) => el('span', { class: 'badge' }, FMods.catName(c))));
     $('#proj-head').replaceChildren(
@@ -169,7 +171,7 @@
   function paintSide() {
     const plats = p.loaders.filter((l) => !(kind === 'datapack' && l === 'datapack'));
     const sec = (title, ...kids) => el('section', { class: 'proj-card' }, el('h3', {}, title), ...kids);
-    const envOn = kind === 'mod' || kind === 'modpack';
+    const envOn = !isCf() && (kind === 'mod' || kind === 'modpack');
     const compat = sec('Совместимость',
       el('div', { class: 'proj-sub' }, 'Minecraft: Java Edition'),
       el('div', { class: 'proj-chips' }, ...gameRanges(p.game_versions).map((g) => el('span', { class: 'badge' }, g))),

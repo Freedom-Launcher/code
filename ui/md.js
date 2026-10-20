@@ -74,7 +74,7 @@
 
   const KEEP = new Set('p br hr h1 h2 h3 h4 h5 h6 strong b em i u s del ins mark code pre blockquote ul ol li a img table thead tbody tr th td details summary sup sub kbd'.split(' '));
   const DROP = new Set('script style iframe object embed form input button textarea select svg math template noscript link meta video audio source canvas'.split(' '));
-  const CDN = /^https:\/\/cdn\.modrinth\.com\/[^"'\\()\s]+$/;
+  const CDN = /^https:\/\/(?:cdn\.modrinth\.com|media\.forgecdn\.net)\/[^"'\\()\s]+$/;
   const SAFE_URL = /^https?:\/\/[^\s"'<>\\]+$/i;
   const RIMG = navigator.userAgent.includes('Windows') ? 'http://rimg.localhost' : 'rimg://localhost';
 
