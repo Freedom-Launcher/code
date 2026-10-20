@@ -539,3 +539,8 @@
     kind: () => kind,
   };
 })();
+// The sticky column header sits right under the sticky toolbar.
+(() => {
+  const t = document.getElementById('ct-top'), b = document.getElementById('tab-content');
+  if (t && b && window.ResizeObserver) new ResizeObserver(() => b.style.setProperty('--ct-top', `${t.offsetHeight}px`)).observe(t);
+})();

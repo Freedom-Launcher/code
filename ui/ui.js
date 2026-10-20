@@ -30,8 +30,22 @@
   const initSegs = (r = document) => $$('.seg', r).forEach(seg);
 
   // ---------- Popover menus: open from their origin ----------
-  let openMenu = null;
-  function closeMenu() { if (openMenu) { openMenu.removeAttribute('data-open'); openMenu = null; } }
+  let openMenu = null, openBtn = null;
+  function closeMenu() { if (openMenu) { openMenu.removeAttribute('data-open'); openMenu = null; openBtn = null; } }
+  function placeAt(m, btn) {
+    const r = btn.getBoundingClientRect();
+    const right = r.left > innerWidth / 2;
+    m.style.top = `${r.bottom + 6}px`;
+    m.style.left = right ? '' : `${r.left}px`;
+    m.style.right = right ? `${innerWidth - r.right}px` : '';
+    return r;
+  }
+  // A menu follows its button while the page scrolls; it closes once the button leaves the screen.
+  document.addEventListener('scroll', (e) => {
+    if (!openMenu || !openBtn || openMenu.contains(e.target)) return;
+    const r = placeAt(openMenu, openBtn);
+    if (r.bottom < 0 || r.top > innerHeight || !openBtn.isConnected) closeMenu();
+  }, true);
   function toggleMenu(btn) {
     const m = document.getElementById(btn.dataset.menu);
     if (!m) return;
@@ -46,7 +60,7 @@
     // Keyboard-opened menus appear instantly (frequent action, no motion needed).
     m.toggleAttribute('data-instant', !!btn._kbd);
     m.setAttribute('data-open', '');
-    openMenu = m;
+    openMenu = m; openBtn = btn;
   }
 
   // ---------- Dialogs ----------

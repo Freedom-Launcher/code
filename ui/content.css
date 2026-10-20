@@ -32,7 +32,7 @@
 
 /* List */
 .ct-list {
-  display: flex; flex-direction: column; border-radius: var(--r-card); overflow: hidden;
+  display: flex; flex-direction: column; border-radius: var(--r-card); overflow: hidden; overflow: clip;
   background: color-mix(in srgb, var(--surface-1) 55%, transparent); box-shadow: inset 0 0 0 1px var(--line);
 }
 .ct-head, .ct-row {
@@ -288,3 +288,14 @@ body.ct-shift .ct-del.btn-icon { color: var(--danger); }
 .ct-tools .field-wrap.grow { flex: 1 1 200px; min-width: 160px; }
 .ct-tools .field-wrap .field { min-width: 0; width: 100%; }
 .ct-tools > .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+
+/* Toolbar, quick filters and the column header stay put while the list scrolls under them. */
+.ct-top {
+  position: sticky; top: 0; z-index: 6; margin-top: calc(var(--s-2) * -1); padding-top: var(--s-2);
+  background: var(--surface-1);
+}
+html[data-wall="on"] .ct-top, html[data-panels="on"] .ct-top {
+  background: linear-gradient(var(--glass-strong), var(--glass-strong)), var(--surface-1);
+}
+.ct-head { position: sticky; top: var(--ct-top, 0px); z-index: 4; background: var(--surface-1); border-radius: var(--r-card) var(--r-card) 0 0; }
+.ct-list.is-grid .ct-head { border-radius: 0; }
