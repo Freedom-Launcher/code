@@ -1,0 +1,44 @@
+/* Freedom Launcher — frosted glass, done one way everywhere. Loaded after every other sheet.
+   WebView2 (Chromium) paints a backdrop-filter black, or not at all, when
+   • the element is invisible but still in the window (closed menus, dialogs, overlays at opacity 0), or
+   • an ancestor is a "backdrop root": opacity < 1, filter, mask — including an opacity animation that
+     stays applied through `animation-fill-mode: both`.
+   So the rules are:
+   1. An overlay blurs only while it is open; closed it is plain and invisible.
+   2. Screens and cards animate in without leaving opacity behind: fill `backwards`, views move only.
+   3. Small chips over pictures (pin, cover buttons, skin tools) use solid tints, not blur:
+      they sit inside parents that fade on hover, which is exactly the case above. */
+
+/* ---------- 1. Overlays: blur only while open ---------- */
+.pop:not([data-open]), .cp:not([data-open]), .dd-pop:not([data-open]),
+html[data-wall] .pop:not([data-open]), html[data-wall="on"] .cp:not([data-open]),
+.dialog:not([data-open]), html[data-wall="on"] .dialog.isx:not([data-open]),
+.palette:not([data-open]) .pal-scrim, .palette:not([data-open]) .pal-panel,
+html[data-wall="on"] .palette:not([data-open]) .pal-panel, html[data-palette-blur="on"] .palette:not([data-open]) .pal-scrim,
+.crop-ov:not([data-open]), .ct-bar:not([data-open]), .drop-ov:not([data-on]),
+.shot-view:not([data-open]), .ue:not([data-open]), .scrim:not([data-open]) {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+/* Closed full-window layers are not painted at all (they used to cover the window invisibly). */
+.drop-ov:not([data-on]), .crop-ov:not([data-open]), .shot-view:not([data-open]) { visibility: hidden; transition-property: opacity, visibility; transition-duration: var(--d-3), 0s; transition-delay: 0s, var(--d-3); }
+.drop-ov[data-on], .crop-ov[data-open], .shot-view[data-open] { visibility: visible; transition-delay: 0s; }
+
+/* ---------- 2. Motion that leaves no opacity behind ---------- */
+@keyframes fl-view-in { from { transform: translateY(6px); } to { transform: none; } }
+html[data-motion="on"] .view.is-active,
+html[data-motion="on"] #view-home.is-active .rc, html[data-motion="on"] #view-home.is-active .hcard,
+html[data-motion="on"] .lib-g .hcard, html[data-motion="on"] .disc-scope:not([hidden]),
+html[data-motion="on"] .welcome:not([hidden]) .wc-card, html[data-motion="on"] .wc-step:not([hidden]),
+.isx-sec.is-enter > *, .set-pane.is-enter > *, .fade-in, .mod-grid:not([data-state]) > .mod-card,
+.w-list .w-row, .palette[data-open] .is-new, .pop[data-open] .menu-item, .sk-badge { animation-fill-mode: backwards; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(calc(var(--shift) * 2)) scale(.98); } }
+
+/* ---------- 3. Chips over pictures: solid tints ---------- */
+.hero-chip, .hero-view, .c-banner-chip, .hcard > .pin, .sk-t, .sk-badge {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+.hero-chip, .hero-view, .c-banner-chip { background: rgba(10, 10, 12, .74); }
+.hero-chip:hover { background: rgba(10, 10, 12, .86); }
+.hcard > .pin { background: rgba(0, 0, 0, .66); }
+.sk-t { background: rgba(0, 0, 0, .7); }
+[data-cover="none"] .hero-view { background: var(--surface-2); }

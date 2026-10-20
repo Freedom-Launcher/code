@@ -163,6 +163,11 @@ pub struct Look {
     pub wall_stamp: u64,
     /// Wallpaper blur, px.
     pub wall_blur: u32,
+    /// Wallpaper zoom, percent: 100 = fills the window, up to 300.
+    pub wall_zoom: u32,
+    /// Wallpaper focus point, percent of its width and height (50 = centre).
+    pub wall_x: u32,
+    pub wall_y: u32,
     /// Glass blur, px.
     pub glass_blur: u32,
     /// Glass density, percent: 0 = fully transparent, 100 = opaque.
@@ -214,6 +219,9 @@ impl Default for Look {
             wall: "cover".into(),
             wall_stamp: 0,
             wall_blur: 22,
+            wall_zoom: 100,
+            wall_x: 50,
+            wall_y: 50,
             glass_blur: 28,
             glass_density: 45,
             cover: "big".into(),
@@ -270,6 +278,9 @@ impl Look {
             return Err(format!("per_page: «{}» — ожидается 10, 20 или 50", l.per_page));
         }
         l.wall_blur = l.wall_blur.min(40);
+        l.wall_zoom = l.wall_zoom.clamp(100, 300);
+        l.wall_x = l.wall_x.min(100);
+        l.wall_y = l.wall_y.min(100);
         l.glass_blur = l.glass_blur.min(60);
         l.glass_density = l.glass_density.min(100);
         one_of("plate_font", &l.plate_font, &["ui", "system", "mono", "serif"])?;
@@ -630,6 +641,12 @@ mod tests {
             .unwrap();
         assert_eq!((m.menu_density, m.menu_blur, m.plate_size, m.plate_weight), (100, 60, 80, 800));
         assert!(Look::default().patch(&json!({"plate_font": "comic"})).is_err());
+        let w = Look::default()
+            .patch(&json!({"wall_zoom": 20, "wall_x": 140, "wall_y": 30}))
+            .unwrap();
+        assert_eq!((w.wall_zoom, w.wall_x, w.wall_y), (100, 100, 30));
+        assert_eq!(Look::default().patch(&json!({"wall_zoom": 999})).unwrap().wall_zoom, 300);
+        assert_eq!((Look::default().wall_zoom, Look::default().wall_x, Look::default().wall_y), (100, 50, 50));
     }
 
     #[test]

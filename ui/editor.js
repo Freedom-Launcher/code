@@ -85,12 +85,15 @@
       d.push(...geo(e), ...elDecl(e));
       if (e.hide && !keepVisible(id)) d.push(...(ghostOn() ? ['opacity: .36 !important', 'outline: 1.5px dashed var(--accent) !important', 'outline-offset: -1.5px !important'] : ['display: none !important']));
       if (d.length) out.push(`${q(id)} { ${d.join('; ')} }`);
+      // Opacity or a filter on an element turns frosted children black in WebView2: they go plain inside it.
+      if (d.some((x) => /^(opacity|filter):/.test(x))) out.push(`${q(id)} * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important }`);
     }
     for (const [id, list] of Object.entries(U.order)) {
       if (FIXED_IDS.has(id)) continue;
       const p = document.querySelector(q(id));
-      if (!p || p.children.length !== list.length) continue;
-      list.forEach((ci, pos) => out.push(`${q(id)} > :nth-child(${ci + 1}) { order: ${pos} }`));
+      if (!p) continue;
+      const n = p.children.length, seen = new Set(list.filter((ci) => ci < n));
+      [...seen, ...[...Array(n).keys()].filter((ci) => !seen.has(ci))].forEach((ci, pos) => out.push(`${q(id)} > :nth-child(${ci + 1}) { order: ${pos} }`));
     }
     writeRules(out.join('\n'));
   }
@@ -444,7 +447,7 @@
     if (!p?.dataset.id || FIXED(p) || p.children.length < 2 || p.children.length > 64 || !p.closest('#app')) return null;
     return /flex|grid/.test(getComputedStyle(p).display) ? p : null;
   }
-  const orderOf = (pid, n) => (ui.order[pid]?.length === n ? [...ui.order[pid]] : [...Array(n).keys()]);
+  const orderOf = (pid, n) => { const s = new Set((ui.order[pid] || []).filter((ci) => ci < n)); return [...s, ...[...Array(n).keys()].filter((ci) => !s.has(ci))]; };
   function layoutRect(n) { const t = n.style.transform; n.style.transform = ''; const r = n.getBoundingClientRect(); n.style.transform = t; return r; }
   function follow() { dg.n.style.transform = `translate(${dg.x - dg.gx - dg.lay.left}px, ${dg.y - dg.gy - dg.lay.top}px) scale(1.02)`; }
   function startDrag() {
@@ -472,10 +475,17 @@
     if (M.every((x, i) => x === L[i])) return;
     const others = kids.filter((k) => k !== dg.n), before = new Map(others.map((k) => [k, k.getBoundingClientRect()]));
     others.forEach((k) => k._ueA?.cancel());
+    const prev = ui.order[dg.pid], lay0 = dg.lay;
     if (M.every((x, i) => x === i)) delete ui.order[dg.pid]; else ui.order[dg.pid] = M;
     apply();
+    const lay1 = layoutRect(dg.n);
+    if (Math.abs(lay1.left - lay0.left) + Math.abs(lay1.top - lay0.top) < 1 && others.every((k) => { const a = before.get(k), b = k.getBoundingClientRect(); return Math.abs(a.left - b.left) + Math.abs(a.top - b.top) < 1; })) {
+      // CSS order changes nothing here: keep the old order and let the element go where it is dropped.
+      if (prev) ui.order[dg.pid] = prev; else delete ui.order[dg.pid];
+      apply(); dg.free = true; return;
+    }
     dg.rects = new Map(others.map((k) => [k, k.getBoundingClientRect()]));
-    dg.lay = layoutRect(dg.n); follow();
+    dg.lay = lay1; follow();
     if (!motion()) return;
     for (const k of others) {
       const a = before.get(k), b = dg.rects.get(k), dx = a.left - b.left, dy = a.top - b.top;
@@ -487,6 +497,11 @@
     noClick = true; setTimeout(() => { noClick = false; }, 0);
     const r = d.n.getBoundingClientRect(); d.n.style.transform = ''; const l = d.n.getBoundingClientRect();
     d.n.removeAttribute('data-ue-drag'); delete root.dataset.ueDragging; drag = false;
+    const id = d.n.dataset.id, mx = r.left - l.left + (r.width - l.width) / 2, my = r.top - l.top + (r.height - l.height) / 2;
+    if ((d.free || snap() === d.snap) && id && OK_ID.test(id) && !isCard(id) && Math.hypot(mx, my) > 12) {
+      const e = elOf(ui, id); e.x = Math.round((e.x || 0) + mx) || null; e.y = Math.round((e.y || 0) + my) || null;
+      apply(); save(); sync(); return;
+    }
     if (motion()) d.n.animate([{ transform: `translate(${r.left + r.width / 2 - l.left - l.width / 2}px, ${r.top + r.height / 2 - l.top - l.height / 2}px) scale(1.02)` }, { transform: 'none' }], { duration: 260, easing: EASE });
     if (snap() === d.snap) past.pop(); else save();
     sync();
@@ -500,7 +515,7 @@
   document.addEventListener('pointermove', (e) => {
     if (!dg) return;
     if (!dg.on) { if (Math.hypot(e.clientX - dg.x0, e.clientY - dg.y0) < 5) return; startDrag(); }
-    dg.x = e.clientX; dg.y = e.clientY; follow(); reorder();
+    dg.x = e.clientX; dg.y = e.clientY; follow(); if (!dg.free) reorder();
   }, true);
   addEventListener('pointerup', endDrag, true); addEventListener('pointercancel', endDrag, true);
   addEventListener('blur', endDrag);

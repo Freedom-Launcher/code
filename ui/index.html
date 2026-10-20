@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="editor.css">
   <link rel="stylesheet" href="settings.css">
   <link rel="stylesheet" href="skins.css">
+  <link rel="stylesheet" href="frost.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
   <script src="ui.js" defer></script>
   <script src="dropdown.js" defer></script>
@@ -474,6 +475,12 @@
                 <button class="btn" id="wall-pick" data-id="settings.wall.pick"><span class="lbl">Выбрать…</span></button></div>
               <div class="r" id="wall-blur-row"><div class="grow"><div class="t">Размытие обоев</div><div class="s" id="wall-blur-val"></div></div>
                 <input class="range" type="range" id="wall-blur" min="0" max="40" step="2" data-id="settings.wall.blur"></div>
+              <div class="r" id="wall-zoom-row"><div class="grow"><div class="t">Масштаб обоев</div><div class="s" id="wall-zoom-val"></div></div>
+                <input class="range" type="range" id="wall-zoom" min="100" max="300" step="5" data-id="settings.wall.zoom"></div>
+              <div class="r" id="wall-x-row"><div class="grow"><div class="t">Сдвиг по горизонтали</div><div class="s" id="wall-x-val"></div></div>
+                <input class="range" type="range" id="wall-x" min="0" max="100" step="1" data-id="settings.wall.x"></div>
+              <div class="r" id="wall-y-row"><div class="grow"><div class="t">Сдвиг по вертикали</div><div class="s" id="wall-y-val"></div></div>
+                <input class="range" type="range" id="wall-y" min="0" max="100" step="1" data-id="settings.wall.y"></div>
           </div>
           <div class="set-label">Меню и списки</div>
           <div class="rows set-card" data-id="settings.wall.menus">

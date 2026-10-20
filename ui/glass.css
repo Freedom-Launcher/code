@@ -26,7 +26,8 @@ html[data-theme="light"][data-wall="on"], html[data-theme="light"][data-wall="on
 html[data-wall="on"] body::before {
   content: ""; position: fixed; z-index: 0; pointer-events: none;
   inset: calc(var(--wall-blur) * -2 - 4px);
-  background: var(--wall) center / cover no-repeat;
+  background: var(--wall) var(--wall-pos, 50% 50%) / cover no-repeat;
+  transform: scale(var(--wall-zoom, 1)); transform-origin: var(--wall-pos, 50% 50%);
   filter: blur(var(--wall-blur)) saturate(1.2);
 }
 html[data-wall="on"] body::after {

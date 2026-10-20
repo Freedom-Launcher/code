@@ -7,7 +7,8 @@ use std::path::{Path, PathBuf};
 use crate::{wallpaper, CoreError};
 
 pub const MAX_BYTES: usize = 8 * 1024 * 1024;
-pub const KINDS: [&str; 2] = ["icon", "cover"];
+/// `deco` is a picture under a library group (id `g-<hash of the group name>`).
+pub const KINDS: [&str; 3] = ["icon", "cover", "deco"];
 const EXTS: [&str; 4] = ["png", "jpg", "webp", "gif"];
 
 fn ok_id(id: &str) -> bool {

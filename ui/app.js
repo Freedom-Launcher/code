@@ -755,8 +755,8 @@ $('#theme-reload').addEventListener('click', () => { location.hash = 'settings';
 
 // Look (wallpaper, glass, cover, palette) lives in the core (settings.look).
 // localStorage keeps a mirror so the first paint is right before the core answers.
-const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels', menu_density: 'fl.menu-a', menu_blur: 'fl.menu-blur', plate_size: 'fl.plate-size', plate_font: 'fl.plate-font', plate_weight: 'fl.plate-weight', plate_meta: 'fl.plate-meta', ui_font: 'fl.ui-font', font_stamp: 'fl.font-v', font_name: 'fl.font-name' };
-const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto', menu_density: 92, menu_blur: 24, plate_size: 100, plate_font: 'ui', plate_weight: 600, plate_meta: true, ui_font: 'inter', font_stamp: 0, font_name: '' };
+const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', wall_zoom: 'fl.wall-zoom', wall_x: 'fl.wall-x', wall_y: 'fl.wall-y', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels', menu_density: 'fl.menu-a', menu_blur: 'fl.menu-blur', plate_size: 'fl.plate-size', plate_font: 'fl.plate-font', plate_weight: 'fl.plate-weight', plate_meta: 'fl.plate-meta', ui_font: 'fl.ui-font', font_stamp: 'fl.font-v', font_name: 'fl.font-name' };
+const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, wall_zoom: 100, wall_x: 50, wall_y: 50, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto', menu_density: 92, menu_blur: 24, plate_size: 100, plate_font: 'ui', plate_weight: 600, plate_meta: true, ui_font: 'inter', font_stamp: 0, font_name: '' };
 const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'], browse: ['pages', 'scroll'], panels: ['auto', 'on', 'off'], plate_font: ['ui', 'system', 'mono', 'serif'], ui_font: ['inter', 'system', 'serif', 'mono', 'custom'] };
 function lookFromCache() {
   const l = { ...LOOK_DEF };
@@ -819,6 +819,12 @@ function applyWall() {
   const blur = S.look.wall_blur;
   const glass = S.look.glass_density;
   root.style.setProperty('--wall-blur', `${blur}px`);
+  const wz = S.look.wall_zoom ?? 100, wx = S.look.wall_x ?? 50, wy = S.look.wall_y ?? 50;
+  root.style.setProperty('--wall-zoom', String(wz / 100));
+  root.style.setProperty('--wall-pos', `${wx}% ${wy}%`);
+  $('#wall-zoom').value = wz; $('#wall-zoom-val').textContent = wz === 100 ? 'По размеру окна' : `${wz}%`;
+  $('#wall-x').value = wx; $('#wall-x-val').textContent = wx === 50 ? 'По центру' : `${wx}%`;
+  $('#wall-y').value = wy; $('#wall-y-val').textContent = wy === 50 ? 'По центру' : `${wy}%`;
   root.style.setProperty('--glass-a', String(glass / 100));
   const gblur = S.look.glass_blur;
   root.style.setProperty('--glass-blur', `${gblur}px`);
@@ -827,6 +833,7 @@ function applyWall() {
   $('#wall-glass').value = 100 - glass; $('#wall-glass-val').textContent = `${100 - glass}%`;
   $$('#wall-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.wallSet === mode)));
   $('#wall-blur-row').hidden = $('#wall-glass-row').hidden = $('#glass-blur-row').hidden = mode === 'off';
+  $('#wall-zoom-row').hidden = $('#wall-x-row').hidden = $('#wall-y-row').hidden = mode === 'off';
   applyMenusPlate();
 }
 function applyMenusPlate() {
@@ -859,6 +866,11 @@ $('#wall-file').addEventListener('change', async (e) => {
   } catch (err) { toast(String(err), { error: true }); }
 });
 $('#wall-blur').addEventListener('input', (e) => { setLook({ wall_blur: +e.target.value }); applyWall(); });
+$('#wall-zoom').addEventListener('input', (e) => { setLook({ wall_zoom: +e.target.value }); applyWall(); });
+$('#wall-x').addEventListener('input', (e) => { setLook({ wall_x: +e.target.value }); applyWall(); });
+$('#wall-y').addEventListener('input', (e) => { setLook({ wall_y: +e.target.value }); applyWall(); });
+// Double-click on a slider row puts the wallpaper back to «fit, centre».
+for (const [id, k, v] of [['wall-zoom', 'wall_zoom', 100], ['wall-x', 'wall_x', 50], ['wall-y', 'wall_y', 50]]) $(`#${id}`).addEventListener('dblclick', () => { setLook({ [k]: v }); applyWall(); });
 $('#glass-blur').addEventListener('input', (e) => { setLook({ glass_blur: +e.target.value }); applyWall(); });
 $('#wall-glass').addEventListener('input', (e) => { setLook({ glass_density: 100 - +e.target.value }); applyWall(); });
 $('#pop-alpha').addEventListener('input', (e) => { setLook({ menu_density: +e.target.value }); applyMenusPlate(); });
