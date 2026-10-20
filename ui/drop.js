@@ -19,13 +19,15 @@
   const isPack = (p) => /\.mrpack$/i.test(p);
   function target(list) {
     if (list.some(isPack)) return 'pack';
+    if (S.view === 'skins' && window.FSkins && list.some((p) => /\.png$/i.test(p)) && !document.querySelector('.dialog[data-open]')) return 'skin';
     if (S.view === 'instance' && S.current && window.FContent && !document.querySelector('.dialog[data-open]')) return 'content';
     return null;
   }
   function paint() {
     if (!mode) { ov.removeAttribute('data-on'); return; }
     ic.innerHTML = ICO[mode];
-    if (mode === 'pack') { t.textContent = 'Импортировать сборку'; s.textContent = paths.find(isPack)?.split(/[\\/]/).pop() || ''; }
+    if (mode === 'skin') { ic.innerHTML = ICO.content; t.textContent = 'Добавить скин'; s.textContent = paths.find((p) => /\.png$/i.test(p))?.split(/[\\/]/).pop() || ''; }
+    else if (mode === 'pack') { t.textContent = 'Импортировать сборку'; s.textContent = paths.find(isPack)?.split(/[\\/]/).pop() || ''; }
     else {
       const k = window.FContent.kind?.() || 'mod';
       t.textContent = `Добавить ${WHAT[k] || 'файлы'}`;
@@ -34,6 +36,7 @@
     ov.setAttribute('data-on', '');
   }
   async function drop(list) {
+    if (mode === 'skin') { await window.FSkins.drop(list.find((p) => /\.png$/i.test(p))); return; }
     if (mode === 'pack') { show('create'); window.flImportMrpackPath?.(list.find(isPack)); return; }
     if (mode !== 'content') return;
     const tab = $('#ip-tabs [data-tab="content"]');
