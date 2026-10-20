@@ -11,6 +11,15 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Skins redo, play on hover (0.3.8)
+
+- Skins page rebuilt: live 3D stage (skinview3d, MIT, lazy-loaded) with drag rotate, click to wave, idle/walk/run/fly animations, elytra toggle, nametag.
+- Preview before applying: pick a skin or cape, see it on the stage, then «Надеть» (Ctrl Enter) or «Отмена» (Esc); double-click applies at once.
+- «Мои скины»: add tile (file picker or PNG drop), baked 3D thumbnails with the back on hover, «Надет» badge, edit and delete, drag reorder, a cape remembered per skin (`skins/index.json`). The current skin is kept in the library before switching.
+- Vanilla skins by pack (Стандартные, MINECON Earth 2017, Builders & Biomes…) via textures.minecraft.net, cached locally; search.
+- Edit dialog: own 3D preview, replace texture, arm model (auto-detected), cape grid.
+- Home: round play button on card hover, stop while running, spinner while starting; launching from home stays on home.
+
 ## Skins, library order, tester feedback (0.3.7)
 
 - Skins page (rail, Ctrl K): current skin, arm model (classic/slim), upload PNG 64×64 or 64×32, reset, saved skins library (`<data>/skins/<variant>-<hash>.png`), capes. Official Minecraft services API with the account's own token only.
