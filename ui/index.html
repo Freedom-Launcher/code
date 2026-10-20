@@ -288,7 +288,7 @@
           <div class="sk-empty" id="sk-empty" data-id="skins.empty" hidden><p id="sk-empty-t"></p><button class="btn btn-primary" data-open="dlg-login"><span class="lbl">Войти через Microsoft</span></button></div>
           <div class="sk-body" id="sk-body">
             <aside class="sk-left" data-id="skins.stage">
-              <div class="sk-stage" id="sk-stage">
+              <div class="sk-stage" id="sk-stage" data-id="skins.view">
                 <div class="sk-floor"></div>
                 <canvas id="sk-canvas" aria-label="Скин в 3D, потяните, чтобы повернуть"></canvas>
                 <span class="sk-badge" id="sk-badge" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>Предпросмотр</span>
@@ -298,10 +298,10 @@
                 </div>
                 <div class="sk-load" aria-hidden="true"></div>
               </div>
-              <div class="sk-bar">
+              <div class="sk-bar" data-id="skins.bar">
                 <div class="sk-who"><b id="sk-name"></b><span id="sk-meta"></span></div>
                 <div class="sk-acts" id="sk-acts-cur"><button type="button" class="btn btn-ghost" id="sk-edit"><span class="lbl">Изменить</span></button></div>
-                <div class="sk-acts" id="sk-acts-pend" hidden><button type="button" class="btn btn-ghost" id="sk-cancel"><span class="lbl">Отмена</span></button><button type="button" class="btn btn-primary" id="sk-apply"><span class="lbl">Надеть</span></button></div>
+                <div class="sk-acts" id="sk-acts-pend" hidden><button type="button" class="btn btn-ghost" id="sk-cancel"><span class="lbl">Отмена</span></button><button type="button" class="btn" id="sk-keep" hidden><span class="lbl">В библиотеку</span></button><button type="button" class="btn btn-primary" id="sk-apply"><span class="lbl">Надеть</span></button></div>
               </div>
             </aside>
             <div class="sk-right">
@@ -755,6 +755,7 @@
     <div class="actions">
       <button type="button" class="btn btn-ghost" data-close>Отмена</button>
       <span class="spacer"></span>
+      <button type="button" class="btn" id="ske-keep"><span class="lbl">Сохранить</span></button>
       <button type="submit" class="btn btn-primary" id="ske-save"><span class="lbl">Сохранить и надеть</span></button>
     </div>
   </form>

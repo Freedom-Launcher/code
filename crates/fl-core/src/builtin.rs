@@ -338,10 +338,16 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     });
     r.register("skins.edit", P::AccountsManage, false, |c, a| async move {
         #[derive(Deserialize)]
-        struct A { id: String, name: String, variant: String, #[serde(default)] data: Option<String>, #[serde(default)] cape: Option<String> }
-        let A { id, name, variant, data, cape } = args(a)?;
+        struct A { id: String, name: String, variant: String, #[serde(default)] data: Option<String>, #[serde(default)] cape: Option<String>, #[serde(default)] wear: Option<bool> }
+        let A { id, name, variant, data, cape, wear } = args(a)?;
         let png = match data { Some(d) => Some(png_arg(&d)?), None => None };
-        crate::skins::edit(&c, &id, &name, &variant, png, cape_arg(cape)).await
+        crate::skins::edit(&c, &id, &name, &variant, png, cape_arg(cape), wear).await
+    });
+    r.register("skins.save", P::AccountsManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A { id: String, variant: String, data: String, #[serde(default)] cape: Option<String> }
+        let A { id, variant, data, cape } = args(a)?;
+        crate::skins::save(&c, &id, &variant, &png_arg(&data)?, cape_arg(cape)).await
     });
     r.register("skins.variant", P::AccountsManage, false, |c, a| async move {
         #[derive(Deserialize)]

@@ -349,6 +349,19 @@ pub async fn upload(core: &Core, id: &str, var: &str, png: &[u8], cape: Option<O
     wear(core, id, var, png, Some(&name)).await
 }
 
+/// Adds a skin to the library (with its cape) without putting it on.
+pub async fn save(core: &Core, id: &str, var: &str, png: &[u8], cape: Option<Option<String>>) -> Result<Value, CoreError> {
+    let var = variant(var)?;
+    check_skin(png)?;
+    let name = keep(core, var, png)?;
+    if let Some(c) = cape {
+        let mut m = load_meta(core);
+        m.capes.insert(name, c);
+        save_meta(core, &m)?;
+    }
+    profile(core, id).await
+}
+
 fn lib_png(core: &Core, name: &str) -> Result<Vec<u8>, CoreError> {
     if !valid_name(name) { return Err(CoreError::BadArgs("bad skin".into())); }
     fs::read(lib_dir(core).join(name)).map_err(|_| CoreError::msg("Скин не найден"))
@@ -361,7 +374,7 @@ pub async fn use_saved(core: &Core, id: &str, name: &str) -> Result<Value, CoreE
 }
 
 /// Changes a saved skin: picture, arm model, cape. Re-applies it when it is the one worn now.
-pub async fn edit(core: &Core, id: &str, name: &str, var: &str, png: Option<Vec<u8>>, cape: Option<Option<String>>) -> Result<Value, CoreError> {
+pub async fn edit(core: &Core, id: &str, name: &str, var: &str, png: Option<Vec<u8>>, cape: Option<Option<String>>, wear_it: Option<bool>) -> Result<Value, CoreError> {
     let var = variant(var)?;
     let old = lib_png(core, name)?;
     let replaced = png.is_some();
@@ -381,7 +394,7 @@ pub async fn edit(core: &Core, id: &str, name: &str, var: &str, png: Option<Vec<
     }
     if let Some(c) = cape { m.capes.insert(new.clone(), c); }
     save_meta(core, &m)?;
-    if was_on { return wear(core, id, var, &png, Some(&new)).await; }
+    if wear_it.unwrap_or(was_on) { return wear(core, id, var, &png, Some(&new)).await; }
     render(core, &acc, &v).await
 }
 

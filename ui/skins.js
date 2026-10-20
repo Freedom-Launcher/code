@@ -57,7 +57,7 @@
       view.controls.enableZoom = false; view.controls.enablePan = false;
       view.playerWrapper.rotation.y = -0.42;
       view.animation = anim(L, mode);
-      new ResizeObserver(() => view.setSize(Math.max(1, box.clientWidth), Math.max(1, box.clientHeight))).observe(box);
+      new ResizeObserver(() => { view.setSize(Math.max(1, box.clientWidth), Math.max(1, box.clientHeight)); q('#sk-anim')._place?.(false); }).observe(box);
       new IntersectionObserver((es) => { view.renderPaused = !es[0].isIntersecting; }).observe(box);
       // A click without a drag waves back, like poking the player in the game.
       let down = null, waveT = 0;
@@ -154,9 +154,11 @@
     q('#sk-badge').hidden = !p;
     q('#sk-acts-pend').hidden = !p;
     q('#sk-acts-cur').hidden = p;
+    q('#sk-keep').hidden = !p || sel.kind !== 'default' || !sel.img;
     const cape = activeCape();
-    q('#sk-meta').textContent = p ? `Предпросмотр: ${sel.label}`
+    q('#sk-meta').textContent = q('#sk-meta').title = p ? `Предпросмотр: ${sel.label}`
       : `${VAR[prof?.skin?.variant] || VAR.classic} модель${cape ? ` · плащ ${cape.alias}` : ''}`;
+    requestAnimationFrame(() => q('#sk-anim')._place?.(false));
     marks(); capes(); draw();
   }
   function pick(s) {
@@ -197,7 +199,7 @@
 
   // ---------- Library ----------
   function paint() {
-    q('#sk-name').textContent = prof.name || acc.name;
+    q('#sk-name').textContent = q('#sk-name').title = prof.name || acc.name;
     const saved = prof.saved || [];
     q('#sk-saved-n').textContent = saved.length ? String(saved.length) : '';
     const add = el('button', { type: 'button', class: 'sk-card sk-add', 'data-id': 'skins.add', onclick: () => choose('new') },
@@ -325,7 +327,6 @@
   function editor(o) {
     ed = o;
     q('#ske-h').textContent = o.name ? 'Изменить скин' : 'Новый скин';
-    q('#ske-save .lbl').textContent = o.name ? 'Сохранить' : 'Сохранить и надеть';
     setSeg('#ske-var', o.variant);
     q('#ske-cape-f').hidden = !prof?.capes?.length;
     const row = () => capeRow(q('#ske-capes'), ed.cape, (id) => { ed.cape = id; row(); edDraw(); });
@@ -359,16 +360,18 @@
   });
   q('#ske-tex').addEventListener('click', () => choose('replace'));
   q('#ske-var').addEventListener('seg:change', (e) => { if (ed) { ed.variant = e.detail.dataset.v; edDraw(); } });
-  q('#dlg-skin').addEventListener('submit', async (e) => {
-    e.preventDefault();
+  // «Сохранить» keeps the skin in the library only; «Сохранить и надеть» also puts it on.
+  async function commitEd(wearIt) {
     const o = ed;
     if (!o) return;
     const cape = o.cape == null ? '' : o.cape;
     const done = await run((c) => (o.name
-      ? c('skins.edit', { name: o.name, variant: o.variant, data: o.replaced ? o.data : undefined, cape })
-      : c('skins.upload', { variant: o.variant, data: o.data, cape })), o.name ? 'Скин сохранён' : 'Скин надет');
+      ? c('skins.edit', { name: o.name, variant: o.variant, data: o.replaced ? o.data : undefined, cape, wear: wearIt })
+      : c(wearIt ? 'skins.upload' : 'skins.save', { variant: o.variant, data: o.data, cape })), wearIt ? 'Скин надет' : 'Скин сохранён');
     if (done) FUI.closeDlg();
-  });
+  }
+  q('#dlg-skin').addEventListener('submit', (e) => { e.preventDefault(); commitEd(true); });
+  q('#ske-keep').addEventListener('click', () => commitEd(false));
 
   // ---------- Delete ----------
   let doomed = null;
@@ -409,6 +412,10 @@
   }
 
   q('#sk-apply').addEventListener('click', apply);
+  q('#sk-keep').addEventListener('click', () => {
+    const s = sel;
+    if (s?.kind === 'default' && s.img) run((c) => c('skins.save', { variant: s.variant || 'classic', data: s.img }), 'Скин добавлен в библиотеку');
+  });
   q('#sk-cancel').addEventListener('click', () => { sel = null; pending(); });
   q('#sk-edit').addEventListener('click', () => {
     if (!prof?.skin?.img) return choose('new');
