@@ -516,10 +516,19 @@
     const cur = ui.els[sel.id] || {}, r = sel.node.getBoundingClientRect();
     const z = cur.scale && cur.scale !== 100 && !isCard(sel.id) ? cur.scale / 100 : 1;
     rz = { d: t.dataset.rz, id: sel.id, x0: e.clientX, y0: e.clientY, z, w: r.width / z, h: r.height / z, x: cur.x || 0, y: cur.y || 0, snap: snap() };
+    // Library cards live in a grid: any edge or corner resizes every card through «Размер карточек».
+    if (isCard(sel.id) && rz.d !== 'move') { rz.card = ui.size.card ?? 100; rz.cw = Math.max(1, r.width); }
     push(); t.setPointerCapture(e.pointerId); root.dataset.ueResizing = rz.d;
   });
   sb.addEventListener('pointermove', (e) => {
     if (!rz) return;
+    if (rz.card != null) {
+      const d = rz.d, sx = d.includes('e') ? e.clientX - rz.x0 : d.includes('w') ? rz.x0 - e.clientX : 0;
+      const sy = d.includes('s') ? e.clientY - rz.y0 : d.includes('n') ? rz.y0 - e.clientY : 0;
+      const k = Math.abs(sx) >= Math.abs(sy) ? sx : sy;
+      ui.size.card = Math.min(200, Math.max(60, Math.round(rz.card * (rz.cw + k) / rz.cw)));
+      apply(); return;
+    }
     const dx = e.clientX - rz.x0, dy = e.clientY - rz.y0, el = elOf(ui, rz.id), d = rz.d, R = Math.round;
     if (d === 'move') { el.x = R(rz.x + dx) || null; el.y = R(rz.y + dy) || null; }
     else {
@@ -543,7 +552,7 @@
     const t = e.target.closest('[data-rz]'); if (!t || !sel) return;
     e.preventDefault(); e.stopPropagation();
     const id = sel.id, mv = t.dataset.rz === 'move';
-    commit((u) => { const el = u.els[id]; if (!el) return; if (mv) el.x = el.y = null; else { if (/[ew]/.test(t.dataset.rz)) el.w = el.x = null; if (/[ns]/.test(t.dataset.rz)) el.h = el.y = null; } tidy(u, id); });
+    commit((u) => { if (isCard(id) && !mv) { delete u.size.card; return; } const el = u.els[id]; if (!el) return; if (mv) el.x = el.y = null; else { if (/[ew]/.test(t.dataset.rz)) el.w = el.x = null; if (/[ns]/.test(t.dataset.rz)) el.h = el.y = null; } tidy(u, id); });
   });
 
   function place(box, n) {

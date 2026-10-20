@@ -272,7 +272,8 @@ function coverStrip(i, after) {
 }
 function renderRail() {
   // Hidden instances leave the rail too (unless open); pinned ones come first.
-  const hid = new Set(JSON.parse(localStorage.getItem('fl.lib.hidden') || '[]')), pin = new Set(JSON.parse(localStorage.getItem('fl.lib.pin') || '[]'));
+  (() => { if (localStorage.getItem('fl.hid.v2')) return; const o = localStorage.getItem('fl.lib.hidden') || '[]'; localStorage.setItem('fl.rail.hidden', o); localStorage.setItem('fl.lib.hidden', '[]'); localStorage.setItem('fl.hid.v2', '1'); })();
+  const hid = new Set(JSON.parse(localStorage.getItem('fl.rail.hidden') || '[]')), pin = new Set(JSON.parse(localStorage.getItem('fl.lib.pin') || '[]'));
   const list = S.instances.filter((i) => !hid.has(i.id) || i.id === S.current).sort((a, b) => pin.has(b.id) - pin.has(a.id) || a.created_at - b.created_at);
   $('#rail-list').replaceChildren(...list.map((i) => {
     const t = bg(el('button', {

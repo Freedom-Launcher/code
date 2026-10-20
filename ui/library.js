@@ -10,7 +10,9 @@
   // Pinned and hidden instances and the manual order are local to this computer, like the view choices.
   const rd = (k) => JSON.parse(localStorage.getItem(k) || '[]');
   const keep = (k, v) => localStorage.setItem(k, JSON.stringify([...v]));
-  const pin = new Set(rd('fl.lib.pin')), hid = new Set(rd('fl.lib.hidden'));
+  // 0.3.9: the panel and the library hide separately; the old shared list now hides from the panel only.
+  (() => { if (localStorage.getItem('fl.hid.v2')) return; const o = localStorage.getItem('fl.lib.hidden') || '[]'; localStorage.setItem('fl.rail.hidden', o); localStorage.setItem('fl.lib.hidden', '[]'); localStorage.setItem('fl.hid.v2', '1'); })();
+  const pin = new Set(rd('fl.lib.pin')), hid = new Set(rd('fl.lib.hidden')), railHid = new Set(rd('fl.rail.hidden'));
   let order = rd('fl.lib.order'), showHid = false;
   const rank = (i) => { const k = order.indexOf(i.id); return k < 0 ? 1e9 : k; };
   const PIN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2.5h5M6.5 2.5v4L4 9.5h8L9.5 6.5v-4M8 9.5v4"/></svg>';
@@ -118,7 +120,8 @@
   $('#menu-ctx-instance').addEventListener('ctx-open', (e) => {
     const id = e.detail.dataset.inst;
     $('#cx-pin').lastChild.textContent = pin.has(id) ? 'Открепить' : 'Закрепить';
-    $('#cx-hide').lastChild.textContent = hid.has(id) ? 'Показать' : 'Скрыть';
+    $('#cx-hide').lastChild.textContent = hid.has(id) ? 'Показать в библиотеке' : 'Скрыть в библиотеке';
+    $('#cx-rail').lastChild.textContent = railHid.has(id) ? 'Вернуть на панель' : 'Скрыть с панели';
   });
   const flip = (set, key, id) => { set.has(id) ? set.delete(id) : set.add(id); keep(key, set); render(); renderRail(); };
   $('#cx-pin').addEventListener('click', () => { FUI.closeMenu(); flip(pin, 'fl.lib.pin', ctxInst()); });
@@ -126,9 +129,16 @@
     FUI.closeMenu();
     const id = ctxInst(), was = hid.has(id);
     flip(hid, 'fl.lib.hidden', id);
-    if (!was) toast('Сборка скрыта', { action: { label: 'Вернуть', run: () => flip(hid, 'fl.lib.hidden', id) } });
+    if (!was) toast('Скрыта в библиотеке', { action: { label: 'Вернуть', run: () => flip(hid, 'fl.lib.hidden', id) } });
   });
   $('#lib-hid').addEventListener('click', () => { showHid = !showHid; render(); });
+  $('#cx-rail').addEventListener('click', () => {
+    FUI.closeMenu();
+    const id = ctxInst(), was = railHid.has(id);
+    const tog = () => { railHid.has(id) ? railHid.delete(id) : railHid.add(id); keep('fl.rail.hidden', railHid); renderRail(); };
+    tog();
+    if (!was) toast('Скрыта с панели', { action: { label: 'Вернуть', run: tog } });
+  });
 
   // ---------- Drag: reorder (switches to «Вручную») and move between groups ----------
   // Pointer-driven, not HTML5 drag: the window's own file drop handling swallows HTML5 drags on Windows.
