@@ -543,4 +543,17 @@
 (() => {
   const t = document.getElementById('ct-top'), b = document.getElementById('tab-content');
   if (t && b && window.ResizeObserver) new ResizeObserver(() => b.style.setProperty('--ct-top', `${t.offsetHeight}px`)).observe(t);
+  const v = t?.closest('.view');
+  if (!t || !v) return;
+  let raf = 0;
+  const mark = () => {
+    raf = 0;
+    const top = v.getBoundingClientRect().top, tr = t.getBoundingClientRect();
+    t.classList.toggle('is-stuck', v.scrollTop > 0 && tr.top <= top + 1);
+    const h = b.querySelector('.ct-head');
+    if (h) h.classList.toggle('is-stuck', h.parentElement.getBoundingClientRect().top < h.getBoundingClientRect().top - 1);
+  };
+  const soon = () => { if (!raf) raf = requestAnimationFrame(mark); };
+  v.addEventListener('scroll', soon, { passive: true });
+  new MutationObserver(soon).observe(b, { childList: true, subtree: true });
 })();

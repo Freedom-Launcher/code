@@ -55,8 +55,6 @@
 /* Over wallpaper: same frosted material as the palette, so content behind never shows through. */
 .dd-pop { background: var(--surface-1); box-shadow: 0 0 0 1px var(--line-strong), 0 18px 48px -10px rgba(0, 0, 0, .55), 0 4px 14px rgba(0, 0, 0, .22); }
 html[data-wall="on"] .dd-pop {
-  background: var(--glass-strong);
-  -webkit-backdrop-filter: blur(max(var(--glass-blur), 26px)) saturate(1.5); backdrop-filter: blur(max(var(--glass-blur), 26px)) saturate(1.5);
   box-shadow: inset 0 0 0 1px var(--glass-border), 0 22px 60px -10px rgba(0, 0, 0, .55);
 }
 [data-theme="light"] .dd-pop { box-shadow: 0 0 0 1px rgba(0, 0, 0, .08), 0 18px 44px -12px rgba(20, 30, 60, .26); }

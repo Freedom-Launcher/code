@@ -294,8 +294,12 @@ body.ct-shift .ct-del.btn-icon { color: var(--danger); }
   position: sticky; top: 0; z-index: 6; margin-top: calc(var(--s-2) * -1); padding-top: var(--s-2);
   background: var(--surface-1);
 }
-html[data-wall="on"] .ct-top, html[data-panels="on"] .ct-top {
-  background: linear-gradient(var(--glass-strong), var(--glass-strong)), var(--surface-1);
-}
 .ct-head { position: sticky; top: var(--ct-top, 0px); z-index: 4; background: var(--surface-1); border-radius: var(--r-card) var(--r-card) 0 0; }
+/* Over wallpaper the bars are see-through at rest and turn into frosted glass only once they stick. */
+html[data-wall="on"] .ct-top, html[data-wall="on"] .ct-head { background: transparent; transition: background-color var(--d-2, .16s) ease, box-shadow var(--d-2, .16s) ease; }
+html[data-wall="on"] .ct-top.is-stuck, html[data-wall="on"] .ct-head.is-stuck {
+  background: color-mix(in srgb, var(--glass-strong) 72%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35); backdrop-filter: blur(18px) saturate(1.35);
+}
+html[data-wall="on"] .ct-top.is-stuck { box-shadow: 0 1px 0 var(--glass-border); }
 .ct-list.is-grid .ct-head { border-radius: 0; }
