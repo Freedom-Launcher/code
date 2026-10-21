@@ -23,6 +23,10 @@ pub enum Permission {
     /// Read and change files inside instance game folders (configs, worlds,
     /// resource packs). Never executable code, never outside an instance.
     InstanceFiles,
+    /// Manage servers the user added («Управление серверами»): their files,
+    /// `server.properties`, icon and player lists. Only folders the user picked
+    /// in the native dialog, never code written.
+    Servers,
     /// Spawning arbitrary processes, raw filesystem access.
     Process,
     /// Launcher self-management (switching themes, approving addons, safe
@@ -62,7 +66,7 @@ impl Permission {
             AccountsManage | InstancesManage | InstanceFiles | Network | GameLaunch => {
                 Tier::Function
             }
-            AccountsProvide | Process | Internal => Tier::Extended,
+            AccountsProvide | Servers | Process | Internal => Tier::Extended,
         }
     }
 }

@@ -39,8 +39,9 @@ A built-in plugin that stops shipping moves to `RETIRED` together with the
 storage and its approval are removed, but only while the folder is still the
 exact signed copy the launcher installed; a copy the user changed is kept.
 
-No plugins are built in yet. Retired: `play-stats` (shipped in 0.3.14 only;
-the same statistics already live in Settings → «Статистика»).
+Built in: `server-manager` («Управление серверами», tab «Серверы»; see
+«Servers» below). Retired: `play-stats` (shipped in 0.3.14 only; the same
+statistics already live in Settings → «Статистика»).
 
 ## addon.json
 
@@ -63,7 +64,7 @@ the same statistics already live in Settings → «Статистика»).
 |------|-------------|
 | Интерфейс | `instances_read`, `accounts_read`, `ui_pages`, `ui_overlay`, `storage` |
 | Функция | `instances_manage`, `instance_files`, `accounts_manage`, `network`, `game_launch` |
-| Расширенный | `accounts_provide`, `process` — «Официальный» and «Проверено» packages only |
+| Расширенный | `accounts_provide`, `servers`, `process` — «Официальный» and «Проверено» packages only |
 
 Nothing runs until the user approves. Approval is per permission: the
 consent dialog lists every requested permission in plain words, highlights
@@ -171,6 +172,30 @@ read and change text files inside instance game folders: configs,
 const opts = await fl.files.read(instanceId, 'options.txt');
 await fl.files.write(instanceId, 'config/myaddon.json', JSON.stringify(cfg));
 ```
+
+## Servers
+
+`servers` («Управлять серверами», tier «Расширенный») gives access to the
+Minecraft servers the user added. A server is like an instance, but a server:
+an entry in `<data>/servers.json` that says where it is hosted. Hosting kind
+`local` (a folder on this computer) exists today; hosting panels and remote
+machines get their own kinds later.
+
+A plugin never names a folder itself. `servers.pick {name?}` opens the native
+folder picker and adds the chosen folder (`{id, existing}`, or `null` if
+cancelled); `servers.add` is built-in only. Filesystem roots, the home folder
+and anything overlapping the launcher's data are refused.
+
+| Action | What it does |
+|---|---|
+| `servers.list` | cards: `id, name, host, exists, icon` (data URL), `motd, port, max_players, software {kind, version, jar}` |
+| `servers.info {id}` | a card plus `dir, properties [{key, value}], has_properties, eula, world, mods, plugins` |
+| `servers.update {id, name}` / `servers.remove {id}` | rename / forget (files stay) |
+| `servers.properties.set {id, values}` | changes `server.properties` in place, keeping comments and order; non-ASCII is written as `\uXXXX` |
+| `servers.icon.set {id, png}` / `servers.icon.delete {id}` | `server-icon.png`, a 64×64 PNG |
+| `servers.players {id}` | `whitelist, ops, banned, banned_ips, known` (usercache), `whitelist_enabled, online_mode` |
+| `servers.players.edit {id, list, op, name, reason?}` | `list`: `whitelist`/`ops`/`banned`, `op`: `add`/`remove`; the UUID comes from usercache, the offline UUID (`online-mode=false`) or Mojang |
+| `servers.files.list/read/write/delete {id, path}` | like instance files: inside the server folder, no links, text only, no code written |
 
 ## Network
 

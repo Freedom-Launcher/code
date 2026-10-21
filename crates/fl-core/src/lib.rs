@@ -39,6 +39,7 @@ pub mod permissions;
 pub mod providers;
 pub mod relocate;
 pub mod rimg;
+pub mod servers;
 pub mod settings;
 pub mod signing;
 pub mod skin_packs;
@@ -83,6 +84,7 @@ impl Core {
         let mut registry = ActionRegistry::default();
         builtin::register(&mut registry, safe_mode);
         net::register(&mut registry);
+        servers::register(&mut registry);
         Ok(Arc::new(Self {
             data_dir,
             safe_mode,

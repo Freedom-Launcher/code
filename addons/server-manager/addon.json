@@ -1,0 +1,10 @@
+{
+  "id": "server-manager",
+  "name": "Управление серверами",
+  "version": "1.0.0",
+  "author": "Freedom Launcher",
+  "description": "Свои серверы Minecraft прямо в лаунчере: файлы, игроки, вайтлист, операторы и баны, название, иконка, MOTD и настройки сервера.",
+  "entry": "servers.html",
+  "permissions": ["ui_pages", "servers"],
+  "pages": [{ "id": "servers", "title": "Серверы" }]
+}

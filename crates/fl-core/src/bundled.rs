@@ -17,7 +17,6 @@ pub struct Bundle {
     pub files: &'static [(&'static str, &'static [u8])],
 }
 
-#[allow(unused_macros)]
 macro_rules! bundle {
     ($id:literal: $($f:literal),+ $(,)?) => {
         Bundle {
@@ -31,7 +30,9 @@ macro_rules! bundle {
 }
 
 /// Shipped plugins: `bundle!("id": "addon.json", "signature.json", ...)`.
-pub const BUNDLED: &[Bundle] = &[];
+pub const BUNDLED: &[Bundle] = &[bundle!("server-manager":
+    "addon.json", "signature.json", "servers.html", "servers.css", "servers.js", "motd.js",
+)];
 
 /// Plugins that used to ship: (id, the `sig` of every `signature.json` shipped for it).
 pub const RETIRED: &[(&str, &[&str])] = &[(

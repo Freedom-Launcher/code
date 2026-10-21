@@ -2,7 +2,7 @@
 
 use std::{sync::Arc, time::Instant};
 
-use fl_core::{Caller, Core};
+use fl_core::{Caller, Core, Permission};
 use serde_json::Value;
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
@@ -639,6 +639,7 @@ async fn open_themes_folder(
 /// checks it against exactly the permissions the user approved for that addon.
 #[tauri::command]
 async fn addon_action(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppCore>,
     id: String,
     name: String,
@@ -648,7 +649,46 @@ async fn addon_action(
     let caller = core
         .addon_caller(&id)
         .ok_or("плагин не включён или не одобрен")?;
+    if name == "servers.pick" {
+        return pick_server(&app, &core, &caller, args).await;
+    }
     core.dispatch(&caller, &name, args.unwrap_or(Value::Null))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// `servers.pick` for a plugin with the `servers` permission: the user picks a
+/// server folder in the native dialog and it is added to the server list. A
+/// plugin never names a folder itself. `null` if the user cancelled.
+async fn pick_server(
+    app: &tauri::AppHandle,
+    core: &Arc<Core>,
+    caller: &Caller,
+    args: Option<Value>,
+) -> Result<Value, String> {
+    let ok = matches!(caller, Caller::Addon { granted, .. } if granted.contains(&Permission::Servers));
+    if !ok {
+        return Err("servers.pick requires Servers".into());
+    }
+    let name = args
+        .as_ref()
+        .and_then(|a| a.get("name"))
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_owned();
+    let app = app.clone();
+    let dir = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .set_title("Папка сервера")
+            .blocking_pick_folder()
+            .and_then(|p| p.into_path().ok())
+            .map(|p| p.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    let Some(dir) = dir else { return Ok(Value::Null) };
+    core.dispatch(&Caller::BuiltinUi, "servers.add", serde_json::json!({ "name": name, "dir": dir }))
         .await
         .map_err(|e| e.to_string())
 }

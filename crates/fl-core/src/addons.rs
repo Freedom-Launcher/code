@@ -29,7 +29,7 @@ pub const SLOTS: [&str; 8] = [
 ];
 
 /// Namespaces of built-in actions: no addon may take these ids.
-pub const RESERVED: [&str; 15] = [
+pub const RESERVED: [&str; 16] = [
     "app",
     "storage",
     "files",
@@ -45,6 +45,7 @@ pub const RESERVED: [&str; 15] = [
     "java",
     "system",
     "net",
+    "servers",
 ];
 
 /// Files an addon may ship.
