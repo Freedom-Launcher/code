@@ -93,6 +93,84 @@ fn open_login_page(app: tauri::AppHandle, url: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+type LoginTx = Arc<std::sync::Mutex<Option<tokio::sync::oneshot::Sender<Result<String, String>>>>>;
+
+fn deliver_login(tx: &LoginTx, r: Result<String, String>) {
+    if let Some(t) = tx.lock().ok().and_then(|mut g| g.take()) {
+        let _ = t.send(r);
+    }
+}
+
+/// Modrinth-style sign-in: the Microsoft page opens in a launcher window. The window stops at
+/// the registered redirect address (never loading it) and hands the address to the core,
+/// which exchanges the code. The device code flow stays available as a fallback.
+#[tauri::command]
+async fn ms_window_login(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+) -> Result<Value, String> {
+    const LABEL: &str = "mslogin";
+    if let Some(w) = app.get_webview_window(LABEL) {
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+        return Err("SIGNIN_WINDOW_OPEN".into());
+    }
+    let core = Arc::clone(&state.0);
+    let start = core
+        .dispatch(&Caller::BuiltinUi, "accounts.microsoft.authorize", Value::Null)
+        .await
+        .map_err(|e| e.to_string())?;
+    let url: tauri::Url = start["url"]
+        .as_str()
+        .ok_or("no sign-in address")?
+        .parse()
+        .map_err(|e| format!("{e}"))?;
+
+    let (tx, rx) = tokio::sync::oneshot::channel::<Result<String, String>>();
+    let tx: LoginTx = Arc::new(std::sync::Mutex::new(Some(tx)));
+    let nav_tx = Arc::clone(&tx);
+    let w = tauri::WebviewWindowBuilder::new(&app, LABEL, tauri::WebviewUrl::External(url))
+        .title("Вход через Microsoft")
+        .inner_size(480.0, 640.0)
+        .min_inner_size(380.0, 520.0)
+        .center()
+        .incognito(true)
+        .on_navigation(move |u| {
+            if u.as_str().starts_with(fl_core::msauth::REDIRECT_URI) {
+                deliver_login(&nav_tx, Ok(u.to_string()));
+                return false;
+            }
+            matches!(u.scheme(), "https" | "about")
+        })
+        .build()
+        .map_err(|e| e.to_string())?;
+    let close_tx = Arc::clone(&tx);
+    w.on_window_event(move |e| {
+        if matches!(
+            e,
+            tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed
+        ) {
+            deliver_login(&close_tx, Err("cancelled".into()));
+        }
+    });
+
+    let res = tokio::time::timeout(std::time::Duration::from_secs(600), rx).await;
+    let _ = w.destroy();
+    let redirect = match res {
+        Ok(Ok(Ok(u))) => u,
+        Ok(Ok(Err(e))) => return Err(e),
+        Ok(Err(_)) => return Err("cancelled".into()),
+        Err(_) => return Err("sign-in took too long, start sign-in again".into()),
+    };
+    core.dispatch(
+        &Caller::BuiltinUi,
+        "accounts.microsoft.complete",
+        serde_json::json!({ "url": redirect }),
+    )
+    .await
+    .map_err(|e| e.to_string())
+}
+
 /// Opens an instance folder in the system file manager.
 #[tauri::command]
 async fn open_instance_folder(
@@ -810,6 +888,7 @@ fn main() {
             action,
             theme_action,
             open_login_page,
+            ms_window_login,
             open_link,
             open_instance_folder,
             open_world_folder,

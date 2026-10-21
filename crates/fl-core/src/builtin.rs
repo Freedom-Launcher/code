@@ -440,6 +440,31 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         |c, _| async move { msauth::begin(&c).await },
     );
     r.register(
+        "accounts.microsoft.authorize",
+        P::AccountsManage,
+        true,
+        |c, _| async move { msauth::authorize(&c).await },
+    );
+    r.register(
+        "accounts.microsoft.complete",
+        P::AccountsManage,
+        false,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                url: String,
+            }
+            let A { url } = args(a)?;
+            let acc = msauth::complete(&c, &url).await?;
+            let _g = c.state_lock.lock().await;
+            let mut s: AccountStore = crate::accounts::load_store(&c.path(ACCOUNTS))?;
+            let id = s.upsert(acc);
+            s.selected = Some(id);
+            crate::accounts::save_store(&c.path(ACCOUNTS), &s)?;
+            Ok(s.public_view())
+        },
+    );
+    r.register(
         "accounts.microsoft.wait",
         P::AccountsManage,
         false,

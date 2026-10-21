@@ -61,6 +61,8 @@ pub struct Core {
     /// Serialises read-modify-write of state files.
     pub(crate) state_lock: tokio::sync::Mutex<()>,
     pub(crate) ms_pending: tokio::sync::Mutex<Option<msauth::Pending>>,
+    /// Window sign-in in progress (PKCE verifier + state).
+    pub(crate) ms_code: tokio::sync::Mutex<Option<msauth::PendingCode>>,
     /// Install progress per instance id, polled by `game.progress`.
     pub(crate) game_progress:
         std::sync::Mutex<std::collections::HashMap<String, Arc<game::download::Progress>>>,
@@ -87,6 +89,7 @@ impl Core {
             registry,
             state_lock: Default::default(),
             ms_pending: Default::default(),
+            ms_code: Default::default(),
             game_progress: Default::default(),
             game_running: Default::default(),
         }))

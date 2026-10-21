@@ -165,7 +165,29 @@ function renderAccounts(state) {
   document.dispatchEvent(new Event('accounts:change'));
 }
 
-$('#dlg-login').addEventListener('dialog:open', async () => {
+// Sign-in: a Microsoft window opens inside the launcher (as in Modrinth); device code is the fallback.
+const msMode = (code) => { $('#ms-win').hidden = code; $('#ms-dev').hidden = !code; };
+let msWinBusy = false;
+async function msWindowLogin() {
+  if (msWinBusy) return;
+  msWinBusy = true;
+  const b = $('#ms-win-open');
+  b.disabled = true;
+  $('#ms-win-hint').textContent = 'Войдите в аккаунт в открывшемся окне Microsoft…';
+  try {
+    renderAccounts(await invoke('ms_window_login'));
+    closeDlg();
+    toast('Вход выполнен');
+  } catch (e) {
+    const m = String(e);
+    if (m !== 'SIGNIN_WINDOW_OPEN') $('#ms-win-hint').textContent = m === 'cancelled' ? 'Окно входа закрыто. Можно открыть его снова или войти по коду.' : m;
+  } finally { msWinBusy = false; b.disabled = false; }
+}
+$('#ms-win-open').addEventListener('click', msWindowLogin);
+$('#ms-use-code').addEventListener('click', () => { msMode(true); msDeviceLogin(); });
+$('#dlg-login').addEventListener('dialog:open', () => { msMode(false); msWindowLogin(); });
+
+async function msDeviceLogin() {
   $('#ms-code').textContent = '· · · · · · · ·';
   $('#ms-hint').textContent = 'Получаем код…';
   let flow;
@@ -179,7 +201,7 @@ $('#dlg-login').addEventListener('dialog:open', async () => {
     closeDlg();
     toast('Вход выполнен');
   } catch (e) { $('#ms-hint').textContent = String(e); }
-});
+}
 
 $('#dlg-offline').addEventListener('submit', async (ev) => {
   ev.preventDefault();

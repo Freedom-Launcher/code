@@ -153,6 +153,177 @@ pub async fn wait(core: &Core) -> Result<Account, CoreError> {
     .await
 }
 
+// ---------- Sign-in window: authorization code + PKCE ----------
+
+const AUTHORIZE_URL: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
+/// Redirect URI registered for the Azure app (platform "Mobile and desktop applications").
+/// The launcher's sign-in window stops when it reaches this address and never loads it.
+pub const REDIRECT_URI: &str = "https://login.microsoftonline.com/common/oauth2/nativeclient";
+const CODE_FLOW_TTL: Duration = Duration::from_secs(600);
+
+pub struct PendingCode {
+    verifier: String,
+    state: String,
+    expires_at: Instant,
+}
+
+/// Base64url without padding (RFC 4648 §5), as PKCE requires.
+fn b64url(bytes: &[u8]) -> String {
+    const A: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for c in bytes.chunks(3) {
+        let n = (c[0] as u32) << 16
+            | (*c.get(1).unwrap_or(&0) as u32) << 8
+            | *c.get(2).unwrap_or(&0) as u32;
+        for i in 0..=c.len() {
+            out.push(A[((n >> (18 - 6 * i)) & 63) as usize] as char);
+        }
+    }
+    out
+}
+
+fn pkce_challenge(verifier: &str) -> String {
+    use sha2::Digest;
+    b64url(&sha2::Sha256::digest(verifier.as_bytes()))
+}
+
+/// Starts a window sign-in: returns the Microsoft page to open and remembers the PKCE verifier.
+pub async fn authorize(core: &Core) -> Result<Value, CoreError> {
+    let cid = client_id()?;
+    // 64 hex chars (~244 random bits): within PKCE's 43–128 unreserved characters.
+    let verifier = format!(
+        "{}{}",
+        uuid::Uuid::new_v4().simple(),
+        uuid::Uuid::new_v4().simple()
+    );
+    let state = uuid::Uuid::new_v4().simple().to_string();
+    let challenge = pkce_challenge(&verifier);
+    let url = reqwest::Url::parse_with_params(
+        AUTHORIZE_URL,
+        &[
+            ("client_id", cid.as_str()),
+            ("response_type", "code"),
+            ("redirect_uri", REDIRECT_URI),
+            ("scope", SCOPE),
+            ("code_challenge", challenge.as_str()),
+            ("code_challenge_method", "S256"),
+            ("state", state.as_str()),
+            ("prompt", "select_account"),
+        ],
+    )
+    .map_err(|e| CoreError::msg(e.to_string()))?;
+    *core.ms_code.lock().await = Some(PendingCode {
+        verifier,
+        state,
+        expires_at: Instant::now() + CODE_FLOW_TTL,
+    });
+    Ok(json!({ "url": url.as_str(), "redirect_uri": REDIRECT_URI }))
+}
+
+/// Reads the authorization code from the address the sign-in window stopped at.
+fn code_from_redirect(redirect: &str, state: &str) -> Result<String, CoreError> {
+    let url = reqwest::Url::parse(redirect)
+        .map_err(|_| CoreError::msg("unexpected sign-in address"))?;
+    let base = format!("{}://{}{}", url.scheme(), url.host_str().unwrap_or(""), url.path());
+    if base != REDIRECT_URI {
+        return Err(CoreError::msg("unexpected sign-in address"));
+    }
+    let q = |k: &str| {
+        url.query_pairs()
+            .find(|(n, _)| n == k)
+            .map(|(_, v)| v.into_owned())
+    };
+    if let Some(e) = q("error") {
+        return Err(CoreError::msg(match e.as_str() {
+            "access_denied" => "sign-in was cancelled".to_owned(),
+            _ => format!("Microsoft: {}", q("error_description").unwrap_or(e)),
+        }));
+    }
+    if q("state").as_deref() != Some(state) {
+        return Err(CoreError::msg(
+            "sign-in response does not match, start sign-in again",
+        ));
+    }
+    q("code")
+        .filter(|c| !c.is_empty())
+        .ok_or_else(|| CoreError::msg("Microsoft did not return a sign-in code"))
+}
+
+/// Finishes a window sign-in: exchanges the code for tokens and completes the chain.
+pub async fn complete(core: &Core, redirect: &str) -> Result<Account, CoreError> {
+    let p = core
+        .ms_code
+        .lock()
+        .await
+        .take()
+        .ok_or_else(|| CoreError::msg("no Microsoft sign-in in progress"))?;
+    if Instant::now() > p.expires_at {
+        return Err(CoreError::msg("sign-in took too long, start sign-in again"));
+    }
+    let code = code_from_redirect(redirect, &p.state)?;
+    let cid = client_id()?;
+    let v: Value = core
+        .http()
+        .post(TOKEN_URL)
+        .form(&[
+            ("grant_type", "authorization_code"),
+            ("client_id", cid.as_str()),
+            ("code", code.as_str()),
+            ("redirect_uri", REDIRECT_URI),
+            ("code_verifier", p.verifier.as_str()),
+            ("scope", SCOPE),
+        ])
+        .send()
+        .await?
+        .json()
+        .await?;
+    if v.get("access_token").is_none() {
+        return Err(CoreError::msg(format!(
+            "Microsoft: {}",
+            v["error_description"]
+                .as_str()
+                .or(v["error"].as_str())
+                .unwrap_or("sign-in failed")
+        )));
+    }
+    minecraft_login(
+        core,
+        &field(&v, "access_token")?,
+        field(&v, "refresh_token")?,
+    )
+    .await
+}
+
+#[cfg(test)]
+mod code_flow_tests {
+    use super::*;
+
+    #[test]
+    fn pkce_matches_rfc7636_example() {
+        // SHA-256("abc") in base64url without padding.
+        assert_eq!(
+            pkce_challenge("abc"),
+            "ungWv48Bz-pBQUDeXa4iI7ADYaOWF3qctBD_YfIAFa0"
+        );
+        assert_eq!(b64url(b"f"), "Zg");
+        assert_eq!(b64url(b"fo"), "Zm8");
+        assert_eq!(b64url(b"foo"), "Zm9v");
+    }
+
+    #[test]
+    fn redirect_parsing() {
+        let ok = format!("{REDIRECT_URI}?code=M.C1_abc&state=s1");
+        assert_eq!(code_from_redirect(&ok, "s1").unwrap(), "M.C1_abc");
+        assert!(code_from_redirect(&ok, "other").is_err());
+        let denied = format!("{REDIRECT_URI}?error=access_denied&state=s1");
+        assert!(code_from_redirect(&denied, "s1")
+            .unwrap_err()
+            .to_string()
+            .contains("cancelled"));
+        assert!(code_from_redirect("https://evil.example/common/oauth2/nativeclient?code=x&state=s1", "s1").is_err());
+    }
+}
+
 async fn minecraft_login(
     core: &Core,
     ms_access: &str,

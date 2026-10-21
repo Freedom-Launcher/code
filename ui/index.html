@@ -674,13 +674,24 @@
   <div class="scrim" id="scrim"></div>
   <div class="dialog" id="dlg-login" data-id="dialog.login" role="dialog" aria-label="Вход через Microsoft">
     <h2>Вход через Microsoft</h2>
-    <p class="muted" id="ms-intro">Откроется страница Microsoft. Введите там этот код:</p>
-    <div class="ms-code mono" id="ms-code">· · · · · · · ·</div>
-    <p class="hint" id="ms-hint">Получаем код…</p>
-    <div class="actions">
-      <button type="button" class="btn btn-ghost" data-close>Закрыть</button>
-      <button type="button" class="btn" id="ms-copy"><span class="lbl">Скопировать код</span></button>
-      <button type="button" class="btn btn-primary" id="ms-open"><span class="lbl">Открыть страницу</span></button>
+    <div id="ms-win">
+      <p class="muted">Откроется окно Microsoft — просто войдите в свой аккаунт.</p>
+      <p class="hint" id="ms-win-hint">Открываем окно входа…</p>
+      <div class="actions">
+        <button type="button" class="btn btn-ghost" data-close>Закрыть</button>
+        <button type="button" class="btn" id="ms-use-code"><span class="lbl">Войти по коду</span></button>
+        <button type="button" class="btn btn-primary" id="ms-win-open"><span class="lbl">Открыть окно входа</span></button>
+      </div>
+    </div>
+    <div id="ms-dev" hidden>
+      <p class="muted" id="ms-intro">Откроется страница Microsoft. Введите там этот код:</p>
+      <div class="ms-code mono" id="ms-code">· · · · · · · ·</div>
+      <p class="hint" id="ms-hint">Получаем код…</p>
+      <div class="actions">
+        <button type="button" class="btn btn-ghost" data-close>Закрыть</button>
+        <button type="button" class="btn" id="ms-copy"><span class="lbl">Скопировать код</span></button>
+        <button type="button" class="btn btn-primary" id="ms-open"><span class="lbl">Открыть страницу</span></button>
+      </div>
     </div>
   </div>
 
