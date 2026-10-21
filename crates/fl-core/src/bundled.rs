@@ -17,6 +17,7 @@ pub struct Bundle {
     pub files: &'static [(&'static str, &'static [u8])],
 }
 
+#[allow(unused_macros)]
 macro_rules! bundle {
     ($id:literal: $($f:literal),+ $(,)?) => {
         Bundle {
@@ -30,15 +31,20 @@ macro_rules! bundle {
 }
 
 /// Shipped plugins: `bundle!("id": "addon.json", "signature.json", ...)`.
-pub const BUNDLED: &[Bundle] = &[bundle!("server-manager":
-    "addon.json", "signature.json", "servers.html", "servers.css", "servers.js", "motd.js",
-)];
+pub const BUNDLED: &[Bundle] = &[];
 
 /// Plugins that used to ship: (id, the `sig` of every `signature.json` shipped for it).
-pub const RETIRED: &[(&str, &[&str])] = &[(
-    "play-stats",
-    &["8ebc88ca812e8a23399b09098242d93daa5099cd1951013fee4290dd0745721fb7ddaf36f193bfcbbf567b05d04ccb575f3a301f41462adfd558e98e89e6c303"],
-)];
+pub const RETIRED: &[(&str, &[&str])] = &[
+    ("play-stats", &["8ebc88ca812e8a23399b09098242d93daa5099cd1951013fee4290dd0745721fb7ddaf36f193bfcbbf567b05d04ccb575f3a301f41462adfd558e98e89e6c303"]),
+    (
+        "server-manager",
+        &[
+            "3a30a1f48cd18f2a6dd188de62db6e356ba24b3bfef0a16c2d15c897ac2fd960b221f8eb19981a55b3a6d661ff82e63142705cf6b4c566ad8e3716dc516bcb00",
+            "9f2ee78dc5b94eb033ec1a1682be527cb546acc0a23f56d10e6b595dc65c76a1d5a80953678c834d4caf18062a495f7c9f018ba703ca9b2fc081ecc20d34400a",
+            "a4c0242a4e5655f46042df0c5e108a99fb95d9b605f1e2a3635216caf25f95a8e6638833f3e32d093d43462809ac27b03afdb85abad9d8026362ab1dedd8d002",
+        ],
+    ),
+];
 
 /// Which bundled versions were installed: `{ id: version }`.
 pub const MARK: &str = "addons-bundled.json";

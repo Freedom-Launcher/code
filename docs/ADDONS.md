@@ -39,9 +39,10 @@ A built-in plugin that stops shipping moves to `RETIRED` together with the
 storage and its approval are removed, but only while the folder is still the
 exact signed copy the launcher installed; a copy the user changed is kept.
 
-Built in: `server-manager` («Управление серверами», tab «Серверы»; see
-«Servers» below). Retired: `play-stats` (shipped in 0.3.14 only; the same
-statistics already live in Settings → «Статистика»).
+No plugins are built in. Retired: `play-stats` (shipped in 0.3.14 only; the same
+statistics already live in Settings → «Статистика») and `server-manager`
+(«Управление серверами», 0.3.15–0.3.17, removed together with the `servers.*`
+actions; the user's `servers.json`, server folders and backups are left on disk).
 
 ## addon.json
 
@@ -64,7 +65,7 @@ statistics already live in Settings → «Статистика»).
 |------|-------------|
 | Интерфейс | `instances_read`, `accounts_read`, `ui_pages`, `ui_overlay`, `storage` |
 | Функция | `instances_manage`, `instance_files`, `accounts_manage`, `network`, `game_launch` |
-| Расширенный | `accounts_provide`, `servers`, `process` — «Официальный» and «Проверено» packages only |
+| Расширенный | `accounts_provide`, `process` — «Официальный» and «Проверено» packages only |
 
 Nothing runs until the user approves. Approval is per permission: the
 consent dialog lists every requested permission in plain words, highlights
@@ -172,58 +173,6 @@ read and change text files inside instance game folders: configs,
 const opts = await fl.files.read(instanceId, 'options.txt');
 await fl.files.write(instanceId, 'config/myaddon.json', JSON.stringify(cfg));
 ```
-
-## Servers
-
-`servers` («Управлять серверами», tier «Расширенный») gives access to the
-Minecraft servers the user added. A server is like an instance, but a server:
-an entry in `<data>/servers.json` that says where it is hosted. Hosting kind
-`local` (a folder on this computer) exists today; hosting panels and remote
-machines get their own kinds later.
-
-A plugin never names a folder itself. `servers.pick {name?}` opens the native
-folder picker and adds the chosen folder (`{id, existing}`, or `null` if
-cancelled); `servers.add` is built-in only. Filesystem roots, the home folder
-and anything overlapping the launcher's data are refused.
-
-| Action | What it does |
-|---|---|
-| `servers.list` | cards: `id, name, host, exists, icon` (data URL), `motd, port, max_players, software {kind, version, jar}` |
-| `servers.info {id}` | a card plus `dir, properties [{key, value}], has_properties, eula, world, mods, plugins` |
-| `servers.update {id, name}` / `servers.remove {id}` | rename / forget (files stay) |
-| `servers.properties.set {id, values}` | changes `server.properties` in place, keeping comments and order; non-ASCII is written as `\uXXXX` |
-| `servers.icon.set {id, png}` / `servers.icon.delete {id}` | `server-icon.png`, a 64×64 PNG |
-| `servers.players {id}` | `whitelist, ops, banned, banned_ips, known` (usercache), `whitelist_enabled, online_mode` |
-| `servers.players.edit {id, list, op, name, reason?}` | `list`: `whitelist`/`ops`/`banned`, `op`: `add`/`remove`; the UUID comes from usercache, the offline UUID (`online-mode=false`) or Mojang |
-| `servers.files.list/read/write/delete {id, path}` | like instance files: inside the server folder, no links, text only, no code written |
-| `servers.cores` | `[{id, name, text, adds}]`: `vanilla`, `paper`, `purpur`, `fabric`, `forge`, `neoforge` |
-| `servers.core.versions {core, all?}` | Minecraft versions of a core, newest first: `[{id, stable}]` (`all`: snapshots and pre-releases too) |
-| `servers.core.builds {core, mc}` | `{builds: [{id, stable}], recommended}`; Fabric builds are loader versions, Vanilla has none |
-| `servers.create {name?, core, mc, build?, memory_mb?, eula?, job?, choose_dir?}` | a new server in `<data>/servers/<name>`: downloads the core (checked against the published hash), Java, writes `start.bat`/`start.sh`, `eula.txt` when `eula`, and `server.properties` with the name as MOTD. `choose_dir: true` opens the native folder picker (an empty folder is used, otherwise a subfolder is made); `null` if cancelled. A plugin never passes `dir` |
-| `servers.core.install {id, core, mc, build?, memory_mb?, job?}` | changes or updates the core; worlds, plugins, mods and settings stay, the old core jar is removed once the new one is in place → `{ok, removed}` |
-| `servers.memory.set {id, memory_mb}` | memory the launcher starts the server with; rewrites the start script for cores the launcher installed |
-| `servers.progress {job}` | progress of a create/install: `stage` (`meta`, `java`, `download`, `install`, `finish`, `done`, `failed`), `done_bytes/total_bytes`, `done_files/total_files` |
-| `servers.remove {id, delete_files?}` | `delete_files` only for servers the launcher created (folder under `<data>/servers`); also deletes its backups. Refused while the server runs |
-| `servers.start {id, eula?}` | starts the server with the launcher's Java (`eula: true` writes `eula=true` first, after the user accepted it); refused without EULA, with the port taken, or while a backup runs. Returns the status at once |
-| `servers.stop {id, force?}` | the server's own `stop` (the world is saved), killed after 90 s; `force` kills at once |
-| `servers.restart {id}` | stop, then start |
-| `servers.status {id}` | `{state, pid, started_at, ready_at, uptime, players, online, note, exit_code}`; `state`: `starting`, `running` (after `Done`), `stopping`, `stopped`, `crashed`. Also in every card as `run` |
-| `servers.running` | ids of running servers |
-| `servers.console {id, from}` | console lines numbered `from` and later: `{lines: [[n, text]], cursor, reset, dropped, status}`; poll with the returned `cursor`. The launcher keeps the last 5000 lines |
-| `servers.command {id, command}` | one console command line (a leading `/` is dropped) |
-| `servers.autorestart.set {id, on}` | start again after a crash, at most 3 times in 10 minutes |
-| `servers.backups {id}` | `{backups: [{name, size, created, auto}], total, worlds, busy, dir}`; zips of the world folders in `<data>/server-backups/<id>` |
-| `servers.backup.create {id}` | a zip of the world (with `_nether` / `_the_end`); a running server is saved first (`save-off`, `save-all flush`, `save-on`) |
-| `servers.backup.restore {id, name}` | the server must be stopped; the current world is backed up first (`…-before-restore.zip`) → `{ok, safety}` |
-| `servers.backup.delete {id, name}` | deletes one backup |
-
-Files that hold Java arguments (`*_args.txt`, `user_jvm_args.txt`, `*.vmoptions`) cannot be written by plugins. Quitting the launcher stops the servers it started, saving their worlds.
-
-Forge and NeoForge run their official installer with `--installServer`; the
-server then starts from `@libraries/…/{win,unix}_args.txt`. The start script
-carries the marker «Freedom Launcher» and is rewritten only while it does; a
-script of the user's own under that name is left alone. Server cards gain
-`core` (what the launcher installed), `managed` and `script`.
 
 ## Network
 

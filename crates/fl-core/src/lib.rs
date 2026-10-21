@@ -39,7 +39,6 @@ pub mod permissions;
 pub mod providers;
 pub mod relocate;
 pub mod rimg;
-pub mod servers;
 pub mod settings;
 pub mod signing;
 pub mod skin_packs;
@@ -72,8 +71,6 @@ pub struct Core {
         std::sync::Mutex<std::collections::HashMap<String, Arc<game::download::Progress>>>,
     /// Game processes per instance (`game.running`, no double launches).
     pub(crate) game_running: game::running::Running,
-    /// Server processes (`servers.start`, the console).
-    pub(crate) server_procs: servers::Procs,
 }
 
 impl Core {
@@ -86,7 +83,6 @@ impl Core {
         let mut registry = ActionRegistry::default();
         builtin::register(&mut registry, safe_mode);
         net::register(&mut registry);
-        servers::register(&mut registry);
         Ok(Arc::new(Self {
             data_dir,
             safe_mode,
@@ -99,7 +95,6 @@ impl Core {
             ms_code: Default::default(),
             game_progress: Default::default(),
             game_running: Default::default(),
-            server_procs: Default::default(),
         }))
     }
 

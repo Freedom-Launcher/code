@@ -23,9 +23,8 @@ pub enum Permission {
     /// Read and change files inside instance game folders (configs, worlds,
     /// resource packs). Never executable code, never outside an instance.
     InstanceFiles,
-    /// Manage servers the user added («Управление серверами»): their files,
-    /// `server.properties`, icon and player lists. Only folders the user picked
-    /// in the native dialog, never code written.
+    /// Retired with «Управление серверами» (0.3.18): no action needs it and no
+    /// plugin may request it. Kept only so approvals saved earlier still load.
     Servers,
     /// Spawning arbitrary processes, raw filesystem access.
     Process,

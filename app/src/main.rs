@@ -1,14 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    time::Instant,
-};
+use std::{sync::Arc, time::Instant};
 
-use fl_core::{Caller, Core, Permission};
+use fl_core::{Caller, Core};
 use serde_json::Value;
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
@@ -645,7 +639,6 @@ async fn open_themes_folder(
 /// checks it against exactly the permissions the user approved for that addon.
 #[tauri::command]
 async fn addon_action(
-    app: tauri::AppHandle,
     state: tauri::State<'_, AppCore>,
     id: String,
     name: String,
@@ -655,88 +648,7 @@ async fn addon_action(
     let caller = core
         .addon_caller(&id)
         .ok_or("плагин не включён или не одобрен")?;
-    if name == "servers.pick" {
-        return pick_server(&app, &core, &caller, args).await;
-    }
-    if name == "servers.create"
-        && args.as_ref().and_then(|a| a.get("choose_dir")).and_then(Value::as_bool) == Some(true)
-    {
-        return create_server_at(&app, &core, &caller, args).await;
-    }
     core.dispatch(&caller, &name, args.unwrap_or(Value::Null))
-        .await
-        .map_err(|e| e.to_string())
-}
-
-/// `servers.pick` for a plugin with the `servers` permission: the user picks a
-/// server folder in the native dialog and it is added to the server list. A
-/// plugin never names a folder itself. `null` if the user cancelled.
-async fn pick_server(
-    app: &tauri::AppHandle,
-    core: &Arc<Core>,
-    caller: &Caller,
-    args: Option<Value>,
-) -> Result<Value, String> {
-    let ok = matches!(caller, Caller::Addon { granted, .. } if granted.contains(&Permission::Servers));
-    if !ok {
-        return Err("servers.pick requires Servers".into());
-    }
-    let name = args
-        .as_ref()
-        .and_then(|a| a.get("name"))
-        .and_then(Value::as_str)
-        .unwrap_or("")
-        .to_owned();
-    let app = app.clone();
-    let dir = tauri::async_runtime::spawn_blocking(move || {
-        app.dialog()
-            .file()
-            .set_title("Папка сервера")
-            .blocking_pick_folder()
-            .and_then(|p| p.into_path().ok())
-            .map(|p| p.to_string_lossy().into_owned())
-    })
-    .await
-    .map_err(|e| e.to_string())?;
-    let Some(dir) = dir else { return Ok(Value::Null) };
-    core.dispatch(&Caller::BuiltinUi, "servers.add", serde_json::json!({ "name": name, "dir": dir }))
-        .await
-        .map_err(|e| e.to_string())
-}
-
-/// `servers.create {choose_dir: true}`: a new server in a folder the user picks
-/// in the native dialog (an empty folder is used as is, otherwise a subfolder
-/// named after the server is made). `null` if the user cancelled.
-async fn create_server_at(
-    app: &tauri::AppHandle,
-    core: &Arc<Core>,
-    caller: &Caller,
-    args: Option<Value>,
-) -> Result<Value, String> {
-    let ok = matches!(caller, Caller::Addon { granted, .. } if granted.contains(&Permission::Servers));
-    if !ok {
-        return Err("servers.create requires Servers".into());
-    }
-    let mut args = args.unwrap_or_else(|| serde_json::json!({}));
-    let obj = args.as_object_mut().ok_or("args: нужен объект")?;
-    if obj.contains_key("dir") {
-        return Err("папку для сервера выбирает только пользователь".into());
-    }
-    let app = app.clone();
-    let dir = tauri::async_runtime::spawn_blocking(move || {
-        app.dialog()
-            .file()
-            .set_title("Где создать сервер")
-            .blocking_pick_folder()
-            .and_then(|p| p.into_path().ok())
-            .map(|p| p.to_string_lossy().into_owned())
-    })
-    .await
-    .map_err(|e| e.to_string())?;
-    let Some(dir) = dir else { return Ok(Value::Null) };
-    obj.remove("choose_dir");
-    obj.insert("dir".into(), Value::String(dir));
-    core.dispatch(&Caller::BuiltinUi, "servers.create.at", args)
         .await
         .map_err(|e| e.to_string())
 }
@@ -1010,28 +922,8 @@ fn main() {
         ])
         .build(tauri::generate_context!())
         .expect("failed to start Freedom Launcher")
-        .run(|app, ev| {
-            // Servers started from the launcher are saved and stopped before it quits.
-            if let tauri::RunEvent::ExitRequested { api, .. } = &ev {
-                let Some(core) = app.try_state::<AppCore>().map(|c| Arc::clone(&c.0)) else {
-                    return;
-                };
-                if fl_core::servers::any_running(&core) && !SERVERS_STOPPING.swap(true, Ordering::SeqCst) {
-                    api.prevent_exit();
-                    for w in app.webview_windows().values() {
-                        let _ = w.hide();
-                    }
-                    let app = app.clone();
-                    tauri::async_runtime::spawn(async move {
-                        fl_core::servers::stop_all(&core).await;
-                        app.exit(0);
-                    });
-                }
-            }
-        });
+        .run(|_, _| {});
 }
-
-static SERVERS_STOPPING: AtomicBool = AtomicBool::new(false);
 
 #[cfg(test)]
 mod link_tests {

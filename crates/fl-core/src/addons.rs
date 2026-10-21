@@ -191,6 +191,9 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
         if *p == Permission::Internal {
             return Err("право internal недоступно плагинам".into());
         }
+        if *p == Permission::Servers {
+            return Err("право servers больше не существует".into());
+        }
         if p.tier() > max {
             return Err(format!(
                 "право {p:?} доступно только пакетам «Официальный» и «Проверено»"
