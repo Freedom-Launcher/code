@@ -46,9 +46,43 @@ async fn create_rules() {
     assert!(srv.exists());
     c.dispatch(&a, "servers.remove", json!({ "id": id })).await.unwrap();
     assert!(srv.exists());
-    // No core installed by the launcher: memory lives in the user's own script.
+    // No core installed by the launcher: the launcher still starts it, with this memory.
     let r = c.dispatch(&Caller::BuiltinUi, "servers.add", json!({ "dir": srv.to_string_lossy() })).await.unwrap();
-    assert!(c.dispatch(&a, "servers.memory.set", json!({ "id": r["id"], "memory_mb": 2048 })).await.is_err());
+    let id = r["id"].as_str().unwrap().to_owned();
+    assert!(c.dispatch(&a, "servers.memory.set", json!({ "id": id, "memory_mb": 100 })).await.is_err());
+    c.dispatch(&a, "servers.memory.set", json!({ "id": id, "memory_mb": 3072 })).await.unwrap();
+    let info = c.dispatch(&a, "servers.info", json!({ "id": id })).await.unwrap();
+    assert_eq!(info["memory_mb"], 3072);
+    assert_eq!(info["run"]["state"], "stopped");
+    // Start rules: EULA first, then a server jar.
+    let e = c.dispatch(&a, "servers.start", json!({ "id": id })).await.unwrap_err().to_string();
+    assert!(e.contains("EULA"), "{e}");
+    let e = c.dispatch(&a, "servers.start", json!({ "id": id, "eula": true })).await.unwrap_err().to_string();
+    assert!(e.contains("jar"), "{e}");
+    assert!(fs::read_to_string(srv.join("eula.txt")).unwrap().contains("eula=true"));
+    assert!(c.dispatch(&a, "servers.stop", json!({ "id": id })).await.is_err());
+    assert!(c.dispatch(&a, "servers.command", json!({ "id": id, "command": "list" })).await.is_err());
+    let con = c.dispatch(&a, "servers.console", json!({ "id": id })).await.unwrap();
+    assert_eq!(con["lines"], json!([]));
+    // Java arguments files are out of reach for plugins.
+    for f in ["user_jvm_args.txt", "libraries/net/x/1/unix_args.txt"] {
+        assert!(c.dispatch(&a, "servers.files.write", json!({ "id": id, "path": f, "text": "-javaagent:x.jar" })).await.is_err(), "{f}");
+    }
+    // Backups: none before there is a world, then one, restore, delete.
+    assert!(c.dispatch(&a, "servers.backup.create", json!({ "id": id })).await.is_err());
+    fs::create_dir_all(srv.join("world/region")).unwrap();
+    fs::write(srv.join("world/level.dat"), b"one").unwrap();
+    let b = c.dispatch(&a, "servers.backup.create", json!({ "id": id })).await.unwrap();
+    let name = b["name"].as_str().unwrap().to_owned();
+    fs::write(srv.join("world/level.dat"), b"two").unwrap();
+    let r = c.dispatch(&a, "servers.backup.restore", json!({ "id": id, "name": name })).await.unwrap();
+    assert!(r["safety"].as_str().unwrap().contains("before-restore"));
+    assert_eq!(fs::read(srv.join("world/level.dat")).unwrap(), b"one");
+    let l = c.dispatch(&a, "servers.backups", json!({ "id": id })).await.unwrap();
+    assert_eq!(l["backups"].as_array().unwrap().len(), 2);
+    assert!(c.dispatch(&a, "servers.backup.delete", json!({ "id": id, "name": "../servers.json" })).await.is_err());
+    c.dispatch(&a, "servers.backup.delete", json!({ "id": id, "name": name })).await.unwrap();
+    assert_eq!(c.dispatch(&a, "servers.backups", json!({ "id": id })).await.unwrap()["backups"].as_array().unwrap().len(), 1);
 }
 
 /// Real downloads: `FL_CORES="paper:1.21.4 fabric:1.21.4" cargo test -- --ignored`.
@@ -106,4 +140,63 @@ async fn change_core_online() {
     assert!(fs::read_to_string(dir.join(fl_core::servers::SCRIPT)).unwrap().contains("-Xmx3072M -jar purpur-1.21.4-"));
     c.dispatch(&a, "servers.remove", json!({ "id": r["id"], "delete_files": true })).await.unwrap();
     assert!(!dir.exists());
+}
+
+/// Real servers through the launcher: start, console, a backup while running,
+/// stop. `FL_CORES_DATA=<data with installed servers> FL_RUN=paper cargo test -- --ignored run_servers_online`.
+#[tokio::test(flavor = "multi_thread")]
+#[ignore]
+async fn run_servers_online() {
+    let data = PathBuf::from(std::env::var("FL_CORES_DATA").expect("FL_CORES_DATA"));
+    let want = std::env::var("FL_RUN").unwrap_or_default();
+    let c = Core::new(data, Instant::now(), false).unwrap();
+    let a = addon();
+    let list = c.dispatch(&a, "servers.list", Value::Null).await.unwrap();
+    for s in list.as_array().unwrap() {
+        let id = s["id"].as_str().unwrap().to_owned();
+        let core = s["core"]["core"].as_str().unwrap_or("").to_owned();
+        if !want.is_empty() && !want.split(',').any(|w| w == core) {
+            continue;
+        }
+        let t0 = Instant::now();
+        c.dispatch(&a, "servers.start", json!({ "id": id, "eula": true })).await.unwrap();
+        let mut cursor = 0;
+        let mut text = String::new();
+        let mut state = String::new();
+        while t0.elapsed().as_secs() < 400 {
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            let v = c.dispatch(&a, "servers.console", json!({ "id": id, "from": cursor })).await.unwrap();
+            cursor = v["cursor"].as_u64().unwrap();
+            for l in v["lines"].as_array().unwrap() {
+                text.push_str(l[1].as_str().unwrap());
+                text.push('\n');
+            }
+            state = v["status"]["state"].as_str().unwrap().to_owned();
+            if state == "running" || state == "crashed" {
+                break;
+            }
+        }
+        let ready = t0.elapsed().as_secs();
+        assert_eq!(state, "running", "{core}: {}", text.lines().rev().take(12).collect::<Vec<_>>().join("\n"));
+        assert!(c.dispatch(&a, "servers.start", json!({ "id": id })).await.is_err(), "no double start");
+        c.dispatch(&a, "servers.command", json!({ "id": id, "command": "/list" })).await.unwrap();
+        let b = c.dispatch(&a, "servers.backup.create", json!({ "id": id })).await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        let v = c.dispatch(&a, "servers.console", json!({ "id": id, "from": cursor })).await.unwrap();
+        let tail: Vec<&str> = v["lines"].as_array().unwrap().iter().filter_map(|l| l[1].as_str()).collect();
+        assert!(tail.iter().any(|l| l.contains("players online")), "{core}: list answered: {tail:?}");
+        assert!(c.dispatch(&a, "servers.core.install", json!({ "id": id, "core": "paper", "mc": "1.21.4" })).await.is_err());
+        c.dispatch(&a, "servers.stop", json!({ "id": id })).await.unwrap();
+        let t1 = Instant::now();
+        loop {
+            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            let st = c.dispatch(&a, "servers.status", json!({ "id": id })).await.unwrap();
+            if st["state"] == "stopped" {
+                break;
+            }
+            assert!(t1.elapsed().as_secs() < 100, "{core}: did not stop: {st}");
+        }
+        c.dispatch(&a, "servers.backup.delete", json!({ "id": id, "name": b["name"] })).await.unwrap();
+        println!("{core}: ready {ready}s, backup {} KB of {:?}, stopped in {}s", b["size"].as_u64().unwrap() / 1024, b["worlds"], t1.elapsed().as_secs());
+    }
 }

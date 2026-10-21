@@ -55,6 +55,12 @@
       warn: 'M12 3l10 18H2zM12 10v4M12 17h.01',
       download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
       swap: 'M7 7h11l-3-3M17 17H6l3 3',
+      play: 'M7 5l12 7-12 7z',
+      stop: 'M6 6h12v12H6z',
+      restart: 'M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4',
+      term: 'M4 5h16v14H4zM7 9l3 3-3 3M12 15h5',
+      archive: 'M3 5h18v4H3zM5 9v10h14V9M10 13h4',
+      send: 'M4 12l16-8-6 16-3-7z',
     };
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
@@ -102,13 +108,28 @@
     });
   }
 
+  // ---------- running ----------
+  const RUN = { starting: 'Запускается', running: 'Работает', stopping: 'Останавливается', stopped: 'Остановлен', crashed: 'Остановился с ошибкой' };
+  const alive = (r) => ['starting', 'running', 'stopping'].includes(r?.state);
+  let timer = null;
+  let onStatus = null; // the open tab redraws itself on a status change
+  let conPoll = null;
+  const stopTimer = () => { if (timer) clearInterval(timer); timer = null; };
+
+  function runPill(r) {
+    const st = r?.state || 'stopped';
+    const n = r?.online || 0;
+    return h('span', `run-pill ${st}`, h('i'), st === 'running' && n ? `${RUN[st]} · ${n} ${plural(n, 'игрок', 'игрока', 'игроков')}` : RUN[st]);
+  }
+
   // ---------- list ----------
   async function loadList() {
     try { servers = await call('servers.list'); } catch (e) { servers = []; fail(e); }
   }
 
   async function showList() {
-    cur = null; info = null;
+    stopTimer();
+    cur = null; info = null; onStatus = null; conPoll = null;
     await loadList();
     const head = h('header', 'top',
       h('div', null, h('h1', null, 'Серверы'), h('p', 'muted', servers.length ? `${servers.length} ${plural(servers.length, 'сервер', 'сервера', 'серверов')}` : 'Здесь будут ваши серверы Minecraft')),
@@ -123,6 +144,16 @@
         btn([ICO('plus'), 'Добавить сервер'], 'primary', addWizard)));
     }
     app.replaceChildren(head, grid);
+    // Running servers update their chips by themselves.
+    if (servers.some((s) => alive(s.run))) {
+      timer = setInterval(async () => {
+        if (cur) return stopTimer();
+        await loadList();
+        if (cur || !grid.isConnected) return;
+        grid.replaceChildren(...servers.map(card));
+        if (!servers.some((s) => alive(s.run))) stopTimer();
+      }, 3000);
+    }
   }
 
   function card(s) {
@@ -134,6 +165,7 @@
         h('div', 'scard-name', s.name),
         MOTD.render(s.motd))),
       h('div', 'scard-meta',
+        s.run && s.run.state !== 'stopped' ? h('span', `chip run ${s.run.state}`, h('i'), s.run.state === 'running' ? `Работает · ${s.run.online}/${s.max_players}` : RUN[s.run.state]) : null,
         h('span', 'chip', s.exists ? softLabel(s.software) : 'Папка не найдена'),
         h('span', 'chip', ICO('pc'), 'Этот компьютер'),
         h('span', 'chip', `:${s.port}`),
@@ -402,26 +434,128 @@
   function corePanel(s) {
     const c = s.core;
     const panel = h('div', 'panel', h('h2', null, 'Ядро и запуск'));
-    if (!c) {
-      panel.append(h('div', 'core-line',
-        h('p', 'muted grow', s.software ? `Ядро найдено по файлам: ${softLabel(s.software)}. Лаунчер его не ставил, поэтому память задаётся в вашем скрипте запуска.` : 'В папке нет ядра сервера.'),
-        btn([ICO('download'), 'Поставить ядро'], 'primary', changeCore)));
-      return panel;
-    }
-    const ram = ramSelect(c.memory_mb);
+    const running = alive(s.run);
+    const mem = s.memory_mb || c?.memory_mb || 2048;
+    const ram = ramSelect(mem);
     ram.onchange = async () => {
       ram.disabled = true;
-      try { await call('servers.memory.set', { id: cur, memory_mb: Number(ram.value) }); fl.toast(`Память: ${gb(Number(ram.value))}`); await loadInfo(); }
-      catch (e) { ram.value = String(c.memory_mb); fail(e); } finally { ram.disabled = false; }
+      try {
+        await call('servers.memory.set', { id: cur, memory_mb: Number(ram.value) });
+        fl.toast(running ? `Память: ${gb(Number(ram.value))}. Сработает после перезапуска сервера` : `Память: ${gb(Number(ram.value))}`);
+        await loadInfo();
+      } catch (e) { ram.value = String(mem); fail(e); } finally { ram.disabled = false; }
     };
+    const change = (label, cls) => {
+      const b = btn(label, cls, changeCore, running ? 'Сначала остановите сервер' : undefined);
+      b.disabled = running;
+      return b;
+    };
+    if (!c) {
+      if (!s.software) {
+        panel.append(h('div', 'core-line', h('p', 'muted grow', 'В папке нет ядра сервера.'), change([ICO('download'), 'Поставить ядро'], 'primary')));
+        return panel;
+      }
+      panel.append(h('div', 'core-line',
+        h('div', 'grow', h('b', null, softLabel(s.software)), h('p', 'muted small', 'Ядро найдено по файлам. Лаунчер запускает его сам, с этой памятью; ваши скрипты в папке не меняются.')),
+        h('label', 'field inline', h('span', null, 'Память'), ram),
+        change([ICO('download'), 'Поставить ядро'], null)), autoSwitch(s));
+      return panel;
+    }
     const sub = [c.build && (c.core === 'fabric' ? `загрузчик ${c.build}` : `сборка ${c.build}`), c.java_major && `Java ${c.java_major}`, c.installed_at && `поставлено ${date(c.installed_at)}`].filter(Boolean).join(' · ');
     panel.append(
       h('div', 'core-line',
         h('div', 'grow', h('b', null, `${s.software?.kind || c.core} ${c.mc}`), h('p', 'muted small', sub)),
         h('label', 'field inline', h('span', null, 'Память'), ram),
-        btn([ICO('swap'), 'Сменить или обновить'], null, changeCore)),
-      s.script ? h('p', 'muted small', `Запуск сервера: ${s.script} в его папке (Java и память уже прописаны).`) : null);
+        change([ICO('swap'), 'Сменить или обновить'], null)),
+      autoSwitch(s),
+      s.script ? h('p', 'muted small', `Запускается кнопкой «Запустить» вверху, а без лаунчера — скриптом ${s.script} в папке сервера (Java и память уже прописаны).`) : null);
     return panel;
+  }
+
+  function autoSwitch(s) {
+    const l = h('label', 'switch', h('input'), h('i'), h('span', null, 'Перезапускать после падения'));
+    const box = l.querySelector('input');
+    box.type = 'checkbox';
+    box.checked = !!s.auto_restart;
+    box.onchange = async () => {
+      try {
+        await call('servers.autorestart.set', { id: cur, on: box.checked });
+        info.auto_restart = box.checked;
+        fl.toast(box.checked ? 'Автоперезапуск включён' : 'Автоперезапуск выключен');
+      } catch (e) { box.checked = !box.checked; fail(e); }
+    };
+    return h('div', 'col auto-line', l, h('p', 'muted small', 'Если сервер упадёт, лаунчер запустит его снова, но не больше 3 раз за 10 минут.'));
+  }
+
+  // ---------- start, stop, status ----------
+  let ctl = null;
+  function drawCtl() {
+    if (!ctl || !info) return;
+    const r = info.run || {};
+    const st = r.state || 'stopped';
+    const kids = [runPill(r)];
+    if (!info.exists) {
+      // nothing to start
+    } else if (st === 'stopped' || st === 'crashed') {
+      kids.push(btn([ICO('play'), 'Запустить'], 'primary', startServer));
+    } else if (st === 'stopping') {
+      kids.push(btn([ICO('stop'), 'Завершить сразу'], 'ghost danger-text', forceStop, 'Закрыть без сохранения мира'));
+    } else {
+      kids.push(btn([ICO('restart'), 'Перезапустить'], null, restartServer), btn([ICO('stop'), 'Остановить'], 'danger', stopServer));
+    }
+    ctl.replaceChildren(...kids);
+  }
+
+  function applyStatus(r) {
+    if (!info || !r) return;
+    const old = info.run || {};
+    const key = (x) => JSON.stringify([x.state, x.players, x.note]);
+    const changed = key(old) !== key(r);
+    info.run = r;
+    if (changed) {
+      drawCtl();
+      onStatus?.(r, old);
+    }
+  }
+
+  function watch() {
+    stopTimer();
+    let busyTick = false;
+    timer = setInterval(async () => {
+      if (!cur) return stopTimer();
+      if (busyTick) return;
+      busyTick = true;
+      try {
+        if (tab === 'console' && conPoll) await conPoll();
+        else applyStatus(await call('servers.status', { id: cur }));
+      } catch { /* the next tick tries again */ } finally { busyTick = false; }
+    }, tab === 'console' ? 700 : 1500);
+  }
+
+  async function startServer() {
+    let eula = false;
+    if (!info.eula) {
+      const ok = await confirm('Принять EULA Minecraft?', 'Без принятого лицензионного соглашения Mojang для серверов (aka.ms/MinecraftEULA) сервер не запустится. Лаунчер запишет eula=true в eula.txt и запустит сервер.', 'Принимаю, запустить');
+      if (!ok) return;
+      eula = true;
+    }
+    try {
+      info.run = await call('servers.start', { id: cur, eula });
+      if (eula) info.eula = true;
+      tab = 'console';
+      render();
+    } catch (e) { fail(e); }
+  }
+  async function stopServer() {
+    try { applyStatus(await call('servers.stop', { id: cur })); } catch (e) { fail(e); }
+  }
+  async function forceStop() {
+    const ok = await confirm('Завершить сервер сразу?', 'Сервер закроется без сохранения: изменения мира с последнего автосохранения пропадут.', 'Завершить', true);
+    if (!ok) return;
+    try { applyStatus(await call('servers.stop', { id: cur, force: true })); } catch (e) { fail(e); }
+  }
+  async function restartServer() {
+    try { applyStatus(await call('servers.restart', { id: cur })); } catch (e) { fail(e); }
   }
 
   // ---------- one server ----------
@@ -435,26 +569,31 @@
     render();
   }
 
-  const TABS = [['overview', 'Обзор'], ['players', 'Игроки'], ['files', 'Файлы'], ['settings', 'Настройки']];
+  const TABS = [['overview', 'Обзор'], ['console', 'Консоль'], ['players', 'Игроки'], ['backups', 'Резервные копии'], ['files', 'Файлы'], ['settings', 'Настройки']];
 
   function render() {
     const s = info;
     const head = h('header', 'shead',
       btn(ICO('back'), 'icon ghost', showList, 'Все серверы'),
       serverIcon(s, true),
-      h('div', 'shead-text', h('h1', null, s.name), h('p', 'muted', s.exists ? `${softLabel(s.software)} · порт ${s.port}` : 'Папка сервера не найдена')));
+      h('div', 'shead-text', h('h1', null, s.name), h('p', 'muted', s.exists ? `${softLabel(s.software)} · порт ${s.port}` : 'Папка сервера не найдена')),
+      ctl = h('div', 'run-ctl'));
+    drawCtl();
     const tabs = h('nav', 'tabs');
     for (const [id, label] of TABS) {
       const b = h('button', null, label);
       b.type = 'button';
       b.setAttribute('aria-selected', String(id === tab));
       b.disabled = !s.exists && id !== 'overview';
-      b.onclick = () => { tab = id; render(); };
+      b.onclick = () => { if (tab !== id) { tab = id; render(); } };
       tabs.append(b);
     }
     const body = h('section', 'body');
     app.replaceChildren(head, tabs, body);
-    ({ overview, players, files, settings })[tab](body);
+    onStatus = null;
+    conPoll = null;
+    ({ overview, console: consoleTab, players, backups: backupsTab, files, settings })[tab](body);
+    watch();
   }
 
   // ----- overview -----
@@ -466,7 +605,7 @@
       return;
     }
     const preview = h('div', 'mc-entry', serverIcon(s), h('div', 'mc-text',
-      h('div', 'mc-top', h('span', 'mc-name', s.name), h('span', 'mc-count', `0/${s.max_players}`)),
+      h('div', 'mc-top', h('span', 'mc-name', s.name), h('span', 'mc-count', `${s.run?.online || 0}/${s.max_players}`)),
       MOTD.render(s.motd)));
     const stats = h('div', 'stats',
       stat('Ядро', s.software?.kind || '—', s.software?.version ? `Minecraft ${s.software.version}` : s.software?.jar || 'jar не найден'),
@@ -474,6 +613,14 @@
       stat('Мир', s.world?.name || 'world', s.world?.exists ? 'создан' : 'появится при первом запуске'),
       s.plugins ? stat('Плагины', String(s.plugins), 'в папке plugins') : stat('Моды', String(s.mods || 0), 'в папке mods'));
     const notes = [];
+    const r = s.run || {};
+    if (r.state === 'crashed' && r.note) notes.push(h('div', 'notice warn', ICO('warn'), h('p', null, r.note), btn([ICO('term'), 'Консоль'], 'small', () => { tab = 'console'; render(); })));
+    else if (alive(r) && r.note) notes.push(h('div', 'notice', ICO('warn'), h('p', null, r.note)));
+    if (r.state === 'running') {
+      notes.push(h('div', 'panel', h('h2', null, r.players?.length ? `Сейчас на сервере: ${r.players.length}` : 'Сейчас на сервере никого'),
+        r.players?.length ? h('div', 'online', ...r.players.map((n) => h('span', 'chip', avatar(n), n))) : h('p', 'muted small', `Подключиться: адрес localhost:${s.port} на этом компьютере или IP этого компьютера в вашей сети.`)));
+    }
+    onStatus = () => { if (tab === 'overview' && body.isConnected) { body.replaceChildren(); overview(body); } };
     if (!s.has_properties) notes.push(h('div', 'notice', ICO('warn'), h('p', null, 'server.properties ещё нет: сервер создаст его при первом запуске. Настройки, которые вы сохраните здесь, сервер возьмёт.')));
     if (!s.eula) notes.push(h('div', 'notice', ICO('warn'), h('p', null, 'EULA не принята (eula.txt). Без этого сервер не запустится.'),
       btn('Принять EULA', 'small', acceptEula)));
@@ -515,6 +662,137 @@
     });
     if (!ok) return;
     try { await call('servers.remove', { id: cur, delete_files: info.managed && box.checked }); showList(); } catch (e) { fail(e); }
+  }
+
+  // ----- console -----
+  const QUICK = [['list', 'Кто онлайн'], ['save-all', 'Сохранить мир'], ['weather clear', 'Ясная погода'], ['time set day', 'День']];
+  const history = [];
+
+  function consoleTab(body) {
+    const out = h('pre', 'console');
+    const empty = h('p', 'muted console-empty', 'Здесь появится вывод сервера. Нажмите «Запустить» вверху.');
+    const input = h('input', 'input mono grow');
+    input.placeholder = 'Команда сервера, например: op Steve';
+    input.spellcheck = false;
+    input.maxLength = 1000;
+    const send = btn([ICO('send'), 'Отправить'], 'primary', () => run(input.value));
+    const quick = h('div', 'row quick', ...QUICK.map(([c, l]) => btn(l, 'small ghost', () => run(c), `/${c}`)));
+    const bar = h('div', 'row console-bar', h('span', 'prompt mono', '>'), input, send);
+    let cursor = 0, stick = true, hi = -1, first = true;
+    out.onscroll = () => { stick = out.scrollTop + out.clientHeight >= out.scrollHeight - 30; };
+
+    const cls = (t) => (t.startsWith('[Лаунчер]') ? 'l-fl' : t.startsWith('> ') ? 'l-cmd' : /\b(ERROR|FATAL|SEVERE)\b|Exception|^\s+at /.test(t) ? 'l-err' : /\bWARN(ING)?\b/.test(t) ? 'l-warn' : null);
+    function add(lines) {
+      if (!lines.length) return;
+      const frag = document.createDocumentFragment();
+      for (const [, t] of lines) {
+        const d = h('div', cls(t), t || '\u00a0');
+        frag.append(d);
+      }
+      out.append(frag);
+      while (out.childElementCount > 3000) out.firstElementChild.remove();
+      empty.hidden = true;
+      if (stick) out.scrollTop = out.scrollHeight;
+    }
+    function enable() {
+      const r = info.run || {};
+      const ok = r.state === 'starting' || r.state === 'running';
+      input.disabled = !ok; send.disabled = !ok;
+      for (const b of quick.children) b.disabled = r.state !== 'running';
+      input.placeholder = ok ? 'Команда сервера, например: op Steve' : 'Команды работают, когда сервер запущен';
+    }
+    async function poll() {
+      const v = await call('servers.console', { id: cur, from: cursor });
+      if (!body.isConnected) return;
+      if (v.reset) { out.replaceChildren(); }
+      if (v.dropped && !first) out.append(h('div', 'l-fl', '[Лаунчер] … часть вывода пропущена'));
+      add(v.lines);
+      cursor = v.cursor;
+      first = false;
+      applyStatus(v.status);
+      enable();
+    }
+    async function run(cmd) {
+      cmd = cmd.trim().replace(/^\//, '');
+      if (!cmd) return;
+      if (cmd === 'stop') return stopServer();
+      try {
+        await call('servers.command', { id: cur, command: cmd });
+        if (history[history.length - 1] !== cmd) history.push(cmd);
+        if (history.length > 50) history.shift();
+        hi = -1; input.value = ''; stick = true;
+        await poll();
+      } catch (e) { fail(e); }
+    }
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); run(input.value); }
+      else if (e.key === 'ArrowUp' && history.length) { e.preventDefault(); hi = hi < 0 ? history.length - 1 : Math.max(0, hi - 1); input.value = history[hi]; }
+      else if (e.key === 'ArrowDown' && hi >= 0) { e.preventDefault(); hi = hi + 1 >= history.length ? -1 : hi + 1; input.value = hi < 0 ? '' : history[hi]; }
+    };
+    const copy = btn('Копировать всё', 'small ghost', async () => {
+      try { await navigator.clipboard.writeText([...out.children].map((d) => d.textContent).join('\n')); fl.toast('Скопировано'); } catch { fl.toast('Не получилось скопировать'); }
+    });
+    body.append(h('div', 'panel console-panel',
+      h('div', 'row', h('h2', 'grow', 'Консоль сервера'), copy),
+      h('div', 'console-wrap', out, empty), bar, quick,
+      h('p', 'muted small', 'Команды пишутся без «/». Стрелки ↑ и ↓ листают прошлые команды. Команда stop останавливает сервер с сохранением мира.')));
+    enable();
+    conPoll = poll;
+    onStatus = () => enable();
+    poll().catch(fail);
+    setTimeout(() => input.focus(), 50);
+  }
+
+  // ----- backups -----
+  async function backupsTab(body) {
+    let v;
+    try { v = await call('servers.backups', { id: cur }); } catch (e) { return fail(e); }
+    if (!body.isConnected) return;
+    const running = alive(info.run);
+    const make = btn([ICO('archive'), 'Сделать копию сейчас'], 'primary', async () => {
+      make.disabled = true;
+      make.textContent = 'Копируем мир…';
+      try {
+        const r = await call('servers.backup.create', { id: cur });
+        fl.toast(`Копия готова: ${size(r.size)}`);
+      } catch (e) { fail(e); }
+      if (body.isConnected) { body.replaceChildren(); backupsTab(body); }
+    });
+    make.disabled = !v.worlds.length || v.busy;
+    const head = h('div', 'panel',
+      h('div', 'row', h('div', 'grow', h('h2', null, 'Резервные копии мира'),
+        h('p', 'muted small', v.worlds.length
+          ? `Копируются папки ${v.worlds.join(', ')}. ${running ? 'Сервер работает: лаунчер сам сохранит мир перед копией, игроков не выкинет.' : ''}`
+          : 'Мира ещё нет: он появится после первого запуска сервера.')), make),
+      h('p', 'muted small mono', v.dir));
+    const list = h('div', 'blist');
+    if (!v.backups.length) list.append(h('p', 'empty', 'Копий пока нет.'));
+    for (const b of v.backups) {
+      const restore = btn('Восстановить', 'small', async () => {
+        const ok = await confirm('Восстановить мир из копии?', `Текущий мир заменится копией от ${date(b.created)}. Перед этим лаунчер сохранит его отдельной копией, так что это можно отменить.`, 'Восстановить', true);
+        if (!ok) return;
+        try {
+          const r = await call('servers.backup.restore', { id: cur, name: b.name });
+          fl.toast(r.safety ? 'Мир восстановлен, прежний сохранён копией' : 'Мир восстановлен');
+          await loadInfo();
+        } catch (e) { fail(e); }
+        if (body.isConnected) { body.replaceChildren(); backupsTab(body); }
+      }, running ? 'Сначала остановите сервер' : undefined);
+      restore.disabled = running || v.busy;
+      const del = btn(ICO('trash'), 'icon ghost danger-text', async () => {
+        const ok = await confirm('Удалить копию?', `${b.name} (${size(b.size)}) удалится насовсем.`, 'Удалить', true);
+        if (!ok) return;
+        try { await call('servers.backup.delete', { id: cur, name: b.name }); } catch (e) { fail(e); }
+        if (body.isConnected) { body.replaceChildren(); backupsTab(body); }
+      }, 'Удалить копию');
+      list.append(h('div', 'brow',
+        h('div', 'bico', ICO('archive')),
+        h('div', 'grow', h('b', null, date(b.created)), h('p', 'muted small mono', b.name)),
+        b.auto ? h('span', 'chip', 'перед восстановлением') : null,
+        h('span', 'muted small', size(b.size)), restore, del));
+    }
+    body.append(head, h('div', 'panel', h('div', 'row', h('h2', 'grow', 'Копии'), v.backups.length ? h('span', 'muted small', `всего ${size(v.total)}`) : null), list));
+    onStatus = (r, old) => { if (alive(r) !== alive(old) && body.isConnected) { body.replaceChildren(); backupsTab(body); } };
   }
 
   // ----- players -----

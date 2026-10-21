@@ -1,6 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{sync::Arc, time::Instant};
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Instant,
+};
 
 use fl_core::{Caller, Core, Permission};
 use serde_json::Value;
@@ -1002,9 +1008,30 @@ fn main() {
             updater::update_install,
             updater::update_progress
         ])
-        .run(tauri::generate_context!())
-        .expect("failed to start Freedom Launcher");
+        .build(tauri::generate_context!())
+        .expect("failed to start Freedom Launcher")
+        .run(|app, ev| {
+            // Servers started from the launcher are saved and stopped before it quits.
+            if let tauri::RunEvent::ExitRequested { api, .. } = &ev {
+                let Some(core) = app.try_state::<AppCore>().map(|c| Arc::clone(&c.0)) else {
+                    return;
+                };
+                if fl_core::servers::any_running(&core) && !SERVERS_STOPPING.swap(true, Ordering::SeqCst) {
+                    api.prevent_exit();
+                    for w in app.webview_windows().values() {
+                        let _ = w.hide();
+                    }
+                    let app = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        fl_core::servers::stop_all(&core).await;
+                        app.exit(0);
+                    });
+                }
+            }
+        });
 }
+
+static SERVERS_STOPPING: AtomicBool = AtomicBool::new(false);
 
 #[cfg(test)]
 mod link_tests {

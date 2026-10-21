@@ -72,6 +72,8 @@ pub struct Core {
         std::sync::Mutex<std::collections::HashMap<String, Arc<game::download::Progress>>>,
     /// Game processes per instance (`game.running`, no double launches).
     pub(crate) game_running: game::running::Running,
+    /// Server processes (`servers.start`, the console).
+    pub(crate) server_procs: servers::Procs,
 }
 
 impl Core {
@@ -97,6 +99,7 @@ impl Core {
             ms_code: Default::default(),
             game_progress: Default::default(),
             game_running: Default::default(),
+            server_procs: Default::default(),
         }))
     }
 

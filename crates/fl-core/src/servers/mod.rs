@@ -27,7 +27,10 @@ use crate::{
     skins, store, unix_now, Core, CoreError, Permission as P,
 };
 
+pub mod backups;
 mod cores;
+pub mod run;
+pub use run::{any_running, stop_all, Procs};
 pub use cores::{forge_launch, script_text, slug, token, ver_key, Installed, CORES, MANAGED, MARK, SCRIPT};
 
 pub const FILE: &str = "servers.json";
@@ -54,6 +57,12 @@ pub struct Server {
     /// The core the launcher installed (`None` for a folder added as it was).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub core: Option<Installed>,
+    /// Memory for a folder added as it was (an installed core keeps its own).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory_mb: Option<u32>,
+    /// Start again by itself after a crash.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub auto_restart: bool,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -424,6 +433,9 @@ fn summary(c: &Core, s: &Server) -> Value {
         "core": s.core,
         "managed": cores::managed(c, s),
         "script": (exists && d.join(SCRIPT).is_file()).then_some(SCRIPT),
+        "memory_mb": s.core.as_ref().map(|i| i.memory_mb).or(s.memory_mb).unwrap_or(cores::MEMORY_DEFAULT),
+        "auto_restart": s.auto_restart,
+        "run": c.server_procs.status(&s.id),
     })
 }
 
@@ -520,6 +532,13 @@ fn same_player(e: &Value, who: &str) -> bool {
 
 // ---------- files ----------
 
+/// Files that hold Java arguments of the server (Forge args, JVM options):
+/// a plugin must not be able to put code into the server's start.
+fn launch_file(path: &str) -> bool {
+    let n = path.rsplit('/').next().unwrap_or("").to_ascii_lowercase();
+    n.ends_with("_args.txt") || n == "user_jvm_args.txt" || n.ends_with(".vmoptions")
+}
+
 #[derive(Deserialize)]
 struct FileArg {
     id: String,
@@ -568,7 +587,7 @@ pub(crate) fn register(r: &mut ActionRegistry) {
             return Ok(json!({ "id": s.id, "existing": true }));
         }
         let id = uuid::Uuid::new_v4().simple().to_string()[..12].to_owned();
-        st.servers.push(Server { id: id.clone(), name, host, created_at: unix_now(), core: None });
+        st.servers.push(Server { id: id.clone(), name, host, created_at: unix_now(), core: None, memory_mb: None, auto_restart: false });
         store::save(&c.path(FILE), &st, false)?;
         Ok(json!({ "id": id, "existing": false }))
     });
@@ -599,6 +618,9 @@ pub(crate) fn register(r: &mut ActionRegistry) {
             delete_files: bool,
         }
         let A { id, delete_files } = args(a)?;
+        if c.server_procs.alive(&id) {
+            return Err(bad("сначала остановите сервер"));
+        }
         if delete_files {
             let s = find(&c, &id)?;
             if !cores::managed(&c, &s) {
@@ -613,6 +635,10 @@ pub(crate) fn register(r: &mut ActionRegistry) {
         let mut st = load(&c)?;
         st.servers.retain(|s| s.id != id);
         store::save(&c.path(FILE), &st, false)?;
+        if delete_files {
+            backups::remove_all(&c, &id);
+        }
+        c.server_procs.forget(&id);
         Ok(json!({ "ok": true }))
     });
 
@@ -805,7 +831,7 @@ pub(crate) fn register(r: &mut ActionRegistry) {
             text: String,
         }
         let A { id, path, text } = args(a)?;
-        if !writable(&path) {
+        if !writable(&path) || launch_file(&path) {
             return Err(denied(format!("{path}: этот файл менять из плагина нельзя")));
         }
         if text.len() > FILE_MAX {
@@ -827,7 +853,7 @@ pub(crate) fn register(r: &mut ActionRegistry) {
     });
     r.register("servers.files.delete", P::Servers, false, |c, a| async move {
         let FileArg { id, path } = args(a)?;
-        if !writable(&path) {
+        if !writable(&path) || launch_file(&path) {
             return Err(denied(format!("{path}: этот файл менять из плагина нельзя")));
         }
         let p = inside(&find(&c, &id)?.root()?, &path)?;
@@ -838,6 +864,8 @@ pub(crate) fn register(r: &mut ActionRegistry) {
         Ok(json!({ "ok": true }))
     });
     cores::register(r);
+    run::register(r);
+    backups::register(r);
 }
 
 #[cfg(test)]

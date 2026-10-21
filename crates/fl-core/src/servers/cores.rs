@@ -129,7 +129,7 @@ pub fn token(s: &str, what: &str) -> Result<String, CoreError> {
     Ok(s.to_owned())
 }
 
-fn memory(m: Option<u32>) -> Result<u32, CoreError> {
+pub(super) fn memory(m: Option<u32>) -> Result<u32, CoreError> {
     let m = m.unwrap_or(MEMORY_DEFAULT);
     if !(MEMORY_MIN..=MEMORY_MAX).contains(&m) {
         return Err(bad(format!("память: от {MEMORY_MIN} до {MEMORY_MAX} МБ")));
@@ -641,7 +641,7 @@ fn console_java(exe: PathBuf) -> PathBuf {
     exe
 }
 
-async fn java_for(c: &Core, mc: &str, p: Arc<Progress>) -> Result<(u32, PathBuf), CoreError> {
+pub(super) async fn java_for(c: &Core, mc: &str, p: Arc<Progress>) -> Result<(u32, PathBuf), CoreError> {
     let major = javas::required_major(mc);
     let jv = JavaVersion { component: javas::component_for_major(major).into(), major_version: major };
     Ok((major, console_java(java::ensure(c, Some(&jv), p).await?)))
@@ -857,7 +857,7 @@ async fn create(c: &Arc<Core>, a: CreateArgs, at: Option<PathBuf>) -> Result<Val
         let mut st = load(c)?;
         let id = uuid::Uuid::new_v4().simple().to_string()[..12].to_owned();
         let host = Host::Local { dir: root.to_string_lossy().into_owned() };
-        st.servers.push(Server { id: id.clone(), name, host, created_at: unix_now(), core: Some(info) });
+        st.servers.push(Server { id: id.clone(), name, host, created_at: unix_now(), core: Some(info), memory_mb: None, auto_restart: false });
         store::save(&c.path(FILE), &st, false)?;
         Ok::<_, CoreError>(json!({ "id": id, "dir": root.to_string_lossy() }))
     }
@@ -973,8 +973,11 @@ pub(super) fn register(r: &mut ActionRegistry) {
         let mc = token(&a.mc, "версия Minecraft")?;
         let build = opt_token(a.build, "сборка")?;
         let s = find(&c, &a.id)?;
+        if c.server_procs.alive(&a.id) {
+            return Err(bad("остановите сервер перед сменой ядра"));
+        }
         let root = s.root()?;
-        let memory_mb = memory(a.memory_mb.or(s.core.as_ref().map(|i| i.memory_mb)))?;
+        let memory_mb = memory(a.memory_mb.or(s.core.as_ref().map(|i| i.memory_mb)).or(s.memory_mb))?;
         let old_jar = match &s.core {
             Some(i) => i.main_jar().map(str::to_owned),
             None => super::software(&root)["jar"].as_str().filter(|j| looks_like_core(j)).map(str::to_owned),
@@ -1008,10 +1011,15 @@ pub(super) fn register(r: &mut ActionRegistry) {
         let memory_mb = memory(Some(memory_mb))?;
         let s = find(&c, &id)?;
         let root = s.root()?;
-        let mut info = s
-            .core
-            .clone()
-            .ok_or_else(|| bad("ядро этого сервера ставили не через лаунчер: память задаётся в его скрипте запуска"))?;
+        let Some(mut info) = s.core.clone() else {
+            // A folder added as it was: the launcher starts it with this memory.
+            let _g = c.state_lock.lock().await;
+            let mut st = load(&c)?;
+            let s = st.servers.iter_mut().find(|s| s.id == id).ok_or_else(|| bad("нет такого сервера"))?;
+            s.memory_mb = Some(memory_mb);
+            store::save(&c.path(FILE), &st, false)?;
+            return Ok(json!({ "ok": true, "script": null }));
+        };
         info.memory_mb = memory_mb;
         let (_, java) = java_for(&c, &info.mc, Arc::new(Progress::default())).await?;
         let script = write_script(&root, &java, memory_mb, &info.launch)?;

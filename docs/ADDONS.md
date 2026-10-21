@@ -201,9 +201,23 @@ and anything overlapping the launcher's data are refused.
 | `servers.core.builds {core, mc}` | `{builds: [{id, stable}], recommended}`; Fabric builds are loader versions, Vanilla has none |
 | `servers.create {name?, core, mc, build?, memory_mb?, eula?, job?, choose_dir?}` | a new server in `<data>/servers/<name>`: downloads the core (checked against the published hash), Java, writes `start.bat`/`start.sh`, `eula.txt` when `eula`, and `server.properties` with the name as MOTD. `choose_dir: true` opens the native folder picker (an empty folder is used, otherwise a subfolder is made); `null` if cancelled. A plugin never passes `dir` |
 | `servers.core.install {id, core, mc, build?, memory_mb?, job?}` | changes or updates the core; worlds, plugins, mods and settings stay, the old core jar is removed once the new one is in place → `{ok, removed}` |
-| `servers.memory.set {id, memory_mb}` | rewrites the start script (only for cores the launcher installed) |
+| `servers.memory.set {id, memory_mb}` | memory the launcher starts the server with; rewrites the start script for cores the launcher installed |
 | `servers.progress {job}` | progress of a create/install: `stage` (`meta`, `java`, `download`, `install`, `finish`, `done`, `failed`), `done_bytes/total_bytes`, `done_files/total_files` |
-| `servers.remove {id, delete_files?}` | `delete_files` only for servers the launcher created (folder under `<data>/servers`) |
+| `servers.remove {id, delete_files?}` | `delete_files` only for servers the launcher created (folder under `<data>/servers`); also deletes its backups. Refused while the server runs |
+| `servers.start {id, eula?}` | starts the server with the launcher's Java (`eula: true` writes `eula=true` first, after the user accepted it); refused without EULA, with the port taken, or while a backup runs. Returns the status at once |
+| `servers.stop {id, force?}` | the server's own `stop` (the world is saved), killed after 90 s; `force` kills at once |
+| `servers.restart {id}` | stop, then start |
+| `servers.status {id}` | `{state, pid, started_at, ready_at, uptime, players, online, note, exit_code}`; `state`: `starting`, `running` (after `Done`), `stopping`, `stopped`, `crashed`. Also in every card as `run` |
+| `servers.running` | ids of running servers |
+| `servers.console {id, from}` | console lines numbered `from` and later: `{lines: [[n, text]], cursor, reset, dropped, status}`; poll with the returned `cursor`. The launcher keeps the last 5000 lines |
+| `servers.command {id, command}` | one console command line (a leading `/` is dropped) |
+| `servers.autorestart.set {id, on}` | start again after a crash, at most 3 times in 10 minutes |
+| `servers.backups {id}` | `{backups: [{name, size, created, auto}], total, worlds, busy, dir}`; zips of the world folders in `<data>/server-backups/<id>` |
+| `servers.backup.create {id}` | a zip of the world (with `_nether` / `_the_end`); a running server is saved first (`save-off`, `save-all flush`, `save-on`) |
+| `servers.backup.restore {id, name}` | the server must be stopped; the current world is backed up first (`…-before-restore.zip`) → `{ok, safety}` |
+| `servers.backup.delete {id, name}` | deletes one backup |
+
+Files that hold Java arguments (`*_args.txt`, `user_jvm_args.txt`, `*.vmoptions`) cannot be written by plugins. Quitting the launcher stops the servers it started, saving their worlds.
 
 Forge and NeoForge run their official installer with `--installServer`; the
 server then starts from `@libraries/…/{win,unix}_args.txt`. The start script
