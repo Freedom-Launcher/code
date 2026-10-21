@@ -72,6 +72,8 @@ pub struct Plan {
     pub overrides: String,
     /// Files that could not be downloaded (CurseForge files kept on its site only).
     pub blocked: Vec<String>,
+    /// The same files with what is needed to fetch them by hand.
+    pub blocked_files: Vec<crate::blocked::Blocked>,
     /// Catalog origin of downloaded files by path in the instance (CurseForge packs).
     pub index: Vec<(String, crate::mods::Source)>,
 }
@@ -171,6 +173,7 @@ pub fn plan(idx: PackIndex, game_dir: &Path) -> Result<Plan, CoreError> {
         tasks,
         overrides: "overrides".into(),
         blocked: Vec::new(),
+        blocked_files: Vec::new(),
         index: Vec::new(),
     })
 }

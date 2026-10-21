@@ -43,6 +43,7 @@
       renderInstancePage();
       window.FMods?.instance(byId(i.id));
       toast(`Сборка обновлена до ${r?.pack?.version_number || 'новой версии'}`);
+      window.FBlocked?.after(r);
     } catch (e) { toast(String(e), { error: true }); }
     finally {
       clearInterval(poll);

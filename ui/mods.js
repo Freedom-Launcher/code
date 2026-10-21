@@ -517,7 +517,8 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
       S.instances = await call('instances.list');
       renderInstances();
       landed(created.id, `${created.name} установлена`);
-      if (created.blocked?.length) toast(`Не скачано (автор разрешает только сайт CurseForge): ${created.blocked.join(', ')}`, { error: true });
+      if (created.blocked_files?.length) window.FBlocked?.after(created);
+      else if (created.blocked?.length) toast(`Не скачано (автор разрешает только сайт CurseForge): ${created.blocked.join(', ')}`, { error: true });
     } catch (e) {
       clearInterval(poll);
       b.disabled = false;

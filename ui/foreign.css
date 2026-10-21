@@ -38,3 +38,9 @@
 .fg-status[hidden] { display: none; }
 .dlg-foreign.is-importing .fg-row { cursor: default; opacity: .7; }
 html[data-wall="on"] .fg-row.skel { background: color-mix(in srgb, var(--surface-2) 80%, transparent); }
+
+/* Pack files to download by hand from curseforge.com */
+.bk-row { cursor: default; }
+.bk-row:hover { background: transparent; }
+.bk-open { flex: none; }
+#bk-note { margin: 0 0 var(--s-3, 12px); }

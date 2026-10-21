@@ -864,6 +864,7 @@ pub async fn pack_plan(core: &Core, m: Manifest) -> Result<Plan, CoreError> {
         .filter(|id| !found.contains(id))
         .map(|id| format!("файл {id}"))
         .collect();
+    let mut blocked_files = Vec::new();
     let mut tasks = Vec::new();
     let mut index = Vec::new();
     let mut seen = HashSet::new();
@@ -886,8 +887,30 @@ pub async fn pack_plan(core: &Core, m: Manifest) -> Result<Plan, CoreError> {
         }
         let rel_s = format!("{}/{name}", folder_for(meta.map_or(0, |m| m.class_id), &name));
         let rel = mrpack::safe_rel(&rel_s).ok_or_else(|| bad(format!("Недопустимый путь: {rel_s}")))?;
+        let (fid, mod_id, flen, fsha) = (f.id, f.mod_id, f.file_length, sha1_of(&f.hashes));
         let v = to_version(f);
+        let source = Source {
+            project_id: v.project_id.clone(),
+            version_id: v.id.clone(),
+            title: title.clone(),
+            version_number: v.version_number.clone(),
+            icon_url: meta.and_then(icon),
+            slug: meta.map(|m| m.slug.clone()).unwrap_or_default(),
+            author: meta.and_then(author),
+            deps: v.required().map(str::to_owned).collect(),
+            published: v.date_published.clone(),
+            ..Default::default()
+        };
         let Some(file) = v.primary_file().cloned() else {
+            blocked_files.push(crate::blocked::Blocked {
+                title: title.clone(),
+                file_name: name.clone(),
+                rel: rel_s.clone(),
+                sha1: fsha,
+                size: flen,
+                url: site_download_url(meta, mod_id, fid),
+                source: Some(source),
+            });
             blocked.push(title);
             continue;
         };
@@ -897,21 +920,7 @@ pub async fn pack_plan(core: &Core, m: Manifest) -> Result<Plan, CoreError> {
             sha1: file.hashes.sha1,
             size: file.size,
         });
-        index.push((
-            rel_s,
-            Source {
-                project_id: v.project_id.clone(),
-                version_id: v.id.clone(),
-                title,
-                version_number: v.version_number.clone(),
-                icon_url: meta.and_then(icon),
-                slug: meta.map(|m| m.slug.clone()).unwrap_or_default(),
-                author: meta.and_then(author),
-                deps: v.required().map(str::to_owned).collect(),
-                published: v.date_published.clone(),
-                ..Default::default()
-            },
-        ));
+        index.push((rel_s, source));
     }
     let overrides = m
         .overrides
@@ -935,8 +944,26 @@ pub async fn pack_plan(core: &Core, m: Manifest) -> Result<Plan, CoreError> {
         tasks,
         overrides,
         blocked,
+        blocked_files,
         index,
     })
+}
+
+/// The browser page that downloads one file on curseforge.com.
+fn site_download_url(meta: Option<&CfMod>, mod_id: u64, file_id: u64) -> String {
+    match meta.filter(|m| !m.slug.is_empty() && m.slug.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')) {
+        Some(m) => {
+            let section = match m.class_id {
+                12 => "texture-packs",
+                6552 => "shaders",
+                6945 => "data-packs",
+                17 => "worlds",
+                _ => "mc-mods",
+            };
+            format!("https://www.curseforge.com/minecraft/{section}/{}/download/{file_id}", m.slug)
+        }
+        None => format!("https://www.curseforge.com/projects/{mod_id}"),
+    }
 }
 
 #[cfg(test)]

@@ -44,6 +44,7 @@
   <script src="shots.js" defer></script>
   <script src="logs.js" defer></script>
   <script src="packs.js" defer></script>
+  <script src="blocked.js" defer></script>
   <script src="foreign.js" defer></script>
   <script src="md.js" defer></script>
   <script src="project.js" defer></script>
@@ -143,6 +144,7 @@
             </div>
             <div class="play-row" data-id="instance.play">
               <button class="btn pack-upd" id="ip-update" data-id="instance.pack.update" hidden><span class="lbl"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8m-3.5-3.5L8 10.5 11.5 7M3.5 13.5h9"/></svg><span class="t">Обновить</span></span></button>
+              <button class="btn pack-upd" id="ip-blocked" data-id="instance.pack.blocked" data-tip="Файлы, которые автор разрешает скачать только с сайта CurseForge" hidden><span class="lbl"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v5.5M8 11.5v.5M2.5 13.5h11L8 2.5z"/></svg><span class="t">Докачать</span></span></button>
               <button class="btn btn-icon btn-ghost" data-menu="menu-instance" data-tip="Действия со сборкой" data-id="instance.more" aria-label="Ещё">
                 <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg>
               </button>
@@ -916,6 +918,18 @@
       <span class="fg-gap"></span>
       <button type="button" class="btn btn-ghost" data-close>Отмена</button>
       <button type="submit" class="btn btn-primary" id="fg-submit" data-id="foreign.submit"><span class="lbl">Импортировать</span></button>
+    </div>
+  </form>
+
+  <form class="dialog dlg-foreign" id="dlg-blocked" data-id="dialog.pack.blocked" role="dialog" aria-label="Файлы с сайта CurseForge">
+    <h2>Скачайте файлы с CurseForge</h2>
+    <p class="hint" id="bk-note"></p>
+    <div class="fg-list" id="bk-list" data-id="blocked.list"></div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" id="bk-pick" data-id="blocked.pick"><span class="lbl">Из другой папки…</span></button>
+      <span class="fg-gap"></span><span class="hint mono" id="bk-left"></span>
+      <button type="button" class="btn btn-ghost" id="bk-check" data-id="blocked.check"><span class="lbl">Проверить</span></button>
+      <button type="submit" class="btn btn-primary" data-id="blocked.close"><span class="lbl">Готово</span></button>
     </div>
   </form>
 

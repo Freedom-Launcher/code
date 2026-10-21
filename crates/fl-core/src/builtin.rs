@@ -910,6 +910,7 @@ async fn apply_pack(
         .tasks
         .iter()
         .map(|t| t.path.to_string_lossy().replace('\\', "/"))
+        .chain(plan.blocked_files.iter().map(|b| b.rel.clone()))
         .collect();
     for f in old.iter().filter(|f| !new.contains(*f)) {
         if let Some(rel) = mrpack::safe_rel(f) {
@@ -932,6 +933,7 @@ async fn apply_pack(
     it.pack = Some(pack);
     let mut out = serde_json::to_value(&*it)?;
     out["blocked"] = json!(blocked);
+    out["blocked_files"] = json!(crate::blocked::pending(&game_dir).unwrap_or_default());
     store::save(&c.path(INSTANCES), &s, false)?;
     p.set_stage("done");
     Ok(out)
@@ -1133,6 +1135,7 @@ async fn import_mrpack(
     p.set_stage("done");
     let mut out = serde_json::to_value(inst)?;
     out["blocked"] = json!(blocked);
+    out["blocked_files"] = json!(crate::blocked::pending(&game_dir).unwrap_or_default());
     Ok(out)
 }
 
@@ -1156,10 +1159,12 @@ async fn fill_from_pack(
     p: &std::sync::Arc<crate::game::download::Progress>,
 ) -> Result<(), CoreError> {
     let mut jars = Vec::new();
+    // Hand-downloaded files belong to the pack too: a later update replaces them.
     let owned: Vec<String> = plan
         .tasks
         .iter()
         .map(|t| t.path.to_string_lossy().replace('\\', "/"))
+        .chain(plan.blocked_files.iter().map(|b| b.rel.clone()))
         .collect();
     let tasks: Vec<_> = std::mem::take(&mut plan.tasks)
         .into_iter()
@@ -1184,6 +1189,7 @@ async fn fill_from_pack(
     p.set_stage("overrides");
     mrpack::extract_overrides_from(z, game_dir, &plan.overrides)?;
     store::save(&game_dir.join(instances::PACK_FILES), &owned, false)?;
+    crate::blocked::save(game_dir, &plan.blocked_files)?;
     if plan.index.is_empty() {
         // Best effort: without it the mods still work, just without icons/updates.
         let _ = mods::index_known(c, game_dir, &jars).await;
@@ -1211,6 +1217,34 @@ fn copy_dir(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()>
 /// A readable folder name for `name` that no other instance or existing folder uses.
 /// Import from other launchers (Э6). Internal: reads folders outside the launcher.
 fn register_foreign(r: &mut ActionRegistry) {
+    // Pack files the user has to download from curseforge.com by hand.
+    r.register("modpacks.blocked", P::InstancesRead, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+        }
+        let A { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        Ok(json!(crate::blocked::pending(&i.game_dir(&c.instances_root()))?))
+    });
+    // Picks the hand-downloaded files up from Downloads (or `folder`).
+    // Internal: reads folders outside the launcher.
+    r.register("modpacks.resolve_blocked", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            #[serde(default)]
+            folder: Option<String>,
+        }
+        let A { instance, folder } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let gd = i.game_dir(&c.instances_root());
+        let extra: Vec<std::path::PathBuf> = folder.into_iter().map(std::path::PathBuf::from).collect();
+        let (added, left) = tokio::task::spawn_blocking(move || crate::blocked::resolve(&gd, &extra))
+            .await
+            .map_err(|e| CoreError::msg(e.to_string()))??;
+        Ok(json!({ "added": added, "left": left }))
+    });
     r.register("foreign.scan", P::Internal, false, |_c, a| async move {
         #[derive(Deserialize)]
         struct A {
