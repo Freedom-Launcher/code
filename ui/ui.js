@@ -201,6 +201,19 @@
     const k = e.key.toLowerCase();
     if (k === 'f5' || k === 'f12' || ((e.ctrlKey || e.metaKey) && (k === 'r' || k === 'p' || (e.shiftKey && (k === 'i' || k === 'j'))))) e.preventDefault();
   });
-  window.FUI = { $, $$, initSegs, toggleMenu, closeMenu, openMenuAt, openDlg, closeDlg, toast, progress, swapText, devCheck };
+  // ---------- Lazy scripts: rarely used parts load the first time they are needed ----------
+  const lazyP = new Map();
+  const script = (src) => {
+    if (!lazyP.has(src)) lazyP.set(src, new Promise((ok, no) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = ok;
+      s.onerror = () => { lazyP.delete(src); s.remove(); no(new Error(`Не удалось загрузить ${src}`)); };
+      document.head.append(s);
+    }));
+    return lazyP.get(src);
+  };
+  async function lazy(...srcs) { for (const s of srcs) await script(s); }
+
+  window.FUI = { $, $$, lazy, initSegs, toggleMenu, closeMenu, openMenuAt, openDlg, closeDlg, toast, progress, swapText, devCheck };
   document.addEventListener('DOMContentLoaded', () => initSegs());
 })();

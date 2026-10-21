@@ -1023,3 +1023,25 @@ start().catch((e) => toast(String(e), { error: true }));
 
 // Settings → «Интерфейс»: the editor works on the other screens, so leave the settings first.
 $('#ui-edit-open')?.addEventListener('click', () => { show(S.instances.length ? 'home' : 'empty'); window.FEditor?.open(); });
+
+// ---------- Rarely used dialogs load on first use (FUI.lazy) ----------
+const cropStub = {
+  async open(o) {
+    try { await FUI.lazy('crop.js'); } catch (e) { toast(e.message, { error: true }); return; }
+    if (window.FCrop !== cropStub) return window.FCrop.open(o);
+  },
+  close() {},
+};
+window.FCrop ||= cropStub;
+// inst-settings.js adds its own handler once loaded; until then this one loads it and opens.
+$('#mi-settings')?.addEventListener('click', () => {
+  if (window.FInstSettings) return;
+  FUI.closeMenu();
+  const a = actInst();
+  FUI.lazy('inst-settings.js', 'inst-install.js').then(() => window.FInstSettings?.open(a), (e) => toast(e.message, { error: true }));
+});
+// Preload them once the launcher is idle, so even the first open has nothing to wait for.
+setTimeout(() => (window.requestIdleCallback || ((f) => setTimeout(f, 0)))(() => {
+  FUI.lazy('crop.js', 'inst-settings.js', 'inst-install.js').catch(() => {});
+  window.FEditorCore?.ready.then(() => { if (!window.FEditorCore.state.safe) FUI.lazy('editor.js').catch(() => {}); });
+}, { timeout: 4000 }), 2500);
