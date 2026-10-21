@@ -29,8 +29,10 @@ pub const SLOTS: [&str; 8] = [
 ];
 
 /// Namespaces of built-in actions: no addon may take these ids.
-pub const RESERVED: [&str; 13] = [
+pub const RESERVED: [&str; 15] = [
     "app",
+    "storage",
+    "files",
     "settings",
     "safe",
     "themes",
@@ -74,7 +76,24 @@ pub struct Manifest {
     /// Present on account-provider addons (needs `accounts_provide`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub account_provider: Option<ProviderInfo>,
+    /// Own pages, each a tab in the rail (needs `ui_pages`).
+    #[serde(default)]
+    pub pages: Vec<Page>,
+    /// HTML shown full-window while the game starts (needs `ui_overlay`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub launch_overlay: Option<String>,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Page {
+    pub id: String,
+    pub title: String,
+    /// HTML file of the page, default `<id>.html`.
+    #[serde(default)]
+    pub entry: String,
+}
+
+pub const MAX_PAGES: usize = 4;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProviderInfo {
@@ -92,6 +111,9 @@ fn default_entry() -> String {
 pub struct Entry {
     pub enabled: bool,
     pub granted: BTreeSet<Permission>,
+    /// Requested permissions the user chose not to give. Not asked again
+    /// until the user opens «Права…» themselves.
+    pub declined: BTreeSet<Permission>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -152,7 +174,8 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
     if bytes.len() > 64 * 1024 {
         return Err("addon.json: слишком большой файл".into());
     }
-    let m: Manifest = serde_json::from_slice(&bytes).map_err(|e| format!("addon.json: {e}"))?;
+    let mut m: Manifest =
+        serde_json::from_slice(&bytes).map_err(|e| format!("addon.json: {e}"))?;
     if m.id != id {
         return Err("id в addon.json не совпадает с именем папки".into());
     }
@@ -190,6 +213,35 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
             return Err("account_provider.label: от 1 до 40 символов".into());
         }
     }
+    if !m.pages.is_empty() && !m.permissions.contains(&Permission::UiPages) {
+        return Err("pages требуют права ui_pages".into());
+    }
+    if m.pages.len() > MAX_PAGES {
+        return Err(format!("pages: не больше {MAX_PAGES}"));
+    }
+    let mut seen = HashSet::new();
+    for p in &mut m.pages {
+        if !valid_id(&p.id) || !seen.insert(p.id.clone()) {
+            return Err(format!("pages: неверный или повторный id {}", p.id));
+        }
+        if !(1..=30).contains(&p.title.trim().chars().count()) {
+            return Err("pages.title: от 1 до 30 символов".into());
+        }
+        if p.entry.is_empty() {
+            p.entry = format!("{}.html", p.id);
+        }
+        if !safe_rel(&p.entry, &["html"]) || file(data_dir, id, &p.entry).is_none() {
+            return Err(format!("pages.entry: {} — нужен .html внутри папки", p.entry));
+        }
+    }
+    if let Some(o) = &m.launch_overlay {
+        if !m.permissions.contains(&Permission::UiOverlay) {
+            return Err("launch_overlay требует права ui_overlay".into());
+        }
+        if !safe_rel(o, &["html"]) || file(data_dir, id, o).is_none() {
+            return Err(format!("launch_overlay: {o} — нужен .html внутри папки"));
+        }
+    }
     Ok(m)
 }
 
@@ -217,9 +269,18 @@ pub fn list(data_dir: &Path, st: &State) -> Vec<Value> {
                     .permissions
                     .iter()
                     .filter(|p| **p != Permission::Public)
-                    .map(|p| json!({ "id": p, "tier": p.tier(), "granted": e.granted.contains(p) }))
+                    .map(|p| {
+                        json!({ "id": p, "tier": p.tier(),
+                                "granted": e.granted.contains(p), "declined": e.declined.contains(p) })
+                    })
                     .collect();
-                let pending = perms.iter().any(|p| p["granted"] == false);
+                // Something new to decide: requested, neither given nor refused.
+                let pending = perms
+                    .iter()
+                    .any(|p| p["granted"] == false && p["declined"] == false);
+                let ok = |q: Permission| m.permissions.contains(&q) && e.granted.contains(&q);
+                let pages: Vec<&Page> = if ok(Permission::UiPages) { m.pages.iter().collect() } else { vec![] };
+                let overlay = m.launch_overlay.as_ref().filter(|_| ok(Permission::UiOverlay));
                 json!({
                     "id": m.id, "name": m.name, "version": m.version, "author": m.author,
                     "description": m.description, "trust": trust(data_dir, &id),
@@ -227,6 +288,9 @@ pub fn list(data_dir: &Path, st: &State) -> Vec<Value> {
                     "permissions": perms, "slots": m.slots, "hosts": m.hosts,
                     "entry": m.entry, "enabled": e.enabled, "pending": pending,
                     "account_provider": m.account_provider,
+                    "pages": pages, "launch_overlay": overlay,
+                    "wants_pages": !m.pages.is_empty(),
+                    "wants_overlay": m.launch_overlay.is_some(),
                 })
             }
             Err(e) => json!({ "id": id, "name": id, "error": e }),

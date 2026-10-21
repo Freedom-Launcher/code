@@ -56,7 +56,14 @@ struct Req {
 }
 
 pub(crate) fn stamp_caller(caller: &Caller, action: &str, mut args: Value) -> Value {
-    if action.starts_with("net.") || action.starts_with(crate::providers::PREFIX) {
+    if action.starts_with("net.")
+        || action.starts_with("storage.")
+        || action.starts_with(crate::providers::PREFIX)
+    {
+        // `fl.call('storage.list')` sends no args: still stamp who is calling.
+        if args.is_null() {
+            args = Value::Object(Default::default());
+        }
         if let Value::Object(m) = &mut args {
             m.remove(CALLER_KEY);
             if let Caller::Addon { id, .. } = caller {

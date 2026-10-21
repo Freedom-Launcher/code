@@ -233,17 +233,24 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         let st: addons::State = store::load(&c.path(addons::STATE))?;
         Ok(json!(addons::list(&c.data_dir, &st)))
     });
+    // `permissions` = the ones the user ticked; omitted = all requested.
+    // Unticked ones are remembered as declined and not asked about again.
     r.register("addons.approve", P::Internal, false, |c, a| async move {
-        let IdArg { id } = args(a)?;
+        #[derive(Deserialize)]
+        struct A {
+            id: String,
+            #[serde(default)]
+            permissions: Option<std::collections::BTreeSet<P>>,
+        }
+        let A { id, permissions } = args(a)?;
         let m = addons::load(&c.data_dir, &id).map_err(CoreError::BadArgs)?;
+        let asked: std::collections::BTreeSet<P> =
+            m.permissions.iter().copied().filter(|p| *p != P::Public).collect();
+        let chosen = permissions.unwrap_or_else(|| asked.clone());
         update_addons(&c, |st| {
             let e = st.addons.entry(id).or_default();
-            e.granted = m
-                .permissions
-                .iter()
-                .copied()
-                .filter(|p| *p != P::Public)
-                .collect();
+            e.granted = asked.intersection(&chosen).copied().collect();
+            e.declined = asked.difference(&chosen).copied().collect();
             e.enabled = true;
         })
         .await
@@ -509,6 +516,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         Ok(json!({ "providers": crate::providers::list(&c), "catalog_category": "account-providers" }))
     });
     crate::providers::register(r);
+    crate::addon_data::register(r);
 
     r.register(
         "instances.list",

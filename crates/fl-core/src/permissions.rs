@@ -14,6 +14,15 @@ pub enum Permission {
     GameLaunch,
     /// Acting as an account provider (handles credentials).
     AccountsProvide,
+    /// Own pages (tabs in the rail) that fill the main area.
+    UiPages,
+    /// A full-window, click-through launch animation, removed automatically.
+    UiOverlay,
+    /// The addon's own small key/value storage inside the launcher's data.
+    Storage,
+    /// Read and change files inside instance game folders (configs, worlds,
+    /// resource packs). Never executable code, never outside an instance.
+    InstanceFiles,
     /// Spawning arbitrary processes, raw filesystem access.
     Process,
     /// Launcher self-management (switching themes, approving addons, safe
@@ -49,8 +58,10 @@ impl Permission {
         use Permission::*;
         match self {
             Public => Tier::Theme,
-            AccountsRead | InstancesRead => Tier::Interface,
-            AccountsManage | InstancesManage | Network | GameLaunch => Tier::Function,
+            AccountsRead | InstancesRead | UiPages | UiOverlay | Storage => Tier::Interface,
+            AccountsManage | InstancesManage | InstanceFiles | Network | GameLaunch => {
+                Tier::Function
+            }
             AccountsProvide | Process | Internal => Tier::Extended,
         }
     }

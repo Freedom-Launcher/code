@@ -83,6 +83,7 @@ function show(view) {
   if (view === 'accounts') { renderAccountsPage(); loadProviders(); }
   if (view === 'discover') window.FMods?.discover();
   if (view === 'skins') window.FSkins?.shown();
+  window.FAddons?.shown?.(view);
   window.FNav?.note();
 }
 // A finished install or import opens the instance only if the user is still waiting on
@@ -580,6 +581,7 @@ async function refreshRunning() {
   if (!r) return;
   const next = r.running || [];
   if (next.join() === S.running.join()) return;
+  for (const gone of S.running) if (!next.includes(gone)) window.FAddons?.emit('game.exited', { instance: gone });
   S.running = next;
   setRunning();
   renderInstances();
@@ -624,7 +626,9 @@ async function play(id = S.current, launch = true, stay = false) {
     progress($('#ps-bar'), 1);
     if (launch) {
       $('#ps-stage').textContent = STAGE.launch;
+      window.FAddons?.emit('game.launching', { instance: id });
       const r = await call('game.launch', { instance: id });
+      window.FAddons?.emit('game.launched', { instance: id });
       if (!r?.already_running) { const it = byId(id); if (it) it.last_played = Math.floor(Date.now() / 1000); }
       if (!S.running.includes(id)) S.running = [...S.running, id];
       const w = window.__TAURI__?.window?.getCurrentWindow?.();
@@ -635,6 +639,7 @@ async function play(id = S.current, launch = true, stay = false) {
     toast(launch ? 'Игра запущена' : 'Файлы в порядке');
   } catch (e) {
     btn.dataset.state = 'error';
+    if (launch) window.FAddons?.emit('game.failed', { instance: id });
     toast(String(e), { error: true });
   } finally {
     clearInterval(poll);

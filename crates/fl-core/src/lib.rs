@@ -17,6 +17,7 @@ pub mod accounts;
 pub mod art;
 pub mod blocked;
 pub mod actions;
+pub mod addon_data;
 pub mod addons;
 mod builtin;
 pub mod catalog;

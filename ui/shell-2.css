@@ -83,3 +83,20 @@ html[data-width="full"] .page-inner,
 html[data-width="full"] .page-inner.wide { max-width: none; }
 html[data-width="full"] #create-form.narrow { max-width: clamp(600px, 48vw, 880px); }
 .home, .narrow, .page-inner { transition: max-width var(--d-5) var(--ease-out-2); }
+
+/* Addon pages, launch overlay and the consent dialog */
+.rail-addons { display: contents; }
+.rail-addon .mono { font-size: 13px; font-weight: 600; line-height: 1; }
+#view-addon.is-active { display: flex; flex-direction: column; padding: 0; min-height: 0; height: 100%; }
+.addon-page { position: relative; flex: 1; min-height: 0; }
+.addon-page-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; color-scheme: normal; }
+.addon-page-frame[hidden] { display: none; }
+.addon-overlay { position: fixed; inset: 0; width: 100vw; height: 100vh; border: 0; z-index: 9000; pointer-events: none; background: transparent; color-scheme: normal; }
+.addon-perms .chip.is-off { opacity: .5; text-decoration: line-through; }
+.ap-list { display: flex; flex-direction: column; gap: var(--s-1); margin: var(--s-2) 0; max-height: min(52vh, 420px); overflow: auto; }
+.ap-row { display: flex; gap: var(--s-2); align-items: flex-start; padding: var(--s-2); border-radius: var(--r-control); background: var(--surface-2); cursor: pointer; }
+.ap-row input { margin-top: 3px; flex: none; }
+.ap-row .t { display: flex; gap: var(--s-1); align-items: center; color: var(--text); }
+.ap-row .s { display: block; color: var(--text-2); font-size: var(--text-xs); margin-top: 2px; }
+.ap-row.is-risky { box-shadow: inset 0 0 0 1px rgba(242, 182, 75, .45); }
+.ap-warn { color: var(--warn); font-size: var(--text-xs); margin: 0; }

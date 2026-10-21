@@ -75,6 +75,7 @@
         <svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg>
       </button>
       <div data-slot="rail.end"></div>
+      <div class="rail-addons" id="rail-addons" data-id="rail.addons"></div>
       <div class="rail-grow"></div>
       <button class="rail-btn" data-view="discover" data-tip="Каталог" data-id="rail.discover" aria-label="Каталог">
         <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="m10.2 5.8-1.4 3-3 1.4 1.4-3z"/></svg>
@@ -230,6 +231,9 @@
         </div>
       </section>
 
+      <section class="view" id="view-addon" data-id="view.addon">
+        <div class="addon-page" id="addon-page"></div>
+      </section>
       <section class="view" id="view-empty" data-id="view.empty">
         <div class="narrow">
           <h1 class="page-h">Сборок пока нет</h1>
@@ -930,6 +934,18 @@
       <span class="fg-gap"></span><span class="hint mono" id="bk-left"></span>
       <button type="button" class="btn btn-ghost" id="bk-check" data-id="blocked.check"><span class="lbl">Проверить</span></button>
       <button type="submit" class="btn btn-primary" data-id="blocked.close"><span class="lbl">Готово</span></button>
+    </div>
+  </form>
+
+  <form class="dialog dlg-foreign" id="dlg-addon-perms" data-id="dialog.addon.perms" role="dialog" aria-label="Права плагина">
+    <h2 id="ap-title">Права плагина</h2>
+    <p class="hint">Плагин работает в песочнице: у него нет доступа к файлам компьютера. Он может только то, что вы отметите. Права можно изменить позже: Настройки → Плагины → «Права…».</p>
+    <p class="ap-warn" id="ap-warn" hidden></p>
+    <div class="ap-list" id="ap-list" data-id="addon.perms.list"></div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" data-close data-id="addon.perms.cancel"><span class="lbl">Отмена</span></button>
+      <span class="fg-gap"></span>
+      <button type="submit" class="btn btn-primary" data-id="addon.perms.ok"><span class="lbl">Разрешить отмеченное</span></button>
     </div>
   </form>
 

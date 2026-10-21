@@ -35,17 +35,29 @@ Example: [`docs/addons/example`](addons/example). Copy it into the addons folder
 | `slots` | where it appears: `rail.end`, `topbar.end`, `instance.end`, `accounts.end`, `discover.end`, `settings.end`, `menu.ctx.instance`, `menu.instance` |
 | `account_provider` | `{ "label": "…" }` — the service name on the accounts screen; needs `accounts_provide`, see «Account providers» |
 | `hosts` | up to 16 host names (`api.example.org`, no scheme, port or path) the addon may reach with `fl.fetch`; needs `network` |
+| `pages` | up to 4 own pages `[{ "id": "grid", "title": "Сетка", "entry": "grid.html" }]`, each a tab in the rail; `entry` defaults to `<id>.html`; needs `ui_pages` |
+| `launch_overlay` | HTML file shown full-window while the game starts; needs `ui_overlay` |
 
 ## Permissions
 
 | Tier | Permissions |
 |------|-------------|
-| Интерфейс | `instances_read`, `accounts_read` |
-| Функция | `instances_manage`, `accounts_manage`, `network`, `game_launch` |
+| Интерфейс | `instances_read`, `accounts_read`, `ui_pages`, `ui_overlay`, `storage` |
+| Функция | `instances_manage`, `instance_files`, `accounts_manage`, `network`, `game_launch` |
 | Расширенный | `accounts_provide`, `process` — «Официальный» and «Проверено» packages only |
 
-Nothing runs until the user approves. A new version that asks for more
-permissions stays off until the user approves again. Launcher
+Nothing runs until the user approves. Approval is per permission: the
+consent dialog lists every requested permission in plain words, highlights
+the risky ones (anything that changes data, the network, the game) and warns
+when the package is unsigned. The user ticks what to allow; unticked
+permissions are remembered as declined and not asked about again, and the
+addon simply gets `permission denied` for those calls. Settings → Плагины →
+«Права…» changes the choice later. A new version that asks for more
+permissions stays off until the user decides on the new ones.
+
+Whatever is granted, an addon never gets the computer's files, processes or
+other programs: it is a sandboxed page that reaches the launcher only through
+the actions below. Launcher
 self-management (themes, addons, safe settings) is never available to addons.
 
 ## Signing and badges
@@ -74,11 +86,72 @@ Inline scripts are blocked by the CSP: put code in a `.js` file.
 
 - `fl.call(name, args)` → Promise with the action result.
 - `fl.toast(text)` — short notification in the launcher.
+- `fl.on`, `fl.context`, `fl.overlay.done()` — see «Pages, launch overlay and events».
+- `fl.storage.get/set/delete/keys` — see «Storage».
+- `fl.files.list/read/write/delete` — see «Instance files».
 - `fl.resize()` — fit the frame to the content (also automatic).
 - `fl.fetch(url, {method, headers, body})` → `{status, ok, headers, body, json()}`,
   see Network below.
 - Theme tokens (`--bg`, `--text`, `--accent`, `--font-ui`, …) are set on the
   addon's `<html>`, and updated when the user switches themes.
+
+## Pages, launch overlay and events
+
+- **Pages** (`ui_pages`): each entry of `pages` becomes a tab in the rail
+  with the first letter of its title. The page fills the main area and keeps
+  its state while the launcher runs. Good for whole screens: a hero grid,
+  statistics, a mod browser.
+- **Launch overlay** (`ui_overlay`): when the user presses «Играть», the
+  `launch_overlay` page covers the whole window on top of everything. It is
+  click-through (the launcher stays usable), Esc removes it, and it is removed
+  6 s after the game started, at once if the launch failed, and after 20 s at
+  most. Call `fl.overlay.done()` when the animation is over.
+- **Events** (`instances_read` or `ui_overlay`): `fl.on(name, cb)` with
+  `game.launching`, `game.launched`, `game.failed`, `game.exited` (data
+  `{ instance }`), or `*` for all; returns an unsubscribe function.
+- `fl.context` tells the frame where it is:
+  `{ kind: 'slot' | 'page' | 'overlay', slot?, page?, instance? }`.
+
+Page and overlay frames may use any CSS animations, canvas and SVG: they are
+ordinary pages, only without network and without the launcher's own DOM.
+
+## Storage
+
+`storage` gives the addon its own key/value store (any JSON values, keys up
+to 128 characters, 1 MB in total), kept in
+`<data>/addon-data/<id>/storage.json`. An addon sees only its own keys.
+
+```js
+await fl.storage.set('layout', { columns: 5 });
+const layout = await fl.storage.get('layout');
+```
+
+## Instance files
+
+`instance_files` («Изменять файлы сборок», tier «Функция») lets the addon
+read and change text files inside instance game folders: configs,
+`options.txt`, world data. The core enforces:
+
+- relative paths only, inside the instance's own folder: no `..`, no absolute
+  paths, no links (a symlink anywhere on the path is refused);
+- no writing or deleting code: `.jar`, `.class`, `.zip`, `.exe`, `.dll`,
+  `.so`, `.bat`, `.cmd`, `.ps1`, `.sh`, `.js`, `.py` and similar, and nothing
+  in `mods/`, `coremods/`, `kubejs/`, `natives/`. Mods are installed only
+  through the launcher's own mod actions (`instances_manage`);
+- no launcher bookkeeping files (`freedom-*`);
+- UTF-8 text, at most 2 MB per file, at most 1000 entries per listing.
+
+| Action | Args | Result |
+|--------|------|--------|
+| `files.list` | `{ instance, path? }` | `[{ name, dir, size }]` |
+| `files.read` | `{ instance, path }` | `{ text }` |
+| `files.write` | `{ instance, path, text }` | `{ ok }` |
+| `files.delete` | `{ instance, path }` | `{ ok }` |
+
+```js
+const opts = await fl.files.read(instanceId, 'options.txt');
+await fl.files.write(instanceId, 'config/myaddon.json', JSON.stringify(cfg));
+```
 
 ## Network
 
