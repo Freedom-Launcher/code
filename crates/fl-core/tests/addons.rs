@@ -283,3 +283,35 @@ async fn instance_files_stay_inside() {
         .unwrap();
     assert!(!d.join("instances/a/config/x.json").exists());
 }
+
+#[test]
+fn bundled_play_stats_installs_signed_and_respects_the_user() {
+    use fl_core::{bundled, Trust};
+    let d = tmp(&[]);
+    assert_eq!(bundled::install(&d).unwrap(), vec!["play-stats".to_string()]);
+    let m = addons::load(&d, "play-stats").unwrap();
+    assert_eq!(m.pages.len(), 1);
+    assert!(m.launch_overlay.is_some());
+    assert_eq!(addons::trust(&d, "play-stats"), Trust::Official, "signature must match the shipped files");
+    // Never enabled on its own: waits for the user's consent.
+    let c = Core::new(d.clone(), Instant::now(), false).unwrap();
+    assert!(c.addon_caller("play-stats").is_none());
+    // Same version again: nothing to do.
+    assert!(bundled::install(&d).unwrap().is_empty());
+    // Deleted by the user: not brought back for the same version.
+    fs::remove_dir_all(d.join("addons/play-stats")).unwrap();
+    assert!(bundled::install(&d).unwrap().is_empty());
+    assert!(!d.join("addons/play-stats").exists());
+    // An older installed version is replaced whole.
+    fs::write(d.join(bundled::MARK), r#"{"play-stats":"0.0.1"}"#).unwrap();
+    assert_eq!(bundled::install(&d).unwrap().len(), 1);
+    assert_eq!(addons::trust(&d, "play-stats"), Trust::Official);
+}
+
+#[test]
+fn bundled_leaves_a_foreign_folder_alone() {
+    use fl_core::bundled;
+    let d = tmp(&[("play-stats/addon.json", r#"{"id":"play-stats","name":"Мой","version":"9.9"}"#)]);
+    assert!(bundled::install(&d).unwrap().is_empty());
+    assert!(fs::read_to_string(d.join("addons/play-stats/addon.json")).unwrap().contains("9.9"));
+}

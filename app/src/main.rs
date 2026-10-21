@@ -876,6 +876,11 @@ fn main() {
             let data_dir = app.path().app_data_dir()?;
             crash_log_hook(data_dir.join("logs"));
             let core = Core::new(data_dir, started, safe_mode)?;
+            if !safe_mode {
+                if let Err(e) = fl_core::bundled::install(&core.data_dir) {
+                    eprintln!("bundled addons: {e}");
+                }
+            }
             app.manage(AppCore(core));
             if safe_mode {
                 if let Some(w) = app.get_webview_window("main") {

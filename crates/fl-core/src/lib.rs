@@ -16,6 +16,7 @@ use serde_json::{json, Value};
 pub mod accounts;
 pub mod art;
 pub mod blocked;
+pub mod bundled;
 pub mod actions;
 pub mod addon_data;
 pub mod addons;

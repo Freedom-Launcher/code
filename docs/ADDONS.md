@@ -23,6 +23,22 @@ Themes change how the launcher looks and contain no code — see [THEMES.md](THE
 Example: [`docs/addons/example`](addons/example). Copy it into the addons folder
 (Settings → Плагины → Открыть), press «Обновить», then «Разрешить и включить».
 
+## Built-in plugins
+
+Plugins in the repository folder [`addons/`](../addons) ship inside the launcher
+(`crates/fl-core/src/bundled.rs`). On start they are copied into
+`<data>/addons/` when missing or older. They are signed «Официальный», but are
+never switched on by themselves: the user approves them like any other plugin.
+A built-in plugin the user deleted comes back only with a newer version, and a
+foreign folder with the same id is left alone. After changing any of its files,
+bump `version` and sign the folder again (see «Signing and badges»), otherwise
+the test `bundled_play_stats_installs_signed_and_respects_the_user` fails.
+
+- **`play-stats` — «Время в игре»**: a «Статистика» tab (total time, time per
+  instance, last 14 days, recent launches) and a launch screen that also
+  records each launch into the plugin's storage. Uses `instances_read`,
+  `ui_pages`, `ui_overlay`, `storage` only.
+
 ## addon.json
 
 | Field | Meaning |

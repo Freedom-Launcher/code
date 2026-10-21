@@ -1,0 +1,11 @@
+{
+  "id": "play-stats",
+  "name": "Время в игре",
+  "version": "1.0.0",
+  "author": "Freedom Launcher",
+  "description": "Своя вкладка со статистикой: сколько наиграно в каждой сборке, последние 14 дней и история запусков. И анимация, пока игра запускается.",
+  "entry": "stats.html",
+  "permissions": ["instances_read", "ui_pages", "ui_overlay", "storage"],
+  "pages": [{ "id": "stats", "title": "Статистика" }],
+  "launch_overlay": "launch.html"
+}
