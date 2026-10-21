@@ -25,19 +25,22 @@ Example: [`docs/addons/example`](addons/example). Copy it into the addons folder
 
 ## Built-in plugins
 
-Plugins in the repository folder [`addons/`](../addons) ship inside the launcher
-(`crates/fl-core/src/bundled.rs`). On start they are copied into
+Plugins in the repository folder `addons/` ship inside the launcher
+(`crates/fl-core/src/bundled.rs`, list `BUNDLED`). On start they are copied into
 `<data>/addons/` when missing or older. They are signed «Официальный», but are
 never switched on by themselves: the user approves them like any other plugin.
 A built-in plugin the user deleted comes back only with a newer version, and a
 foreign folder with the same id is left alone. After changing any of its files,
-bump `version` and sign the folder again (see «Signing and badges»), otherwise
-the test `bundled_play_stats_installs_signed_and_respects_the_user` fails.
+bump `version` and sign the folder again (see «Signing and badges») before
+building: the files are embedded at compile time.
 
-- **`play-stats` — «Время в игре»**: a «Статистика» tab (total time, time per
-  instance, last 14 days, recent launches) and a launch screen that also
-  records each launch into the plugin's storage. Uses `instances_read`,
-  `ui_pages`, `ui_overlay`, `storage` only.
+A built-in plugin that stops shipping moves to `RETIRED` together with the
+`sig` of every `signature.json` it shipped with. On start its folder, its
+storage and its approval are removed, but only while the folder is still the
+exact signed copy the launcher installed; a copy the user changed is kept.
+
+No plugins are built in yet. Retired: `play-stats` (shipped in 0.3.14 only;
+the same statistics already live in Settings → «Статистика»).
 
 ## addon.json
 
