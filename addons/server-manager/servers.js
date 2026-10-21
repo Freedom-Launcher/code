@@ -11,6 +11,7 @@
   let info = null;
   let filePath = '';
   let playerList = 'whitelist';
+  let busy = false; // an install runs: the sheet stays open
 
   // ---------- helpers ----------
   function h(tag, cls, ...kids) {
@@ -52,6 +53,8 @@
       img: 'M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5M15 9h.01',
       check: 'M5 12l5 5 9-10',
       warn: 'M12 3l10 18H2zM12 10v4M12 17h.01',
+      download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+      swap: 'M7 7h11l-3-3M17 17H6l3 3',
     };
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
@@ -83,10 +86,10 @@
   function openModal(...kids) {
     modal.replaceChildren(h('div', 'sheet', ...kids));
     modal.hidden = false;
-    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+    modal.onclick = (e) => { if (e.target === modal && !busy) closeModal(); };
   }
   function closeModal() { modal.hidden = true; modal.replaceChildren(); }
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden && !busy) closeModal(); });
 
   function confirm(title, text, okLabel, danger) {
     return new Promise((resolve) => {
@@ -116,7 +119,7 @@
       grid.append(h('div', 'empty-state',
         h('div', 'empty-art', ICO('pc')),
         h('h2', null, 'Пока ни одного сервера'),
-        h('p', 'muted', 'Добавьте сервер, как сборку: выберите, где он работает, и управляйте файлами, игроками и настройками отсюда.'),
+        h('p', 'muted', 'Создайте новый сервер с нужным ядром и версией или добавьте готовую папку. Файлы, игроки и настройки — отсюда.'),
         btn([ICO('plus'), 'Добавить сервер'], 'primary', addWizard)));
     }
     app.replaceChildren(head, grid);
@@ -151,11 +154,70 @@
         h('div', null, h('b', null, o.title, o.soon ? h('span', 'badge', 'скоро') : null), h('p', 'muted', o.text)));
       b.type = 'button';
       b.disabled = !!o.soon;
-      b.onclick = () => localStep();
+      b.onclick = () => localChoice();
       list.append(b);
     }
-    openModal(h('div', 'steps', h('i', 'on'), h('i')), h('h2', null, 'Где работает сервер?'), list,
+    openModal(h('div', 'steps', h('i', 'on'), h('i'), h('i')), h('h2', null, 'Где работает сервер?'), list,
       h('div', 'row end', btn('Отмена', 'ghost', closeModal)));
+  }
+
+  function localChoice() {
+    const OPTS = [
+      { icon: 'download', title: 'Новый сервер', text: 'Выберите ядро и версию Minecraft: лаунчер скачает всё сам и подготовит запуск.', go: newServer },
+      { icon: 'folder', title: 'Готовая папка', text: 'Сервер уже есть на этом ПК: добавить его папку как есть.', go: localStep },
+    ];
+    const list = h('div', 'hosts');
+    for (const o of OPTS) {
+      const b = h('button', 'host', h('div', 'host-ico', ICO(o.icon)), h('div', null, h('b', null, o.title), h('p', 'muted', o.text)));
+      b.type = 'button';
+      b.onclick = o.go;
+      list.append(b);
+    }
+    openModal(h('div', 'steps', h('i', 'on'), h('i', 'on'), h('i')), h('h2', null, 'Сервер на этом компьютере'), list,
+      h('div', 'row end', btn('Назад', 'ghost', addWizard)));
+  }
+
+  async function newServer() {
+    const name = h('input', 'input');
+    name.placeholder = 'Например, «Ванилла с друзьями»';
+    name.maxLength = 64;
+    let form;
+    try { form = await coreForm(); } catch (e) { return fail(e); }
+    const ram = ramSelect(2048);
+    let where = 'launcher';
+    const seg = h('nav', 'seg');
+    for (const [id, label] of [['launcher', 'В папке лаунчера'], ['pick', 'Выбрать папку…']]) {
+      const b = h('button', null, label);
+      b.type = 'button';
+      b.setAttribute('aria-selected', String(id === where));
+      b.onclick = () => { where = id; for (const x of seg.children) x.setAttribute('aria-selected', String(x === b)); };
+      seg.append(b);
+    }
+    const eula = h('label', 'switch', h('input'), h('i'), h('span', null, 'Принимаю EULA Minecraft (aka.ms/MinecraftEULA): без этого сервер не запустится'));
+    const eulaBox = eula.querySelector('input');
+    eulaBox.type = 'checkbox';
+    const go = btn([ICO('download'), 'Создать сервер'], 'primary', async () => {
+      if (!form.ready()) return fl.toast('Выберите версию Minecraft');
+      const job = newJob();
+      const a = { name: name.value.trim(), ...form.value(), memory_mb: Number(ram.value), eula: eulaBox.checked, job };
+      if (where === 'pick') a.choose_dir = true;
+      const r = await runJob(job, `Создаём сервер ${form.label()}`, () => call('servers.create', a), where === 'pick');
+      if (!r.ok) return fail(r.error);
+      if (!r.value) return fl.toast('Папку не выбрали');
+      closeModal();
+      fl.toast('Сервер готов');
+      await openServer(r.value.id);
+    });
+    openModal(h('div', 'steps', h('i', 'on'), h('i', 'on'), h('i', 'on')),
+      h('h2', null, 'Новый сервер'),
+      h('label', 'field', h('span', null, 'Название в лаунчере'), name),
+      form.node,
+      h('div', 'frow2', h('label', 'field', h('span', null, 'Память для сервера'), ram),
+        h('div', 'field', h('span', null, 'Где создать'), seg)),
+      eula,
+      h('div', 'row end', btn('Назад', 'ghost', localChoice), go));
+    modal.firstChild.classList.add('wide');
+    name.focus();
   }
 
   function localStep() {
@@ -172,12 +234,194 @@
         await openServer(r.id);
       } catch (e) { fail(e); } finally { pick.disabled = false; }
     });
-    openModal(h('div', 'steps', h('i', 'on'), h('i', 'on')),
-      h('h2', null, 'Сервер на этом компьютере'),
+    openModal(h('div', 'steps', h('i', 'on'), h('i', 'on'), h('i', 'on')),
+      h('h2', null, 'Готовая папка сервера'),
       h('label', 'field', h('span', null, 'Название в лаунчере'), name),
       h('p', 'muted small', 'Выберите папку, где лежит сервер: там обычно есть server.properties и jar-файл ядра. Если поле названия пустое, возьмём имя папки.'),
-      h('div', 'row end', btn('Назад', 'ghost', addWizard), pick));
+      h('div', 'row end', btn('Назад', 'ghost', localChoice), pick));
     name.focus();
+  }
+
+  // ---------- cores ----------
+  let coreList = null;
+  const verCache = new Map();
+  const RAM = [1024, 1536, 2048, 3072, 4096, 6144, 8192, 12288, 16384];
+  const gb = (mb) => `${mb % 1024 ? (mb / 1024).toFixed(1) : mb / 1024} ГБ`;
+  const ADDS = { plugins: 'плагины', mods: 'моды', '': 'без модов' };
+  const STAGE = {
+    meta: 'Ищем ядро…', java: 'Готовим Java…', download: 'Скачиваем файлы…', install: 'Устанавливаем ядро: это может занять минуту…',
+    finish: 'Пишем скрипт запуска…', done: 'Готово', failed: 'Не получилось',
+  };
+  const newJob = () => `j${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+  const opt = (v, t) => { const o = h('option', null, t); o.value = v; return o; };
+  const loading = (sel) => { sel.replaceChildren(opt('', 'Загрузка…')); sel.disabled = true; };
+
+  async function cores() {
+    if (!coreList) coreList = await call('servers.cores');
+    return coreList;
+  }
+  async function mcVersions(core, all) {
+    const k = `${core}|${all}`;
+    if (!verCache.has(k)) verCache.set(k, await call('servers.core.versions', { core, all }));
+    return verCache.get(k);
+  }
+
+  function ramSelect(mb) {
+    const sel = h('select', 'input');
+    const list = RAM.includes(mb) ? RAM : [...RAM, mb].sort((a, b) => a - b);
+    for (const m of list) sel.append(opt(String(m), gb(m)));
+    sel.value = String(mb);
+    return sel;
+  }
+
+  /** Core cards + Minecraft version + build. */
+  async function coreForm(init = {}) {
+    const list = await cores();
+    let core = list.some((c) => c.id === init.core) ? init.core : 'paper';
+    let firstBuild = init.build || null;
+    let vTok = 0, bTok = 0;
+    const grid = h('div', 'cores');
+    const ver = h('select', 'input');
+    const build = h('select', 'input');
+    const buildLabel = h('span');
+    const snaps = h('label', 'switch', h('input'), h('i'), h('span', 'small', 'Показать снапшоты и пре-релизы'));
+    const snapBox = snaps.querySelector('input');
+    snapBox.type = 'checkbox';
+    snapBox.checked = !!init.mc && /[a-z]/i.test(init.mc);
+
+    function drawCores() {
+      grid.replaceChildren(...list.map((c) => {
+        const b = h('button', 'core', h('b', null, c.name), h('span', 'core-adds', ADDS[c.adds] ?? ''), h('p', 'muted', c.text));
+        b.type = 'button';
+        b.setAttribute('aria-pressed', String(c.id === core));
+        b.onclick = () => { if (core === c.id) return; core = c.id; drawCores(); loadVersions(ver.value); };
+        return b;
+      }));
+      buildLabel.textContent = core === 'fabric' ? 'Версия загрузчика' : 'Сборка ядра';
+    }
+    async function loadVersions(want) {
+      const my = ++vTok;
+      loading(ver); loading(build);
+      try {
+        const vs = await mcVersions(core, snapBox.checked);
+        if (my !== vTok) return;
+        ver.replaceChildren(...vs.map((v) => opt(v.id, v.stable ? v.id : `${v.id} · тестовая`)));
+        const pick = want && vs.some((v) => v.id === want) ? want : (vs.find((v) => v.stable) || vs[0])?.id;
+        if (!pick) { ver.replaceChildren(opt('', 'Нет версий')); build.replaceChildren(); return; }
+        ver.value = pick;
+        ver.disabled = false;
+        const b = firstBuild && pick === init.mc && core === init.core ? firstBuild : null;
+        firstBuild = null;
+        await loadBuilds(b);
+      } catch (e) {
+        if (my !== vTok) return;
+        ver.replaceChildren(opt('', 'Не удалось загрузить'));
+        build.replaceChildren();
+        fail(e);
+      }
+    }
+    async function loadBuilds(want) {
+      const my = ++bTok;
+      if (core === 'vanilla') { build.replaceChildren(opt('', 'Не нужна')); build.disabled = true; return; }
+      loading(build);
+      try {
+        const r = await call('servers.core.builds', { core, mc: ver.value });
+        if (my !== bTok) return;
+        build.replaceChildren(opt('', `Рекомендуемая${r.recommended ? ` (${r.recommended})` : ''}`),
+          ...r.builds.map((b) => opt(b.id, b.stable ? b.id : `${b.id} · тестовая`)));
+        build.value = want && r.builds.some((b) => b.id === want) ? want : '';
+        build.disabled = false;
+      } catch (e) {
+        if (my !== bTok) return;
+        build.replaceChildren(opt('', 'Для этой версии нет сборок'));
+        build.disabled = true;
+      }
+    }
+    ver.onchange = () => loadBuilds(null);
+    snapBox.onchange = () => loadVersions(ver.value);
+    drawCores();
+    loadVersions(init.mc);
+    return {
+      node: h('div', 'core-form',
+        h('div', 'field', h('span', null, 'Ядро'), grid),
+        h('div', 'frow2', h('label', 'field', h('span', null, 'Версия Minecraft'), ver), h('label', 'field', buildLabel, build)),
+        snaps),
+      ready: () => !!ver.value && !ver.disabled && (core === 'vanilla' || !build.disabled),
+      value: () => ({ core, mc: ver.value, build: build.value || null }),
+      label: () => `${list.find((c) => c.id === core)?.name || core} ${ver.value}`,
+    };
+  }
+
+  /** Runs an install, showing its progress in the sheet; the sheet comes back after. */
+  async function runJob(job, title, fn, picking) {
+    const sheet = modal.firstChild;
+    const stage = h('p', 'muted', picking ? 'Выберите папку в открывшемся окне…' : 'Начинаем…');
+    const bar = h('div', 'bar busy', h('i'));
+    const count = h('small', 'muted', '');
+    busy = true;
+    modal.replaceChildren(h('div', 'sheet', h('h2', null, title), stage, bar, count,
+      h('p', 'muted small', 'Ядро и Java скачиваются с официальных сайтов и проверяются по контрольным суммам.')));
+    const t = setInterval(async () => {
+      const p = await call('servers.progress', { job }).catch(() => null);
+      if (!p) return;
+      stage.textContent = STAGE[p.stage] || 'Готовим…';
+      const known = p.total_bytes > 0 && (p.stage === 'download' || p.stage === 'java');
+      bar.classList.toggle('busy', !known);
+      bar.firstChild.style.width = known ? `${Math.min(100, (p.done_bytes / p.total_bytes) * 100)}%` : '';
+      count.textContent = known ? `${size(p.done_bytes)} из ${size(p.total_bytes)}` : '';
+    }, 300);
+    try { return { ok: true, value: await fn() }; } catch (e) { return { ok: false, error: e }; } finally {
+      clearInterval(t);
+      busy = false;
+      modal.replaceChildren(sheet);
+    }
+  }
+
+  async function changeCore() {
+    const s = info;
+    const guess = s.software?.kind?.toLowerCase();
+    let form;
+    try {
+      form = await coreForm(s.core ? { core: s.core.core, mc: s.core.mc, build: s.core.build } : { core: guess, mc: s.software?.version });
+    } catch (e) { return fail(e); }
+    const go = btn([ICO('download'), 'Установить'], 'primary', async () => {
+      if (!form.ready()) return fl.toast('Выберите версию Minecraft');
+      const job = newJob();
+      const r = await runJob(job, `Ставим ${form.label()}`, () => call('servers.core.install', { id: cur, ...form.value(), job }));
+      if (!r.ok) return fail(r.error);
+      closeModal();
+      fl.toast(r.value.removed ? `Ядро установлено, старое (${r.value.removed}) удалено` : 'Ядро установлено');
+      await loadInfo(); render();
+    });
+    openModal(h('h2', null, s.core ? 'Сменить или обновить ядро' : 'Поставить ядро'), form.node,
+      h('div', 'notice', ICO('warn'), h('p', null, 'Мир, плагины, моды и настройки останутся. Старый jar ядра удалится, когда новое встанет. Плагины и моды другого ядра или другой версии могут не подойти; перед переходом на версию старее сделайте копию мира.')),
+      h('div', 'row end', btn('Отмена', 'ghost', closeModal), go));
+    modal.firstChild.classList.add('wide');
+  }
+
+  function corePanel(s) {
+    const c = s.core;
+    const panel = h('div', 'panel', h('h2', null, 'Ядро и запуск'));
+    if (!c) {
+      panel.append(h('div', 'core-line',
+        h('p', 'muted grow', s.software ? `Ядро найдено по файлам: ${softLabel(s.software)}. Лаунчер его не ставил, поэтому память задаётся в вашем скрипте запуска.` : 'В папке нет ядра сервера.'),
+        btn([ICO('download'), 'Поставить ядро'], 'primary', changeCore)));
+      return panel;
+    }
+    const ram = ramSelect(c.memory_mb);
+    ram.onchange = async () => {
+      ram.disabled = true;
+      try { await call('servers.memory.set', { id: cur, memory_mb: Number(ram.value) }); fl.toast(`Память: ${gb(Number(ram.value))}`); await loadInfo(); }
+      catch (e) { ram.value = String(c.memory_mb); fail(e); } finally { ram.disabled = false; }
+    };
+    const sub = [c.build && (c.core === 'fabric' ? `загрузчик ${c.build}` : `сборка ${c.build}`), c.java_major && `Java ${c.java_major}`, c.installed_at && `поставлено ${date(c.installed_at)}`].filter(Boolean).join(' · ');
+    panel.append(
+      h('div', 'core-line',
+        h('div', 'grow', h('b', null, `${s.software?.kind || c.core} ${c.mc}`), h('p', 'muted small', sub)),
+        h('label', 'field inline', h('span', null, 'Память'), ram),
+        btn([ICO('swap'), 'Сменить или обновить'], null, changeCore)),
+      s.script ? h('p', 'muted small', `Запуск сервера: ${s.script} в его папке (Java и память уже прописаны).`) : null);
+    return panel;
   }
 
   // ---------- one server ----------
@@ -235,9 +479,9 @@
       btn('Принять EULA', 'small', acceptEula)));
     body.append(
       h('div', 'panel', h('h2', null, 'Так сервер выглядит в списке серверов'), preview),
-      stats, ...notes,
+      stats, ...notes, corePanel(s),
       h('div', 'panel', h('h2', null, 'Где лежит'), h('div', 'row',
-        h('div', 'host-line', ICO('pc'), h('div', null, h('b', null, 'Этот компьютер'), h('p', 'muted mono', s.dir))))),
+        h('div', 'host-line', ICO('pc'), h('div', null, h('b', null, s.managed ? 'Этот компьютер · папка лаунчера' : 'Этот компьютер'), h('p', 'muted mono', s.dir))))),
       h('div', 'row', btn([ICO('edit'), 'Название, иконка и MOTD'], null, () => { tab = 'settings'; render(); }),
         h('span', 'grow'), btn([ICO('trash'), 'Убрать из списка'], 'ghost danger-text', removeServer)));
   }
@@ -256,9 +500,21 @@
   }
 
   async function removeServer() {
-    const ok = await confirm(`Убрать «${info.name}» из списка?`, 'Файлы сервера останутся в папке, удаляется только запись в лаунчере.', 'Убрать', true);
+    const del = h('label', 'switch', h('input'), h('i'), h('span', null, 'Удалить и файлы: мир, настройки и ядро'));
+    const box = del.querySelector('input');
+    box.type = 'checkbox';
+    const go = btn('Убрать', 'danger', () => done(true));
+    box.onchange = () => { go.textContent = box.checked ? 'Удалить сервер' : 'Убрать'; };
+    let done;
+    const ok = await new Promise((resolve) => {
+      done = (v) => { closeModal(); resolve(v); };
+      openModal(h('h2', null, `Убрать «${info.name}» из списка?`),
+        h('p', 'muted', info.managed ? 'Этот сервер создал лаунчер, его папка лежит в данных лаунчера. Без галочки файлы останутся там.' : 'Файлы сервера останутся в папке, удаляется только запись в лаунчере.'),
+        info.managed ? del : null,
+        h('div', 'row end', btn('Отмена', 'ghost', () => done(false)), go));
+    });
     if (!ok) return;
-    try { await call('servers.remove', { id: cur }); showList(); } catch (e) { fail(e); }
+    try { await call('servers.remove', { id: cur, delete_files: info.managed && box.checked }); showList(); } catch (e) { fail(e); }
   }
 
   // ----- players -----

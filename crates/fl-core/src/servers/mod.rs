@@ -27,6 +27,9 @@ use crate::{
     skins, store, unix_now, Core, CoreError, Permission as P,
 };
 
+mod cores;
+pub use cores::{forge_launch, script_text, slug, token, ver_key, Installed, CORES, MANAGED, MARK, SCRIPT};
+
 pub const FILE: &str = "servers.json";
 pub const PROPS: &str = "server.properties";
 pub const ICON: &str = "server-icon.png";
@@ -48,6 +51,9 @@ pub struct Server {
     pub host: Host,
     #[serde(default)]
     pub created_at: u64,
+    /// The core the launcher installed (`None` for a folder added as it was).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub core: Option<Installed>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -119,7 +125,10 @@ pub fn allowed_dir(data_dir: &Path, dir: &Path) -> Result<PathBuf, CoreError> {
         return Err(denied("корень диска не может быть папкой сервера"));
     }
     let data = data_dir.canonicalize().unwrap_or_else(|_| data_dir.to_path_buf());
-    if d.starts_with(&data) || data.starts_with(&d) {
+    // Servers the launcher creates itself live in `<data>/servers/<name>`.
+    let managed = data.join(cores::MANAGED);
+    let own = d.starts_with(&managed) && d != managed;
+    if !own && (d.starts_with(&data) || data.starts_with(&d)) {
         return Err(denied("папка пересекается с данными лаунчера"));
     }
     for var in ["HOME", "USERPROFILE"] {
@@ -276,13 +285,21 @@ pub fn mc_version_in(s: &str) -> Option<String> {
     None
 }
 
-/// NeoForge `21.1.77` runs Minecraft `1.21.1`; from 26.x on the numbers match.
+/// NeoForge `21.1.77` runs Minecraft `1.21.1`; from 26.x on the numbers match
+/// the release: `26.1.0.5` → `26.1`, `26.1.2.3` → `26.1.2`.
 fn neoforge_mc(v: &str) -> Option<String> {
+    let num = |s: &str| s.split(|c: char| !c.is_ascii_digit()).next().and_then(|d| d.parse::<u32>().ok());
     let mut p = v.split('.');
-    let major: u32 = p.next()?.parse().ok()?;
-    let minor: u32 = p.next()?.parse().ok()?;
+    let major = num(p.next()?)?;
+    let minor = num(p.next()?)?;
+    if major < 20 {
+        return None;
+    }
     Some(if major >= 25 {
-        format!("{major}.{minor}")
+        match p.next().and_then(num) {
+            Some(patch) if patch > 0 => format!("{major}.{minor}.{patch}"),
+            _ => format!("{major}.{minor}"),
+        }
     } else if minor == 0 {
         format!("1.{major}")
     } else {
@@ -389,7 +406,7 @@ fn icon(root: &Path) -> Option<String> {
 }
 
 /// What a card in the server list shows.
-fn summary(s: &Server) -> Value {
+fn summary(c: &Core, s: &Server) -> Value {
     let d = s.dir();
     let exists = d.is_dir();
     let p = if exists { read_props(&d) } else { Vec::new() };
@@ -403,7 +420,10 @@ fn summary(s: &Server) -> Value {
         "motd": prop(&p, "motd").unwrap_or("A Minecraft Server"),
         "port": prop(&p, "server-port").unwrap_or("25565"),
         "max_players": prop(&p, "max-players").unwrap_or("20"),
-        "software": if exists { software(&d) } else { Value::Null },
+        "software": if exists { cores::software_of(s).unwrap_or_else(|| software(&d)) } else { Value::Null },
+        "core": s.core,
+        "managed": cores::managed(c, s),
+        "script": (exists && d.join(SCRIPT).is_file()).then_some(SCRIPT),
     })
 }
 
@@ -522,7 +542,7 @@ struct IdArg {
 pub(crate) fn register(r: &mut ActionRegistry) {
     r.register("servers.list", P::Servers, false, |c, _| async move {
         let st = load(&c)?;
-        Ok(json!(st.servers.iter().map(summary).collect::<Vec<_>>()))
+        Ok(json!(st.servers.iter().map(|s| summary(&c, s)).collect::<Vec<_>>()))
     });
 
     // Built-in only: plugins go through the native folder picker (`servers.pick`).
@@ -548,7 +568,7 @@ pub(crate) fn register(r: &mut ActionRegistry) {
             return Ok(json!({ "id": s.id, "existing": true }));
         }
         let id = uuid::Uuid::new_v4().simple().to_string()[..12].to_owned();
-        st.servers.push(Server { id: id.clone(), name, host, created_at: unix_now() });
+        st.servers.push(Server { id: id.clone(), name, host, created_at: unix_now(), core: None });
         store::save(&c.path(FILE), &st, false)?;
         Ok(json!({ "id": id, "existing": false }))
     });
@@ -569,9 +589,26 @@ pub(crate) fn register(r: &mut ActionRegistry) {
         Ok(json!({ "ok": true }))
     });
 
-    // Forgets the server; its folder stays untouched.
+    // Forgets the server; its folder stays untouched, unless the launcher
+    // created that folder itself and `delete_files` is set.
     r.register("servers.remove", P::Servers, false, |c, a| async move {
-        let IdArg { id } = args(a)?;
+        #[derive(Deserialize)]
+        struct A {
+            id: String,
+            #[serde(default)]
+            delete_files: bool,
+        }
+        let A { id, delete_files } = args(a)?;
+        if delete_files {
+            let s = find(&c, &id)?;
+            if !cores::managed(&c, &s) {
+                return Err(denied("файлы удаляются только у серверов, которые создал лаунчер"));
+            }
+            let d = s.dir();
+            if d.is_dir() {
+                fs::remove_dir_all(&d)?;
+            }
+        }
         let _g = c.state_lock.lock().await;
         let mut st = load(&c)?;
         st.servers.retain(|s| s.id != id);
@@ -582,7 +619,7 @@ pub(crate) fn register(r: &mut ActionRegistry) {
     r.register("servers.info", P::Servers, false, |c, a| async move {
         let IdArg { id } = args(a)?;
         let s = find(&c, &id)?;
-        let mut v = summary(&s);
+        let mut v = summary(&c, &s);
         let d = s.dir();
         v["dir"] = json!(d.to_string_lossy());
         if v["exists"] == json!(true) {
@@ -800,6 +837,7 @@ pub(crate) fn register(r: &mut ActionRegistry) {
         fs::remove_file(&p)?;
         Ok(json!({ "ok": true }))
     });
+    cores::register(r);
 }
 
 #[cfg(test)]
@@ -832,6 +870,9 @@ mod tests {
         assert_eq!(neoforge_mc("21.1.77").as_deref(), Some("1.21.1"));
         assert_eq!(neoforge_mc("20.2.3").as_deref(), Some("1.20.2"));
         assert_eq!(neoforge_mc("26.1.0.5").as_deref(), Some("26.1"));
+        assert_eq!(neoforge_mc("26.1.2.3").as_deref(), Some("26.1.2"));
+        assert_eq!(neoforge_mc("21.0.14-beta").as_deref(), Some("1.21"));
+        assert_eq!(neoforge_mc("0.25w14craftmine.3-beta"), None);
     }
 
     #[test]

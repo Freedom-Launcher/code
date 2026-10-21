@@ -1,10 +1,18 @@
 {
   "id": "server-manager",
   "name": "Управление серверами",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Freedom Launcher",
-  "description": "Свои серверы Minecraft прямо в лаунчере: файлы, игроки, вайтлист, операторы и баны, название, иконка, MOTD и настройки сервера.",
+  "description": "Свои серверы Minecraft прямо в лаунчере: новый сервер с нужным ядром (Vanilla, Paper, Purpur, Fabric, Forge, NeoForge) и версией, смена и обновление ядра, память, файлы, игроки, вайтлист, операторы и баны, название, иконка, MOTD и настройки сервера.",
   "entry": "servers.html",
-  "permissions": ["ui_pages", "servers"],
-  "pages": [{ "id": "servers", "title": "Серверы" }]
+  "permissions": [
+    "ui_pages",
+    "servers"
+  ],
+  "pages": [
+    {
+      "id": "servers",
+      "title": "Серверы"
+    }
+  ]
 }

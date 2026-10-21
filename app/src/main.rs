@@ -652,6 +652,11 @@ async fn addon_action(
     if name == "servers.pick" {
         return pick_server(&app, &core, &caller, args).await;
     }
+    if name == "servers.create"
+        && args.as_ref().and_then(|a| a.get("choose_dir")).and_then(Value::as_bool) == Some(true)
+    {
+        return create_server_at(&app, &core, &caller, args).await;
+    }
     core.dispatch(&caller, &name, args.unwrap_or(Value::Null))
         .await
         .map_err(|e| e.to_string())
@@ -689,6 +694,43 @@ async fn pick_server(
     .map_err(|e| e.to_string())?;
     let Some(dir) = dir else { return Ok(Value::Null) };
     core.dispatch(&Caller::BuiltinUi, "servers.add", serde_json::json!({ "name": name, "dir": dir }))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// `servers.create {choose_dir: true}`: a new server in a folder the user picks
+/// in the native dialog (an empty folder is used as is, otherwise a subfolder
+/// named after the server is made). `null` if the user cancelled.
+async fn create_server_at(
+    app: &tauri::AppHandle,
+    core: &Arc<Core>,
+    caller: &Caller,
+    args: Option<Value>,
+) -> Result<Value, String> {
+    let ok = matches!(caller, Caller::Addon { granted, .. } if granted.contains(&Permission::Servers));
+    if !ok {
+        return Err("servers.create requires Servers".into());
+    }
+    let mut args = args.unwrap_or_else(|| serde_json::json!({}));
+    let obj = args.as_object_mut().ok_or("args: нужен объект")?;
+    if obj.contains_key("dir") {
+        return Err("папку для сервера выбирает только пользователь".into());
+    }
+    let app = app.clone();
+    let dir = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .set_title("Где создать сервер")
+            .blocking_pick_folder()
+            .and_then(|p| p.into_path().ok())
+            .map(|p| p.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    let Some(dir) = dir else { return Ok(Value::Null) };
+    obj.remove("choose_dir");
+    obj.insert("dir".into(), Value::String(dir));
+    core.dispatch(&Caller::BuiltinUi, "servers.create.at", args)
         .await
         .map_err(|e| e.to_string())
 }

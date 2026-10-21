@@ -196,6 +196,20 @@ and anything overlapping the launcher's data are refused.
 | `servers.players {id}` | `whitelist, ops, banned, banned_ips, known` (usercache), `whitelist_enabled, online_mode` |
 | `servers.players.edit {id, list, op, name, reason?}` | `list`: `whitelist`/`ops`/`banned`, `op`: `add`/`remove`; the UUID comes from usercache, the offline UUID (`online-mode=false`) or Mojang |
 | `servers.files.list/read/write/delete {id, path}` | like instance files: inside the server folder, no links, text only, no code written |
+| `servers.cores` | `[{id, name, text, adds}]`: `vanilla`, `paper`, `purpur`, `fabric`, `forge`, `neoforge` |
+| `servers.core.versions {core, all?}` | Minecraft versions of a core, newest first: `[{id, stable}]` (`all`: snapshots and pre-releases too) |
+| `servers.core.builds {core, mc}` | `{builds: [{id, stable}], recommended}`; Fabric builds are loader versions, Vanilla has none |
+| `servers.create {name?, core, mc, build?, memory_mb?, eula?, job?, choose_dir?}` | a new server in `<data>/servers/<name>`: downloads the core (checked against the published hash), Java, writes `start.bat`/`start.sh`, `eula.txt` when `eula`, and `server.properties` with the name as MOTD. `choose_dir: true` opens the native folder picker (an empty folder is used, otherwise a subfolder is made); `null` if cancelled. A plugin never passes `dir` |
+| `servers.core.install {id, core, mc, build?, memory_mb?, job?}` | changes or updates the core; worlds, plugins, mods and settings stay, the old core jar is removed once the new one is in place → `{ok, removed}` |
+| `servers.memory.set {id, memory_mb}` | rewrites the start script (only for cores the launcher installed) |
+| `servers.progress {job}` | progress of a create/install: `stage` (`meta`, `java`, `download`, `install`, `finish`, `done`, `failed`), `done_bytes/total_bytes`, `done_files/total_files` |
+| `servers.remove {id, delete_files?}` | `delete_files` only for servers the launcher created (folder under `<data>/servers`) |
+
+Forge and NeoForge run their official installer with `--installServer`; the
+server then starts from `@libraries/…/{win,unix}_args.txt`. The start script
+carries the marker «Freedom Launcher» and is rewritten only while it does; a
+script of the user's own under that name is left alone. Server cards gain
+`core` (what the launcher installed), `managed` and `script`.
 
 ## Network
 

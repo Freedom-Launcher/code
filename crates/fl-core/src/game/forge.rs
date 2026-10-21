@@ -50,8 +50,7 @@ pub async fn versions(core: &Core, loader: &str, mc: &str) -> Result<Vec<String>
     let (url, prefix) = if loader == "forge" {
         (format!("{FORGE_MAVEN}net/minecraftforge/forge/maven-metadata.xml"), format!("{mc}-"))
     } else {
-        let mut p = mc.split('.').skip(1);
-        let pre = format!("{}.{}.", p.next().unwrap_or(""), p.next().unwrap_or("0"));
+        let pre = neo_prefix(mc).unwrap_or_else(|| "-".into());
         (format!("{NEO_MAVEN}net/neoforged/neoforge/maven-metadata.xml"), pre)
     };
     let xml = String::from_utf8_lossy(&get(core, &url).await?).into_owned();
@@ -64,10 +63,23 @@ pub async fn versions(core: &Core, loader: &str, mc: &str) -> Result<Vec<String>
         .collect())
 }
 
-/// NeoForge versions follow the game: MC 1.21.4 → 21.4.x, MC 1.21 → 21.0.x.
+/// NeoForge versions follow the game: MC 1.21.4 → `21.4.x`, MC 1.21 →
+/// `21.0.x`; from the year-based releases on all three numbers are kept:
+/// MC 26.1 → `26.1.0.x`, MC 26.1.2 → `26.1.2.x`.
+pub fn neo_prefix(mc: &str) -> Option<String> {
+    let p: Vec<&str> = mc.split('.').collect();
+    if p.iter().any(|x| x.is_empty() || !x.bytes().all(|b| b.is_ascii_digit())) {
+        return None;
+    }
+    if p.first() == Some(&"1") {
+        Some(format!("{}.{}.", p.get(1)?, p.get(2).unwrap_or(&"0")))
+    } else {
+        Some(format!("{}.{}.{}.", p.first()?, p.get(1)?, p.get(2).unwrap_or(&"0")))
+    }
+}
+
 fn pick_neoforge(xml: &str, mc: &str) -> Option<String> {
-    let mut p = mc.split('.').skip(1);
-    let prefix = format!("{}.{}.", p.next()?, p.next().unwrap_or("0"));
+    let prefix = neo_prefix(mc)?;
     let all: Vec<&str> = xml
         .split("<version>")
         .skip(1)
@@ -327,6 +339,11 @@ mod tests {
                    <version>21.4.158</version><version>21.4.161</version></versions>";
         assert_eq!(pick_neoforge(xml, "1.21.4").as_deref(), Some("21.4.161"));
         assert_eq!(pick_neoforge(xml, "1.20.1"), None);
+        let xml26 = "<version>26.1.0.4</version><version>26.1.2.7</version><version>26.1.2.9-beta</version>";
+        assert_eq!(pick_neoforge(xml26, "26.1").as_deref(), Some("26.1.0.4"));
+        assert_eq!(pick_neoforge(xml26, "26.1.2").as_deref(), Some("26.1.2.7"));
+        assert_eq!(neo_prefix("1.21").as_deref(), Some("21.0."));
+        assert_eq!(neo_prefix("26.4-snapshot-1"), None);
         let vars = HashMap::from([("SIDE".to_string(), "client".to_string())]);
         let l = Path::new("/l");
         assert_eq!(resolve_arg("{SIDE}", &vars, l).unwrap(), "client");
