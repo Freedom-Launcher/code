@@ -16,3 +16,16 @@ svg.mi .f { display: none; }
 .dd-btn:hover > svg.mi.mi { fill: var(--text-2); }
 .dd-btn[aria-expanded="true"] > svg.mi.mi { fill: var(--text); }
 .dd-opt > svg.mi.mi { fill: var(--accent); }
+/* brand */
+.brand-svg { display: block; width: 100%; height: auto; }
+.rail-logo { background: transparent !important; width: 34px !important; height: 28px !important; color: var(--text); }
+.rail-logo .brand-svg { width: 30px; }
+.set-mark .brand-svg { width: 30px; }
+.wc-mark .brand-svg { width: 40px; }
+/* source switch: brand glyph + label */
+.disc-src > button { display: inline-flex; align-items: center; gap: 6px; }
+.disc-src .src-ico { width: 14px; height: 14px; flex: none; opacity: .7; transition: opacity var(--d-2, .12s), color var(--d-2, .12s); }
+.disc-src > button:hover .src-ico { opacity: .9; }
+.disc-src > button[aria-selected="true"] .src-ico { opacity: 1; }
+.disc-src > button[data-src="modrinth"][aria-selected="true"] .src-ico { color: #1bd96a; }
+.disc-src > button[data-src="curseforge"][aria-selected="true"] .src-ico { color: #f16436; }

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ru" data-theme="dark" data-cover="big">
 <head>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Freedom Launcher</title>
@@ -69,7 +70,7 @@
   <div id="app" class="app" data-id="app" hidden>
     <!-- Left rail: instances as cover tiles, create, settings -->
     <nav class="rail" data-id="rail">
-      <div class="rail-logo" data-id="rail.logo" aria-hidden="true">F</div>
+      <div class="rail-logo" data-id="rail.logo" aria-hidden="true"><svg class="brand-svg" viewBox="2 12 60 40" fill="currentColor" aria-hidden="true"><path d="M32 17 43 32 32 47 21 32z"/><g><path d="M19 27.5 3 19.5l2.6 5.6L18.6 31z"/><path d="M18.4 33.6 5.5 30l2.6 4.6 10.8 2.2z" opacity=".75"/><path d="M19.6 39.4 9 38.2l2.6 3.6 8.4.4z" opacity=".5"/></g><g transform="translate(64 0) scale(-1 1)"><path d="M19 27.5 3 19.5l2.6 5.6L18.6 31z"/><path d="M18.4 33.6 5.5 30l2.6 4.6 10.8 2.2z" opacity=".75"/><path d="M19.6 39.4 9 38.2l2.6 3.6 8.4.4z" opacity=".5"/></g></svg></div>
       <button class="rail-btn" data-view="home" data-tip="Библиотека" data-id="rail.home" aria-label="Библиотека">
         <svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g class="l"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M10.8 2.65a2 2 0 0 1 2.4 0l7 5.25a2 2 0 0 1 .8 1.6V19a2 2 0 0 1-2 2h-4.9a1.1 1.1 0 0 1-1.1-1.1V14a1 1 0 1 0-2 0v5.9A1.1 1.1 0 0 1 9.9 21H5a2 2 0 0 1-2-2V9.5a2 2 0 0 1 .8-1.6zm1.2 1.6L5 9.5V19h4v-5a3 3 0 1 1 6 0v5h4V9.5z"/></g></g><g class="f"><g fill="none"><path fill="currentColor" d="M13.2 2.65a2 2 0 0 0-2.4 0l-7 5.25A2 2 0 0 0 3 9.5V19a2 2 0 0 0 2 2h3.9a1.1 1.1 0 0 0 1.1-1.1V15a2 2 0 1 1 4 0v4.9a1.1 1.1 0 0 0 1.1 1.1H19a2 2 0 0 0 2-2V9.5a2 2 0 0 0-.8-1.6z"/></g></g></svg>
       </button>
@@ -342,8 +343,8 @@
             <button data-kind="shader">Шейдеры</button>
           </nav>
           <nav class="seg disc-src" id="disc-src" data-id="discover.source" aria-label="Каталог">
-            <button data-src="modrinth" aria-selected="true">Modrinth</button>
-            <button data-src="curseforge">CurseForge</button>
+            <button data-src="modrinth" aria-selected="true"><svg class="mi src-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.252.004a11.78 11.768 0 0 0-8.92 3.73 11 10.999 0 0 0-2.17 3.11 11.37 11.359 0 0 0-1.16 5.169c0 1.42.17 2.5.6 3.77.24.759.77 1.899 1.17 2.529a12.3 12.298 0 0 0 8.85 5.639c.44.05 2.54.07 2.76.02.2-.04.22.1-.26-1.7l-.36-1.37-1.01-.06a8.5 8.489 0 0 1-5.18-1.8 5.34 5.34 0 0 1-1.3-1.26c0-.05.34-.28.74-.5a37.572 37.545 0 0 1 2.88-1.629c.03 0 .5.45 1.06.98l1 .97 2.07-.43 2.06-.43 1.47-1.47c.8-.8 1.48-1.5 1.48-1.52 0-.09-.42-1.63-.46-1.7-.04-.06-.2-.03-1.02.18-.53.13-1.2.3-1.45.4l-.48.15-.53.53-.53.53-.93.1-.93.07-.52-.5a2.7 2.7 0 0 1-.96-1.7l-.13-.6.43-.57c.68-.9.68-.9 1.46-1.1.4-.1.65-.2.83-.33.13-.099.65-.579 1.14-1.069l.9-.9-.7-.7-.7-.7-1.95.54c-1.07.3-1.96.53-1.97.53-.03 0-2.23 2.48-2.63 2.97l-.29.35.28 1.03c.16.56.3 1.16.31 1.34l.03.3-.34.23c-.37.23-2.22 1.3-2.84 1.63-.36.2-.37.2-.44.1-.08-.1-.23-.6-.32-1.03-.18-.86-.17-2.75.02-3.73a8.84 8.839 0 0 1 7.9-6.93c.43-.03.77-.08.78-.1.06-.17.5-2.999.47-3.039-.01-.02-.1-.02-.2-.03Zm3.68.67c-.2 0-.3.1-.37.38-.06.23-.46 2.42-.46 2.52 0 .04.1.11.22.16a8.51 8.499 0 0 1 2.99 2 8.38 8.379 0 0 1 2.16 3.449 6.9 6.9 0 0 1 .4 2.8c0 1.07 0 1.27-.1 1.73a9.37 9.369 0 0 1-1.76 3.769c-.32.4-.98 1.06-1.37 1.38-.38.32-1.54 1.1-1.7 1.14-.1.03-.1.06-.07.26.03.18.64 2.56.7 2.78l.06.06a12.07 12.058 0 0 0 7.27-9.4c.13-.77.13-2.58 0-3.4a11.96 11.948 0 0 0-5.73-8.578c-.7-.42-2.05-1.06-2.25-1.06Z"/></svg>Modrinth</button>
+            <button data-src="curseforge"><svg class="mi src-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.326 9.2145S23.2261 8.4418 24 6.1882h-7.5066V4.4H0l2.0318 2.3576V9.173s5.1267-.2665 7.1098 1.2372c2.7146 2.516-3.053 5.917-3.053 5.917L5.0995 19.6c1.5465-1.4726 4.494-3.3775 9.8983-3.2857-2.0565.65-4.1245 1.6651-5.7344 3.2857h10.9248l-1.0288-3.2726s-7.918-4.6688-.8336-7.1127z"/></svg>CurseForge</button>
           </nav>
           </div>
           <div class="toolbar" data-id="discover.toolbar">
@@ -551,7 +552,7 @@
         </div>
         <div class="set-pane" data-pane="about" data-id="settings.pane.about" hidden>
           <h2 class="set-h">О лаунчере</h2>
-          <div class="set-about" data-id="settings.about.card"><span class="set-mark" aria-hidden="true">F</span><div class="grow"><b>Freedom Launcher</b><span id="set-ver"></span></div><button type="button" class="btn btn-ghost" id="set-releases"><span class="lbl">Все версии</span></button></div>
+          <div class="set-about" data-id="settings.about.card"><span class="set-mark" aria-hidden="true"><svg class="brand-svg" viewBox="2 12 60 40" fill="currentColor" aria-hidden="true"><path d="M32 17 43 32 32 47 21 32z"/><g><path d="M19 27.5 3 19.5l2.6 5.6L18.6 31z"/><path d="M18.4 33.6 5.5 30l2.6 4.6 10.8 2.2z" opacity=".75"/><path d="M19.6 39.4 9 38.2l2.6 3.6 8.4.4z" opacity=".5"/></g><g transform="translate(64 0) scale(-1 1)"><path d="M19 27.5 3 19.5l2.6 5.6L18.6 31z"/><path d="M18.4 33.6 5.5 30l2.6 4.6 10.8 2.2z" opacity=".75"/><path d="M19.6 39.4 9 38.2l2.6 3.6 8.4.4z" opacity=".5"/></g></svg></span><div class="grow"><b>Freedom Launcher</b><span id="set-ver"></span></div><button type="button" class="btn btn-ghost" id="set-releases"><span class="lbl">Все версии</span></button></div>
           <div class="rows set-card" data-id="settings.updates.card">
               <div class="r upd-row" id="upd-row" data-id="settings.updates"><div class="grow"><div class="t">Обновления<i class="upd-dot" aria-hidden="true"></i></div><div class="s" id="upd-sub"></div><div class="progress upd-prog" id="upd-prog" hidden><i></i></div></div>
                 <button class="btn" id="upd-btn"><span class="lbl"><span class="t">Проверить</span></span></button></div>
@@ -639,7 +640,7 @@
     <div class="wc-card" role="dialog" aria-modal="true" aria-label="Первый запуск">
       <button type="button" class="wc-skip" id="wc-skip" data-id="welcome.skip">Пропустить</button>
       <div class="wc-step" data-step="0">
-        <div class="wc-mark" aria-hidden="true">F</div>
+        <div class="wc-mark" aria-hidden="true"><svg class="brand-svg" viewBox="2 12 60 40" fill="currentColor" aria-hidden="true"><path d="M32 17 43 32 32 47 21 32z"/><g><path d="M19 27.5 3 19.5l2.6 5.6L18.6 31z"/><path d="M18.4 33.6 5.5 30l2.6 4.6 10.8 2.2z" opacity=".75"/><path d="M19.6 39.4 9 38.2l2.6 3.6 8.4.4z" opacity=".5"/></g><g transform="translate(64 0) scale(-1 1)"><path d="M19 27.5 3 19.5l2.6 5.6L18.6 31z"/><path d="M18.4 33.6 5.5 30l2.6 4.6 10.8 2.2z" opacity=".75"/><path d="M19.6 39.4 9 38.2l2.6 3.6 8.4.4z" opacity=".5"/></g></svg></div>
         <h2>Добро пожаловать</h2>
         <div class="wc-bottom">
           <button type="button" class="btn btn-primary btn-lg" id="wc-login" data-open="dlg-login" data-id="welcome.login"><span class="lbl">Войти через Microsoft</span></button>
