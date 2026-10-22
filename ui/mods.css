@@ -268,13 +268,13 @@ html[data-motion="on"] .disc-scope:not([hidden]) { animation: fl-card-in 300ms v
 .disc-view { flex: none; }
 .disc-view > button { display: grid; place-items: center; padding: 0 7px; }
 .disc-view svg { width: 16px; height: 16px; }
-.mod-grid[data-view="list"] { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.mod-grid[data-view="list"] > .mod-card { grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 4px 14px; padding: 12px 14px; }
-.mod-grid[data-view="list"] .mod-ico { grid-row: 1 / span 2; }
-.mod-grid[data-view="list"] .t { grid-column: 2; align-self: end; }
-.mod-grid[data-view="list"] p { grid-column: 2; -webkit-line-clamp: 1; }
-.mod-grid[data-view="list"] .foot { grid-column: 3; grid-row: 1 / span 2; flex-direction: column; align-items: flex-end; justify-content: center; gap: 6px; }
+.mod-grid[data-layout="list"] { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.mod-grid[data-layout="list"] > .mod-card { grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 4px 14px; padding: 12px 14px; }
+.mod-grid[data-layout="list"] .mod-ico { grid-row: 1 / span 2; }
+.mod-grid[data-layout="list"] .t { grid-column: 2; align-self: end; }
+.mod-grid[data-layout="list"] p { grid-column: 2; -webkit-line-clamp: 1; }
+.mod-grid[data-layout="list"] .foot { grid-column: 3; grid-row: 1 / span 2; flex-direction: column; align-items: flex-end; justify-content: center; gap: 6px; }
 @media (max-width: 900px) {
-  .mod-grid[data-view="list"] > .mod-card { grid-template-columns: 48px minmax(0, 1fr); grid-template-rows: auto auto auto; }
-  .mod-grid[data-view="list"] .foot { grid-column: 1 / -1; grid-row: auto; flex-direction: row; align-items: center; justify-content: space-between; }
+  .mod-grid[data-layout="list"] > .mod-card { grid-template-columns: 48px minmax(0, 1fr); grid-template-rows: auto auto auto; }
+  .mod-grid[data-layout="list"] .foot { grid-column: 1 / -1; grid-row: auto; flex-direction: row; align-items: center; justify-content: space-between; }
 }

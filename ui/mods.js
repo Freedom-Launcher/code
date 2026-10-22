@@ -567,7 +567,7 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
   $('#disc-sort').addEventListener('change', (e) => { sort = e.target.value; search(true); });
   // Grid or list, remembered between sessions.
   const paintView = (v) => {
-    $('#disc-results').dataset.view = v;
+    $('#disc-results').dataset.layout = v;
     $$('#disc-view > button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.v === v)));
     requestAnimationFrame(() => $('#disc-view')._place?.(false));
   };
@@ -578,7 +578,7 @@ const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-
   initFilters();
   $('#disc-more').addEventListener('click', () => search(false));
   document.addEventListener('keydown', (e) => {
-    if (S.view !== 'discover' || !paged() || e.target.matches('input, textarea, select') || e.altKey || e.ctrlKey) return;
+    if (S.view !== 'discover' || !paged() || e.target.matches?.('input, textarea, select') || e.altKey || e.ctrlKey) return;
     if (e.key === 'PageDown' && page < pages) { e.preventDefault(); search(page + 1); }
     if (e.key === 'PageUp' && page > 1) { e.preventDefault(); search(page - 1); }
   });

@@ -23,7 +23,7 @@ function el(tag, attrs = {}, ...kids) {
   return n;
 }
 const fmtBytes = (b) => (b >= 1 << 30 ? `${(b / (1 << 30)).toFixed(1)} ГБ` : b >= 1 << 20 ? `${(b / (1 << 20)).toFixed(0)} МБ` : `${Math.round(b / 1024)} КБ`);
-const initials = (s) => (s.trim()[0] || '?').toUpperCase();
+const initials = (s) => (String(s ?? '').trim()[0] || '?').toUpperCase();
 const ago = (t) => {
   const d = Math.max(0, Date.now() / 1000 - t);
   if (d < 3600) return 'только что';
@@ -71,6 +71,8 @@ document.addEventListener('click', async (ev) => {
 
 // ---------- Navigation: views and the rail ----------
 function show(view) {
+  // Unknown names are ignored so a stray [data-view] can never blank the window.
+  if (!document.getElementById(`view-${view}`)) return;
   S.view = view;
   if (view !== 'discover' && view !== 'project') window.FMods?.unscope?.();
   $$('.view').forEach((x) => x.classList.toggle('is-active', x.id === `view-${view}`));
@@ -735,7 +737,7 @@ $('#cx-open').addEventListener('click', () => { FUI.closeMenu(); openInstance(ct
 $('#cx-verify').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(), false); });
 
 document.addEventListener('keydown', (e) => {
-  if (e.target.matches('input, select, textarea')) return;
+  if (!(e.target instanceof Element) || e.target.matches('input, select, textarea, [contenteditable]')) return;
   if (e.ctrlKey && e.key.toLowerCase() === 'n') { e.preventDefault(); show('create'); }
   if (e.key === 'Enter' && S.view === 'instance' && !document.querySelector('.dialog[data-open]')) play(S.current, true);
 });
