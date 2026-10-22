@@ -766,6 +766,14 @@ fn shift_held() -> bool {
     false
 }
 
+/// Whether the window's close button hides the launcher to the tray (set by the UI, on by default).
+static CLOSE_TO_TRAY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+
+#[tauri::command]
+fn set_close_to_tray(on: bool) {
+    CLOSE_TO_TRAY.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
 fn show_main(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.unminimize();
@@ -873,6 +881,18 @@ fn main() {
         })
         .setup(move |app| {
             tray(app)?;
+            // Safe settings always quit on close; the normal window goes to the tray.
+            if let (false, Some(w)) = (safe_mode, app.get_webview_window("main")) {
+                let win = w.clone();
+                w.on_window_event(move |e| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = e {
+                        if CLOSE_TO_TRAY.load(std::sync::atomic::Ordering::Relaxed) {
+                            api.prevent_close();
+                            let _ = win.hide();
+                        }
+                    }
+                });
+            }
             let data_dir = app.path().app_data_dir()?;
             crash_log_hook(data_dir.join("logs"));
             let core = Core::new(data_dir, started, safe_mode)?;
@@ -891,6 +911,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             action,
+            set_close_to_tray,
             theme_action,
             open_login_page,
             ms_window_login,

@@ -535,7 +535,7 @@ const greet = (h) => (h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе �
 const instMeta = (i) => `${LOADER_NAMES[i.loader] || 'Vanilla'} · ${i.version}`;
 const PLAY_D = '<g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M5.669 4.76a1.469 1.469 0 0 1 2.04-1.177c1.062.454 3.442 1.533 6.462 3.276 3.021 1.744 5.146 3.267 6.069 3.958.788.591.79 1.763.001 2.356-.914.687-3.013 2.19-6.07 3.956-3.06 1.766-5.412 2.832-6.464 3.28-.906.387-1.92-.2-2.038-1.177-.138-1.142-.396-3.735-.396-7.237 0-3.5.257-6.092.396-7.235"/></g>';
 const STOP_D = '<g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></g>';
-function svgIco(d) { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 16 16'); s.innerHTML = d; return s; }
+function svgIco(d) { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.innerHTML = d; return s; }
 const togglePlay = (id, stay = false) => (isRunning(id) ? stopGame(id) : play(id, true, stay));
 function renderHome() {
   const acc = S.accounts.accounts.find((a) => a.id === S.accounts.selected);
@@ -662,6 +662,14 @@ async function play(id = S.current, launch = true, stay = false) {
   $('#win-min').addEventListener('click', () => w.minimize());
   $('#win-max').addEventListener('click', () => w.toggleMaximize());
   $('#win-close').addEventListener('click', () => w.close());
+})();
+// Close to tray (on by default). The window itself decides in Rust; the UI only tells it the choice.
+(() => {
+  const on = () => localStorage.getItem('fl.tray') !== '0';
+  const sync = () => window.__TAURI__?.core?.invoke?.('set_close_to_tray', { on: on() })?.catch?.(() => {});
+  $('#fx-tray').checked = on();
+  $('#fx-tray').addEventListener('change', (e) => { localStorage.setItem('fl.tray', e.target.checked ? '1' : '0'); sync(); });
+  sync();
 })();
 
 $('#play').addEventListener('click', () => (isRunning(S.current) ? stopGame(S.current) : play(S.current, true)));

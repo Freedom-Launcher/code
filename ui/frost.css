@@ -33,6 +33,18 @@ html[data-motion="on"] .welcome:not([hidden]) .wc-card, html[data-motion="on"] .
 .w-list .w-row, .palette[data-open] .is-new, .pop[data-open] .menu-item, .sk-badge { animation-fill-mode: backwards; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(calc(var(--shift) * 2)) scale(.98); } }
 
+/* ---------- 4. Nothing frosted inside the frosted panel ----------
+   .main is already a backdrop-filter; a second one inside it (sticky toolbar, column header, selection bar,
+   play bar) is painted black by WebView2. These bars use dense tints instead. */
+.main .ct-top, .main .ct-head, .main .ct-bar, .main .home-bar,
+html[data-wall] .main .ct-top.is-stuck, html[data-wall] .main .ct-head.is-stuck {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+html[data-wall="on"] .main .ct-top.is-stuck, html[data-wall="on"] .main .ct-head.is-stuck { background: rgba(17, 19, 25, .94); }
+html[data-wall="on"][data-theme="light"] .main .ct-top.is-stuck, html[data-wall="on"][data-theme="light"] .main .ct-head.is-stuck { background: rgba(255, 255, 255, .94); }
+.main .home-bar, .main .ct-bar { background: rgba(20, 21, 27, .97); }
+[data-theme="light"] .main .home-bar, [data-theme="light"] .main .ct-bar { background: rgba(255, 255, 255, .97); }
+
 /* ---------- 3. Chips over pictures: solid tints ---------- */
 .hero-chip, .hero-view, .c-banner-chip, .hcard > .pin, .sk-t, .sk-badge {
   -webkit-backdrop-filter: none !important; backdrop-filter: none !important;

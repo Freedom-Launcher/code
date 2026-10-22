@@ -13,8 +13,8 @@ html:not([data-theme="light"]) {
 }
 
 /* ---------- Rail: icons only, state by opacity, no plaque ---------- */
-html:not([data-theme="light"]) .app { grid-template-columns: calc(58px * var(--sz-rail, 1)) 1fr; }
-html:not([data-theme="light"])[data-l-rail="right"] .app { grid-template-columns: minmax(0, 1fr) calc(58px * var(--sz-rail, 1)); }
+html:not([data-theme="light"]):not([data-wall="on"]):not([data-panels="on"]) .app { grid-template-columns: calc(58px * var(--sz-rail, 1)) 1fr; }
+html:not([data-theme="light"]):not([data-wall="on"]):not([data-panels="on"])[data-l-rail="right"] .app { grid-template-columns: minmax(0, 1fr) calc(58px * var(--sz-rail, 1)); }
 html:not([data-theme="light"]) .rail-btn { width: 40px; height: 40px; color: var(--text); opacity: .55; background: none;
   transition: opacity 120ms ease, transform 120ms ease; }
 html:not([data-theme="light"]) .rail-btn:hover { opacity: .9; background: none; }
@@ -49,7 +49,7 @@ html:not([data-theme="light"]) .hcard .hp { background: #fff; color: #000; }
 html:not([data-theme="light"]) .view { scrollbar-width: none; }
 html:not([data-theme="light"]) .view::-webkit-scrollbar { display: none; }
 
-/* ---------- Page change: short rise + fade (no fill-mode, so nothing lingers on .view afterwards) ---------- */
-@keyframes fl-quiet-in { from { opacity: 0; transform: translateY(6px); } }
+/* ---------- Page change: short rise, transform only (opacity would turn the view into a backdrop root, frost.css rule 2) ---------- */
+@keyframes fl-quiet-in { from { transform: translateY(6px); } }
 html:not([data-theme="light"]):not([data-motion="off"]) .view.is-active { animation: fl-quiet-in 220ms var(--ease-out) backwards; }
 @media (prefers-reduced-motion: reduce) { .view.is-active { animation: none !important; } }
