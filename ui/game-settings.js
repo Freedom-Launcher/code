@@ -10,13 +10,13 @@
   const WIN = /Windows/.test(navigator.userAgent);
   const st = { game: {}, javas: {}, found: null, mem: { total_mb: 8192, recommended_mb: 4096 } };
   const gb = (mb) => `${(mb / 1024).toFixed(1).replace('.0', '')} ГБ`;
-  const svg = (d) => `<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">${d}</svg>`;
+  const svg = (d) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">${d}</svg>`;
   const I = {
-    find: '<path d="M192,112a80,80,0,1,1-80-80A80,80,0,0,1,192,112Z" class="duo"/><path d="M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z"/>',
-    folder: '<path d="M208,88v24H69.77a8,8,0,0,0-7.59,5.47L32,208V64a8,8,0,0,1,8-8H93.33a8,8,0,0,1,4.8,1.6L128,80h72A8,8,0,0,1,208,88Z" class="duo"/><path d="M248.23,112.31A20,20,0,0,0,232,104H220V88a20,20,0,0,0-20-20H132L105.34,48a20.12,20.12,0,0,0-12-4H40A20,20,0,0,0,20,64V208a12,12,0,0,0,12,12H211.1a12,12,0,0,0,11.33-8l28.49-81.47.06-.17A20,20,0,0,0,248.23,112.31ZM92,68l28.8,21.6A12,12,0,0,0,128,92h68v12H69.77a20,20,0,0,0-18.94,13.58L44,137.15V68ZM202.59,196H48.89l23.72-68H226.37Z"/>',
-    down: '<path d="M228,144v64a12,12,0,0,1-12,12H40a12,12,0,0,1-12-12V144a12,12,0,0,1,24,0v52H204V144a12,12,0,0,1,24,0Zm-108.49,8.49a12,12,0,0,0,17,0l40-40a12,12,0,0,0-17-17L140,115V32a12,12,0,0,0-24,0v83L96.49,95.51a12,12,0,0,0-17,17Z"/>',
-    x: '<path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/>',
-    plus: '<path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"/>',
+    find: '<circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/>',
+    folder: '<path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/>',
+    down: '<path d="M8 3v7m-3-3 3 3 3-3M3.5 13h9"/>',
+    x: '<path d="m4.5 4.5 7 7m0-7-7 7"/>',
+    plus: '<path d="M8 3.5v9M3.5 8h9"/>',
   };
   const btn = (label, icon, cls = '') => el('button', { type: 'button', class: `btn btn-sm ${cls}`, html: `${svg(icon)}<span class="lbl">${label}</span>` });
   const iconBtn = (icon, label) => el('button', { type: 'button', class: 'btn btn-ghost btn-icon btn-sm', 'aria-label': label, 'data-tip': label, html: svg(icon) });

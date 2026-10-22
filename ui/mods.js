@@ -21,7 +21,7 @@
   const modded = (i) => supports(i, 'mod');
   const fmtN = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)} млн` : n >= 1e3 ? `${Math.round(n / 1e3)} тыс` : String(n));
   const CDN = /^https:\/\/(?:cdn\.modrinth\.com|media\.forgecdn\.net)\/[^"'\\()\s]+$/;
-  const TRASH = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M200,56V208a8,8,0,0,1-8,8H64a8,8,0,0,1-8-8V56Z" class="duo"/><path d="M216,48H180V36A28,28,0,0,0,152,8H104A28,28,0,0,0,76,36V48H40a12,12,0,0,0,0,24h4V208a20,20,0,0,0,20,20H192a20,20,0,0,0,20-20V72h4a12,12,0,0,0,0-24ZM100,36a4,4,0,0,1,4-4h48a4,4,0,0,1,4,4V48H100Zm88,168H68V72H188ZM116,104v64a12,12,0,0,1-24,0V104a12,12,0,0,1,24,0Zm48,0v64a12,12,0,0,1-24,0V104a12,12,0,0,1,24,0Z"/></svg>';
+  const TRASH = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>';
   const fail = (e) => toast(String(e), { error: true });
   const empty = (title, ...rest) => el('div', { class: 'table-empty' }, el('b', {}, title), ...rest);
   const selectSeg = (root, kind) => {
@@ -83,7 +83,7 @@
   // like an instance picked in Modrinth's Browse; without one it is all of Modrinth.
   const where = () => ({ instance: target, kind, ...(kind === 'datapack' ? { world: dworld } : {}) });
 
-  const LOCK = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216,96V208a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V96a8,8,0,0,1,8-8H208A8,8,0,0,1,216,96Z" class="duo"/><path d="M208,76H180V56A52,52,0,0,0,76,56V76H48A20,20,0,0,0,28,96V208a20,20,0,0,0,20,20H208a20,20,0,0,0,20-20V96A20,20,0,0,0,208,76ZM100,56a28,28,0,0,1,56,0V76H100ZM204,204H52V100H204Zm-60-52a16,16,0,1,1-16-16A16,16,0,0,1,144,152Z"/></svg>';
+  const LOCK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
   function paintScope() {
     const i = scope && byId(scope);
     if (scope && !i) scope = null;
@@ -189,10 +189,10 @@
     return b;
   }
 
-const CHEV = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216.49,104.49l-80,80a12,12,0,0,1-17,0l-80-80a12,12,0,0,1,17-17L128,159l71.51-71.52a12,12,0,0,1,17,17Z"/></svg>';
-  const GRIP = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M108,60A16,16,0,1,1,92,44,16,16,0,0,1,108,60Zm56,16a16,16,0,1,0-16-16A16,16,0,0,0,164,76ZM92,112a16,16,0,1,0,16,16A16,16,0,0,0,92,112Zm72,0a16,16,0,1,0,16,16A16,16,0,0,0,164,112ZM92,180a16,16,0,1,0,16,16A16,16,0,0,0,92,180Zm72,0a16,16,0,1,0,16,16A16,16,0,0,0,164,180Z"/></svg>';
-  const BAN = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm84,108a83.6,83.6,0,0,1-16.75,50.28L77.72,60.75A84,84,0,0,1,212,128ZM44,128A83.6,83.6,0,0,1,60.75,77.72L178.28,195.25A84,84,0,0,1,44,128Z"/></svg>';
-  const XS = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></svg>';
+const CHEV = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m2.5 3.75 2.5 2.5 2.5-2.5"/></svg>';
+  const GRIP = '<svg viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/><circle cx="3" cy="7" r="1.1"/><circle cx="7" cy="7" r="1.1"/><circle cx="3" cy="11" r="1.1"/><circle cx="7" cy="11" r="1.1"/></svg>';
+  const BAN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><path d="m4.6 11.4 6.8-6.8"/></svg>';
+  const XS = '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m3 3 4 4M7 3 3 7"/></svg>';
   const ENV_RU = { client: 'Клиент', server: 'Сервер' };
   const lk = () => kind === 'mod' || kind === 'modpack';
   const chev = () => el('i', { class: 'disc-chev', html: CHEV });
@@ -419,7 +419,7 @@ const CHEV = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hid
   }
 
   // ---------- Pages (Modrinth style) or endless scroll ----------
-  const ARR = (d) => `<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">${d}</svg>`;
+  const ARR = (d) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
   function nums() {
     const out = [], add = (n) => out.push(n);
     const lo = Math.max(2, page - 1), hi = Math.min(pages - 1, page + 1);
@@ -438,7 +438,7 @@ const CHEV = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hid
     const btn = (cls, html, n, lbl) => el('button', { type: 'button', class: `pg-b ${cls}`, 'aria-label': lbl, disabled: n < 1 || n > pages || n === page, html, onclick: go(n) });
     const list = nums().map((n) => (n === '…' ? el('span', { class: 'pg-gap' }, '…')
       : el('button', { type: 'button', class: 'pg-b pg-n', 'aria-current': n === page ? 'page' : null, onclick: go(n) }, String(n))));
-    $('#disc-pages').replaceChildren(btn('pg-arrow', ARR('<path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"/>'), page - 1, 'Предыдущая'), ...list, btn('pg-arrow', ARR('<path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"/>'), page + 1, 'Следующая'));
+    $('#disc-pages').replaceChildren(btn('pg-arrow', ARR('M10 3.5 5.5 8l4.5 4.5'), page - 1, 'Предыдущая'), ...list, btn('pg-arrow', ARR('M6 3.5 10.5 8 6 12.5'), page + 1, 'Следующая'));
     $('#disc-per').value = String(per());
   }
   $('#disc-per').addEventListener('change', (e) => { setLook({ per_page: +e.target.value }); search(true); });

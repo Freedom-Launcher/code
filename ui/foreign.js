@@ -6,7 +6,7 @@
   const SRC = { prism: 'Prism Launcher', multimc: 'MultiMC', curseforge: 'CurseForge', atlauncher: 'ATLauncher', gdlauncher: 'GDLauncher', modrinth: 'Modrinth App', minecraft: 'Minecraft Launcher', folder: 'Папка' };
   const ORDER = Object.keys(SRC);
   const STAGE = { prepare: 'Читаем сборку', copy: 'Копируем файлы', done: 'Готово' };
-  const CHECK = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></svg>';
+  const CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 8.2 2.6 2.6L12 5.4"/></svg>';
   const plural = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
   const doneKey = 'fl.foreign.done';
   const done = () => { try { return new Set(JSON.parse(localStorage.getItem(doneKey) || '[]')); } catch { return new Set(); } };

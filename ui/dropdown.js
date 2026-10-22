@@ -9,8 +9,8 @@
   let uid = 0, typed = '', typedAt = 0;
 
   function icon(d) {
-    const s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '0 0 256 256'); s.setAttribute('aria-hidden', 'true');
-    s.setAttribute('class', 'pi'); s.setAttribute('fill', 'currentColor'); s.innerHTML = d;
+    const s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '0 0 16 16'); s.setAttribute('aria-hidden', 'true');
+    const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); s.append(p);
     return s;
   }
 
@@ -24,7 +24,7 @@
     if (sel.getAttribute('aria-label')) btn.setAttribute('aria-label', sel.getAttribute('aria-label'));
     if (sel.dataset.id) btn.dataset.id = `${sel.dataset.id}.button`;
     const txt = document.createElement('span'); txt.className = 'dd-value';
-    btn.append(txt, icon('<path d="M216.49,104.49l-80,80a12,12,0,0,1-17,0l-80-80a12,12,0,0,1,17-17L128,159l71.51-71.52a12,12,0,0,1,17,17Z"/>'));
+    btn.append(txt, icon('M4.5 6.5 8 10l3.5-3.5'));
     sel.classList.add('dd-native'); sel.tabIndex = -1; sel.setAttribute('aria-hidden', 'true');
     sel.after(btn);
     const sync = () => {
@@ -67,7 +67,7 @@
       it.setAttribute('aria-selected', String(o.selected));
       if (o.disabled) it.setAttribute('aria-disabled', 'true');
       const t = document.createElement('span'); t.textContent = o.textContent;
-      it.append(t, icon('<path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/>'));
+      it.append(t, icon('M3.5 8.5 6.5 11.5 12.5 4.5'));
       it._o = o; list.append(it); items.push(it);
     };
     for (const n of sel.children) {
