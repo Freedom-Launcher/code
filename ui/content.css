@@ -303,3 +303,14 @@ html[data-wall="on"] .ct-top.is-stuck, html[data-wall="on"] .ct-head.is-stuck {
 }
 html[data-wall="on"] .ct-top.is-stuck { box-shadow: 0 1px 0 var(--glass-border); }
 .ct-list.is-grid .ct-head { border-radius: 0; }
+
+/* Duplicate mods */
+.ct-dupes {
+  display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; margin-bottom: var(--s-3); padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-card); background: color-mix(in srgb, var(--warn, #e5b454) 9%, var(--surface-1));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn, #e5b454) 30%, transparent);
+}
+.ct-dupes-b { display: flex; flex-direction: column; gap: 2px; flex: 1 1 320px; min-width: 0; }
+.ct-dupes-b b { color: var(--text-1); }
+.ct-dupes-b span { color: var(--text-2); font-size: var(--text-sm); }
+.ct-dupes-acts { display: flex; gap: var(--s-2); }

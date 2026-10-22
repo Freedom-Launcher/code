@@ -188,7 +188,41 @@
     }
     const rows = visible();
     if (!rows.length) { box.replaceChildren(empty('Ничего не найдено', textBtn('Сбросить фильтры', reset))); return; }
-    box.replaceChildren(el('div', { class: `ct-list${cols > 1 ? ' is-grid' : ''}`, 'data-cols': cols }, head(rows), ...rows.map(row)));
+    box.replaceChildren(...[dupStrip(), el('div', { class: `ct-list${cols > 1 ? ' is-grid' : ''}`, 'data-cols': cols }, head(rows), ...rows.map(row))].filter(Boolean));
+  }
+
+  // ---------- Duplicates ----------
+  // Two enabled copies of one mod crash the game, so point them out and offer to keep the newest.
+  const stem = (f) => f.toLowerCase().replace(/\.(jar|zip)(\.disabled)?$/, '').split(/[-_+ ](?=v?\d)/)[0];
+  const dupHidden = new Set();
+  function dupes() {
+    if (kind !== 'mod') return [];
+    const g = new Map();
+    for (const m of items) {
+      if (!m.enabled) continue;
+      const k = m.project_id ? `p:${m.project_id}` : `f:${stem(m.file)}`;
+      g.set(k, [...(g.get(k) || []), m]);
+    }
+    const age = (m) => (m.published ? Date.parse(m.published) / 1000 : 0) || m.added || 0;
+    return [...g.values()].filter((l) => l.length > 1).map((l) => l.sort((a, b) => age(b) - age(a)));
+  }
+  function dupStrip() {
+    const ds = dupes();
+    const key = `${inst}:${ds.flat().map((m) => m.file).sort().join('|')}`;
+    if (!ds.length || dupHidden.has(key)) return null;
+    const names = ds.map((l) => l[0].title || stem(l[0].file));
+    const old = ds.flatMap((l) => l.slice(1));
+    const fix = textBtn('Отключить старые', async (b) => {
+      b.disabled = true;
+      await bulk(old, 'Выключаем', async (m) => { await call('mods.toggle', { ...loc(), file: m.file, enabled: false }); m.enabled = false; });
+      paint();
+    }, 'btn-primary');
+    const later = textBtn('Не сейчас', () => { dupHidden.add(key); paint(); }, 'btn-ghost');
+    return el('div', { class: 'ct-dupes', id: 'ct-dupes', role: 'status', 'data-id': 'instance.content.duplicates' },
+      el('div', { class: 'ct-dupes-b' },
+        el('b', {}, names.length === 1 ? `«${names[0]}» установлен дважды` : `Установлены дважды: ${names.join(', ')}`),
+        el('span', {}, `Игра не запустится с двумя копиями одного мода. ${old.length === 1 ? 'Оставим новую версию, старую выключим (файл останется)' : 'Оставим новые версии, старые выключим (файлы останутся)'}.`)),
+      el('div', { class: 'ct-dupes-acts' }, fix, later));
   }
 
   function skeleton() {
