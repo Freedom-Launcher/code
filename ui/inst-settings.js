@@ -169,7 +169,7 @@
     const row = el('div', { class: 'isx-env-r' },
       el('input', { class: 'field mono', value: k, placeholder: 'ИМЯ', spellcheck: false, 'aria-label': 'Имя' }),
       el('input', { class: 'field mono', value: v, placeholder: 'значение', spellcheck: false, 'aria-label': 'Значение' }));
-    const rm = el('button', { type: 'button', class: 'btn btn-ghost btn-icon btn-sm', 'aria-label': 'Убрать', html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m4.5 4.5 7 7m0-7-7 7"/></svg>' });
+    const rm = el('button', { type: 'button', class: 'btn btn-ghost btn-icon btn-sm', 'aria-label': 'Убрать', html: '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></svg>' });
     rm.addEventListener('click', () => { row.classList.add('is-out'); setTimeout(() => { row.remove(); dirty(); }, 160); });
     row.append(rm);
     return row;

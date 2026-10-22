@@ -7,7 +7,7 @@ const call = (name, args = null) => invoke('action', { name, args });
 const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'empty' };
 const KIND = { microsoft: 'Microsoft', offline: 'Офлайн', provider: 'Сервис' };
 const STAGE = { idle: 'Подготовка', loader: 'Готовим загрузчик…', java: 'Java', version: 'Версия', libraries: 'Библиотеки', assets: 'Ресурсы', natives: 'Нативные файлы', launch: 'Запуск', done: 'Готово' };
-const PLAY_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5v9l7-4.5z"/></svg>';
+const PLAY_SVG = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z"/></svg>';
 
 function el(tag, attrs = {}, ...kids) {
   const n = document.createElement(tag);
@@ -234,7 +234,7 @@ const bg = (n, name) => { n.style.backgroundImage = `url("${coverSrc(name)}")`; 
 function coverOpt(name, on, pick) {
   return bg(el('button', { type: 'button', class: 'cover-opt', 'aria-pressed': String(on), 'aria-label': name, 'data-id': `cover.${name}`, onclick: () => pick(name) }), name);
 }
-const X_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m4.5 4.5 7 7m0-7-7 7"/></svg>';
+const X_SVG = '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></svg>';
 // Pictures cropped before (any instance), newest first; one click puts one on this instance.
 // Stamps are content hashes from the core, so a URL always means the same picture.
 const artStamp = (name) => (/^(?:icon|cover)-([0-9a-f]{16})\./.exec(name || '') || [])[1] || String(Date.now());
@@ -293,7 +293,7 @@ function coverStrip(i, after) {
   out.push(libOpts(i, 'cover', after));
   out.push(...COVERS.map((n) => coverOpt(n, n === cur, () => pick(n))));
   out.push(el('button', { type: 'button', class: 'cover-opt cover-add', 'aria-label': 'Своё фото', 'data-tip': 'Своё фото', 'data-id': 'cover.add',
-    html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>', onclick: () => pickArt(i, 'cover', after) }));
+    html: '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"/></svg>', onclick: () => pickArt(i, 'cover', after) }));
   return out;
 }
 function renderRail() {
@@ -335,7 +335,7 @@ function renderInstancePage() {
   pb.classList.toggle('is-running', on);
   pb.classList.toggle('btn-primary', !on);
   $('#play-label').textContent = on ? 'Остановить' : 'Играть';
-  pb.querySelector('svg').innerHTML = on ? '<rect x="4" y="4" width="8" height="8" rx="1.5"/>' : '<path d="M5 3.5v9l7-4.5z"/>';
+  pb.querySelector('svg').innerHTML = on ? '<path d="M216,56V200a16,16,0,0,1-16,16H56a16,16,0,0,1-16-16V56A16,16,0,0,1,56,40H200A16,16,0,0,1,216,56Z"/>' : '<path d="M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z"/>';
   $('#play-status').hidden = !busy;
   window.FPacks?.paint();
   window.FBlocked?.paintButton();
@@ -385,7 +385,7 @@ function paintCreateCovers() {
   }
   out.push(...COVERS.map((n) => coverOpt(n, n === createCover, (x) => { createCover = x; paintCreateCovers(); })));
   out.push(el('button', { type: 'button', class: 'cover-opt cover-add', 'aria-label': 'Своё фото', 'data-tip': 'Своё фото', 'data-id': 'cover.add',
-    html: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>', onclick: () => pickCreate('cover') }));
+    html: '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"/></svg>', onclick: () => pickCreate('cover') }));
   $('#c-covers').replaceChildren(...out);
 }
 $('#c-banner').addEventListener('click', () => pickCreate('cover'));
@@ -533,8 +533,8 @@ function loadProviders() {
 // ---------- Home: greeting, recent builds, all builds, glass play bar ----------
 const greet = (h) => (h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : h < 23 ? 'Добрый вечер' : 'Доброй ночи');
 const instMeta = (i) => `${LOADER_NAMES[i.loader] || 'Vanilla'} · ${i.version}`;
-const PLAY_D = '<path d="M5 3.5v9l7-4.5z"/>';
-const STOP_D = '<rect x="4" y="4" width="8" height="8" rx="1.5"/>';
+const PLAY_D = '<path d="M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z"/>';
+const STOP_D = '<path d="M216,56V200a16,16,0,0,1-16,16H56a16,16,0,0,1-16-16V56A16,16,0,0,1,56,40H200A16,16,0,0,1,216,56Z"/>';
 function svgIco(d) { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 16 16'); s.innerHTML = d; return s; }
 const togglePlay = (id, stay = false) => (isRunning(id) ? stopGame(id) : play(id, true, stay));
 function renderHome() {

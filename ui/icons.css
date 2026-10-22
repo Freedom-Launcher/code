@@ -1,0 +1,35 @@
+/* Freedom Launcher — icon system. Glyphs: Phosphor Icons 2.1 (MIT, see vendor/phosphor-LICENSE.txt).
+   One family everywhere: Phosphor (MIT) bold outline on a 256 grid, plus a soft duotone fill layer (.duo).
+   The fill wakes up on hover and turns accent on the active item, so state reads without extra chrome. */
+svg.pi.pi { fill: currentColor; stroke: none; overflow: visible; }
+svg.pi .duo { opacity: var(--duo, .2); transition: opacity var(--d-2, 120ms) ease-out, fill var(--d-2, 120ms) ease-out; }
+button:hover > svg.pi .duo, .btn:hover svg.pi .duo, a:hover > svg.pi .duo, .rail-btn:hover svg.pi .duo { opacity: var(--duo-hover, .32); }
+
+/* active / selected: accent-tinted fill */
+.rail-btn[aria-current="page"] svg.pi .duo,
+.set-nav button[aria-selected="true"] svg.pi .duo,
+.isx-nav button[aria-selected="true"] svg.pi .duo,
+[role="tab"][aria-selected="true"] svg.pi .duo,
+[aria-pressed="true"] > svg.pi .duo,
+.seg [aria-selected="true"] svg.pi .duo { fill: var(--accent); opacity: .5; }
+.rail-btn[aria-current="page"] svg.pi { color: var(--text); }
+
+/* primary buttons: fill reads as a lighter inner tone */
+.btn-primary svg.pi .duo { opacity: .3; }
+.ct-danger svg.pi .duo, .danger svg.pi .duo { fill: currentColor; opacity: .22; }
+
+/* sizes tuned for the 256 grid (Phosphor keeps ~12% padding) */
+.rail-btn svg.pi.pi { width: 18px; height: 18px; }
+.pal-ico svg.pi.pi { width: 16px; height: 16px; }
+
+/* instance glyph tiles: the fill carries the tile tint */
+.inst-ico.glyph .ico.pi .duo, .art.glyph .ico.pi .duo { opacity: .38; }
+
+/* dropdowns used stroke colours; mirror them as fills */
+.dd-btn > svg.pi.pi { fill: var(--text-3); }
+.dd-btn:hover > svg.pi.pi { fill: var(--text-2); }
+.dd-btn[aria-expanded="true"] > svg.pi.pi { fill: var(--text); }
+.dd-opt > svg.pi.pi { fill: var(--accent); }
+
+[data-theme="light"] svg.pi .duo { opacity: var(--duo-light, .14); }
+html[data-motion="off"] svg.pi .duo { transition: none; }

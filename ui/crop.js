@@ -20,9 +20,9 @@
     ov.innerHTML = '<div class="crop" role="dialog" aria-modal="true" data-id="dialog.crop"><h2></h2>'
       + '<div class="crop-body"><div class="crop-stage"><canvas class="crop-cv" tabindex="0" aria-label="Область кадра: перетаскивайте, колесо меняет размер"></canvas></div>'
       + '<div class="crop-side"><div class="crop-pv"></div><span class="crop-meta mono"></span></div></div>'
-      + '<div class="crop-zoom"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3M5 7h4"/></svg>'
+      + '<div class="crop-zoom"><svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M156,112a12,12,0,0,1-12,12H80a12,12,0,0,1,0-24h64A12,12,0,0,1,156,112Zm76.49,120.49a12,12,0,0,1-17,0L168,185a92.12,92.12,0,1,1,17-17l47.54,47.53A12,12,0,0,1,232.49,232.49ZM112,180a68,68,0,1,0-68-68A68.08,68.08,0,0,0,112,180Z"/></svg>'
       + '<input type="range" class="ue-sl crop-sl" min="0" max="100" step="0.1" aria-label="Масштаб">'
-      + '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3M5 7h4M7 5v4"/></svg></div>'
+      + '<svg class="pi" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M156,112a12,12,0,0,1-12,12H124v20a12,12,0,0,1-24,0V124H80a12,12,0,0,1,0-24h20V80a12,12,0,0,1,24,0v20h20A12,12,0,0,1,156,112Zm76.49,120.49a12,12,0,0,1-17,0L168,185a92.12,92.12,0,1,1,17-17l47.54,47.53A12,12,0,0,1,232.49,232.49ZM112,180a68,68,0,1,0-68-68A68.08,68.08,0,0,0,112,180Z"/></svg></div>'
       + '<div class="actions"><button type="button" class="btn btn-ghost crop-other">Другое фото</button><span class="spacer"></span>'
       + '<button type="button" class="btn btn-ghost crop-x">Отмена</button><button type="button" class="btn btn-primary crop-ok"><span class="lbl">Сохранить</span></button></div></div>';
     document.body.append(ov);
