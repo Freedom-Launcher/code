@@ -20,18 +20,46 @@ struct Inner {
     starting: HashSet<String>,
     /// Commands to run once a game exits (post-exit hook).
     after_exit: HashMap<String, std::process::Command>,
+    /// How each instance's last game session ended, for the crash report.
+    exits: HashMap<String, Exit>,
+}
+
+/// How a game session ended.
+#[derive(Clone, Debug, serde::Serialize, PartialEq, Eq)]
+pub struct Exit {
+    /// Process exit code; `None` when it was killed by a signal.
+    pub code: Option<i32>,
+    /// Closed from the launcher («Закрыть игру»), so never a crash.
+    pub stopped: bool,
+    /// Session length.
+    pub secs: u64,
+    /// When it ended (unix seconds).
+    pub at: u64,
+    pub crashed: bool,
+}
+
+impl Exit {
+    fn new(code: Option<i32>, stopped: bool, secs: u64) -> Self {
+        Exit { code, stopped, secs, at: crate::unix_now(), crashed: !stopped && code != Some(0) }
+    }
 }
 
 /// Drops processes that have exited.
 fn reap(g: &mut Inner) {
     let mut done = Vec::new();
+    let mut ended = Vec::new();
     g.children.retain(|id, (c, t)| {
-        let alive = matches!(c.try_wait(), Ok(None));
-        if !alive {
-            done.push((id.clone(), t.elapsed().as_secs()));
-        }
-        alive
+        let code = match c.try_wait() {
+            Ok(None) => return true,
+            Ok(Some(st)) => st.code(),
+            Err(_) => None,
+        };
+        let secs = t.elapsed().as_secs();
+        done.push((id.clone(), secs));
+        ended.push((id.clone(), Exit::new(code, false, secs)));
+        false
     });
+    g.exits.extend(ended);
     for (id, _) in &done {
         if let Some(mut c) = g.after_exit.remove(id) {
             let _ = c.spawn();
@@ -65,6 +93,14 @@ impl Running {
         let mut g = self.lock();
         g.starting.remove(id);
         g.children.insert(id.to_owned(), (child, Instant::now()));
+        g.exits.remove(id);
+    }
+
+    /// How each instance's last session ended (only instances that ran since the launcher started).
+    pub fn exits(&self) -> HashMap<String, Exit> {
+        let mut g = self.lock();
+        reap(&mut g);
+        g.exits.clone()
     }
 
     /// Runs `cmd` after this instance's game exits.
@@ -103,7 +139,9 @@ impl Running {
             Some((mut c, t)) => {
                 let _ = c.kill();
                 let _ = c.wait();
-                g.finished.push((id.to_owned(), t.elapsed().as_secs()));
+                let secs = t.elapsed().as_secs();
+                g.finished.push((id.to_owned(), secs));
+                g.exits.insert(id.to_owned(), Exit::new(None, true, secs));
                 if let Some(mut c) = g.after_exit.remove(id) {
                     let _ = c.spawn();
                 }
@@ -145,5 +183,24 @@ mod tests {
         let _ = c.wait();
         r.started("i2", c);
         assert_eq!(r.list().0, Vec::<String>::new());
+        let e = r.exits().remove("i2").unwrap();
+        assert_eq!(e.code, Some(0));
+        assert!(!e.crashed);
+    }
+
+    #[test]
+    fn failed_exit_is_a_crash_but_stop_is_not() {
+        let r = Running::default();
+        assert!(r.begin("i3"));
+        let mut c = Command::new("false").spawn().unwrap();
+        let _ = c.wait();
+        r.started("i3", c);
+        let e = r.exits().remove("i3").unwrap();
+        assert!(e.crashed && !e.stopped && e.code == Some(1));
+        assert!(r.begin("i4"));
+        r.started("i4", Command::new("sleep").arg("5").spawn().unwrap());
+        assert!(r.stop("i4"));
+        let e = r.exits().remove("i4").unwrap();
+        assert!(e.stopped && !e.crashed);
     }
 }

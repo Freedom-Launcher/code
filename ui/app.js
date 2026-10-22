@@ -581,7 +581,9 @@ function setRunning() {
 async function refreshRunning() {
   const r = await call('game.running').catch(() => null);
   if (!r) return;
+  S.exits = r.exits || {};
   const next = r.running || [];
+  if (next.join() !== S.running.join()) window.FCrash?.exited(S.exits);
   if (next.join() === S.running.join()) return;
   for (const gone of S.running) if (!next.includes(gone)) window.FAddons?.emit('game.exited', { instance: gone });
   S.running = next;

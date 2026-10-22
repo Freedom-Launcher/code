@@ -335,8 +335,9 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
 /// Instances whose game is running, and those still being prepared.
 pub async fn running(core: &Core) -> Value {
     let (running, starting) = core.game_running.list();
+    let exits = core.game_running.exits();
     let _ = record_playtime(core).await;
-    json!({ "running": running, "starting": starting })
+    json!({ "running": running, "starting": starting, "exits": exits })
 }
 
 /// Closes the instance's game.
