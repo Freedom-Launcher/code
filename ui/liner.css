@@ -1,0 +1,55 @@
+/* Freedom Launcher — quiet layer (dark theme): black canvas with one floating panel, a narrow label-less rail,
+   white primary action, no chrome (plaques, borders, scrollbars). Loaded after every other sheet. */
+html:not([data-theme="light"]) {
+  --bg: #000;
+  --surface-1: #0a0a0a;
+  --surface-2: #141414;
+  --surface-3: #1a1a1a;
+  --hover: rgba(255, 255, 255, .04);
+  --press: rgba(255, 255, 255, .09);
+  --text: #fff;
+  --text-2: rgba(255, 255, 255, .70);
+  --text-3: rgba(255, 255, 255, .45);
+}
+
+/* ---------- Rail: icons only, state by opacity, no plaque ---------- */
+html:not([data-theme="light"]) .app { grid-template-columns: calc(58px * var(--sz-rail, 1)) 1fr; }
+html:not([data-theme="light"])[data-l-rail="right"] .app { grid-template-columns: minmax(0, 1fr) calc(58px * var(--sz-rail, 1)); }
+html:not([data-theme="light"]) .rail-btn { width: 40px; height: 40px; color: var(--text); opacity: .55; background: none;
+  transition: opacity 120ms ease, transform 120ms ease; }
+html:not([data-theme="light"]) .rail-btn:hover { opacity: .9; background: none; }
+html:not([data-theme="light"]) .rail-btn:active { transform: scale(.94); }
+html:not([data-theme="light"]) .rail-btn[aria-current="page"] { opacity: 1; background: none; }
+html:not([data-theme="light"]) .rail-btn.add { box-shadow: none; }
+html:not([data-theme="light"]) .tile { box-shadow: none; border-radius: calc(8px * var(--rk-card, 1)); }
+html:not([data-theme="light"]) .tile[aria-current="page"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px #fff; }
+
+/* ---------- Floating panel on the black canvas ---------- */
+html:not([data-theme="light"]) .app > .main { margin: 0 12px 12px 0; border-radius: calc(16px * var(--rk-dialog, 1)); background: var(--surface-1); box-shadow: none; }
+html:not([data-theme="light"])[data-l-rail="right"] .app > .main { margin: 0 0 12px 12px; }
+
+/* ---------- Primary action: white with black text ---------- */
+html:not([data-theme="light"]) .btn-primary { background: #f4f4f4; color: #000; }
+html:not([data-theme="light"]) .btn-primary:hover { background: #fff; }
+html:not([data-theme="light"]) .btn-primary:active { background: #e2e2e2; transform: scale(.97); }
+html:not([data-theme="light"]) .btn-primary kbd { background: rgba(0, 0, 0, .08); }
+
+/* ---------- Home: quieter tiles, bigger headings ---------- */
+html:not([data-theme="light"]) .home-h { font-size: 30px; letter-spacing: -.035em; }
+html:not([data-theme="light"]) .rc { border-radius: calc(8px * var(--rk-card, 1)); background: var(--surface-2); }
+html:not([data-theme="light"]) .rc:hover { background: var(--surface-3); }
+html:not([data-theme="light"]) .rc .pl { background: #fff; color: #000; }
+html:not([data-theme="light"]) .home-sec { margin-top: 40px; }
+html:not([data-theme="light"]) .sec-head { margin-bottom: 16px; }
+html:not([data-theme="light"]) .hcard > i { box-shadow: none; border-radius: calc(8px * var(--rk-card, 1)); }
+html:not([data-theme="light"]) .hcard:hover > i { box-shadow: 0 16px 36px rgba(0, 0, 0, .5); }
+html:not([data-theme="light"]) .hcard .hp { background: #fff; color: #000; }
+
+/* ---------- No scrollbars ---------- */
+html:not([data-theme="light"]) .view { scrollbar-width: none; }
+html:not([data-theme="light"]) .view::-webkit-scrollbar { display: none; }
+
+/* ---------- Page change: short rise + fade (no fill-mode, so nothing lingers on .view afterwards) ---------- */
+@keyframes fl-quiet-in { from { opacity: 0; transform: translateY(6px); } }
+html:not([data-theme="light"]):not([data-motion="off"]) .view.is-active { animation: fl-quiet-in 220ms var(--ease-out) backwards; }
+@media (prefers-reduced-motion: reduce) { .view.is-active { animation: none !important; } }
