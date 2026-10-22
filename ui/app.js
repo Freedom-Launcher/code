@@ -553,6 +553,8 @@ function renderHome() {
   if (!c) return;
   bar.dataset.inst = c.id;
   bg($('#hb-cover'), iconName(c));
+  bar.style.setProperty('--hb-art', `url("${coverSrc(coverName(c))}")`);
+  $('#view-home').style.setProperty('--home-art', `url("${coverSrc(coverName(c))}")`);
   $('#hb-name').textContent = c.name;
   $('#hb-meta').textContent = instMeta(c);
   $('#hb-played').textContent = playedText(c);

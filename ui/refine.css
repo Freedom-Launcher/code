@@ -1,0 +1,223 @@
+/* Freedom Launcher — refinement layer: materials, depth and hierarchy over the existing layout.
+   Nothing here moves or renames anything; it only makes surfaces read as surfaces.
+   Rules: no backdrop-filter (see frost.css), no opacity left behind by animations,
+   every color comes from tokens so themes keep working. Loaded right before frost.css. */
+:root {
+  --hl: inset 0 1px 0 rgba(255, 255, 255, .055);
+  --hl-strong: inset 0 1px 0 rgba(255, 255, 255, .1);
+  --card-grad: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, 0) 70%);
+  --lift-1: 0 1px 2px rgba(0, 0, 0, .22), 0 6px 18px -8px rgba(0, 0, 0, .4);
+  --lift-2: 0 2px 6px rgba(0, 0, 0, .22), 0 22px 44px -16px rgba(0, 0, 0, .62);
+  --accent-glow: color-mix(in srgb, var(--accent) 38%, transparent);
+  --scrim: rgba(4, 6, 10, .62);
+}
+[data-theme="light"] {
+  --hl: inset 0 1px 0 rgba(255, 255, 255, .75);
+  --hl-strong: inset 0 1px 0 rgba(255, 255, 255, .9);
+  --card-grad: linear-gradient(180deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 70%);
+  --lift-1: 0 1px 2px rgba(20, 30, 60, .06), 0 8px 22px -10px rgba(20, 30, 60, .18);
+  --lift-2: 0 2px 6px rgba(20, 30, 60, .07), 0 22px 44px -18px rgba(20, 30, 60, .3);
+  --scrim: rgba(8, 12, 20, .5);
+}
+
+/* ---------- Materials: denser glass, lit top edge, cards that sit above the panel ---------- */
+html[data-wall="on"][data-theme="dark"] {
+  --glass: rgba(11, 13, 18, min(.94, calc(var(--glass-a) + .2)));
+  --wall-dim: rgba(0, 0, 0, .42);
+  --surface-2: rgba(255, 255, 255, .055);
+  --surface-3: rgba(255, 255, 255, .09);
+  --line: rgba(255, 255, 255, .085);
+}
+html[data-wall="on"] .rail, html[data-wall="on"] .main {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, 0) 320px), var(--glass);
+  box-shadow: inset 0 0 0 1px var(--glass-border), var(--hl-strong), var(--glass-shadow);
+}
+html[data-wall="on"][data-theme="light"] .rail, html[data-wall="on"][data-theme="light"] .main {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .35), rgba(255, 255, 255, 0) 320px), var(--glass);
+}
+html[data-panels="on"][data-wall="off"] .rail, html[data-panels="on"][data-wall="off"] .main {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .02), rgba(255, 255, 255, 0) 320px), var(--surface-1);
+  box-shadow: 0 0 0 1px var(--line), var(--hl), 0 10px 30px rgba(0, 0, 0, .18);
+}
+
+.card, .set-card, #set-game .rows, .mod-list, .rows {
+  background-image: var(--card-grad);
+  box-shadow: inset 0 0 0 1px var(--line), var(--hl);
+}
+
+/* ---------- Type: clearer steps between page, section and item ---------- */
+.home-h { margin-bottom: 22px; font-size: calc(30px * var(--sz-text, 1)); font-weight: 680; letter-spacing: -.034em; }
+.page-h, .set-h { letter-spacing: -.03em; }
+.lib-gh b { font-weight: var(--w-semibold); letter-spacing: -.01em; }
+.lib-gh span { font-variant-numeric: tabular-nums; }
+.set-label, #set-game .gs-h { color: var(--text-3); font-size: var(--text-xs); font-weight: var(--w-semibold); letter-spacing: .06em; text-transform: uppercase; }
+
+/* ---------- Buttons: lit primary, tactile secondary ---------- */
+.btn-primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 86%, #fff), var(--accent));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .38), inset 0 -1px 0 rgba(0, 0, 0, .12), 0 1px 2px rgba(0, 0, 0, .28), 0 8px 20px -8px var(--accent-glow);
+}
+.btn-primary:hover { background: linear-gradient(180deg, color-mix(in srgb, var(--accent-hover) 84%, #fff), var(--accent-hover)); }
+.btn-primary:active { background: var(--accent-press); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .2); }
+.btn:not(.btn-primary):not(.btn-ghost):not(.btn-danger):not(.btn-live) { box-shadow: inset 0 0 0 1px var(--line), var(--hl); }
+.btn:not(.btn-primary):not(.btn-ghost):not(.btn-danger):not(.btn-live):hover { box-shadow: inset 0 0 0 1px var(--line-strong), var(--hl-strong); }
+.hero .play-btn, .home-play.btn-primary { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), inset 0 -1px 0 rgba(0, 0, 0, .14), 0 2px 4px rgba(0, 0, 0, .25), 0 14px 34px -10px var(--accent-glow); }
+.hero .play-btn:hover, .home-play.btn-primary:hover { transform: translateY(-1px); }
+.hero .play-btn:active, .home-play.btn-primary:active { transform: translateY(0) scale(.98); }
+
+/* Fields read as wells, not as flat strips. */
+[data-theme="dark"] .field { background-image: linear-gradient(180deg, rgba(0, 0, 0, .14), rgba(0, 0, 0, 0)); }
+
+/* Segmented controls and tabs. */
+.seg { box-shadow: inset 0 0 0 1px var(--line); }
+.seg > .seg-pill { box-shadow: var(--hl-strong), 0 1px 3px rgba(0, 0, 0, .3); }
+.tabs button[aria-selected="true"]::after { box-shadow: 0 0 10px var(--accent-glow); }
+
+/* ---------- Rail: an indicator bar instead of a ring ---------- */
+.tile { transition: opacity 140ms ease, box-shadow 160ms ease, transform 160ms var(--ease-out); }
+.tile:hover { transform: translateY(-1px); }
+.tile[aria-current="page"], html[data-wall="on"] .tile[aria-current="page"] {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22), 0 6px 16px -4px rgba(0, 0, 0, .55);
+}
+.tile[aria-current="page"]::before {
+  content: ""; position: absolute; left: -11px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0;
+  background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);
+}
+html[data-l-rail="right"] .tile[aria-current="page"]::before { left: auto; right: -11px; border-radius: 3px 0 0 3px; }
+.rail-btn[aria-current="page"] { box-shadow: inset 0 0 0 1px var(--line), var(--hl); }
+.rail-logo { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 30%, var(--surface-3)), var(--surface-3)); box-shadow: inset 0 0 0 1px var(--line-strong), var(--hl-strong); }
+
+/* ---------- Home ---------- */
+.rc {
+  height: 64px; background-image: var(--card-grad);
+  box-shadow: inset 0 0 0 1px var(--line), var(--hl);
+  transition: background-color 160ms ease, box-shadow 160ms ease, transform 200ms var(--ease-out);
+}
+.rc:hover { transform: translateY(-1px); box-shadow: inset 0 0 0 1px var(--line-strong), var(--hl-strong), var(--lift-1); }
+.rc > i { width: 64px; height: 64px; position: relative; }
+.rc > i::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 55%, rgba(0, 0, 0, .25)); box-shadow: inset -1px 0 0 var(--line); }
+.rc b { font-size: calc(13.5px * var(--sz-text, 1)); }
+.rc .pl { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 6px 14px -4px var(--accent-glow); }
+
+.hcard > i {
+  border-radius: calc(14px * var(--rk-card, 1));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12), inset 0 1px 0 rgba(255, 255, 255, .18), var(--lift-2);
+}
+.hcard:hover > i {
+  transform: translateY(-4px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2), inset 0 1px 0 rgba(255, 255, 255, .24), 0 4px 10px rgba(0, 0, 0, .25), 0 30px 54px -18px rgba(0, 0, 0, .7);
+}
+.hcard b { margin-top: 12px; font-size: calc(13.5px * var(--sz-text, 1)); }
+.hcard:hover b { color: var(--text); }
+.hcard.is-sel > i { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--accent-soft), var(--lift-2); }
+
+.lib-gh { border-radius: var(--r-control); }
+.lib-gh span { box-shadow: inset 0 0 0 1px var(--line); }
+
+.home-bar { box-shadow: inset 0 0 0 1px var(--glass-border, var(--line)), var(--hl-strong), 0 18px 44px -10px rgba(0, 0, 0, .55); }
+/* Home is lit by the build you play: a soft wash of its cover behind the greeting. */
+#view-home { position: relative; isolation: isolate; }
+#view-home::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 420px; z-index: -1; pointer-events: none;
+  background: var(--home-art, none) 50% 30% / cover no-repeat; filter: blur(48px) saturate(1.8) brightness(1.15); opacity: .8;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, .5) 45%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, .5) 45%, transparent 100%);
+}
+[data-theme="light"] #view-home::before { opacity: .35; }
+html[data-cover="none"] #view-home::before { display: none; }
+#view-home .home { position: relative; }
+
+/* The play bar picks up the colour of the build it launches. */
+.home-bar { overflow: hidden; isolation: isolate; }
+.home-bar::before {
+  content: ""; position: absolute; inset: -40px; z-index: -1; pointer-events: none;
+  background: var(--hb-art, none) 20% 50% / cover no-repeat; filter: blur(34px) saturate(1.6); opacity: .7;
+}
+.home-bar::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(8, 10, 14, .1), rgba(8, 10, 14, .55) 60%, rgba(8, 10, 14, .7));
+}
+[data-theme="light"] .home-bar::after { background: linear-gradient(90deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .6) 60%, rgba(255, 255, 255, .72)); }
+.home-bar .hb-mid .chip { background: rgba(0, 0, 0, .28); color: var(--text); }
+[data-theme="light"] .home-bar .hb-mid .chip { background: rgba(255, 255, 255, .6); }
+.hb-open > i { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16), 0 4px 12px rgba(0, 0, 0, .35); }
+.hb-mid .chip { box-shadow: inset 0 0 0 1px var(--line); font-variant-numeric: tabular-nums; }
+
+/* ---------- Instance hero: legible title over any cover ---------- */
+.hero-img::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(90% 70% at 0% 100%, var(--scrim), transparent 62%),
+    linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, .28));
+}
+html[data-wall="on"] .hero, html[data-panels="on"] .hero { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
+.hero h1 { color: #fff; text-shadow: 0 2px 28px rgba(0, 0, 0, .45); }
+[data-theme="light"] .hero h1 { color: var(--text); text-shadow: none; }
+.hero .meta-line { color: rgba(238, 242, 252, .8); }
+[data-theme="light"] .hero .meta-line { color: var(--text-2); }
+.hero .meta-line .mono, .hero .meta-line code {
+  padding: 2px 6px; border-radius: var(--r-chip); background: rgba(0, 0, 0, .32); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1);
+}
+
+/* ---------- Catalog cards ---------- */
+.mod-card {
+  background-image: var(--card-grad);
+  box-shadow: inset 0 0 0 1px var(--line), var(--hl);
+}
+.mod-card:hover { box-shadow: inset 0 0 0 1px var(--line-strong), var(--hl-strong), var(--lift-1); transform: translateY(-2px); }
+.mod-card .mod-ico, .mod-row .mod-ico { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), 0 4px 12px -2px rgba(0, 0, 0, .4); }
+.mod-ico.is-tile { background-image: linear-gradient(160deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 60%); }
+.mod-card .t b { font-size: calc(14px * var(--sz-text, 1)); letter-spacing: -.01em; }
+.mod-card .dl { display: inline-flex; align-items: center; gap: 6px; }
+.mod-row:hover { background: var(--hover); }
+.disc-side { box-shadow: inset 0 0 0 1px var(--line), var(--hl); background-image: var(--card-grad); }
+.disc-opt[aria-pressed="true"] i { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* ---------- Empty states: a mark, not a bare line of text ---------- */
+.empty-stage::before {
+  content: ""; display: block; width: 64px; height: 64px; margin: 0 auto 22px; border-radius: 18px;
+  background:
+    linear-gradient(var(--accent), var(--accent)) 50% 50% / 22px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 50% 50% / 2px 22px no-repeat,
+    linear-gradient(160deg, color-mix(in srgb, var(--accent) 22%, transparent), color-mix(in srgb, var(--accent) 6%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), var(--hl-strong), 0 18px 40px -14px var(--accent-glow);
+}
+
+.empty-home { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: clamp(80px, 18vh, 180px); }
+.empty-home .page-h { margin-bottom: 8px; }
+.empty-mark {
+  display: block; width: 72px; height: 72px; margin-bottom: 24px; border-radius: 20px;
+  background:
+    linear-gradient(var(--accent), var(--accent)) 50% 50% / 24px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 50% 50% / 2px 24px no-repeat,
+    linear-gradient(160deg, color-mix(in srgb, var(--accent) 24%, transparent), color-mix(in srgb, var(--accent) 6%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent), var(--hl-strong), 0 22px 48px -14px var(--accent-glow);
+}
+.empty-sub { margin: 0 0 26px; max-width: 360px; color: var(--text-2); font-size: var(--text-lg); line-height: 1.5; }
+.empty-acts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* ---------- Settings: grouped cards with rhythm ---------- */
+.set-card, #set-game .rows { padding: 2px var(--s-4); }
+.set-main .r + .r { box-shadow: inset 0 1px 0 var(--line); }
+.set-label, #set-game .gs-h { margin-top: 26px; margin-bottom: 8px; padding-left: 2px; }
+.set-nav button { border-radius: var(--r-control); transition: background-color 140ms ease, color 140ms ease; }
+.set-nav button[aria-selected="true"] { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line), var(--hl); }
+.set-search { box-shadow: inset 0 0 0 1px var(--line), var(--hl); }
+.set-tile { background-image: var(--card-grad); box-shadow: inset 0 0 0 1px var(--line), var(--hl); }
+.set-tile b { font-size: calc(30px * var(--sz-text, 1)); letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+
+/* ---------- Instance content table ---------- */
+.tabs { gap: var(--s-6); }
+.tabs button { font-weight: var(--w-medium); }
+.mod-list { border-radius: calc(14px * var(--rk-card, 1)); }
+.mod-row { min-height: 62px; }
+.mod-row .t b { font-size: calc(13.5px * var(--sz-text, 1)); }
+
+/* ---------- Popovers and toasts sit higher than cards ---------- */
+.menu, .toast, .pop[data-open], .dd-pop[data-open] { box-shadow: var(--shadow-pop), var(--hl-strong), 0 24px 60px -20px rgba(0, 0, 0, .6); }
+
+/* ---------- Motion off: no travel ---------- */
+html[data-motion="off"] .rc, html[data-motion="off"] .tile, html[data-motion="off"] .mod-card { transition: none; }
+html[data-motion="off"] .rc:hover, html[data-motion="off"] .tile:hover, html[data-motion="off"] .mod-card:hover,
+html[data-motion="off"] .hcard:hover > i, html[data-motion="off"] .hero .play-btn:hover, html[data-motion="off"] .home-play:hover { transform: none; }
+@media (prefers-reduced-motion: reduce) { .rc:hover, .tile:hover, .hcard:hover > i { transform: none; } }

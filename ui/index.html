@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="editor.css">
   <link rel="stylesheet" href="settings.css">
   <link rel="stylesheet" href="skins.css">
+  <link rel="stylesheet" href="refine.css">
   <link rel="stylesheet" href="frost.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
   <script src="ui.js" defer></script>
@@ -236,9 +237,14 @@
         <div class="addon-page" id="addon-page"></div>
       </section>
       <section class="view" id="view-empty" data-id="view.empty">
-        <div class="narrow">
+        <div class="narrow empty-home">
+          <i class="empty-mark" aria-hidden="true"></i>
           <h1 class="page-h">Сборок пока нет</h1>
-          <button class="btn btn-primary btn-lg" data-view="create" data-id="empty.create"><span class="lbl">Новая сборка</span></button>
+          <p class="empty-sub">Создайте свою сборку с нуля или возьмите готовую из каталога.</p>
+          <div class="empty-acts">
+            <button class="btn btn-primary btn-lg" data-view="create" data-id="empty.create"><span class="lbl">Новая сборка</span></button>
+            <button class="btn btn-lg" data-view="discover" data-id="empty.discover"><span class="lbl">Открыть каталог</span></button>
+          </div>
         </div>
       </section>
       <section class="view" id="view-create" data-id="view.create">
