@@ -32,7 +32,12 @@
   function icon(url, title) {
     const n = el('i', { class: 'mod-ico', 'aria-hidden': 'true' });
     if (url && CDN.test(url)) n.style.backgroundImage = `url("${url}")`;
-    else n.textContent = initials(title);
+    else {
+      // Letter tile tinted by name, so cards without an icon are still easy to tell apart.
+      n.textContent = initials(title);
+      let h = 0; for (const ch of String(title ?? '')) h = (h * 31 + ch.codePointAt(0)) % 360;
+      n.classList.add('is-tile'); n.style.setProperty('--tile', String(h));
+    }
     return n;
   }
 

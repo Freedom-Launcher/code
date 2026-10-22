@@ -89,3 +89,7 @@ select.field { appearance: none; padding-right: 28px;
 .check input::after { content: ""; width: 4px; height: 8px; margin-top: -2px; border: solid var(--on-accent); border-width: 0 2px 2px 0; transform: rotate(45deg) scale(0); transition: transform var(--d-3) var(--ease-spring); }
 .check input:checked { background: var(--accent); box-shadow: none; }
 .check input:checked::after { transform: rotate(45deg) scale(1); }
+/* Polish: visible keyboard focus on every button, consistent disabled fields. */
+.btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.btn-primary:focus-visible { box-shadow: var(--focus-ring), var(--shadow-accent); }
+.field:disabled { opacity: .5; }

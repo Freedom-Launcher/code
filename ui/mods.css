@@ -278,3 +278,15 @@ html[data-motion="on"] .disc-scope:not([hidden]) { animation: fl-card-in 300ms v
   .mod-grid[data-layout="list"] > .mod-card { grid-template-columns: 48px minmax(0, 1fr); grid-template-rows: auto auto auto; }
   .mod-grid[data-layout="list"] .foot { grid-column: 1 / -1; grid-row: auto; flex-direction: row; align-items: center; justify-content: space-between; }
 }
+
+/* Polish: tinted letter tiles, calmer card hover, aligned numbers. */
+.mod-ico.is-tile {
+  --tc: hsl(var(--tile, 220) 62% 58%);
+  background: color-mix(in srgb, var(--tc) 20%, var(--surface-3)); color: color-mix(in srgb, var(--tc) 72%, var(--text));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc) 22%, transparent);
+}
+.mod-card { transition: background-color var(--d-2) var(--ease-out), box-shadow var(--d-2) var(--ease-out), transform var(--d-2) var(--ease-out); }
+.mod-card:hover { box-shadow: inset 0 0 0 1px var(--line-strong), 0 8px 24px rgba(0, 0, 0, .18); transform: translateY(-1px); }
+.mod-card:active { transform: none; }
+.mod-card .dl { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .mod-card:hover { transform: none; } }
