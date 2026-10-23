@@ -14,6 +14,7 @@ use std::{
 use serde_json::{json, Value};
 
 pub mod accounts;
+pub mod agent;
 pub mod art;
 pub mod blocked;
 pub mod bundled;

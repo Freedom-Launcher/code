@@ -173,6 +173,7 @@ async fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
                 access_token: sec.mc_access_token.clone(),
                 xuid: String::new(),
                 user_type: "msa".into(),
+                yggdrasil: None,
             })
         }
         AccountKind::Offline => {
@@ -187,6 +188,7 @@ async fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
                 access_token: "0".into(),
                 xuid: String::new(),
                 user_type: "legacy".into(),
+                yggdrasil: None,
             })
         }
         AccountKind::Provider { provider } => {
@@ -213,6 +215,7 @@ async fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
                 access_token: sec.mc_access_token.clone(),
                 xuid: String::new(),
                 user_type: "mojang".into(),
+                yggdrasil: crate::providers::yggdrasil(core, provider),
             })
         }
     }
@@ -258,7 +261,7 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
             }
         }
     };
-    let opts = LaunchOptions {
+    let mut opts = LaunchOptions {
         java: java.clone(),
         game_dir: inst.game_dir(&core.instances_root()),
         memory_mb: set
@@ -272,6 +275,10 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
         client_id: crate::msauth::client_id().unwrap_or_default(),
         resolution: set.resolution(),
     };
+    if let Some(root) = auth.yggdrasil.as_deref() {
+        let jar = crate::agent::ensure(core).await?;
+        opts.extra_jvm_args.splice(0..0, crate::agent::args(&jar, root));
+    }
     let mut env = Env::current();
     if opts.resolution.is_some() {
         env.features.insert("has_custom_resolution".into(), true);

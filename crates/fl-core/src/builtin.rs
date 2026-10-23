@@ -281,6 +281,17 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         })
         .await
     });
+    // A plugin `.zip` from anywhere (a release in its author's repository).
+    r.register("addons.install", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            path: String,
+        }
+        let A { path } = args(a)?;
+        addons::install_zip(&c.data_dir, std::path::Path::new(&path)).map_err(CoreError::BadArgs)?;
+        let st: addons::State = store::load(&c.path(addons::STATE))?;
+        Ok(json!(addons::list(&c.data_dir, &st)))
+    });
     r.register("addons.folder", P::Internal, false, |c, _| async move {
         let d = addons::dir(&c.data_dir);
         std::fs::create_dir_all(&d)?;

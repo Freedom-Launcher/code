@@ -1,5 +1,9 @@
 // Generated: Russian source text -> tr.
 window.FL_DICT = {
+"Установить плагин": "Eklenti yükle",
+"Архив .zip из репозитория автора": "Yazarın deposundan bir .zip",
+"Выбрать файл…": "Dosya seç…",
+"Плагин установлен. Разрешите его права, чтобы включить.": "Eklenti yüklendi. Açmak için izinlerini ver.",
 "Видеть сборки": "Profilleri görme",
 "Список сборок, их версии и моды. Ничего не меняет.": "Profillerin listesi, sürümleri ve modları. Hiçbir şeyi değiştirmez.",
 "Видеть аккаунты": "Hesapları görme",

@@ -69,6 +69,7 @@ async fn main() {
         access_token: "0".into(),
         xuid: String::new(),
         user_type: "msa".into(),
+        yggdrasil: None,
     };
     let game_dir = core
         .data_dir

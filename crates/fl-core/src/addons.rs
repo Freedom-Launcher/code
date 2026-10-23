@@ -10,6 +10,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::io::Read;
 
 use crate::{
     themes::{safe_rel, valid_id},
@@ -100,6 +101,10 @@ pub const MAX_PAGES: usize = 4;
 pub struct ProviderInfo {
     /// Name of the service shown on the accounts screen.
     pub label: String,
+    /// authlib-injector API root of the service (https, host listed in
+    /// `hosts`). The game then signs in, and loads skins and capes, there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yggdrasil: Option<String>,
 }
 
 fn default_entry() -> String {
@@ -216,6 +221,10 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
         if !(1..=40).contains(&p.label.trim().chars().count()) {
             return Err("account_provider.label: от 1 до 40 символов".into());
         }
+        if let Some(y) = &p.yggdrasil {
+            crate::net::check_url(y, &m.hosts)
+                .map_err(|e| format!("account_provider.yggdrasil: {e}"))?;
+        }
     }
     if !m.pages.is_empty() && !m.permissions.contains(&Permission::UiPages) {
         return Err("pages требуют права ui_pages".into());
@@ -302,6 +311,114 @@ pub fn list(data_dir: &Path, st: &State) -> Vec<Value> {
         .collect()
 }
 
+/// Files a plugin archive may contain.
+const PACKAGE: [&str; 13] = [
+    "html", "js", "css", "json", "png", "jpg", "jpeg", "webp", "svg", "woff2", "woff", "md", "txt",
+];
+const MAX_FILES: usize = 1024;
+const MAX_BYTES: u64 = 64 << 20;
+
+/// Installs a plugin from a `.zip`, as published in any repository's releases:
+/// `addon.json` at the top of the archive or inside one top folder. An
+/// installed copy with the same id is replaced only if the new one loads; its
+/// approval stays, and new permissions are asked about again.
+pub fn install_zip(data_dir: &Path, zip_path: &Path) -> R<String> {
+    let f = fs::File::open(zip_path).map_err(|_| "файл не найден".to_string())?;
+    let mut z = zip::ZipArchive::new(f).map_err(|_| "это не архив .zip".to_string())?;
+    if z.len() > MAX_FILES {
+        return Err(format!("в архиве больше {MAX_FILES} файлов"));
+    }
+    let names: Vec<String> = (0..z.len())
+        .filter_map(|i| z.by_index(i).ok().map(|e| e.name().replace('\\', "/")))
+        .collect();
+    let prefix = if names.iter().any(|n| n == "addon.json") {
+        String::new()
+    } else {
+        let top = names.first().and_then(|n| n.split('/').next()).unwrap_or_default();
+        let p = format!("{top}/");
+        if top.is_empty()
+            || !names.iter().all(|n| n.starts_with(&p))
+            || !names.iter().any(|n| *n == format!("{p}addon.json"))
+        {
+            return Err("в архиве нет addon.json".into());
+        }
+        p
+    };
+    let mut raw = Vec::new();
+    z.by_name(&format!("{prefix}addon.json"))
+        .map_err(|_| "в архиве нет addon.json".to_string())?
+        .take(64 * 1024 + 1)
+        .read_to_end(&mut raw)
+        .map_err(|e| format!("addon.json: {e}"))?;
+    let id = serde_json::from_slice::<Value>(&raw)
+        .ok()
+        .and_then(|v| v["id"].as_str().map(str::to_owned))
+        .filter(|id| valid_id(id) && !RESERVED.contains(&id.as_str()))
+        .ok_or("addon.json: неверный id")?;
+    let root = dir(data_dir);
+    fs::create_dir_all(&root).map_err(|e| e.to_string())?;
+    let tmp = root.join(format!(".install-{}", uuid::Uuid::new_v4()));
+    if let Err(e) = extract(&mut z, &prefix, &tmp) {
+        let _ = fs::remove_dir_all(&tmp);
+        return Err(e);
+    }
+    let dest = root.join(&id);
+    let old = root.join(format!(".old-{}", uuid::Uuid::new_v4()));
+    let had = dest.exists();
+    if had {
+        fs::rename(&dest, &old).map_err(|e| e.to_string())?;
+    }
+    if let Err(e) = fs::rename(&tmp, &dest) {
+        if had {
+            let _ = fs::rename(&old, &dest);
+        }
+        let _ = fs::remove_dir_all(&tmp);
+        return Err(e.to_string());
+    }
+    if let Err(e) = load(data_dir, &id) {
+        let _ = fs::remove_dir_all(&dest);
+        if had {
+            let _ = fs::rename(&old, &dest);
+        }
+        return Err(e);
+    }
+    let _ = fs::remove_dir_all(&old);
+    Ok(id)
+}
+
+fn extract(z: &mut zip::ZipArchive<fs::File>, prefix: &str, to: &Path) -> R<()> {
+    let mut total = 0u64;
+    for i in 0..z.len() {
+        let mut e = z.by_index(i).map_err(|_| "архив повреждён".to_string())?;
+        let name = e.name().replace('\\', "/");
+        let rel = name.strip_prefix(prefix).unwrap_or_default().to_owned();
+        if e.is_dir() || rel.is_empty() {
+            continue;
+        }
+        if e.unix_mode().is_some_and(|m| m & 0o170000 == 0o120000) {
+            return Err("ссылки в архиве не допускаются".into());
+        }
+        if !safe_rel(&rel, &PACKAGE) {
+            return Err(format!("{rel}: недопустимое имя или тип файла"));
+        }
+        let mut data = Vec::new();
+        (&mut e)
+            .take(MAX_BYTES + 1)
+            .read_to_end(&mut data)
+            .map_err(|_| "архив повреждён".to_string())?;
+        total += data.len() as u64;
+        if total > MAX_BYTES {
+            return Err("плагин больше 64 МБ".into());
+        }
+        let out = to.join(&rel);
+        if let Some(d) = out.parent() {
+            fs::create_dir_all(d).map_err(|e| e.to_string())?;
+        }
+        fs::write(&out, data).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 /// Caller for a running addon: enabled only, with permissions both approved
 /// and still requested by the current manifest.
 pub fn caller(data_dir: &Path, st: &State, id: &str) -> Option<Caller> {
@@ -312,4 +429,50 @@ pub fn caller(data_dir: &Path, st: &State, id: &str) -> Option<Caller> {
         id: id.into(),
         granted,
     })
+}
+
+#[cfg(test)]
+mod install_tests {
+    use super::*;
+    use std::io::Write;
+
+    fn zip_of(path: &Path, files: &[(&str, &str)]) {
+        let mut w = zip::ZipWriter::new(fs::File::create(path).unwrap());
+        let o = zip::write::SimpleFileOptions::default();
+        for (n, b) in files {
+            w.start_file(*n, o).unwrap();
+            w.write_all(b.as_bytes()).unwrap();
+        }
+        w.finish().unwrap();
+    }
+
+    #[test]
+    fn install_from_zip() {
+        let d = std::env::temp_dir().join(format!("fl-inst-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&d).unwrap();
+        let z = d.join("p.zip");
+        let m = r#"{"id":"ely-by","name":"Ely.by","permissions":["network"],"hosts":["authserver.ely.by"]}"#;
+        zip_of(&z, &[("plugin-elyby/addon.json", m), ("plugin-elyby/index.html", "<p>x</p>")]);
+        assert_eq!(install_zip(&d, &z).unwrap(), "ely-by");
+        assert!(dir(&d).join("ely-by/index.html").is_file());
+        // Reinstall replaces in place.
+        zip_of(&z, &[("addon.json", m), ("index.html", "<p>y</p>")]);
+        assert_eq!(install_zip(&d, &z).unwrap(), "ely-by");
+        assert_eq!(fs::read_to_string(dir(&d).join("ely-by/index.html")).unwrap(), "<p>y</p>");
+        // Escaping paths and code files are refused; the installed copy stays.
+        zip_of(&z, &[("addon.json", m), ("index.html", "<p>z</p>"), ("../evil.html", "x")]);
+        assert!(install_zip(&d, &z).is_err());
+        zip_of(&z, &[("addon.json", m), ("index.html", "<p>z</p>"), ("run.exe", "x")]);
+        assert!(install_zip(&d, &z).is_err());
+        // A manifest that does not load is rolled back.
+        zip_of(&z, &[("addon.json", r#"{"id":"ely-by","name":""}"#), ("index.html", "<p>z</p>")]);
+        assert!(install_zip(&d, &z).is_err());
+        assert_eq!(fs::read_to_string(dir(&d).join("ely-by/index.html")).unwrap(), "<p>y</p>");
+        // yggdrasil must be https on a listed host.
+        let bad = r#"{"id":"ely-by","name":"E","permissions":["network"],"hosts":["authserver.ely.by"],
+            "account_provider":{"label":"Ely.by","yggdrasil":"https://evil.example/api"}}"#;
+        fs::write(dir(&d).join("ely-by/addon.json"), bad).unwrap();
+        assert!(load(&d, "ely-by").is_err());
+        let _ = fs::remove_dir_all(&d);
+    }
 }

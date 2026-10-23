@@ -22,6 +22,8 @@ pub struct LaunchAuth {
     pub xuid: String,
     /// `msa` for Microsoft accounts, `legacy` for local profiles.
     pub user_type: String,
+    /// authlib-injector API root for accounts of a provider plugin.
+    pub yggdrasil: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -301,6 +303,7 @@ mod tests {
             access_token: "tok".into(),
             xuid: "1".into(),
             user_type: "msa".into(),
+            yggdrasil: None,
         }
     }
 

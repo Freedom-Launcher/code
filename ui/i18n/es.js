@@ -1,5 +1,9 @@
 // Generated: Russian source text -> es.
 window.FL_DICT = {
+"Установить плагин": "Instalar un plugin",
+"Архив .zip из репозитория автора": "Un .zip del repositorio del autor",
+"Выбрать файл…": "Elegir archivo…",
+"Плагин установлен. Разрешите его права, чтобы включить.": "Plugin instalado. Permite sus permisos para activarlo.",
 "Видеть сборки": "Ver instancias",
 "Список сборок, их версии и моды. Ничего не меняет.": "Lista de instancias, sus versiones y mods. No cambia nada.",
 "Видеть аккаунты": "Ver cuentas",

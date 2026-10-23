@@ -23,6 +23,26 @@ Themes change how the launcher looks and contain no code — see [THEMES.md](THE
 Example: [`docs/addons/example`](addons/example). Copy it into the addons folder
 (Settings → Плагины → Открыть), press «Обновить», then «Разрешить и включить».
 
+## Installing and publishing
+
+A plugin can live in any repository. Its author publishes a `.zip` of the
+plugin folder (for example as a GitHub release asset); players install it with
+Settings → Плагины → «Установить плагин» → «Выбрать файл…» (action
+`addons.install { path }`). Nothing in the launcher has to change for a new
+plugin.
+
+- `addon.json` sits at the top of the archive or inside one top folder.
+- Only plugin files are accepted: `html js css json png jpg jpeg webp svg woff2
+  woff md txt`, names `A-Z a-z 0-9 - _ .`, no symlinks, at most 1024 files and
+  64 MB.
+- A plugin with the same id is replaced only if the new one loads; otherwise
+  the installed copy stays. Approved permissions are kept, new ones are asked
+  about again.
+- `signature.json` travels inside the archive, so a signed plugin keeps its
+  badge.
+
+Reference plugin in its own repository: `Freedom-Launcher/plugin-elyby`.
+
 ## Built-in plugins
 
 Plugins in the repository folder `addons/` ship inside the launcher
@@ -232,6 +252,24 @@ Rules the core enforces:
 ```js
 await fl.call('accounts.provider.save', { name, uuid, token, expires_at });
 ```
+
+### In-game sign-in, skins and capes (`yggdrasil`)
+
+A provider whose service speaks the Yggdrasil protocol sets
+`account_provider.yggdrasil` to its authlib-injector API root. The URL must be
+https and its host must be listed in `hosts`:
+
+```json
+"account_provider": { "label": "Ely.by", "yggdrasil": "https://authserver.ely.by/api/authlib-injector" }
+```
+
+When the game starts with such an account, the core adds
+[authlib-injector](https://github.com/yushijinhun/authlib-injector) with that
+root (`-javaagent:<jar>=<root>`), so joining servers, skins and capes go
+through the service. The agent is not shipped with the launcher (AGPL-3.0): the
+official release jar is downloaded once into `<data>/agents/` and must match
+the SHA-256 pinned in `crates/fl-core/src/agent.rs`. Microsoft accounts and
+local profiles never load it.
 
 Safe settings (`--safe`, Shift at start) and «Отключить все плагины» run the
 launcher with no addons at all.

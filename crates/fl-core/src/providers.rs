@@ -38,6 +38,12 @@ pub fn active(core: &Core, id: &str) -> Option<String> {
         .map(|p| p.label)
 }
 
+/// authlib-injector API root of an active provider, if it declares one.
+pub fn yggdrasil(core: &Core, id: &str) -> Option<String> {
+    active(core, id)?;
+    addons::load(&core.data_dir, id).ok()?.account_provider?.yggdrasil
+}
+
 /// Active providers for the accounts screen.
 pub fn list(core: &Core) -> Vec<Value> {
     addons::installed_ids(&core.data_dir)

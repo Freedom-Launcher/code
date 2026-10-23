@@ -272,6 +272,16 @@
     render();
     mount();
     document.querySelector('#addon-folder')?.addEventListener('click', () => invoke('open_addons_folder').catch((e) => toast(String(e), { error: true })));
+    document.querySelector('#addon-install')?.addEventListener('click', async () => {
+      try {
+        const r = await invoke('pick_addon');
+        if (!r) return;
+        list = r;
+        render();
+        mount();
+        toast(_t("Плагин установлен. Разрешите его права, чтобы включить."));
+      } catch (e) { toast(String(e), { error: true }); }
+    });
     document.querySelector('#addon-reload')?.addEventListener('click', () => act('addons.list'));
     document.getElementById('dlg-addon-perms')?.addEventListener('submit', (e) => {
       e.preventDefault();

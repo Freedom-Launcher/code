@@ -246,6 +246,25 @@ async fn add_content(state: tauri::State<'_, AppCore>, mut args: Value, paths: V
         .map_err(|e| e.to_string())
 }
 
+/// Settings → Плагины → «Выбрать файл…»: install a plugin `.zip`.
+#[tauri::command]
+async fn pick_addon(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) -> Result<Value, String> {
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter(tr("Плагины"), &["zip"])
+            .blocking_pick_file()
+            .and_then(|p| p.into_path().ok())
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    let Some(path) = picked else { return Ok(Value::Null) };
+    let core = Arc::clone(&state.0);
+    core.dispatch(&Caller::BuiltinUi, "addons.install", serde_json::json!({ "path": path }))
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Native folder picker (Settings → Игра → «Папка сборок»); `None` if cancelled.
 #[tauri::command]
 async fn pick_folder(app: tauri::AppHandle, title: Option<String>) -> Result<Option<String>, String> {
@@ -958,6 +977,7 @@ fn main() {
             open_themes_folder,
             addon_action,
             open_addons_folder,
+            pick_addon,
             open_exports_folder,
             set_wallpaper,
             clear_wallpaper,
