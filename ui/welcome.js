@@ -22,7 +22,7 @@
     $$('#welcome .wc-step').forEach((s) => { s.hidden = +s.dataset.step !== step; });
     $$('#welcome .wc-dots i').forEach((d, i) => d.toggleAttribute('data-on', i === step));
     $('#wc-back').hidden = step === 0;
-    $('#wc-next .lbl').textContent = step === N - 1 ? 'Готово' : step === 0 && !signedIn() ? 'Позже' : 'Далее';
+    $('#wc-next .lbl').textContent = step === N - 1 ? _t("Готово") : step === 0 && !signedIn() ? _t("Позже") : _t("Далее");
     paintAccount(); paintLook();
   }
   function finish(then) {

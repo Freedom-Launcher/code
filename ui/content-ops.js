@@ -5,21 +5,21 @@
 // incompatible versions, the changelog beside it.
 (() => {
   const CDN = /^https:\/\/(?:cdn\.modrinth\.com|media\.forgecdn\.net)\/[^"'\\()\s]+$/;
-  const CH = { release: ['R', 'Релиз'], beta: ['B', 'Бета'], alpha: ['A', 'Альфа'] };
-  const fmtDate = (s) => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' }); };
+  const CH = { release: ['R', _t("Релиз")], beta: ['B', _t("Бета")], alpha: ['A', _t("Альфа")] };
+  const fmtDate = (s) => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleDateString(_LOC, { day: 'numeric', month: 'short', year: 'numeric' }); };
   const fail = (e) => toast(String(e), { error: true });
 
   // Resolves true on submit, false when the dialog is closed any other way.
   let pending = null;
   const cdlg = $('#dlg-ct-confirm');
-  function confirm({ title, text = '', list = [], ok = 'Удалить', danger = true }) {
+  function confirm({ title, text = '', list = [], ok = _t("Удалить"), danger = true }) {
     pending?.(false);
     $('#ctc-title').textContent = title;
     $('#ctc-text').textContent = text;
     $('#ctc-text').hidden = !text;
     const ul = $('#ctc-list');
     const shown = list.slice(0, 8);
-    ul.replaceChildren(...shown.map((t) => el('li', {}, t)), list.length > shown.length ? el('li', { class: 'is-more' }, `и ещё ${list.length - shown.length}`) : null);
+    ul.replaceChildren(...shown.map((t) => el('li', {}, t)), list.length > shown.length ? el('li', { class: 'is-more' }, _t("и ещё {0}", [list.length - shown.length])) : null);
     ul.hidden = !list.length;
     const b = $('#ctc-submit');
     b.className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
@@ -43,11 +43,11 @@
     ico.style.backgroundImage = m.icon_url && CDN.test(m.icon_url) ? `url("${m.icon_url}")` : '';
     ico.textContent = m.icon_url && CDN.test(m.icon_url) ? '' : initials(m.title);
     $('#ctv-title').textContent = m.title;
-    $('#ctv-cur').textContent = m.version_number ? `Сейчас ${m.version_number}` : m.file;
+    $('#ctv-cur').textContent = m.version_number ? _t("Сейчас {0}", [m.version_number]) : m.file;
     $('#ctv-q').value = '';
     $('#ctv-all').checked = false;
     $('#ctv-list').replaceChildren(...[0, 1, 2, 3, 4, 5].map(() => el('div', { class: 'ctv-item ctv-sk' }, el('i', { class: 'sk' }), el('i', { class: 'sk' }))));
-    $('#ctv-log').replaceChildren(el('div', { class: 'ctv-hint' }, 'Выберите версию, чтобы увидеть список изменений'));
+    $('#ctv-log').replaceChildren(el('div', { class: 'ctv-hint' }, _t("Выберите версию, чтобы увидеть список изменений")));
     paintSubmit();
     FUI.openDlg('dlg-ct-ver');
     try {
@@ -62,7 +62,7 @@
       paintLog();
     } catch (e) {
       if (my !== vseq) return;
-      $('#ctv-list').replaceChildren(el('div', { class: 'ctv-hint' }, 'Не удалось загрузить версии'));
+      $('#ctv-list').replaceChildren(el('div', { class: 'ctv-hint' }, _t("Не удалось загрузить версии")));
       fail(e);
     }
   }
@@ -74,13 +74,13 @@
     $('#ctv-all').closest('label').hidden = !bad;
     const list = all.filter((v) => (showAll || v.compatible || v.id === cur.version_id) && (!q || `${v.version_number} ${v.name}`.toLowerCase().includes(q)));
     const box = $('#ctv-list');
-    if (!list.length) { box.replaceChildren(el('div', { class: 'ctv-hint' }, all.length ? 'Ничего не найдено' : 'Нет версий')); return; }
+    if (!list.length) { box.replaceChildren(el('div', { class: 'ctv-hint' }, all.length ? _t("Ничего не найдено") : _t("Нет версий"))); return; }
     box.replaceChildren(...list.map((v) => {
       const ch = CH[v.version_type] || CH.release;
       const b = el('button', { type: 'button', role: 'option', class: `ctv-item${v.compatible ? '' : ' is-bad'}`, 'aria-selected': String(v.id === pickId), 'data-v': v.id },
         el('i', { class: `ctv-ch is-${v.version_type || 'release'}`, 'data-tip': ch[1] }, ch[0]),
         el('span', { class: 'ctv-t' }, el('b', {}, v.version_number), el('span', {}, [fmtDate(v.date_published), (v.loaders || []).map((l) => LOADER_NAMES[l] || l).join(', ')].filter(Boolean).join(' · '))),
-        v.id === cur.version_id ? el('span', { class: 'badge is-accent' }, 'Текущая') : !v.compatible ? el('span', { class: 'badge is-warn' }, 'Не подходит') : null);
+        v.id === cur.version_id ? el('span', { class: 'badge is-accent' }, _t("Текущая")) : !v.compatible ? el('span', { class: 'badge is-warn' }, _t("Не подходит")) : null);
       return b;
     }));
   }
@@ -89,12 +89,12 @@
     const v = all.find((x) => x.id === pickId);
     const box = $('#ctv-log');
     paintSubmit();
-    if (!v) { box.replaceChildren(el('div', { class: 'ctv-hint' }, 'Выберите версию, чтобы увидеть список изменений')); return; }
+    if (!v) { box.replaceChildren(el('div', { class: 'ctv-hint' }, _t("Выберите версию, чтобы увидеть список изменений"))); return; }
     const gv = v.game_versions || [];
     const meta = el('div', { class: 'ctv-meta' },
       el('b', {}, v.name && v.name !== v.version_number ? v.name : v.version_number),
-      el('span', {}, [fmtDate(v.date_published), gv.length ? (gv.length > 3 ? `${gv[0]} – ${gv[gv.length - 1]}` : gv.join(', ')) : '', v.downloads ? `${FMods.fmtN(v.downloads)} загрузок` : ''].filter(Boolean).join(' · ')));
-    const log = v.changelog?.trim() ? FMarkdown.render(v.changelog, (url) => invoke('open_link', { url }).catch(fail)) : el('p', { class: 'ctv-hint' }, 'Список изменений не указан');
+      el('span', {}, [fmtDate(v.date_published), gv.length ? (gv.length > 3 ? `${gv[0]} – ${gv[gv.length - 1]}` : gv.join(', ')) : '', v.downloads ? _t("{0} загрузок", [FMods.fmtN(v.downloads)]) : ''].filter(Boolean).join(' · ')));
+    const log = v.changelog?.trim() ? FMarkdown.render(v.changelog, (url) => invoke('open_link', { url }).catch(fail)) : el('p', { class: 'ctv-hint' }, _t("Список изменений не указан"));
     box.replaceChildren(meta, log);
     box.scrollTop = 0;
   }
@@ -103,12 +103,12 @@
     const b = $('#ctv-submit');
     const v = all.find((x) => x.id === pickId);
     const c = curV();
-    let t = 'Выберите версию';
-    if (v && v.id === cur?.version_id) t = 'Уже установлена';
-    else if (v && !v.compatible) t = `Установить ${v.version_number} всё равно`;
-    else if (v && c && v.date_published < c.date_published) t = `Откатить до ${v.version_number}`;
-    else if (v && c) t = `Обновить до ${v.version_number}`;
-    else if (v) t = `Установить ${v.version_number}`;
+    let t = _t("Выберите версию");
+    if (v && v.id === cur?.version_id) t = _t("Уже установлена");
+    else if (v && !v.compatible) t = _t("Установить {0} всё равно", [v.version_number]);
+    else if (v && c && v.date_published < c.date_published) t = _t("Откатить до {0}", [v.version_number]);
+    else if (v && c) t = _t("Обновить до {0}", [v.version_number]);
+    else if (v) t = _t("Установить {0}", [v.version_number]);
     b.disabled = !v || v.id === cur?.version_id;
     b.className = `btn ${v && !v.compatible ? 'btn-danger' : 'btn-primary'}`;
     b.querySelector('.lbl').textContent = t;

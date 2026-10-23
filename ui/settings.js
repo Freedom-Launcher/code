@@ -13,12 +13,12 @@
   const paneOf = (p) => $(`.set-pane[data-pane="${p}"]`, main);
   const cur = () => $('button[aria-selected="true"]', nav)?.dataset.pane || 'look';
   const norm = (s) => s.toLowerCase().replace(/ё/g, 'е');
-  const plural = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
+  const plural = (n, a, b, c) => _tp(n, a, b, c);
 
   // Words people search for that are not on the row itself.
   const KW = {
     'theme-seg': 'цвет темная светлая theme dark light', 'theme-folder': 'темы папка', 'panels-seg': 'отступы карточки раскладка',
-    'fx-wide': 'ширина широкий', 'cover-seg': 'шапка баннер hero', 'fx-tray': 'трей tray закрытие крестик свернуть окно', 'fx-motion': 'анимация движение motion плавность',
+    'fx-wide': 'ширина широкий', 'cover-seg': 'шапка баннер hero', 'fx-lang': 'язык language lang перевод translation мова sprache idioma langue język dil', 'fx-tray': 'трей tray закрытие крестик свернуть окно', 'fx-motion': 'анимация движение motion плавность',
     'pop-alpha': 'меню списки выпадающие прозрачность непрозрачность читаемость', 'pop-blur': 'меню списки выпадающие размытие blur', 'plate-size': 'название плашка карточки размер шрифта', 'plate-weight': 'название плашка жирный насыщенность', 'plate-meta': 'подпись версия загрузчик карточки', 'wall-seg': 'фон картинка wallpaper размытие blur стекло прозрачность', 'wall-blur': 'размытие blur', 'wall-zoom': 'обои масштаб зум увеличение картинка фон', 'wall-x': 'обои сдвиг положение горизонталь фон', 'wall-y': 'обои сдвиг положение вертикаль фон', 'glass-blur': 'размытие blur', 'wall-glass': 'прозрачность непрозрачность',
     'ui-edit-open': 'редактор скругление размер кнопок расположение', 'pal-pos-seg': 'ctrl k палитра поиск команды', 'pal-blur': 'палитра',
     'browse-seg': 'страницы лента прокрутка каталог', 'gs-root-pick': 'путь папка диск сборки', 'upd-btn': 'обновить версия update', 'addon-folder': 'аддоны',
@@ -155,26 +155,26 @@
     const week = list.filter((i) => i.last_played && now - i.last_played < 7 * 86400).length;
     const tile = (v, t) => el('div', { class: 'set-tile' }, el('b', {}, v), el('span', {}, t));
     const tiles = el('div', { class: 'set-tiles' },
-      tile(total ? fmtPlay(total) : '0 мин', 'в игре всего'),
+      tile(total ? fmtPlay(total) : _t("0 мин"), _t("в игре всего")),
       tile(String(list.length), plural(list.length, 'сборка', 'сборки', 'сборок')),
-      tile(String(week), 'запускались за неделю'));
+      tile(String(week), _t("запускались за неделю")));
     const max = played[0]?.playtime_secs || 1;
     const row = (i) => el('button', { type: 'button', class: 'r set-top', onclick: () => openInstance(i.id) },
       el('span', { class: 'set-top-ic' }, initials(i.name), el('img', { src: coverSrc(iconName(i)), alt: '', loading: 'lazy', onerror() { this.remove(); } })),
       el('div', { class: 'grow' }, el('div', { class: 't' }, i.name), el('div', { class: 'set-bar' }, el('i', { style: `width:${Math.max(3, (i.playtime_secs / max) * 100).toFixed(1)}%` }))),
       el('span', { class: 'set-top-v' }, fmtPlay(i.playtime_secs)));
     box.replaceChildren(tiles, ...(played.length
-      ? [el('div', { class: 'set-label' }, 'Больше всего'), el('div', { class: 'rows set-card' }, ...played.slice(0, 8).map(row))]
-      : [el('div', { class: 'set-empty' }, 'Ещё не играли')]));
+      ? [el('div', { class: 'set-label' }, _t("Больше всего")), el('div', { class: 'rows set-card' }, ...played.slice(0, 8).map(row))]
+      : [el('div', { class: 'set-empty' }, _t("Ещё не играли"))]));
   }
 
   // ---------- Shortcuts ----------
   const KEYS = [
-    ['Везде', [[[MOD, 'K'], 'Командная строка'], [[MOD, 'N'], 'Новая сборка'], [[MOD, 'Shift', 'E'], 'Редактор интерфейса'], [['Alt', '←'], 'Назад'], [['Alt', '→'], 'Вперёд'], [['Esc'], 'Закрыть окно или меню']]],
-    ['Сборка', [[['Enter'], 'Играть'], [['Shift', 'Удалить'], 'Удалить без подтверждения'], [['Esc'], 'Снять выделение']]],
-    ['Каталог', [[['PageUp'], 'Предыдущая страница'], [['PageDown'], 'Следующая страница']]],
-    ['Настройки', [[['/'], 'Поиск']]],
-    ['Редактор интерфейса', [[[MOD, 'Z'], 'Отменить'], [[MOD, 'Shift', 'Z'], 'Повторить']]],
+    [_t("Везде"), [[[MOD, 'K'], _t("Командная строка")], [[MOD, 'N'], _t("Новая сборка")], [[MOD, 'Shift', 'E'], _t("Редактор интерфейса")], [['Alt', '←'], _t("Назад")], [['Alt', '→'], _t("Вперёд")], [['Esc'], _t("Закрыть окно или меню")]]],
+    [_t("Сборка"), [[['Enter'], _t("Играть")], [['Shift', _t("Удалить")], _t("Удалить без подтверждения")], [['Esc'], _t("Снять выделение")]]],
+    [_t("Каталог"), [[['PageUp'], _t("Предыдущая страница")], [['PageDown'], _t("Следующая страница")]]],
+    [_t("Настройки"), [[['/'], _t("Поиск")]]],
+    [_t("Редактор интерфейса"), [[[MOD, 'Z'], _t("Отменить")], [[MOD, 'Shift', 'Z'], _t("Повторить")]]],
   ];
   let keysDone = false;
   function renderKeys() {
@@ -194,7 +194,7 @@
     if (aboutDone) return;
     aboutDone = true;
     const v = $('#set-ver');
-    const put = (x) => { if (x) v.textContent = `Версия ${x}`; };
+    const put = (x) => { if (x) v.textContent = _t("Версия {0}", [x]); };
     window.__TAURI__?.app?.getVersion?.().then(put, () => {});
   }
   $('#set-releases')?.addEventListener('click', () => invoke('open_link', { url: 'https://github.com/Freedom-Launcher/releases/releases' }).catch((e) => toast(String(e), { error: true })));

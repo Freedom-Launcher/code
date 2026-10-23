@@ -2,6 +2,7 @@
 <html lang="ru" data-theme="dark" data-cover="big">
 <head>
   <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <script src="i18n.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Freedom Launcher</title>
@@ -35,6 +36,7 @@
   <link rel="stylesheet" href="icons.css">
   <link rel="stylesheet" href="liner.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
+  <script src="i18n-apply.js" defer></script>
   <script src="ui.js" defer></script>
   <script src="dropdown.js" defer></script>
   <script src="themes.js" defer></script>
@@ -430,6 +432,11 @@
       <div class="set-main" id="set-main" data-id="settings.main">
         <div class="set-pane" data-pane="look" data-id="settings.pane.look" hidden>
           <h2 class="set-h">Внешний вид</h2>
+          <div class="set-label">Язык</div>
+          <div class="rows set-card" data-id="settings.look.lang">
+              <div class="r"><div class="grow"><div class="t">Язык интерфейса</div></div>
+                <select class="field" id="fx-lang" aria-label="Язык интерфейса" data-id="settings.lang"></select></div>
+          </div>
           <div class="set-label">Тема</div>
           <div class="rows set-card" data-id="settings.look.theme">
               <div class="r"><div class="grow"><div class="t">Тема</div></div>

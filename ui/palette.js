@@ -19,8 +19,8 @@
     stop: '<g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm14 0H6v12h12z"/></g>', search: '<g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M10.5 2a8.5 8.5 0 1 0 5.262 15.176l3.652 3.652a1 1 0 0 0 1.414-1.414l-3.652-3.652A8.5 8.5 0 0 0 10.5 2M4 10.5a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0"/></g>', bar: '<g fill="none"><path fill="currentColor" d="M17 18a1 1 0 0 1 .117 1.993L17 20H7a1 1 0 0 1-.117-1.993L7 18zm3-5a1 1 0 1 1 0 2H4a1 1 0 1 1 0-2zm-3-5a1 1 0 0 1 .117 1.993L17 10H7a1 1 0 0 1-.117-1.993L7 8zm3-5a1 1 0 0 1 .117 1.993L20 5H4a1 1 0 0 1-.117-1.993L4 3z"/></g>',
   };
   const svg = (k) => `<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${P[k]}</svg>`;
-  const GROUP = { recent: 'Недавние', inst: 'Сборки', go: 'Перейти', act: 'Действия', mods: 'Modrinth' };
-  const HINT = { inst: 'Играть', go: 'Перейти', act: 'Выполнить', mods: 'Искать' };
+  const GROUP = { recent: _t("Недавние"), inst: _t("Сборки"), go: _t("Перейти"), act: _t("Действия"), mods: 'Modrinth' };
+  const HINT = { inst: _t("Играть"), go: _t("Перейти"), act: _t("Выполнить"), mods: _t("Искать") };
 
   // ---------- Settings: bar position + backdrop blur ----------
   const pos = () => S.look.palette_pos;
@@ -51,40 +51,40 @@
     recent().forEach((i) => {
       const on = isRunning(i.id);
       add('inst', `inst.${i.id}`, i.name, null, (o) => (o.alt || on ? openInstance(i.id) : play(i.id, true)),
-        { s: instMeta(i), k: `${i.loader || 'vanilla'} ${i.version} сборка`, cover: iconName(i), live: on, hint: on ? 'Открыть' : 'Играть', alt: !on && 'Открыть' });
+        { s: instMeta(i), k: _t("{0} {1} сборка", [i.loader || 'vanilla', i.version]), cover: iconName(i), live: on, hint: on ? _t("Открыть") : _t("Играть"), alt: !on && _t("Открыть") });
     });
-    add('go', 'go.home', 'Библиотека', 'home', () => show('home'), { k: 'библиотека главная домой сборки library home' });
-    add('go', 'go.create', 'Новая сборка', 'plus', () => show('create'), { k: 'создать new instance', keys: [MOD, 'N'] });
-    add('go', 'go.skins', 'Скины', 'user', () => show('skins'), { k: 'скины скин плащ модель рук skin skins cape' });
-    add('go', 'go.discover', 'Каталог', 'compass', () => show('discover'), { k: 'каталог обзор моды сборки модпаки ресурспаки шейдеры датапаки modrinth browse mods modpacks' });
-    add('go', 'go.accounts', 'Аккаунты', 'user', () => show('accounts'), { k: 'профиль вход microsoft account login' });
-    [['look', 'Внешний вид', 'тема оформление раскладка анимации theme'], ['wall', 'Обои и стекло', 'фон картинка прозрачность wallpaper glass'],
-      ['ui', 'Интерфейс', 'редактор командная строка каталог'], ['game', 'Параметры сборок', 'java память ram окно хуки папка'],
-      ['stats', 'Статистика', 'время в игре часы playtime stats'], ['addons', 'Плагины', 'плагины аддоны дополнения addons plugins'],
-      ['keys', 'Клавиши', 'горячие клавиши сочетания shortcuts hotkeys'], ['about', 'О лаунчере', 'версия обновления update about']]
-      .forEach(([p, t, k]) => add('go', `set.${p}`, `Настройки · ${t}`, 'gear', () => openSettings(p), { k: `settings настройки ${k}` }));
-    (window.FSettings?.entries() || []).forEach((x) => add('go', x.id, x.t, 'gear', x.go, { s: `Настройки · ${x.s}`, k: `settings настройки ${x.k}`, deep: true }));
-    add('act', 'act.ui-edit', 'Настроить интерфейс', 'gear', () => window.FEditor?.open(), { k: 'редактор интерфейса вид углы скругление размер кнопок расположение панели customize editor layout', keys: [MOD, 'Shift', 'E'] });
-    add('act', 'act.foreign', 'Импорт из других лаунчеров', 'import', () => window.FForeign?.open(), { k: 'prism multimc curseforge atlauncher gdlauncher modrinth app перенос импорт import launcher' });
-    add('act', 'act.import', 'Импорт .mrpack', 'import', () => { show('create'); $('#c-import')?.click(); }, { k: 'modpack модпак import файл' });
-    S.running.forEach((id) => { const i = byId(id); if (i) add('act', `act.stop.${id}`, `Остановить «${i.name}»`, 'stop', () => stopGame(id), { k: 'закрыть игру stop kill' }); });
+    add('go', 'go.home', _t("Библиотека"), 'home', () => show('home'), { k: _t("библиотека главная домой сборки library home") });
+    add('go', 'go.create', _t("Новая сборка"), 'plus', () => show('create'), { k: _t("создать new instance"), keys: [MOD, 'N'] });
+    add('go', 'go.skins', _t("Скины"), 'user', () => show('skins'), { k: _t("скины скин плащ модель рук skin skins cape") });
+    add('go', 'go.discover', _t("Каталог"), 'compass', () => show('discover'), { k: _t("каталог обзор моды сборки модпаки ресурспаки шейдеры датапаки modrinth browse mods modpacks") });
+    add('go', 'go.accounts', _t("Аккаунты"), 'user', () => show('accounts'), { k: _t("профиль вход microsoft account login") });
+    [['look', _t("Внешний вид"), _t("тема оформление раскладка анимации theme")], ['wall', _t("Обои и стекло"), _t("фон картинка прозрачность wallpaper glass")],
+      ['ui', _t("Интерфейс"), _t("редактор командная строка каталог")], ['game', _t("Параметры сборок"), _t("java память ram окно хуки папка")],
+      ['stats', _t("Статистика"), _t("время в игре часы playtime stats")], ['addons', _t("Плагины"), _t("плагины аддоны дополнения addons plugins")],
+      ['keys', _t("Клавиши"), _t("горячие клавиши сочетания shortcuts hotkeys")], ['about', _t("О лаунчере"), _t("версия обновления update about")]]
+      .forEach(([p, t, k]) => add('go', `set.${p}`, _t("Настройки · {0}", [t]), 'gear', () => openSettings(p), { k: _t("settings настройки {0}", [k]) }));
+    (window.FSettings?.entries() || []).forEach((x) => add('go', x.id, x.t, 'gear', x.go, { s: _t("Настройки · {0}", [x.s]), k: _t("settings настройки {0}", [x.k]), deep: true }));
+    add('act', 'act.ui-edit', _t("Настроить интерфейс"), 'gear', () => window.FEditor?.open(), { k: _t("редактор интерфейса вид углы скругление размер кнопок расположение панели customize editor layout"), keys: [MOD, 'Shift', 'E'] });
+    add('act', 'act.foreign', _t("Импорт из других лаунчеров"), 'import', () => window.FForeign?.open(), { k: _t("prism multimc curseforge atlauncher gdlauncher modrinth app перенос импорт import launcher") });
+    add('act', 'act.import', _t("Импорт .mrpack"), 'import', () => { show('create'); $('#c-import')?.click(); }, { k: _t("modpack модпак import файл") });
+    S.running.forEach((id) => { const i = byId(id); if (i) add('act', `act.stop.${id}`, _t("Остановить «{0}»", [i.name]), 'stop', () => stopGame(id), { k: _t("закрыть игру stop kill") }); });
     $$('#theme-seg button:not([aria-selected="true"]):not(:disabled)').forEach((b) =>
-      add('act', `theme.${b.dataset.themeSet}`, `Тема · ${label(b)}`, b.dataset.themeSet === 'light' ? 'sun' : 'moon', () => b.click(), { k: 'оформление theme dark light' }));
+      add('act', `theme.${b.dataset.themeSet}`, _t("Тема · {0}", [label(b)]), b.dataset.themeSet === 'light' ? 'sun' : 'moon', () => b.click(), { k: _t("оформление theme dark light") }));
     $$('#wall-seg button:not([aria-selected="true"])').forEach((b) =>
-      add('act', `wall.${b.dataset.wallSet}`, `Обои · ${label(b)}`, 'image', () => b.click(), { k: 'фон wallpaper стекло' }));
+      add('act', `wall.${b.dataset.wallSet}`, _t("Обои · {0}", [label(b)]), 'image', () => b.click(), { k: _t("фон wallpaper стекло") }));
     const motion = $('#fx-motion');
-    add('act', 'act.motion', motion.checked ? 'Выключить анимации' : 'Включить анимации', 'motion', () => { motion.checked = !motion.checked; motion.dispatchEvent(new Event('change')); }, { k: 'motion эффекты' });
+    add('act', 'act.motion', motion.checked ? _t("Выключить анимации") : _t("Включить анимации"), 'motion', () => { motion.checked = !motion.checked; motion.dispatchEvent(new Event('change')); }, { k: _t("motion эффекты") });
     const other = pos() === 'top' ? 'bottom' : 'top';
-    add('act', 'act.palpos', `Командная строка ${other === 'top' ? 'сверху' : 'снизу'}`, 'bar', () => { setLook({ palette_pos: other }); applyPal(); }, { k: 'палитра palette положение' });
-    add('act', 'act.palblur', blurOn() ? 'Не размывать фон под строкой' : 'Размывать фон под строкой', 'bar', () => { setLook({ palette_blur: !blurOn() }); applyPal(); }, { k: 'blur размытие палитра' });
-    if (S.current) add('act', 'act.folder.inst', 'Открыть папку сборки', 'folder', () => folder('open_instance_folder', { instance: S.current }), { k: 'folder проводник' });
-    add('act', 'act.folder.themes', 'Открыть папку тем', 'folder', () => folder('open_themes_folder'), { k: 'folder themes' });
-    add('act', 'act.folder.addons', 'Открыть папку плагинов', 'folder', () => folder('open_addons_folder'), { k: 'folder addons plugins' });
+    add('act', 'act.palpos', _t("Командная строка {0}", [other === 'top' ? _t("сверху") : _t("снизу")]), 'bar', () => { setLook({ palette_pos: other }); applyPal(); }, { k: _t("палитра palette положение") });
+    add('act', 'act.palblur', blurOn() ? _t("Не размывать фон под строкой") : _t("Размывать фон под строкой"), 'bar', () => { setLook({ palette_blur: !blurOn() }); applyPal(); }, { k: _t("blur размытие палитра") });
+    if (S.current) add('act', 'act.folder.inst', _t("Открыть папку сборки"), 'folder', () => folder('open_instance_folder', { instance: S.current }), { k: _t("folder проводник") });
+    add('act', 'act.folder.themes', _t("Открыть папку тем"), 'folder', () => folder('open_themes_folder'), { k: 'folder themes' });
+    add('act', 'act.folder.addons', _t("Открыть папку плагинов"), 'folder', () => folder('open_addons_folder'), { k: 'folder addons plugins' });
     return out;
   }
 
   // ---------- Matching: substring first, then fuzzy; a query typed in the wrong layout still matches ----------
-  const EN = "qwertyuiop[]asdfghjkl;'zxcvbnm,.`", RU = 'йцукенгшщзхъфывапролджэячсмитьбюё';
+  const EN = "qwertyuiop[]asdfghjkl;'zxcvbnm,.`", RU = _t("йцукенгшщзхъфывапролджэячсмитьбюё");
   const swap = (s) => [...s].map((c) => { const i = EN.indexOf(c); if (i >= 0) return RU[i]; const j = RU.indexOf(c); return j >= 0 ? EN[j] : c; }).join('');
   const norm = (s) => s.toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
   function match(q, s) {
@@ -131,7 +131,7 @@
     const groups = ['inst', 'go', 'act'].map((g) => [g, hit.filter((c) => c.g === g).sort((a, b) => b.score - a.score).slice(0, g === 'inst' ? 6 : 8)]).filter(([, l]) => l.length);
     groups.sort((a, b) => b[1][0].score - a[1][0].score);
     if (S.instances.some((i) => i.loader && i.loader !== 'vanilla')) {
-      groups.push(['mods', [{ g: 'mods', id: 'mods.search', t: `Найти «${raw.trim()}»`, s: 'моды на Modrinth', ico: 'search',
+      groups.push(['mods', [{ g: 'mods', id: 'mods.search', t: _t("Найти «{0}»", [raw.trim()]), s: _t("моды на Modrinth"), ico: 'search',
         run: () => { show('discover'); const f = $('#disc-q'); if (f) { f.value = raw.trim(); f.dispatchEvent(new Event('input')); } } }]]);
     }
     return groups;
@@ -183,7 +183,7 @@
       for (const c of l) { const n = row(c, pool, ranked.indexOf(c)); flat.push(n); kids.push(n); }
     }
     nodes = pool;
-    list.replaceChildren(hlEl, ...(kids.length ? kids : [el('div', { class: 'pal-empty is-new' }, 'Ничего не найдено')]));
+    list.replaceChildren(hlEl, ...(kids.length ? kids : [el('div', { class: 'pal-empty is-new' }, _t("Ничего не найдено"))]));
     body.classList.toggle('is-instant', first);
     body.style.height = `${list.offsetHeight + 13}px`;
     select(bottom ? flat.length - 1 : 0, false, first);

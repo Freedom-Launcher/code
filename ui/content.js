@@ -6,16 +6,16 @@
 // about dependents (Shift deletes at once). Everything goes through mods.*.
 (() => {
   const KINDS = {
-    mod: { none: 'Модов нет', ext: '.jar', words: ['мод', 'мода', 'модов'] },
-    resourcepack: { none: 'Ресурспаков нет', ext: '.zip', words: ['ресурспак', 'ресурспака', 'ресурспаков'] },
-    shader: { none: 'Шейдеров нет', ext: '.zip', words: ['шейдер', 'шейдера', 'шейдеров'] },
-    datapack: { none: 'Датапаков нет', ext: '.zip', words: ['датапак', 'датапака', 'датапаков'] },
+    mod: { none: _t("Модов нет"), ext: '.jar', words: ['мод', 'мода', 'модов'] },
+    resourcepack: { none: _t("Ресурспаков нет"), ext: '.zip', words: ['ресурспак', 'ресурспака', 'ресурспаков'] },
+    shader: { none: _t("Шейдеров нет"), ext: '.zip', words: ['шейдер', 'шейдера', 'шейдеров'] },
+    datapack: { none: _t("Датапаков нет"), ext: '.zip', words: ['датапак', 'датапака', 'датапаков'] },
   };
   // OSI-approved licenses (Modrinth's «Open source» filter), without -only / -or-later.
   const OSI = new Set('0BSD AFL-3.0 AGPL-3.0 Apache-2.0 Artistic-2.0 BSD-2-Clause BSD-3-Clause BSL-1.0 CDDL-1.0 ECL-2.0 EPL-1.0 EPL-2.0 EUPL-1.1 EUPL-1.2 GPL-2.0 GPL-3.0 ISC LGPL-2.1 LGPL-3.0 MIT MPL-2.0 NCSA OSL-3.0 PostgreSQL Python-2.0 Unlicense UPL-1.0 Zlib'.split(' '));
-  const SORTS = { az: 'А–Я', za: 'Я–А', new: 'Новые', old: 'Старые', author: 'Автор', size: 'Размер', ver: 'Версия', verd: 'Версия' };
-  const ENV = { client: 'Только клиент', server: 'Только сервер', both: 'Клиент и сервер' };
-  const PROPS = { upd: 'Есть обновление', open: 'Открытый код', ext: 'Не из каталога', lock: 'Заморожены' };
+  const SORTS = { az: _t("А–Я"), za: _t("Я–А"), new: _t("Новые"), old: _t("Старые"), author: _t("Автор"), size: _t("Размер"), ver: _t("Версия"), verd: _t("Версия") };
+  const ENV = { client: _t("Только клиент"), server: _t("Только сервер"), both: _t("Клиент и сервер") };
+  const PROPS = { upd: _t("Есть обновление"), open: _t("Открытый код"), ext: _t("Не из каталога"), lock: _t("Заморожены") };
   const svg = (d) => `<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${d}</svg>`;
   const I = {
     upd: svg('<g fill="none"><path fill="currentColor" d="M20 15a1 1 0 0 1 1 1v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a1 1 0 1 1 2 0v4h14v-4a1 1 0 0 1 1-1M12 2a1 1 0 0 1 1 1v10.243l2.536-2.536a1 1 0 1 1 1.414 1.414l-4.066 4.066a1.25 1.25 0 0 1-1.768 0L7.05 12.121a1 1 0 1 1 1.414-1.414L11 13.243V3a1 1 0 0 1 1-1"/></g>'),
@@ -33,9 +33,9 @@
   const RIMG = navigator.userAgent.includes('Windows') ? 'http://rimg.localhost' : 'rimg://localhost';
   const imgSrc = (u) => (!u || !/^https:\/\/[^\s"'<>\\]+$/.test(u) ? '' : /^https:\/\/cdn\.modrinth\.com\//.test(u) ? u : `${RIMG}/${encodeURIComponent(u)}`);
   const fail = (e) => toast(String(e), { error: true });
-  const plural = (n, [a, b, c]) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
+  const plural = (n, [a, b, c]) => _tp(n, a, b, c);
   const count = (n) => `${n} ${plural(n, KINDS[kind].words)}`;
-  const coll = new Intl.Collator('ru', { sensitivity: 'base', numeric: true });
+  const coll = new Intl.Collator(_LOC, { sensitivity: 'base', numeric: true });
   const Ops = () => window.FContentOps;
 
   let inst = null, kind = 'mod', world = null, items = [], updates = new Map(), seq = 0, loading = false;
@@ -152,7 +152,7 @@
     const n = items.filter((m) => has(m, 'upd')).length;
     const ua = $('#mods-update-all');
     ua.hidden = !n;
-    ua.querySelector('.lbl').textContent = `Обновить все · ${n}`;
+    ua.querySelector('.lbl').textContent = _t("Обновить все · {0}", [n]);
     $('#ct-sort-lbl').textContent = SORTS[sort];
     const fn = f.author.size + f.env.size + f.props.size;
     $('#ct-filter-n').hidden = !fn;
@@ -165,9 +165,9 @@
     const box = $('#ct-pills');
     const on = items.filter((m) => m.enabled).length, off = items.length - on;
     const upd = items.filter((m) => has(m, 'upd')).length;
-    const ps = [['all', 'Все', items.length]];
-    if (upd) ps.push(['upd', 'Обновления', upd]);
-    if (on && off) ps.push(['on', 'Включённые', on], ['off', 'Выключенные', off]);
+    const ps = [['all', _t("Все"), items.length]];
+    if (upd) ps.push(['upd', _t("Обновления"), upd]);
+    if (on && off) ps.push(['on', _t("Включённые"), on], ['off', _t("Выключенные"), off]);
     if (!ps.some((p) => p[0] === pill)) pill = 'all';
     box.hidden = !inst || ps.length < 2;
     box.replaceChildren(...ps.map(([id, t, n]) => el('button', { type: 'button', class: 'ct-pill', 'aria-selected': String(id === pill), 'data-pill': id }, t, el('span', {}, String(n)))));
@@ -181,13 +181,13 @@
     $('#tab-content').classList.toggle('has-sel', sel.size > 0);
     if (!inst) { box.replaceChildren(); return; }
     if (loading) { box.replaceChildren(skeleton()); return; }
-    if (kind === 'datapack' && !world) { box.replaceChildren(empty('Миров пока нет')); return; }
+    if (kind === 'datapack' && !world) { box.replaceChildren(empty(_t("Миров пока нет"))); return; }
     if (!items.length) {
-      box.replaceChildren(empty(KINDS[kind].none, textBtn('Открыть каталог', () => $('#mods-add').click(), 'btn-primary'), textBtn('Загрузить файлы', upload)));
+      box.replaceChildren(empty(KINDS[kind].none, textBtn(_t("Открыть каталог"), () => $('#mods-add').click(), 'btn-primary'), textBtn(_t("Загрузить файлы"), upload)));
       return;
     }
     const rows = visible();
-    if (!rows.length) { box.replaceChildren(empty('Ничего не найдено', textBtn('Сбросить фильтры', reset))); return; }
+    if (!rows.length) { box.replaceChildren(empty(_t("Ничего не найдено"), textBtn(_t("Сбросить фильтры"), reset))); return; }
     box.replaceChildren(...[dupStrip(), el('div', { class: `ct-list${cols > 1 ? ' is-grid' : ''}`, 'data-cols': cols }, head(rows), ...rows.map(row))].filter(Boolean));
   }
 
@@ -212,16 +212,16 @@
     if (!ds.length || dupHidden.has(key)) return null;
     const names = ds.map((l) => l[0].title || stem(l[0].file));
     const old = ds.flatMap((l) => l.slice(1));
-    const fix = textBtn('Отключить старые', async (b) => {
+    const fix = textBtn(_t("Отключить старые"), async (b) => {
       b.disabled = true;
-      await bulk(old, 'Выключаем', async (m) => { await call('mods.toggle', { ...loc(), file: m.file, enabled: false }); m.enabled = false; });
+      await bulk(old, _t("Выключаем"), async (m) => { await call('mods.toggle', { ...loc(), file: m.file, enabled: false }); m.enabled = false; });
       paint();
     }, 'btn-primary');
-    const later = textBtn('Не сейчас', () => { dupHidden.add(key); paint(); }, 'btn-ghost');
+    const later = textBtn(_t("Не сейчас"), () => { dupHidden.add(key); paint(); }, 'btn-ghost');
     return el('div', { class: 'ct-dupes', id: 'ct-dupes', role: 'status', 'data-id': 'instance.content.duplicates' },
       el('div', { class: 'ct-dupes-b' },
-        el('b', {}, names.length === 1 ? `«${names[0]}» установлен дважды` : `Установлены дважды: ${names.join(', ')}`),
-        el('span', {}, `Игра не запустится с двумя копиями одного мода. ${old.length === 1 ? 'Оставим новую версию, старую выключим (файл останется)' : 'Оставим новые версии, старые выключим (файлы останутся)'}.`)),
+        el('b', {}, names.length === 1 ? _t("«{0}» установлен дважды", [names[0]]) : _t("Установлены дважды: {0}", [names.join(', ')])),
+        el('span', {}, _t("Игра не запустится с двумя копиями одного мода. {0}.", [old.length === 1 ? _t("Оставим новую версию, старую выключим (файл останется)") : _t("Оставим новые версии, старые выключим (файлы останутся)")]))),
       el('div', { class: 'ct-dupes-acts' }, fix, later));
   }
 
@@ -235,7 +235,7 @@
   function head(rows) {
     const all = rows.every((m) => sel.has(m.file));
     const some = rows.some((m) => sel.has(m.file));
-    const cb = el('input', { type: 'checkbox', 'aria-label': 'Выбрать все' });
+    const cb = el('input', { type: 'checkbox', 'aria-label': _t("Выбрать все") });
     cb.checked = all; cb.indeterminate = some && !all;
     cb.addEventListener('change', () => { rows.forEach((m) => (cb.checked ? sel.add(m.file) : sel.delete(m.file))); paintList(); paintBar(); });
     const col = (t, a, d) => {
@@ -244,8 +244,8 @@
       b.addEventListener('click', () => setSort(sort === a ? d : a));
       return b;
     };
-    const n = rows.length === items.length ? count(items.length) : `${rows.length} из ${items.length}`;
-    return el('div', { class: 'ct-head' }, el('label', { class: 'check ct-sel' }, cb), col('Название', 'az', 'za'), col('Версия', 'ver', 'verd'), el('span', { class: 'ct-head-n' }, n));
+    const n = rows.length === items.length ? count(items.length) : _t("{0} из {1}", [rows.length, items.length]);
+    return el('div', { class: 'ct-head' }, el('label', { class: 'check ct-sel' }, cb), col(_t("Название"), 'az', 'za'), col(_t("Версия"), 'ver', 'verd'), el('span', { class: 'ct-head-n' }, n));
   }
 
   // Long names keep their end (the version part) visible, like Modrinth.
@@ -282,21 +282,21 @@
     if (m.project_id) { title.addEventListener('click', () => openProject(m)); ico.classList.add('is-link'); ico.addEventListener('click', () => openProject(m)); }
     const by = m.author
       ? el('span', { class: 'ct-by' }, avatar(m.author), el('span', {}, m.author.name))
-      : el('span', { class: 'ct-by is-muted' }, external(m) ? 'Загружен вручную' : '');
+      : el('span', { class: 'ct-by is-muted' }, external(m) ? _t("Загружен вручную") : '');
     const ver = el('div', { class: 'ct-ver' }, m.version_number ? mid(m.version_number, 'b') : null, mid(m.file, 'span'));
     let slot;
-    if (m.locked) slot = iconBtn('ct-lock', I.lock, 'Версия заморожена', () => lock(m, false));
-    else if (u) slot = iconBtn('ct-upd', I.upd, `Обновить до ${u.version_number}`, (b) => updateOne(b, m));
-    else if (m.project_id) slot = iconBtn('ct-swap', I.swap, 'Заменить версию', () => switchVer(m));
+    if (m.locked) slot = iconBtn('ct-lock', I.lock, _t("Версия заморожена"), () => lock(m, false));
+    else if (u) slot = iconBtn('ct-upd', I.upd, _t("Обновить до {0}", [u.version_number]), (b) => updateOne(b, m));
+    else if (m.project_id) slot = iconBtn('ct-swap', I.swap, _t("Заменить версию"), () => switchVer(m));
     else slot = el('i', { class: 'ct-slot' });
-    const sw = el('input', { type: 'checkbox', 'aria-label': m.enabled ? 'Выключить' : 'Включить' });
+    const sw = el('input', { type: 'checkbox', 'aria-label': m.enabled ? _t("Выключить") : _t("Включить") });
     sw.checked = m.enabled;
     sw.addEventListener('change', () => toggle(m, sw, r));
-    const del = iconBtn('ct-del', I.trash, document.body.classList.contains('ct-shift') ? 'Удалить сразу' : 'Удалить', (b, e) => remove([m], e.shiftKey));
-    const more = iconBtn('ct-more', I.more, 'Ещё', (b) => { const rc = b.getBoundingClientRect(); fillMenu(m); FUI.openMenuAt($('#menu-ct-row'), rc.right - 220, rc.bottom + 4); });
+    const del = iconBtn('ct-del', I.trash, document.body.classList.contains('ct-shift') ? _t("Удалить сразу") : _t("Удалить"), (b, e) => remove([m], e.shiftKey));
+    const more = iconBtn('ct-more', I.more, _t("Ещё"), (b) => { const rc = b.getBoundingClientRect(); fillMenu(m); FUI.openMenuAt($('#menu-ct-row'), rc.right - 220, rc.bottom + 4); });
     r.append(el('label', { class: 'check ct-sel' }, cb), ico,
       el('div', { class: 'ct-main' }, title, by), ver,
-      el('div', { class: 'ct-acts' }, slot, el('label', { class: 'switch', 'data-tip': m.enabled ? 'Выключить' : 'Включить' }, sw, el('i')), del, more));
+      el('div', { class: 'ct-acts' }, slot, el('label', { class: 'switch', 'data-tip': m.enabled ? _t("Выключить") : _t("Включить") }, sw, el('i')), del, more));
     r.addEventListener('dblclick', (e) => { if (!e.target.closest('button, label, input')) pick(m, !sel.has(m.file), false); });
     return r;
   }
@@ -306,7 +306,7 @@
     $('#ct-bar').toggleAttribute('data-open', c.length > 0);
     $('#tab-content').classList.toggle('has-sel', c.length > 0);
     if (!c.length) return;
-    $('#ct-bar-n').textContent = `Выбрано: ${c.length}`;
+    $('#ct-bar-n').textContent = _t("Выбрано: {0}", [c.length]);
     $('#ct-bar-update').hidden = !c.some((m) => has(m, 'upd'));
     $('#ct-bar-on').hidden = !c.some((m) => !m.enabled);
     $('#ct-bar-off').hidden = !c.some((m) => m.enabled);
@@ -352,26 +352,26 @@
     for (const m of ab) {
       const k = authorKey(m);
       if (!k) continue;
-      const a = authors.get(k) || { n: 0, name: k === '~' ? 'Загружены вручную' : m.author.name, author: m.author };
+      const a = authors.get(k) || { n: 0, name: k === '~' ? _t("Загружены вручную") : m.author.name, author: m.author };
       a.n++;
       authors.set(k, a);
     }
     const aopts = [...authors].filter(([k, a]) => useful(f.author, k, a.n, ab.length)).sort((x, y) => y[1].n - x[1].n || coll.compare(x[1].name, y[1].name));
     if (aopts.length) {
       const list = el('div', { class: 'ct-flist' }, ...aopts.map(([k, a]) => opt(f.author, k, a.name, a.n, a.author ? avatar(a.author) : el('i', { class: 'ct-ava is-none' }))));
-      const q = aopts.length > 6 ? el('input', { class: 'field ct-fq', placeholder: 'Автор', autocomplete: 'off', spellcheck: false }) : null;
+      const q = aopts.length > 6 ? el('input', { class: 'field ct-fq', placeholder: _t("Автор"), autocomplete: 'off', spellcheck: false }) : null;
       q?.addEventListener('input', () => { const s = q.value.trim().toLowerCase(); [...list.children].forEach((b) => { b.hidden = !!s && !b.textContent.toLowerCase().includes(s); }); });
-      secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, 'Автор'), q, list));
+      secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, _t("Автор")), q, list));
     }
     const eb = base('env');
     const eopts = Object.entries(ENV).map(([k, t]) => [k, t, eb.filter((m) => envOf(m) === k).length]).filter(([k, , n]) => useful(f.env, k, n, eb.length));
-    if (eopts.length) secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, 'Окружение'), ...eopts.map(([k, t, n]) => opt(f.env, k, t, n))));
+    if (eopts.length) secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, _t("Окружение")), ...eopts.map(([k, t, n]) => opt(f.env, k, t, n))));
     const popts = Object.entries(PROPS).map(([k, t]) => { const pb = base(k); return [k, t, pb.filter((m) => has(m, k)).length, pb.length]; }).filter(([k, , n, tot]) => useful(f.props, k, n, tot));
-    if (popts.length) secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, 'Свойства'), ...popts.map(([k, t, n]) => opt(f.props, k, t, n))));
-    if (!secs.length) secs.push(el('div', { class: 'ct-fnone' }, 'Фильтровать нечего'));
+    if (popts.length) secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, _t("Свойства")), ...popts.map(([k, t, n]) => opt(f.props, k, t, n))));
+    if (!secs.length) secs.push(el('div', { class: 'ct-fnone' }, _t("Фильтровать нечего")));
     const active = f.author.size + f.env.size + f.props.size;
     if (active) {
-      const r = el('button', { type: 'button', class: 'btn btn-sm btn-ghost ct-freset' }, 'Сбросить');
+      const r = el('button', { type: 'button', class: 'btn btn-sm btn-ghost ct-freset' }, _t("Сбросить"));
       r.addEventListener('click', () => { f.author.clear(); f.env.clear(); f.props.clear(); paint(); paintFilter(); });
       secs.push(r);
     }
@@ -382,7 +382,7 @@
   async function toggle(m, sw, r) {
     if (!sw.checked) {
       const deps = dependents([m]);
-      if (deps.length && !(await Ops().confirm({ title: `Выключить «${m.title}»?`, text: 'Без него не запустятся:', list: deps.map((d) => d.title), ok: 'Выключить', danger: false }))) { sw.checked = true; return; }
+      if (deps.length && !(await Ops().confirm({ title: _t("Выключить «{0}»?", [m.title]), text: _t("Без него не запустятся:"), list: deps.map((d) => d.title), ok: _t("Выключить"), danger: false }))) { sw.checked = true; return; }
     }
     try {
       await call('mods.toggle', { ...loc(), file: m.file, enabled: sw.checked });
@@ -398,7 +398,7 @@
     const n = $('#ct-bar-n');
     let bad = 0;
     for (let i = 0; i < list.length; i++) {
-      if (list.length > 1) n.textContent = `${verb} ${i + 1} из ${list.length}`;
+      if (list.length > 1) n.textContent = _t("{0} {1} из {2}", [verb, i + 1, list.length]);
       try { await fn(list[i]); } catch (e) { bad++; if (bad === 1) fail(e); }
     }
     return list.length - bad;
@@ -409,27 +409,27 @@
     if (!now || deps.length) {
       const one = list.length === 1;
       const ok = await Ops().confirm({
-        title: one ? `Удалить «${list[0].title}»?` : `Удалить ${count(list.length)}?`,
-        text: deps.length ? 'Без удаляемого не запустятся:' : '',
+        title: one ? _t("Удалить «{0}»?", [list[0].title]) : _t("Удалить {0}?", [count(list.length)]),
+        text: deps.length ? _t("Без удаляемого не запустятся:") : '',
         list: deps.length ? deps.map((d) => d.title) : one ? [] : list.map((m) => m.title),
-        ok: deps.length ? 'Удалить всё равно' : 'Удалить',
+        ok: deps.length ? _t("Удалить всё равно") : _t("Удалить"),
       });
       if (!ok) return;
     }
     const at = loc();
     const done = [];
-    const okN = await bulk(list, 'Удаляем', async (m) => { await call('mods.remove', { ...at, file: m.file }); done.push(m.file); });
+    const okN = await bulk(list, _t("Удаляем"), async (m) => { await call('mods.remove', { ...at, file: m.file }); done.push(m.file); });
     if (inst !== at.instance || kind !== at.kind) return;
     items = items.filter((m) => !done.includes(m.file));
     done.forEach((x) => sel.delete(x));
     paint();
-    if (okN > 1) toast(`Удалено: ${okN}`);
+    if (okN > 1) toast(_t("Удалено: {0}", [okN]));
   }
 
   async function updateOne(b, m) {
     const r = await run(b, 'mods.update', { ...loc(), file: m.file }).catch(() => null);
     if (!r) return;
-    toast(r.updated.length ? `${r.updated[0]} обновлён` : 'Обновлений нет');
+    toast(r.updated.length ? _t("{0} обновлён", [r.updated[0]]) : _t("Обновлений нет"));
     reload();
   }
   async function updateMany(b, list) {
@@ -437,10 +437,10 @@
     list = list || items.filter((m) => has(m, 'upd'));
     if (!list.length) return;
     const ok = await Ops().confirm({
-      title: `Обновить ${count(list.length)}?`,
+      title: _t("Обновить {0}?", [count(list.length)]),
       text: '',
       list: list.map((m) => `${m.title}  ${m.version_number || ''} → ${updates.get(m.file)?.version_number || ''}`),
-      ok: 'Обновить',
+      ok: _t("Обновить"),
       danger: false,
     });
     if (!ok) return;
@@ -450,10 +450,10 @@
       n = r ? r.updated.length : 0;
     } else {
       b.dataset.state = 'loading';
-      n = await bulk(list, 'Обновляем', (m) => call('mods.update', { ...loc(), file: m.file }));
+      n = await bulk(list, _t("Обновляем"), (m) => call('mods.update', { ...loc(), file: m.file }));
       b.dataset.state = 'idle';
     }
-    if (n) toast(n === 1 ? 'Обновлено' : `Обновлено: ${n}`);
+    if (n) toast(n === 1 ? _t("Обновлено") : _t("Обновлено: {0}", [n]));
     reload();
   }
 
@@ -461,9 +461,9 @@
     const list = chosen().filter((m) => m.enabled !== on);
     if (!on) {
       const deps = dependents(list);
-      if (deps.length && !(await Ops().confirm({ title: `Выключить ${count(list.length)}?`, text: 'Без них не запустятся:', list: deps.map((d) => d.title), ok: 'Выключить', danger: false }))) return;
+      if (deps.length && !(await Ops().confirm({ title: _t("Выключить {0}?", [count(list.length)]), text: _t("Без них не запустятся:"), list: deps.map((d) => d.title), ok: _t("Выключить"), danger: false }))) return;
     }
-    await bulk(list, on ? 'Включаем' : 'Выключаем', async (m) => { await call('mods.toggle', { ...loc(), file: m.file, enabled: on }); m.enabled = on; });
+    await bulk(list, on ? _t("Включаем") : _t("Выключаем"), async (m) => { await call('mods.toggle', { ...loc(), file: m.file, enabled: on }); m.enabled = on; });
     paint();
   }
 
@@ -471,7 +471,7 @@
     try {
       await call('mods.lock', { ...loc(), file: m.file, locked });
       m.locked = locked;
-      toast(locked ? `${m.title}: версия заморожена` : `${m.title}: версия разморожена`);
+      toast(locked ? _t("{0}: версия заморожена", [m.title]) : _t("{0}: версия разморожена", [m.title]));
       paint();
       if (!locked) checkUpdates();
     } catch (e) { fail(e); }
@@ -487,7 +487,7 @@
     } catch (e) { fail(e); }
   }
   function added(r) {
-    toast(r.added.length === 1 ? `Добавлен ${r.added[0]}` : `Добавлено файлов: ${r.added.length}`);
+    toast(r.added.length === 1 ? _t("Добавлен {0}", [r.added[0]]) : _t("Добавлено файлов: {0}", [r.added.length]));
     metaDone.delete(JSON.stringify(loc()));
     reload();
   }
@@ -495,12 +495,12 @@
   async function drop(paths) {
     try {
       const r = await invoke('drop_content', { args: loc(), paths });
-      if (r.added.length) added(r); else toast(`Сюда подходят только файлы ${KINDS[kind].ext}`, { error: true });
+      if (r.added.length) added(r); else toast(_t("Сюда подходят только файлы {0}", [KINDS[kind].ext]), { error: true });
     } catch (e) { fail(e); }
   }
 
   function copy(text, msg) {
-    if (!navigator.clipboard) { fail('Буфер обмена недоступен'); return; }
+    if (!navigator.clipboard) { fail(_t("Буфер обмена недоступен")); return; }
     navigator.clipboard.writeText(text).then(() => toast(msg), fail);
   }
   function share(mode) {
@@ -511,17 +511,17 @@
       links: (m) => link(m) || m.title,
       md: (m) => (link(m) ? `- [${m.title}](${link(m)})` : `- ${m.title}`),
     }[mode];
-    copy(list.map(line).join('\n'), mode === 'md' ? 'Список в Markdown скопирован' : 'Скопировано');
+    copy(list.map(line).join('\n'), mode === 'md' ? _t("Список в Markdown скопирован") : _t("Скопировано"));
   }
 
   function fillMenu(m) {
     const item = (icon, text, fn, cls = '') => { const b = el('button', { type: 'button', class: `menu-item ${cls}`, html: icon }); b.append(text); b.addEventListener('click', fn); return b; };
     const kids = [];
-    if (m.project_id) kids.push(item(I.open, 'Открыть страницу', () => openProject(m)), item(I.swap, 'Заменить версию', () => switchVer(m)));
-    kids.push(item(I.folder, 'Показать файл', () => invoke('reveal_content', { args: { ...loc(), file: m.file } }).catch(fail)));
-    if (m.slug) kids.push(item(I.link, 'Скопировать ссылку', () => copy(link(m), 'Ссылка скопирована')));
-    if (m.project_id) kids.push(el('div', { class: 'menu-sep' }), item(m.locked ? I.unlock : I.lock, m.locked ? 'Разморозить версию' : 'Заморозить версию', () => lock(m, !m.locked)));
-    kids.push(el('div', { class: 'menu-sep' }), item(I.trash, 'Удалить', () => remove([m], false), 'is-danger'));
+    if (m.project_id) kids.push(item(I.open, _t("Открыть страницу"), () => openProject(m)), item(I.swap, _t("Заменить версию"), () => switchVer(m)));
+    kids.push(item(I.folder, _t("Показать файл"), () => invoke('reveal_content', { args: { ...loc(), file: m.file } }).catch(fail)));
+    if (m.slug) kids.push(item(I.link, _t("Скопировать ссылку"), () => copy(link(m), _t("Ссылка скопирована"))));
+    if (m.project_id) kids.push(el('div', { class: 'menu-sep' }), item(m.locked ? I.unlock : I.lock, m.locked ? _t("Разморозить версию") : _t("Заморозить версию"), () => lock(m, !m.locked)));
+    kids.push(el('div', { class: 'menu-sep' }), item(I.trash, _t("Удалить"), () => remove([m], false), 'is-danger'));
     $('#menu-ct-row').replaceChildren(...kids);
   }
 
@@ -558,7 +558,7 @@
   const shift = (on) => {
     if (document.body.classList.contains('ct-shift') === on) return;
     document.body.classList.toggle('ct-shift', on);
-    $$('.ct-del').forEach((b) => { b.dataset.tip = on ? 'Удалить сразу' : 'Удалить'; });
+    $$('.ct-del').forEach((b) => { b.dataset.tip = on ? _t("Удалить сразу") : _t("Удалить"); });
   };
   addEventListener('keydown', (e) => {
     if (e.key === 'Shift') shift(true);

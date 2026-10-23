@@ -85,7 +85,7 @@
     if (DROP.has(tag)) {
       const src = node.getAttribute('src') || '';
       if (tag !== 'iframe' || !SAFE_URL.test(src)) return null;
-      return link(/youtube|youtu\.be/.test(src) ? 'Видео' : 'Встроенное содержимое', src.replace('/embed/', '/watch?v='), onLink, 'md-embed');
+      return link(/youtube|youtu\.be/.test(src) ? _t("Видео") : _t("Встроенное содержимое"), src.replace('/embed/', '/watch?v='), onLink, 'md-embed');
     }
     const kids = () => [...node.childNodes].map((c) => rebuild(c, onLink)).filter(Boolean);
     const center = tag === 'center' || (node.getAttribute('align') || '').toLowerCase() === 'center';

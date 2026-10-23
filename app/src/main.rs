@@ -130,7 +130,7 @@ async fn ms_window_login(
     let tx: LoginTx = Arc::new(std::sync::Mutex::new(Some(tx)));
     let nav_tx = Arc::clone(&tx);
     let w = tauri::WebviewWindowBuilder::new(&app, LABEL, tauri::WebviewUrl::External(url))
-        .title("Вход через Microsoft")
+        .title(tr("Вход через Microsoft"))
         .inner_size(480.0, 640.0)
         .min_inner_size(380.0, 520.0)
         .center()
@@ -216,7 +216,7 @@ async fn pick_content(
     let picked = tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
-            .add_filter("Файлы", &[ext.trim_start_matches('.')])
+            .add_filter(tr("Файлы"), &[ext.trim_start_matches('.')])
             .blocking_pick_files()
             .unwrap_or_default()
             .into_iter()
@@ -404,8 +404,8 @@ async fn pick_mrpack(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) ->
         let Some(path) = app
             .dialog()
             .file()
-            .set_title("Импорт сборки")
-            .add_filter("Сборка Modrinth", &["mrpack", "zip"])
+            .set_title(tr("Импорт сборки"))
+            .add_filter(tr("Сборка Modrinth"), &["mrpack", "zip"])
             .blocking_pick_file()
             .and_then(|p| p.into_path().ok())
         else {
@@ -795,14 +795,48 @@ fn restart_safe(app: &tauri::AppHandle) {
     }
 }
 
-fn tray(app: &tauri::App) -> tauri::Result<()> {
+/// Interface strings the native side draws itself (tray menu, window titles, file dialogs),
+/// keyed by the Russian source text. Filled by the UI for any language other than Russian.
+static UI_STRINGS: std::sync::RwLock<Option<std::collections::HashMap<String, String>>> =
+    std::sync::RwLock::new(None);
+
+fn tr(s: &str) -> String {
+    UI_STRINGS
+        .read()
+        .ok()
+        .and_then(|m| m.as_ref().and_then(|m| m.get(s).filter(|v| !v.is_empty()).cloned()))
+        .unwrap_or_else(|| s.to_string())
+}
+
+const SAFE_TITLE: &str = "Freedom Launcher — безопасные настройки";
+
+#[tauri::command]
+fn set_ui_strings(app: tauri::AppHandle, strings: std::collections::HashMap<String, String>) {
+    if let Ok(mut m) = UI_STRINGS.write() {
+        *m = Some(strings);
+    }
+    if let (Some(t), Ok(menu)) = (app.tray_by_id("main"), tray_menu(&app)) {
+        let _ = t.set_menu(Some(menu));
+    }
+    if let Some(w) = app.get_webview_window("main") {
+        if w.title().is_ok_and(|t| t == SAFE_TITLE) {
+            let _ = w.set_title(&tr(SAFE_TITLE));
+        }
+    }
+}
+
+fn tray_menu<R: tauri::Runtime, M: Manager<R>>(app: &M) -> tauri::Result<tauri::menu::Menu<R>> {
     use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
-    use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-    let open = MenuItem::with_id(app, "open", "Открыть", true, None::<&str>)?;
-    let safe = MenuItem::with_id(app, "safe", "Безопасные настройки", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", tr("Открыть"), true, None::<&str>)?;
+    let safe = MenuItem::with_id(app, "safe", tr("Безопасные настройки"), true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", tr("Выход"), true, None::<&str>)?;
     let sep = PredefinedMenuItem::separator(app)?;
-    let menu = Menu::with_items(app, &[&open, &safe, &sep, &quit])?;
+    Menu::with_items(app, &[&open, &safe, &sep, &quit])
+}
+
+fn tray(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+    let menu = tray_menu(app)?;
     let mut b = TrayIconBuilder::with_id("main")
         .tooltip("Freedom Launcher")
         .menu(&menu)
@@ -904,7 +938,7 @@ fn main() {
             app.manage(AppCore(core));
             if safe_mode {
                 if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.set_title("Freedom Launcher — безопасные настройки");
+                    let _ = w.set_title(SAFE_TITLE);
                 }
             }
             Ok(())
@@ -912,6 +946,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             action,
             set_close_to_tray,
+            set_ui_strings,
             theme_action,
             open_login_page,
             ms_window_login,

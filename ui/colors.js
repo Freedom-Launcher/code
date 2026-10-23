@@ -10,11 +10,11 @@
   const toast = (t, o) => window.FUI?.toast(t, o);
   const LS = 'fl.colors';
   const GROUPS = [
-    ['Акцент', [['accent', 'Акцент']]],
-    ['Фон', [['bg', 'Фон окна'], ['surface-1', 'Панели'], ['surface-2', 'Карточки'], ['surface-3', 'Поля и кнопки'], ['glass', 'Тон стекла']]],
-    ['Текст', [['text', 'Основной'], ['text-2', 'Второстепенный'], ['text-3', 'Подсказки']]],
-    ['Линии', [['line', 'Разделители'], ['line-strong', 'Рамки']]],
-    ['Статусы', [['danger', 'Ошибка'], ['warn', 'Предупреждение']]],
+    [_t("Акцент"), [['accent', _t("Акцент")]]],
+    [_t("Фон"), [['bg', _t("Фон окна")], ['surface-1', _t("Панели")], ['surface-2', _t("Карточки")], ['surface-3', _t("Поля и кнопки")], ['glass', _t("Тон стекла")]]],
+    [_t("Текст"), [['text', _t("Основной")], ['text-2', _t("Второстепенный")], ['text-3', _t("Подсказки")]]],
+    [_t("Линии"), [['line', _t("Разделители")], ['line-strong', _t("Рамки")]]],
+    [_t("Статусы"), [['danger', _t("Ошибка")], ['warn', _t("Предупреждение")]]],
   ];
   const NAMES = Object.fromEntries(GROUPS.flatMap(([, l]) => l));
   const TOKENS = Object.keys(NAMES);
@@ -41,14 +41,14 @@
   };
   const SETS = {
     dark: [
-      ['Полночь', { accent: '#6ea8ff', bg: '#070a12', 'surface-1': '#0c111c', 'surface-2': '#111827', 'surface-3': '#172033', glass: '#0a0f1c' }],
-      ['Графит', { accent: '#e4e4e7', bg: '#0c0c0d', 'surface-1': '#141415', 'surface-2': '#1b1b1d', 'surface-3': '#232326' }],
-      ['Уголь', { bg: '#000000', 'surface-1': '#0a0a0a', 'surface-2': '#111111', 'surface-3': '#181818', glass: '#000000' }],
-      ['Закат', { accent: '#ff8a4c', bg: '#0f0c0a', 'surface-1': '#171310', 'surface-2': '#1d1814', 'surface-3': '#251f1a', glass: '#140f0c' }],
+      [_t("Полночь"), { accent: '#6ea8ff', bg: '#070a12', 'surface-1': '#0c111c', 'surface-2': '#111827', 'surface-3': '#172033', glass: '#0a0f1c' }],
+      [_t("Графит"), { accent: '#e4e4e7', bg: '#0c0c0d', 'surface-1': '#141415', 'surface-2': '#1b1b1d', 'surface-3': '#232326' }],
+      [_t("Уголь"), { bg: '#000000', 'surface-1': '#0a0a0a', 'surface-2': '#111111', 'surface-3': '#181818', glass: '#000000' }],
+      [_t("Закат"), { accent: '#ff8a4c', bg: '#0f0c0a', 'surface-1': '#171310', 'surface-2': '#1d1814', 'surface-3': '#251f1a', glass: '#140f0c' }],
     ],
     light: [
-      ['Бумага', { accent: '#c2410c', bg: '#f6f3ee', 'surface-1': '#fffdf9', 'surface-2': '#f1ede6', 'surface-3': '#e8e3da', glass: '#f6f3ee' }],
-      ['Лёд', { accent: '#0284c7', bg: '#f1f5f9', 'surface-1': '#ffffff', 'surface-2': '#eef2f7', 'surface-3': '#e2e8f0', glass: '#f1f5f9' }],
+      [_t("Бумага"), { accent: '#c2410c', bg: '#f6f3ee', 'surface-1': '#fffdf9', 'surface-2': '#f1ede6', 'surface-3': '#e8e3da', glass: '#f6f3ee' }],
+      [_t("Лёд"), { accent: '#0284c7', bg: '#f1f5f9', 'surface-1': '#ffffff', 'surface-2': '#eef2f7', 'surface-3': '#e2e8f0', glass: '#f1f5f9' }],
     ],
   };
 
@@ -188,15 +188,15 @@
     row = document.createElement('div');
     row.className = 'r col-row';
     row.dataset.id = 'settings.colors';
-    row.innerHTML = `<div class="grow"><div class="t">Цвета</div><div class="s" id="col-sub"></div></div>`
+    row.innerHTML = _t("<div class=\"grow\"><div class=\"t\">Цвета</div><div class=\"s\" id=\"col-sub\"></div></div>")
       + `<div class="col-strip" aria-hidden="true">${'<i></i>'.repeat(STRIP.length)}</div>`
-      + `<button class="btn" id="col-open" type="button" aria-expanded="false" aria-controls="col-panel"><span class="lbl">Настроить</span>${ic(I.chev)}</button>`;
+      + _t("<button class=\"btn\" id=\"col-open\" type=\"button\" aria-expanded=\"false\" aria-controls=\"col-panel\"><span class=\"lbl\">Настроить</span>{0}</button>", [ic(I.chev)]);
     panel = document.createElement('div');
     panel.className = 'col-panel';
     panel.id = 'col-panel';
     panel.dataset.id = 'settings.colors.panel';
     panel.inert = true;
-    panel.innerHTML = `<div class="col-in"><div class="col-body"><div class="col-sets" id="col-sets" role="group" aria-label="Наборы"></div>${GROUPS.map(([g, l]) => `<section class="col-g"><h3 class="col-gh">${g}</h3><div class="col-list">${l.map(([t, n]) => `<div class="col-tok" data-tok="${t}"><button type="button" class="col-pick" aria-haspopup="dialog" aria-expanded="false"><i class="col-sw"><b></b></i><span class="col-name">${n}</span><span class="col-warn" hidden>${ic(I.warn)}</span><span class="col-hex mono"></span></button><button type="button" class="btn btn-ghost btn-icon btn-sm col-reset" aria-label="Как в теме" data-tip="Как в теме">${ic(I.undo)}</button></div>`).join('')}</div></section>`).join('')}</div></div>`;
+    panel.innerHTML = _t("<div class=\"col-in\"><div class=\"col-body\"><div class=\"col-sets\" id=\"col-sets\" role=\"group\" aria-label=\"Наборы\"></div>{0}</div></div>", [GROUPS.map(([g, l]) => `<section class="col-g"><h3 class="col-gh">${g}</h3><div class="col-list">${l.map(([t, n]) => _t("<div class=\"col-tok\" data-tok=\"{0}\"><button type=\"button\" class=\"col-pick\" aria-haspopup=\"dialog\" aria-expanded=\"false\"><i class=\"col-sw\"><b></b></i><span class=\"col-name\">{1}</span><span class=\"col-warn\" hidden>{2}</span><span class=\"col-hex mono\"></span></button><button type=\"button\" class=\"btn btn-ghost btn-icon btn-sm col-reset\" aria-label=\"Как в теме\" data-tip=\"Как в теме\">{3}</button></div>", [t, n, ic(I.warn), ic(I.undo)])).join('')}</div></section>`).join('')]);
     themeRow.after(row, panel);
     const openBtn = row.querySelector('#col-open');
     openBtn.addEventListener('click', () => {
@@ -220,7 +220,7 @@
     const b = base(), tv0 = themeVals();
     const sw = (m) => `<span class="col-set-sw">${['accent', 'surface-2', 'bg'].map(() => '<i></i>').join('')}</span>`;
     const host = panel.querySelector('#col-sets');
-    host.innerHTML = `<button type="button" class="col-set" data-set="">${sw()}Как в теме</button>`
+    host.innerHTML = _t("<button type=\"button\" class=\"col-set\" data-set=\"\">{0}Как в теме</button>", [sw()])
       + SETS[b].map(([n], i) => `<button type="button" class="col-set" data-set="${i}">${sw()}${n}</button>`).join('');
     host.querySelectorAll('.col-set').forEach((chip) => {
       const m = chip.dataset.set === '' ? {} : SETS[b][+chip.dataset.set][1];
@@ -234,7 +234,7 @@
     const m = own(), w = wall(), b = base();
     if (setsBase !== b || !tv) { tv = null; renderSets(); }
     const n = Object.keys(m).length;
-    row.querySelector('#col-sub').textContent = n ? `Изменено: ${n}` : 'Как в теме';
+    row.querySelector('#col-sub').textContent = n ? _t("Изменено: {0}", [n]) : _t("Как в теме");
     const strip = w ? ['accent', 'glass', 'text', 'danger', 'warn'] : STRIP;
     row.querySelectorAll('.col-strip > i').forEach((i, k) => i.style.setProperty('--c', value(strip[k])));
     const bg = parse(value('bg'));
@@ -249,7 +249,7 @@
       const warn = tok.querySelector('.col-warn');
       const r = LIM[t] && !w ? contrast(parse(v), bg) : 99;
       warn.hidden = r >= LIM[t] || !LIM[t];
-      if (!warn.hidden) warn.dataset.tip = `Контраст ${r.toFixed(1)}:1`;
+      if (!warn.hidden) warn.dataset.tip = _t("Контраст {0}:1", [r.toFixed(1)]);
     }
     const key = JSON.stringify(Object.entries(m).sort());
     panel.querySelectorAll('.col-set').forEach((chip) => {
@@ -263,11 +263,11 @@
   pop.className = 'pop cp';
   pop.setAttribute('role', 'dialog');
   pop.inert = true;
-  pop.innerHTML = `<div class="cp-head"><span class="cp-title"></span><span class="cp-cmp"><button type="button" class="cp-was" aria-label="Вернуть как было" data-tip="Как было"></button><i class="cp-now"></i></span></div>`
-    + '<div class="cp-sv" tabindex="0" role="slider" aria-label="Насыщенность и яркость"><i class="cp-th"></i></div>'
-    + '<div class="cp-tr cp-hue" tabindex="0" role="slider" aria-label="Оттенок" aria-valuemin="0" aria-valuemax="360"><i class="cp-th"></i></div>'
-    + '<div class="cp-tr cp-alpha" tabindex="0" role="slider" aria-label="Непрозрачность" aria-valuemin="0" aria-valuemax="100"><i class="cp-th"></i></div>'
-    + `<div class="cp-io"><input class="field mono cp-hex" spellcheck="false" autocomplete="off" maxlength="9" aria-label="HEX"><button type="button" class="btn btn-ghost btn-icon btn-sm cp-drop" aria-label="Пипетка" data-tip="Пипетка">${ic(I.drop)}</button></div>`
+  pop.innerHTML = _t("<div class=\"cp-head\"><span class=\"cp-title\"></span><span class=\"cp-cmp\"><button type=\"button\" class=\"cp-was\" aria-label=\"Вернуть как было\" data-tip=\"Как было\"></button><i class=\"cp-now\"></i></span></div>")
+    + _t("<div class=\"cp-sv\" tabindex=\"0\" role=\"slider\" aria-label=\"Насыщенность и яркость\"><i class=\"cp-th\"></i></div>")
+    + _t("<div class=\"cp-tr cp-hue\" tabindex=\"0\" role=\"slider\" aria-label=\"Оттенок\" aria-valuemin=\"0\" aria-valuemax=\"360\"><i class=\"cp-th\"></i></div>")
+    + _t("<div class=\"cp-tr cp-alpha\" tabindex=\"0\" role=\"slider\" aria-label=\"Непрозрачность\" aria-valuemin=\"0\" aria-valuemax=\"100\"><i class=\"cp-th\"></i></div>")
+    + _t("<div class=\"cp-io\"><input class=\"field mono cp-hex\" spellcheck=\"false\" autocomplete=\"off\" maxlength=\"9\" aria-label=\"HEX\"><button type=\"button\" class=\"btn btn-ghost btn-icon btn-sm cp-drop\" aria-label=\"Пипетка\" data-tip=\"Пипетка\">{0}</button></div>", [ic(I.drop)])
     + '<div class="cp-pre"></div>';
   document.body.append(pop);
   const q = (s) => pop.querySelector(s);
@@ -315,7 +315,7 @@
     const fam = PRESETS[base()][FAMILY[t]] || [];
     const tvv = themeVals()[t];
     const list = [tvv, ...fam.filter((c) => c !== tvv)];
-    pre.innerHTML = list.map((c, i) => `<button type="button" class="cp-p${i ? '' : ' is-theme'}" data-c="${c}" aria-label="${i ? c.toUpperCase() : 'Как в теме'}" data-tip="${i ? c.toUpperCase() : 'Как в теме'}"></button>`).join('');
+    pre.innerHTML = list.map((c, i) => `<button type="button" class="cp-p${i ? '' : ' is-theme'}" data-c="${c}" aria-label="${i ? c.toUpperCase() : _t("Как в теме")}" data-tip="${i ? c.toUpperCase() : _t("Как в теме")}"></button>`).join('');
     pre.querySelectorAll('.cp-p').forEach((p) => p.style.setProperty('--c', p.dataset.c));
     draw();
     pop.inert = false;
@@ -439,7 +439,7 @@
     q('.cp-was').style.setProperty('--c', v);
     alpha.hidden = !o.alpha;
     const fam = [...new Set(Object.values(PRESETS[base()] || {}).flat())].filter((c) => c !== d).slice(0, 11);
-    pre.innerHTML = [d, ...fam].map((c, i) => `<button type="button" class="cp-p${i ? '' : ' is-theme'}" data-c="${c}" aria-label="${i ? c.toUpperCase() : 'Как в теме'}" data-tip="${i ? c.toUpperCase() : 'Как в теме'}"></button>`).join('');
+    pre.innerHTML = [d, ...fam].map((c, i) => `<button type="button" class="cp-p${i ? '' : ' is-theme'}" data-c="${c}" aria-label="${i ? c.toUpperCase() : _t("Как в теме")}" data-tip="${i ? c.toUpperCase() : _t("Как в теме")}"></button>`).join('');
     pre.querySelectorAll('.cp-p').forEach((p) => p.style.setProperty('--c', p.dataset.c));
     draw();
     pop.classList.add('cp-top');

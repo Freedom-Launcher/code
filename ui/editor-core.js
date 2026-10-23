@@ -6,14 +6,14 @@
 (() => {
   const { $ } = window.FUI;
   const root = document.documentElement;
-  const RADIUS = [['btn', 'Кнопки'], ['field', 'Поля'], ['card', 'Карточки'], ['icon', 'Иконки'], ['menu', 'Меню'], ['chip', 'Метки'], ['nav', 'Боковая панель'], ['dialog', 'Окна']];
-  const SIZE = [['btn', 'Кнопки', 70, 150], ['field', 'Поля', 70, 150], ['text', 'Текст', 85, 130], ['gap', 'Отступы', 60, 160], ['rail', 'Боковая панель', 80, 150], ['top', 'Верхняя панель', 80, 180], ['card', 'Карточки сборок', 60, 200]];
-  const LAYOUT = [['rail', 'Боковая панель', 'left'], ['filters', 'Фильтры каталога', 'left'], ['project', 'Панель проекта', 'right']];
+  const RADIUS = [['btn', _t("Кнопки")], ['field', _t("Поля")], ['card', _t("Карточки")], ['icon', _t("Иконки")], ['menu', _t("Меню")], ['chip', _t("Метки")], ['nav', _t("Боковая панель")], ['dialog', _t("Окна")]];
+  const SIZE = [['btn', _t("Кнопки"), 70, 150], ['field', _t("Поля"), 70, 150], ['text', _t("Текст"), 85, 130], ['gap', _t("Отступы"), 60, 160], ['rail', _t("Боковая панель"), 80, 150], ['top', _t("Верхняя панель"), 80, 180], ['card', _t("Карточки сборок"), 60, 200]];
+  const LAYOUT = [['rail', _t("Боковая панель"), 'left'], ['filters', _t("Фильтры каталога"), 'left'], ['project', _t("Панель проекта"), 'right']];
   const NAMES = {
-    rail: 'Боковая панель', 'rail.logo': 'Логотип', 'rail.instances': 'Сборки в панели', topbar: 'Верхняя панель', main: 'Основная область',
-    'instance.hero': 'Обложка сборки', 'instance.tabs': 'Вкладки сборки', 'instance.content.kind': 'Типы контента', 'discover.filters': 'Фильтры',
-    'discover.kind': 'Типы контента', 'project.header': 'Шапка проекта', 'project.sidebar': 'Панель проекта', 'project.tabs': 'Вкладки проекта',
-    'view.home': 'Библиотека', 'view.instance': 'Сборка', 'view.discover': 'Каталог', 'view.create': 'Новая сборка', 'view.accounts': 'Аккаунты', 'view.project': 'Проект', 'view.skins': 'Скины',
+    rail: _t("Боковая панель"), 'rail.logo': _t("Логотип"), 'rail.instances': _t("Сборки в панели"), topbar: _t("Верхняя панель"), main: _t("Основная область"),
+    'instance.hero': _t("Обложка сборки"), 'instance.tabs': _t("Вкладки сборки"), 'instance.content.kind': _t("Типы контента"), 'discover.filters': _t("Фильтры"),
+    'discover.kind': _t("Типы контента"), 'project.header': _t("Шапка проекта"), 'project.sidebar': _t("Панель проекта"), 'project.tabs': _t("Вкладки проекта"),
+    'view.home': _t("Библиотека"), 'view.instance': _t("Сборка"), 'view.discover': _t("Каталог"), 'view.create': _t("Новая сборка"), 'view.accounts': _t("Аккаунты"), 'view.project': _t("Проект"), 'view.skins': _t("Скины"),
   };
   const FIXED_IDS = new Set(['home.all', 'home.recent', 'rail.instances']);
   const FIXED = (p) => FIXED_IDS.has(p.dataset.id) || p.hasAttribute('data-ue-fixed');

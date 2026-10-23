@@ -5,7 +5,7 @@
   if (!row) return;
   const label = $('#gs-root'), bar = $('#gs-root-prog'), pick = $('#gs-root-pick'), reset = $('#gs-root-reset');
   const KEY = 'move:instances';
-  const size = (b) => (b >= 1 << 30 ? `${(b / (1 << 30)).toFixed(1)} ГБ` : `${Math.max(1, Math.round(b / (1 << 20)))} МБ`);
+  const size = (b) => (b >= 1 << 30 ? _t("{0} ГБ", [(b / (1 << 30)).toFixed(1)]) : _t("{0} МБ", [Math.max(1, Math.round(b / (1 << 20)))]));
 
   async function refresh() {
     const r = await call('instances.root').catch(() => null);
@@ -25,11 +25,11 @@
       if (!p || !p.total_bytes) return;
       bar.removeAttribute('data-indeterminate');
       bar.style.setProperty('--p', String(Math.min(1, p.done_bytes / p.total_bytes)));
-      label.textContent = `Перенос… ${size(p.done_bytes)} из ${size(p.total_bytes)}`;
+      label.textContent = _t("Перенос… {0} из {1}", [size(p.done_bytes), size(p.total_bytes)]);
     }, 250);
     try {
       const r = await run(btn, 'instances.move_root', { path });
-      toast(r.moved ? `Сборки перенесены: ${r.moved}` : 'Папка сборок изменена');
+      toast(r.moved ? _t("Сборки перенесены: {0}", [r.moved]) : _t("Папка сборок изменена"));
       await window.reloadInstances?.();
     } catch { /* toast shown by run() */ }
     clearInterval(tick);
@@ -40,7 +40,7 @@
   }
 
   pick.addEventListener('click', async () => {
-    const path = await invoke('pick_folder', { title: 'Папка для сборок' }).catch((e) => { toast(String(e), { error: true }); return null; });
+    const path = await invoke('pick_folder', { title: _t("Папка для сборок") }).catch((e) => { toast(String(e), { error: true }); return null; });
     if (path) move(path);
   });
   reset.addEventListener('click', () => move(null));

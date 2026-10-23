@@ -72,7 +72,7 @@
 .isx-slider input:focus-visible::-webkit-slider-thumb { box-shadow: var(--focus-ring); }
 .isx-rec { position: absolute; z-index: 3; left: var(--rec, 50%); top: -6px; width: 10px; height: 10px; margin-left: -5px; cursor: default; }
 .isx-rec::before { content: ""; position: absolute; left: 4px; top: 6px; width: 2px; height: 22px; border-radius: 1px; background: var(--text-3); opacity: .7; }
-.isx-rec::after { content: "Рекомендуется"; position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 2px); padding: 2px 6px; border-radius: var(--r-chip); background: var(--surface-3); color: var(--text-2); font-size: var(--text-xs); white-space: nowrap; opacity: 0; transition: opacity var(--d-3), transform var(--d-4) var(--ease-spring); pointer-events: none; }
+.isx-rec::after { content: var(--t-rec, "Рекомендуется"); position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 2px); padding: 2px 6px; border-radius: var(--r-chip); background: var(--surface-3); color: var(--text-2); font-size: var(--text-xs); white-space: nowrap; opacity: 0; transition: opacity var(--d-3), transform var(--d-4) var(--ease-spring); pointer-events: none; }
 .isx-rec:hover::after, .isx-slider:active .isx-rec::after { opacity: 1; transform: translate(-50%, -2px); }
 .isx-num { display: flex; align-items: center; gap: 6px; color: var(--text-3); font-size: var(--text-sm); }
 .isx-num .field { width: 88px; text-align: right; }

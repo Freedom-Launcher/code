@@ -11,7 +11,7 @@
     plus: SVG('<g fill="none"><path fill="currentColor" d="M11 20a1 1 0 1 0 2 0v-7h7a1 1 0 1 0 0-2h-7V4a1 1 0 1 0-2 0v7H4a1 1 0 1 0 0 2h7z"/></g>'),
     none: SVG('<g fill="none"><path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2m0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16m2.829 3.757a1 1 0 0 1 1.497 1.32l-.083.095-7.071 7.07a1 1 0 0 1-1.498-1.32l.083-.094 7.072-7.07Z"/></g>'),
   };
-  const VAR = { classic: 'Классическая', slim: 'Тонкая' };
+  const VAR = { classic: _t("Классическая"), slim: _t("Тонкая") };
   const LS_ANIM = 'fl.sk.anim', LS_ELY = 'fl.sk.ely';
   let acc = null, prof = null, defs = null, busy = false, sel = null, suppress = false;
   let ely = localStorage.getItem(LS_ELY) === '1';
@@ -23,7 +23,7 @@
     const s = document.createElement('script');
     s.src = 'vendor/skinview3d.min.js';
     s.onload = () => ok(window.skinview3d);
-    s.onerror = () => { libP = null; no(new Error('Не удалось загрузить 3D')); };
+    s.onerror = () => { libP = null; no(new Error(_t("Не удалось загрузить 3D"))); };
     document.head.append(s);
   });
   const ANIMS = { idle: 'IdleAnimation', walk: 'WalkingAnimation', run: 'RunningAnimation', fly: 'FlyingAnimation' };
@@ -143,7 +143,7 @@
       c.classList.toggle('is-on', on);
       c.classList.toggle('is-sel', !!sel && sel.k === c.dataset.k);
       const em = c.querySelector('.sk-on');
-      if (on && !em) c.querySelector('.sk-fig').append(el('em', { class: 'sk-on', html: `${I.check}Надет` }));
+      if (on && !em) c.querySelector('.sk-fig').append(el('em', { class: 'sk-on', html: _t("{0}Надет", [I.check]) }));
       else if (!on && em) em.remove();
     });
   }
@@ -156,8 +156,8 @@
     q('#sk-acts-cur').hidden = p;
     q('#sk-keep').hidden = !p || sel.kind !== 'default' || !sel.img;
     const cape = activeCape();
-    q('#sk-meta').textContent = q('#sk-meta').title = p ? `Предпросмотр: ${sel.label}`
-      : `${VAR[prof?.skin?.variant] || VAR.classic} модель${cape ? ` · плащ ${cape.alias}` : ''}`;
+    q('#sk-meta').textContent = q('#sk-meta').title = p ? _t("Предпросмотр: {0}", [sel.label])
+      : _t("{0} модель{1}", [VAR[prof?.skin?.variant] || VAR.classic, cape ? _t(" · плащ {0}", [cape.alias]) : '']);
     requestAnimationFrame(() => q('#sk-anim')._place?.(false));
     marks(); capes(); draw();
   }
@@ -175,7 +175,7 @@
       else if (s.kind === 'default') p = await c('skins.default', { key: s.key });
       if (s.touched) p = await c('skins.cape', { cape: s.cape ?? null });
       return p;
-    }, s.kind === 'cur' ? 'Плащ обновлён' : 'Скин надет');
+    }, s.kind === 'cur' ? _t("Плащ обновлён") : _t("Скин надет"));
   }
 
   // ---------- Requests ----------
@@ -203,17 +203,17 @@
     const saved = prof.saved || [];
     q('#sk-saved-n').textContent = saved.length ? String(saved.length) : '';
     const add = el('button', { type: 'button', class: 'sk-card sk-add', 'data-id': 'skins.add', onclick: () => choose('new') },
-      el('span', { class: 'sk-add-i', html: I.plus }), el('b', {}, 'Добавить скин'), el('span', {}, 'PNG 64×64 или перетащите файл сюда'));
+      el('span', { class: 'sk-add-i', html: I.plus }), el('b', {}, _t("Добавить скин")), el('span', {}, _t("PNG 64×64 или перетащите файл сюда")));
     q('#sk-saved').replaceChildren(add, ...saved.map((sk) => {
       const capeOf = sk.has_cape ? prof.capes.find((c) => c.id === sk.cape) : null;
       const tools = el('span', { class: 'sk-tools' },
-        el('span', { class: 'sk-t', role: 'button', title: 'Изменить', 'aria-label': 'Изменить', html: I.edit, onclick: () => edit(sk) }),
-        el('span', { class: 'sk-t is-del', role: 'button', title: 'Удалить', 'aria-label': 'Удалить', html: I.del, onclick: () => ask(sk) }));
+        el('span', { class: 'sk-t', role: 'button', title: _t("Изменить"), 'aria-label': _t("Изменить"), html: I.edit, onclick: () => edit(sk) }),
+        el('span', { class: 'sk-t is-del', role: 'button', title: _t("Удалить"), 'aria-label': _t("Удалить"), html: I.del, onclick: () => ask(sk) }));
       const c = card({
         k: `s:${sk.name}`, key: sk.key, img: sk.img, variant: sk.variant, tools,
         name: VAR[sk.variant] || VAR.classic,
-        meta: sk.has_cape ? (capeOf ? `Плащ: ${capeOf.alias}` : 'Без плаща') : 'Плащ не меняется',
-        onclick: () => pick({ kind: 'saved', k: `s:${sk.name}`, name: sk.name, key: sk.key, img: sk.img, variant: sk.variant, cape: sk.has_cape ? sk.cape ?? null : undefined, label: 'скин из библиотеки' }),
+        meta: sk.has_cape ? (capeOf ? _t("Плащ: {0}", [capeOf.alias]) : _t("Без плаща")) : _t("Плащ не меняется"),
+        onclick: () => pick({ kind: 'saved', k: `s:${sk.name}`, name: sk.name, key: sk.key, img: sk.img, variant: sk.variant, cape: sk.has_cape ? sk.cape ?? null : undefined, label: _t("скин из библиотеки") }),
         ondbl: () => { sel = { kind: 'saved', name: sk.name }; apply(); },
       });
       c.dataset.name = sk.name;
@@ -225,8 +225,8 @@
   function capeTile(c, on, choose) {
     const im = el('img', { alt: '', draggable: false });
     if (c?.img) capeFront(c.img).then((u) => { im.src = u; }).catch(() => {});
-    return el('button', { type: 'button', class: `sk-cape${on ? ' is-on' : ''}`, title: c ? c.alias : 'Без плаща', onclick: () => choose(c ? c.id : null) },
-      c ? im : el('span', { class: 'sk-cape-none', html: I.none }), el('span', {}, c ? c.alias || 'Плащ' : 'Без плаща'));
+    return el('button', { type: 'button', class: `sk-cape${on ? ' is-on' : ''}`, title: c ? c.alias : _t("Без плаща"), onclick: () => choose(c ? c.id : null) },
+      c ? im : el('span', { class: 'sk-cape-none', html: I.none }), el('span', {}, c ? c.alias || _t("Плащ") : _t("Без плаща")));
   }
   function capeRow(box, cur, choose) {
     box.replaceChildren(capeTile(null, cur == null, choose), ...(prof?.capes || []).map((c) => capeTile(c, c.id === cur, choose)));
@@ -237,7 +237,7 @@
     if (!list.length) return;
     capeRow(q('#sk-capes'), shownCapeId(), (id) => {
       if (id === shownCapeId()) return;
-      if (!sel) sel = { kind: 'cur', k: null, img: prof.skin?.img, variant: prof.skin?.variant, label: 'другой плащ' };
+      if (!sel) sel = { kind: 'cur', k: null, img: prof.skin?.img, variant: prof.skin?.variant, label: _t("другой плащ") };
       sel.cape = id; sel.touched = true;
       if (sel.kind === 'cur' && id === (activeCape()?.id ?? null)) sel = null;
       pending();
@@ -248,21 +248,21 @@
   function renderDefaults() {
     const box = q('#sk-defaults');
     if (!defs) {
-      box.replaceChildren(el('section', { class: 'sk-sec', 'data-id': 'skins.pack.loading' }, el('h2', { class: 'sk-h' }, el('span', {}, 'Стандартные')), el('div', { class: 'sk-grid' }, ...skel(6))));
+      box.replaceChildren(el('section', { class: 'sk-sec', 'data-id': 'skins.pack.loading' }, el('h2', { class: 'sk-h' }, el('span', {}, _t("Стандартные"))), el('div', { class: 'sk-grid' }, ...skel(6))));
       return;
     }
-    const term = q('#sk-q').value.trim().toLocaleLowerCase('ru');
+    const term = q('#sk-q').value.trim().toLocaleLowerCase(_LOC);
     const groups = new Map();
-    defs.filter((d) => d.img && (!term || d.name.toLocaleLowerCase('ru').includes(term) || d.section.toLocaleLowerCase('ru').includes(term)))
+    defs.filter((d) => d.img && (!term || d.name.toLocaleLowerCase(_LOC).includes(term) || d.section.toLocaleLowerCase(_LOC).includes(term)))
       .forEach((d) => { if (!groups.has(d.section)) groups.set(d.section, []); groups.get(d.section).push(d); });
     const secs = [...groups].map(([name, list]) => el('section', { class: 'sk-sec', 'data-id': `skins.pack.${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'std'}` },
       el('h2', { class: 'sk-h' }, el('span', {}, name), el('i', {}, String(list.length))),
       el('div', { class: 'sk-grid' }, ...list.map((d) => card({
-        k: `d:${d.key}`, key: d.key, img: d.img, variant: d.variant, name: d.name, meta: `${VAR[d.variant]} модель`,
+        k: `d:${d.key}`, key: d.key, img: d.img, variant: d.variant, name: d.name, meta: _t("{0} модель", [VAR[d.variant]]),
         onclick: () => pick({ kind: 'default', k: `d:${d.key}`, key: d.key, img: d.img, variant: d.variant, label: d.name }),
         ondbl: () => { sel = { kind: 'default', key: d.key }; apply(); },
       })))));
-    box.replaceChildren(...(secs.length ? secs : [el('p', { class: 'sk-nothing' }, 'Ничего не нашлось')]));
+    box.replaceChildren(...(secs.length ? secs : [el('p', { class: 'sk-nothing' }, _t("Ничего не нашлось"))]));
     marks();
   }
   async function loadDefaults() {
@@ -326,7 +326,7 @@
   }
   function editor(o) {
     ed = o;
-    q('#ske-h').textContent = o.name ? 'Изменить скин' : 'Новый скин';
+    q('#ske-h').textContent = o.name ? _t("Изменить скин") : _t("Новый скин");
     setSeg('#ske-var', o.variant);
     q('#ske-cape-f').hidden = !prof?.capes?.length;
     const row = () => capeRow(q('#ske-capes'), ed.cape, (id) => { ed.cape = id; row(); edDraw(); });
@@ -336,7 +336,7 @@
   }
   async function fresh(data) {
     const im = await load(data).catch(() => null);
-    if (!im || im.naturalWidth !== 64 || (im.naturalHeight !== 64 && im.naturalHeight !== 32)) { toast('Скин должен быть PNG 64×64 или 64×32', { error: true }); return null; }
+    if (!im || im.naturalWidth !== 64 || (im.naturalHeight !== 64 && im.naturalHeight !== 32)) { toast(_t("Скин должен быть PNG 64×64 или 64×32"), { error: true }); return null; }
     return detect(data);
   }
   async function create(data) {
@@ -367,7 +367,7 @@
     const cape = o.cape == null ? '' : o.cape;
     const done = await run((c) => (o.name
       ? c('skins.edit', { name: o.name, variant: o.variant, data: o.replaced ? o.data : undefined, cape, wear: wearIt })
-      : c(wearIt ? 'skins.upload' : 'skins.save', { variant: o.variant, data: o.data, cape })), wearIt ? 'Скин надет' : 'Скин сохранён');
+      : c(wearIt ? 'skins.upload' : 'skins.save', { variant: o.variant, data: o.data, cape })), wearIt ? _t("Скин надет") : _t("Скин сохранён"));
     if (done) FUI.closeDlg();
   }
   q('#dlg-skin').addEventListener('submit', (e) => { e.preventDefault(); commitEd(true); });
@@ -398,7 +398,7 @@
   async function shown() {
     const st = S.accounts;
     acc = st?.accounts?.find((a) => a.id === st.selected) || null;
-    if (!acc || acc.kind?.type !== 'microsoft') return empty('Скины меняются у аккаунта Microsoft');
+    if (!acc || acc.kind?.type !== 'microsoft') return empty(_t("Скины меняются у аккаунта Microsoft"));
     q('#sk-empty').hidden = true; q('#sk-body').hidden = false;
     if (!prof) q('#sk-name').textContent = acc.name;
     loadDefaults();
@@ -414,7 +414,7 @@
   q('#sk-apply').addEventListener('click', apply);
   q('#sk-keep').addEventListener('click', () => {
     const s = sel;
-    if (s?.kind === 'default' && s.img) run((c) => c('skins.save', { variant: s.variant || 'classic', data: s.img }), 'Скин добавлен в библиотеку');
+    if (s?.kind === 'default' && s.img) run((c) => c('skins.save', { variant: s.variant || 'classic', data: s.img }), _t("Скин добавлен в библиотеку"));
   });
   q('#sk-cancel').addEventListener('click', () => { sel = null; pending(); });
   q('#sk-edit').addEventListener('click', () => {

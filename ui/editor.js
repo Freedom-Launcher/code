@@ -44,7 +44,7 @@
   };
   const ib = (ico, tip) => { const b = h('button', 'btn btn-ghost btn-icon ue-ib', ICO[ico]); b.type = 'button'; b.dataset.tip = tip; b.setAttribute('aria-label', tip); return b; };
   let rows = [];
-  const rstBtn = (fn) => { const b = ib('reset', 'Сбросить'); b.classList.add('ue-rst'); b.addEventListener('click', fn); return b; };
+  const rstBtn = (fn) => { const b = ib('reset', _t("Сбросить")); b.classList.add('ue-rst'); b.addEventListener('click', fn); return b; };
   // A slider row. Double-click on the label resets it.
   function slider({ label, min, max, get, set, changed, fmt = (x) => `${x}%`, reset }) {
     const r = h('div', 'ue-row'), l = h('span', 'l'), v = h('span', 'v num'), i = h('input', 'ue-sl');
@@ -65,7 +65,7 @@
   function sides(label, key, def) {
     const r = h('div', 'ue-row ue-row-seg'), l = h('span', 'l'), s = h('div', 'seg');
     l.textContent = label;
-    s.innerHTML = '<button type="button" data-v="left">Слева</button><button type="button" data-v="right">Справа</button>';
+    s.innerHTML = _t("<button type=\"button\" data-v=\"left\">Слева</button><button type=\"button\" data-v=\"right\">Справа</button>");
     r.append(l, s);
     s.addEventListener('seg:change', (e) => commit((u) => { const v = e.detail.dataset.v; if (v === def) delete u.layout[key]; else u.layout[key] = v; }));
     r._sync = () => {
@@ -96,41 +96,41 @@
   const sec = (title, ...kids) => { const s = h('div', 'ue-sec'); s.append(h('h4', '', title), ...kids); return s; };
 
   // ---------- Panel ----------
-  const panel = h('div', 'ue'); panel.dataset.id = 'editor'; panel.dataset.side = 'right'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Интерфейс');
-  const head = h('div', 'ue-head'); const title = h('b', '', 'Интерфейс');
-  const bUndo = ib('undo', 'Отменить · Ctrl Z'), bRedo = ib('redo', 'Повторить · Ctrl Shift Z');
-  const bDone = h('button', 'btn btn-primary', '<span class="lbl">Готово</span>'); bDone.type = 'button';
-  const bMin = ib('min', 'Свернуть'); bMin.classList.add('ue-min');
+  const panel = h('div', 'ue'); panel.dataset.id = 'editor'; panel.dataset.side = 'right'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', _t("Интерфейс"));
+  const head = h('div', 'ue-head'); const title = h('b', '', _t("Интерфейс"));
+  const bUndo = ib('undo', _t("Отменить · Ctrl Z")), bRedo = ib('redo', _t("Повторить · Ctrl Shift Z"));
+  const bDone = h('button', 'btn btn-primary', _t("<span class=\"lbl\">Готово</span>")); bDone.type = 'button';
+  const bMin = ib('min', _t("Свернуть")); bMin.classList.add('ue-min');
   head.append(title, bUndo, bRedo, bMin, bDone);
-  const tabs = h('div', 'seg ue-tabs', '<button type="button" data-tab="gen" aria-selected="true">Общее</button><button type="button" data-tab="el">Элемент</button>');
+  const tabs = h('div', 'seg ue-tabs', _t("<button type=\"button\" data-tab=\"gen\" aria-selected=\"true\">Общее</button><button type=\"button\" data-tab=\"el\">Элемент</button>"));
   const body = h('div', 'ue-body'), pGen = h('div', 'ue-pane'), pEl = h('div', 'ue-pane'); pEl.hidden = true;
   body.append(pGen, pEl);
-  const foot = h('div', 'ue-foot'); const bReset = h('button', 'btn btn-ghost', '<span class="lbl">Сбросить всё</span>'); bReset.type = 'button';
-  const bSave = h('button', 'btn btn-ghost ue-save', `${ICO.save}<span class="lbl">Сохранить как тему</span>`); bSave.type = 'button';
+  const foot = h('div', 'ue-foot'); const bReset = h('button', 'btn btn-ghost', _t("<span class=\"lbl\">Сбросить всё</span>")); bReset.type = 'button';
+  const bSave = h('button', 'btn btn-ghost ue-save', _t("{0}<span class=\"lbl\">Сохранить как тему</span>", [ICO.save])); bSave.type = 'button';
   const fa = h('div', 'ue-foot-a'), fb = h('div', 'ue-foot-b'); fb.hidden = true;
-  const nameIn = h('input', 'field ue-name'); nameIn.maxLength = 60; nameIn.placeholder = 'Название темы'; nameIn.setAttribute('aria-label', 'Название темы'); nameIn.spellcheck = false;
-  const bOk = h('button', 'btn btn-primary', '<span class="lbl">Сохранить</span>'); bOk.type = 'button';
-  const bCol = h('button', 'btn btn-ghost ue-col', '<span class="ue-col-sw"></span><span class="lbl">Цвета</span>'); bCol.type = 'button';
-  bCol.setAttribute('aria-pressed', 'true'); bCol.dataset.tip = 'Сохранить свои цвета в теме';
+  const nameIn = h('input', 'field ue-name'); nameIn.maxLength = 60; nameIn.placeholder = _t("Название темы"); nameIn.setAttribute('aria-label', _t("Название темы")); nameIn.spellcheck = false;
+  const bOk = h('button', 'btn btn-primary', _t("<span class=\"lbl\">Сохранить</span>")); bOk.type = 'button';
+  const bCol = h('button', 'btn btn-ghost ue-col', _t("<span class=\"ue-col-sw\"></span><span class=\"lbl\">Цвета</span>")); bCol.type = 'button';
+  bCol.setAttribute('aria-pressed', 'true'); bCol.dataset.tip = _t("Сохранить свои цвета в теме");
   bCol.addEventListener('click', () => bCol.setAttribute('aria-pressed', String(bCol.getAttribute('aria-pressed') !== 'true')));
   fa.append(bSave, bReset); fb.append(nameIn, bCol, bOk); foot.append(fa, fb);
   panel.append(head, tabs, body, foot);
   const hidSec = h('div', 'ue-sec ue-hid'); const hidList = h('div', 'ue-picks');
-  const hidHead = h('div', 'ue-hid-h'), hidTitle = h('h4'), hidSw = h('label', 'ue-hid-sw', '<span>На месте</span><span class="switch"><input type="checkbox"><i></i></span>');
-  const hidGhost = hidSw.querySelector('input'); hidSw.dataset.tip = 'Показывать скрытые полупрозрачными, пока открыт редактор';
+  const hidHead = h('div', 'ue-hid-h'), hidTitle = h('h4'), hidSw = h('label', 'ue-hid-sw', _t("<span>На месте</span><span class=\"switch\"><input type=\"checkbox\"><i></i></span>"));
+  const hidGhost = hidSw.querySelector('input'); hidSw.dataset.tip = _t("Показывать скрытые полупрозрачными, пока открыт редактор");
   hidGhost.addEventListener('change', () => { localStorage.setItem('fl.ue.ghost', hidGhost.checked ? 'on' : 'off'); apply(); });
   hidHead.append(hidTitle, hidSw); hidSec.append(hidHead, hidList);
   pGen.append(
     hidSec,
-    sec('Углы', ...RADIUS.map(([g, label]) => slider({
+    sec(_t("Углы"), ...RADIUS.map(([g, label]) => slider({
       label, min: 0, max: 300, get: () => ui.radius[g] ?? 100, changed: () => (ui.radius[g] ?? 100) !== 100,
       set: (u, x) => { if (x === 100) delete u.radius[g]; else u.radius[g] = x; }, reset: (u) => delete u.radius[g],
     }))),
-    sec('Размеры', ...SIZE.map(([g, label, lo, hi]) => slider({
+    sec(_t("Размеры"), ...SIZE.map(([g, label, lo, hi]) => slider({
       label, min: lo, max: hi, get: () => ui.size[g] ?? 100, changed: () => (ui.size[g] ?? 100) !== 100,
       set: (u, x) => { if (x === 100) delete u.size[g]; else u.size[g] = x; }, reset: (u) => delete u.size[g],
     }))),
-    sec('Расположение', ...LAYOUT.map(([k, label, def]) => sides(label, k, def))),
+    sec(_t("Расположение"), ...LAYOUT.map(([k, label, def]) => sides(label, k, def))),
   );
   document.body.append(panel);
   window.FUI.initSegs(panel);
@@ -141,7 +141,7 @@
     return [x, y];
   }
   function dock() { delete panel.dataset.free; panel.style.cssText = ''; localStorage.removeItem('fl.ue.pos'); }
-  function setMin(on) { panel.toggleAttribute('data-min', on); bMin.dataset.tip = on ? 'Развернуть' : 'Свернуть'; localStorage.setItem('fl.ue.min', on ? '1' : ''); }
+  function setMin(on) { panel.toggleAttribute('data-min', on); bMin.dataset.tip = on ? _t("Развернуть") : _t("Свернуть"); localStorage.setItem('fl.ue.min', on ? '1' : ''); }
   bMin.addEventListener('click', () => setMin(!panel.hasAttribute('data-min')));
   let mv = null;
   head.addEventListener('pointerdown', (e) => {
@@ -177,10 +177,10 @@
     const U = base ? layered(base, ui) : ui;
     const hidden = Object.entries(U.els).filter(([id, e]) => e.hide && !keepVisible(id)).map(([id]) => id);
     hidSec.hidden = !hidden.length;
-    hidTitle.textContent = `Скрытые · ${hidden.length}`;
+    hidTitle.textContent = _t("Скрытые · {0}", [hidden.length]);
     hidGhost.checked = localStorage.getItem('fl.ue.ghost') !== 'off';
     hidList.replaceChildren(...hidden.map((id) => {
-      const c = h('button', 'ue-chip ue-chip-hid', ICO.eye); c.type = 'button'; c.append(name(id)); c.dataset.tip = 'Показать снова';
+      const c = h('button', 'ue-chip ue-chip-hid', ICO.eye); c.type = 'button'; c.append(name(id)); c.dataset.tip = _t("Показать снова");
       c.addEventListener('click', () => commit((u) => { elOf(u, id).hide = false; tidy(u, id); }));
       c.addEventListener('pointerenter', () => { const n = document.querySelector(q(id)); if (n && n.getClientRects().length) hov = n; });
       c.addEventListener('pointerleave', () => { hov = null; });
@@ -199,7 +199,7 @@
     const sw = bCol.querySelector('.ue-col-sw'), cs = getComputedStyle(document.documentElement);
     for (const [i, k] of ['--accent', '--surface-2', '--text'].entries()) sw.style.setProperty(`--c${i}`, own[k] || cs.getPropertyValue(k).trim());
     const t = typeof S !== 'undefined' && S.theme && !S.theme.builtin ? S.theme.name : '';
-    nameIn.value = t ? `${t} 2` : 'Моя тема'; nameIn.focus(); nameIn.select();
+    nameIn.value = t ? `${t} 2` : _t("Моя тема"); nameIn.focus(); nameIn.select();
   }
   async function saveTheme() {
     const name = nameIn.value.trim(); if (!name) { nameIn.focus(); return; }
@@ -212,7 +212,7 @@
       ui = blank(); past = []; future = []; base = cur.ui || null;
       apply(); sync(); saveMode(false);
       document.dispatchEvent(new CustomEvent('fl:theme', { detail: cur }));
-      toast(`Тема «${cur.name}» сохранена`);
+      toast(_t("Тема «{0}» сохранена", [cur.name]));
     } catch (e) { toast(String(e), { error: true }); } finally { bOk.disabled = false; }
   }
   bSave.addEventListener('click', () => saveMode(true));
@@ -230,7 +230,7 @@
     pEl.replaceChildren();
     if (!sel) {
       const e = h('div', 'ue-empty');
-      e.append(h('span', 'ue-empty-ico', ICO.pick), h('span', 't', 'Кликните по элементу'), h('span', 'muted', 'Перетащите, чтобы переставить'), h('span', 'muted', '<kbd>Alt</kbd> + клик — обычное нажатие'));
+      e.append(h('span', 'ue-empty-ico', ICO.pick), h('span', 't', _t("Кликните по элементу")), h('span', 'muted', _t("Перетащите, чтобы переставить")), h('span', 'muted', _t("<kbd>Alt</kbd> + клик — обычное нажатие")));
       const picks = h('div', 'ue-picks');
       for (const id of ['rail', 'topbar', 'main', 'instance.hero', 'discover.filters']) {
         const n = document.querySelector(q(id)); if (!n || !n.getClientRects().length) continue;
@@ -241,23 +241,23 @@
       pEl.append(e); return;
     }
     const { id, node } = sel;
-    const hd = h('div', 'ue-elh'), g = h('div', 'grow'), bx = ib('x', 'Снять выбор · Esc');
+    const hd = h('div', 'ue-elh'), g = h('div', 'grow'), bx = ib('x', _t("Снять выбор · Esc"));
     const b = h('b'); b.textContent = name(id, node); const m = h('span', 'mono faint'); m.textContent = id;
     g.append(b, m); hd.append(g, bx); bx.addEventListener('click', () => select(null));
     const s = h('div', 'ue-sec');
     s.append(slider({
-      label: 'Скругление', min: 0, max: 64, fmt: (x) => `${x} px`,
+      label: _t("Скругление"), min: 0, max: 64, fmt: (x) => `${x} px`,
       get: () => ui.els[id]?.radius ?? Math.min(64, sel.base), changed: () => ui.els[id]?.radius != null,
       set: (u, x) => { elOf(u, id).radius = x; }, reset: (u) => { if (u.els[id]) { u.els[id].radius = null; tidy(u, id); } },
     }), isCard(id) ? slider({
-      label: 'Размер карточек', min: 60, max: 200, get: () => ui.size.card ?? 100, changed: () => (ui.size.card ?? 100) !== 100,
+      label: _t("Размер карточек"), min: 60, max: 200, get: () => ui.size.card ?? 100, changed: () => (ui.size.card ?? 100) !== 100,
       set: (u, x) => { if (x === 100) delete u.size.card; else u.size.card = x; }, reset: (u) => delete u.size.card,
     }) : slider({
-      label: 'Размер', min: 50, max: 200, get: () => ui.els[id]?.scale ?? 100, changed: () => (ui.els[id]?.scale ?? 100) !== 100,
+      label: _t("Размер"), min: 50, max: 200, get: () => ui.els[id]?.scale ?? 100, changed: () => (ui.els[id]?.scale ?? 100) !== 100,
       set: (u, x) => { elOf(u, id).scale = x === 100 ? null : x; tidy(u, id); }, reset: (u) => { if (u.els[id]) { u.els[id].scale = null; tidy(u, id); } },
     }));
     if (!keepVisible(id)) {
-      const r = h('label', 'ue-row ue-row-seg'), l = h('span', 'l', 'Скрыть'), sw = h('span', 'switch', '<input type="checkbox"><i></i>');
+      const r = h('label', 'ue-row ue-row-seg'), l = h('span', 'l', _t("Скрыть")), sw = h('span', 'switch', '<input type="checkbox"><i></i>');
       const inp = sw.querySelector('input'); r.append(l, sw);
       inp.addEventListener('change', () => commit((u) => { elOf(u, id).hide = inp.checked; tidy(u, id); if (inp.checked && !ghostOn()) select(null); }));
       r._sync = () => { inp.checked = !!ui.els[id]?.hide; r.toggleAttribute('data-changed', inp.checked); };
@@ -266,8 +266,8 @@
     const p = node.parentElement;
     if (p?.dataset.id && !FIXED(p) && p.children.length <= 64 && /flex|grid/.test(getComputedStyle(p).display)) {
       const col = /column/.test(getComputedStyle(p).flexDirection);
-      const r = h('div', 'ue-row ue-row-seg'), l = h('span', 'l', 'Порядок'), pair = h('div', 'ue-pair');
-      const bA = ib('back', col ? 'Выше' : 'Левее'), bB = ib('fwd', col ? 'Ниже' : 'Правее');
+      const r = h('div', 'ue-row ue-row-seg'), l = h('span', 'l', _t("Порядок")), pair = h('div', 'ue-pair');
+      const bA = ib('back', col ? _t("Выше") : _t("Левее")), bB = ib('fwd', col ? _t("Ниже") : _t("Правее"));
       if (col) { bA.style.transform = 'rotate(90deg)'; bB.style.transform = 'rotate(90deg)'; }
       pair.append(bA, bB); r.append(l, pair);
       const ci = [...p.children].indexOf(node), pid = p.dataset.id, n = p.children.length;
@@ -288,20 +288,20 @@
     const px = (x) => `${x} px`;
     const gr = h('div', 'ue-row ue-row-seg ue-geo'), gv = h('span', 'v'), gp = h('div', 'ue-pair');
     const gRst = rstBtn(() => commit((u) => { const e = u.els[id]; if (e) { e.w = e.h = e.x = e.y = null; tidy(u, id); } }));
-    gp.append(gv, gRst); gr.append(h('span', 'l', 'Размер и место'), gp);
+    gp.append(gv, gRst); gr.append(h('span', 'l', _t("Размер и место")), gp);
     gr._sync = () => {
       const e = ui.els[id] || {}, on = [e.w, e.h, e.x, e.y].some((v) => v != null);
-      gv.textContent = on ? `${e.w ?? 'авто'} × ${e.h ?? 'авто'}${e.x || e.y ? ` · ${e.x || 0}, ${e.y || 0}` : ''}` : 'авто';
+      gv.textContent = on ? `${e.w ?? _t("авто")} × ${e.h ?? _t("авто")}${e.x || e.y ? ` · ${e.x || 0}, ${e.y || 0}` : ''}` : _t("авто");
       gRst.hidden = !on; gr.toggleAttribute('data-changed', on);
     };
     rows.push(gr); s.append(gr);
     const extra = [
-      sec('Фон', colorRow(id, node, 'Цвет', 'bg', '--surface-2', 'backgroundColor'), nm('Непрозрачность', 'opacity', 10, 100, 100), nm('Размытие', 'blur', 0, 40, 0, px)),
-      sec('Эффекты', nm('Яркость', 'bright', 30, 200, 100), nm('Контраст', 'contrast', 30, 200, 100), nm('Насыщенность', 'saturate', 0, 300, 100)),
-      sec('Рамка', nm('Толщина', 'border', 0, 6, 0, px), colorRow(id, node, 'Цвет', 'border_color', '--line-strong', 'borderTopColor')),
-      sec('Тень', nm('Глубина', 'shadow', 0, 4, 0, (x) => ['Нет', 'Слабая', 'Средняя', 'Сильная', 'Глубокая'][x] ?? x)),
+      sec(_t("Фон"), colorRow(id, node, _t("Цвет"), 'bg', '--surface-2', 'backgroundColor'), nm(_t("Непрозрачность"), 'opacity', 10, 100, 100), nm(_t("Размытие"), 'blur', 0, 40, 0, px)),
+      sec(_t("Эффекты"), nm(_t("Яркость"), 'bright', 30, 200, 100), nm(_t("Контраст"), 'contrast', 30, 200, 100), nm(_t("Насыщенность"), 'saturate', 0, 300, 100)),
+      sec(_t("Рамка"), nm(_t("Толщина"), 'border', 0, 6, 0, px), colorRow(id, node, _t("Цвет"), 'border_color', '--line-strong', 'borderTopColor')),
+      sec(_t("Тень"), nm(_t("Глубина"), 'shadow', 0, 4, 0, (x) => [_t("Нет"), _t("Слабая"), _t("Средняя"), _t("Сильная"), _t("Глубокая")][x] ?? x)),
     ];
-    const f = h('div', 'ue-elf'), br = h('button', 'btn btn-ghost', '<span class="lbl">Сбросить элемент</span>'); br.type = 'button';
+    const f = h('div', 'ue-elf'), br = h('button', 'btn btn-ghost', _t("<span class=\"lbl\">Сбросить элемент</span>")); br.type = 'button';
     br.addEventListener('click', () => commit((u) => delete u.els[id]));
     f.append(br);
     pEl.append(hd, s, ...extra, f);
@@ -347,10 +347,10 @@
     const id = n.dataset.id, e = ui.els[id] || {};
     const item = (label, fn, cls = '') => { const b = h('button', `menu-item ${cls}`, label); b.type = 'button'; b.addEventListener('click', () => { window.FUI.closeMenu?.(); fn(); }); return b; };
     const kids = [h('div', 'menu-label', name(id, n)),
-      item('Настроить…', () => { setMin(false); if (!panel.hasAttribute('data-open')) open(); tab('el'); })];
-    if ([e.w, e.h, e.x, e.y].some((v) => v != null)) kids.push(item('Вернуть размер и место', () => commit((u) => { const el = u.els[id]; if (el) { el.w = el.h = el.x = el.y = null; tidy(u, id); } })));
-    if (!keepVisible(id)) kids.push(item('Скрыть', () => commit((u) => { elOf(u, id).hide = true; })));
-    if (ui.els[id]) kids.push(h('div', 'menu-sep'), item('Сбросить элемент', () => commit((u) => delete u.els[id]), 'is-danger'));
+      item(_t("Настроить…"), () => { setMin(false); if (!panel.hasAttribute('data-open')) open(); tab('el'); })];
+    if ([e.w, e.h, e.x, e.y].some((v) => v != null)) kids.push(item(_t("Вернуть размер и место"), () => commit((u) => { const el = u.els[id]; if (el) { el.w = el.h = el.x = el.y = null; tidy(u, id); } })));
+    if (!keepVisible(id)) kids.push(item(_t("Скрыть"), () => commit((u) => { elOf(u, id).hide = true; })));
+    if (ui.els[id]) kids.push(h('div', 'menu-sep'), item(_t("Сбросить элемент"), () => commit((u) => delete u.els[id]), 'is-danger'));
     ctx.replaceChildren(...kids);
     window.FUI.openMenuAt(ctx, x, y);
   }
@@ -437,7 +437,7 @@
 
   // ---------- Resize by edges, move by the grip ----------
   for (const d of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']) { const k = h('i', `ue-rz ue-rz-${d}`); k.dataset.rz = d; sb.append(k); }
-  const grip = h('button', 'ue-grip', ICO.move); grip.type = 'button'; grip.dataset.rz = 'move'; grip.dataset.tip = 'Перетащить · двойной щелчок вернёт на место'; grip.setAttribute('aria-label', 'Переместить');
+  const grip = h('button', 'ue-grip', ICO.move); grip.type = 'button'; grip.dataset.rz = 'move'; grip.dataset.tip = _t("Перетащить · двойной щелчок вернёт на место"); grip.setAttribute('aria-label', _t("Переместить"));
   sb.append(grip);
   let rz = null;
   sb.addEventListener('pointerdown', (e) => {

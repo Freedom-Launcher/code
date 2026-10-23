@@ -6,12 +6,12 @@
   if (!row) return;
   const sub = $('#upd-sub'), bar = $('#upd-prog'), btn = $('#upd-btn'), lbl = btn.querySelector('.lbl .t');
   const st = { found: null, current: '' };
-  const mb = (b) => `${(b / (1 << 20)).toFixed(1)} МБ`;
+  const mb = (b) => _t("{0} МБ", [(b / (1 << 20)).toFixed(1)]);
 
   function show() {
     row.dataset.state = st.found ? 'available' : 'idle';
-    sub.textContent = st.found ? `Доступна ${st.found.version} · у вас ${st.current}` : (st.current ? `Версия ${st.current}` : `Freedom Launcher`);
-    FUI.swapText ? FUI.swapText(lbl, st.found ? 'Обновить' : 'Проверить') : (lbl.textContent = st.found ? 'Обновить' : 'Проверить');
+    sub.textContent = st.found ? _t("Доступна {0} · у вас {1}", [st.found.version, st.current]) : (st.current ? _t("Версия {0}", [st.current]) : `Freedom Launcher`);
+    FUI.swapText ? FUI.swapText(lbl, st.found ? _t("Обновить") : _t("Проверить")) : (lbl.textContent = st.found ? _t("Обновить") : _t("Проверить"));
   }
 
   async function check(quiet) {
@@ -20,8 +20,8 @@
       st.current = r.current || st.current;
       st.found = r.available ? r : null;
       show();
-      if (st.found && quiet) toast(`Доступна версия ${st.found.version} — Настройки → О лаунчере`);
-      if (!st.found && !quiet) toast('У вас последняя версия');
+      if (st.found && quiet) toast(_t("Доступна версия {0} — Настройки → О лаунчере", [st.found.version]));
+      if (!st.found && !quiet) toast(_t("У вас последняя версия"));
     } catch (e) {
       if (!quiet) throw e;
     }
@@ -36,7 +36,7 @@
       if (!p || !p.total) return;
       bar.removeAttribute('data-indeterminate');
       bar.style.setProperty('--p', String(Math.min(1, p.done / p.total)));
-      sub.textContent = `Загрузка ${st.found.version}… ${mb(p.done)} из ${mb(p.total)}`;
+      sub.textContent = _t("Загрузка {0}… {1} из {2}", [st.found.version, mb(p.done), mb(p.total)]);
     }, 200);
     try {
       await invoke('update_install'); // restarts the app on success

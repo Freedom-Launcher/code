@@ -113,7 +113,7 @@
     t.className = `toast${error ? ' is-error' : ''}`;
     t.setAttribute('role', error ? 'alert' : 'status');
     const dot = document.createElement('span'); dot.className = 'dot';
-    const msg = document.createElement('span'); msg.textContent = text;
+    const msg = document.createElement('span'); msg.textContent = _tr(String(text));
     t.append(dot, msg);
     const leave = () => { if (t.classList.contains('is-leaving')) return; t.classList.add('is-leaving'); t.addEventListener('animationend', () => t.remove(), { once: true }); };
     if (action) {
@@ -207,7 +207,7 @@
     if (!lazyP.has(src)) lazyP.set(src, new Promise((ok, no) => {
       const s = document.createElement('script');
       s.src = src; s.onload = ok;
-      s.onerror = () => { lazyP.delete(src); s.remove(); no(new Error(`Не удалось загрузить ${src}`)); };
+      s.onerror = () => { lazyP.delete(src); s.remove(); no(new Error(_t("Не удалось загрузить {0}", [src]))); };
       document.head.append(s);
     }));
     return lazyP.get(src);

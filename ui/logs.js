@@ -34,12 +34,12 @@
     const shown = lines.filter(match);
     const kids = [];
     if (head > 0) {
-      const more = el('button', { class: 'btn btn-sm btn-ghost log-more', type: 'button' }, el('span', { class: 'lbl' }, 'Показать раньше'));
+      const more = el('button', { class: 'btn btn-sm btn-ghost log-more', type: 'button' }, el('span', { class: 'lbl' }, _t("Показать раньше")));
       more.addEventListener('click', () => earlier(more));
       kids.push(more);
     }
     kids.push(...shown.map((l) => line(l)));
-    if (!shown.length) kids.push(el('div', { class: 'table-empty tall' }, el('b', {}, !exists ? 'Лог появится после первого запуска' : lines.length ? 'Ничего не найдено' : 'Лог пуст')));
+    if (!shown.length) kids.push(el('div', { class: 'table-empty tall' }, el('b', {}, !exists ? _t("Лог появится после первого запуска") : lines.length ? _t("Ничего не найдено") : _t("Лог пуст"))));
     view.replaceChildren(...kids);
     $('#log-hits').textContent = q && lines.length ? String(shown.length) : '';
     if (stick) view.scrollTop = view.scrollHeight;
@@ -53,7 +53,7 @@
     if (drop > 0 || view.querySelector('.table-empty')) render();
     else if (vis.length) view.append(...vis.map((l) => line(l, true)));
     if (stick) view.scrollTop = view.scrollHeight;
-    else if (vis.length) { fresh += vis.length; $('#log-jump .t').textContent = `${fresh} ${fresh === 1 ? 'новая строка' : 'новых строк'}`; $('#log-jump').hidden = false; }
+    else if (vis.length) { fresh += vis.length; $('#log-jump .t').textContent = `${fresh} ${fresh === 1 ? _t("новая строка") : _t("новых строк")}`; $('#log-jump').hidden = false; }
   }
   function setRunning(on) { running = !!on; $('#log-live').hidden = !running; }
   const schedule = () => { clearTimeout(timer); timer = visible() ? setTimeout(poll, running ? 700 : 3000) : 0; };
@@ -115,7 +115,7 @@
   $('#log-copy').addEventListener('click', async () => {
     const text = lines.filter(match).map((l) => l.t).join('\n');
     if (!text) return;
-    try { await navigator.clipboard.writeText(text); toast(q || level !== 'all' ? 'Найденные строки скопированы' : 'Лог скопирован'); } catch (e) { toast(String(e), { error: true }); }
+    try { await navigator.clipboard.writeText(text); toast(q || level !== 'all' ? _t("Найденные строки скопированы") : _t("Лог скопирован")); } catch (e) { toast(String(e), { error: true }); }
   });
   $('#log-folder').addEventListener('click', () => invoke('open_logs_folder', { instance: S.current }).catch((e) => toast(String(e), { error: true })));
   $('#ip-tabs').addEventListener('click', (e) => { if (e.target.closest('[data-tab="logs"]')) { if (inst !== S.current) load(); else { render(); schedule(); } } });

@@ -4,11 +4,11 @@
 (() => {
   const f = $('#dlg-inst');
   const KEYS = ['java', 'mem', 'jvm', 'win', 'env', 'hooks'];
-  const TITLE = { general: 'Общее', install: 'Установка', java: 'Java и память', window: 'Окно', launch: 'Хуки запуска' };
+  const TITLE = { general: _t("Общее"), install: _t("Установка"), java: _t("Java и память"), window: _t("Окно"), launch: _t("Хуки запуска") };
   const VARS = ['INST_ID', 'INST_NAME', 'INST_MC_VER', 'INST_DIR', 'INST_JAVA'];
   const WIN = /Windows/.test(navigator.userAgent);
   const st = { mode: 'inst', inst: null, own: {}, java: null, javas: null, req: null, base: {}, mem: null, snap: '', lastHook: null };
-  const gb = (mb) => `${(mb / 1024).toFixed(1).replace('.0', '')} ГБ`;
+  const gb = (mb) => _t("{0} ГБ", [(mb / 1024).toFixed(1).replace('.0', '')]);
   const memInfo = async () => (st.mem ||= await call('system.memory').catch(() => ({ total_mb: 8192, recommended_mb: 4096 })));
   const short = (p) => p.split(/[\\/]/).slice(-3).join('/');
 
@@ -54,16 +54,16 @@
   f.addEventListener('change', (e) => { const k = e.target.dataset?.ownToggle; if (k) { setOwn(k, e.target.checked); dirty(); } });
   function inherited() {
     const g = st.base, inst = st.mode === 'inst';
-    const pre = inst ? 'Как в лаунчере: ' : '';
-    const auto = st.mem ? `Авто · ${gb(st.mem.recommended_mb)}` : 'Авто';
+    const pre = inst ? _t("Как в лаунчере: ") : '';
+    const auto = st.mem ? _t("Авто · {0}", [gb(st.mem.recommended_mb)]) : _t("Авто");
     const hooks = g.hooks || {};
     const txt = {
-      java: inst && g.java_path ? pre + short(g.java_path) : `${pre}Авто${st.req ? ` · Java ${st.req}` : ''}`,
+      java: inst && g.java_path ? pre + short(g.java_path) : _t("{0}Авто{1}", [pre, st.req ? ` · Java ${st.req}` : '']),
       mem: inst && g.memory_mb ? pre + gb(g.memory_mb) : pre + auto,
-      jvm: inst && g.jvm_args ? pre + g.jvm_args : `${pre}Нет`,
-      win: inst && (g.width || g.fullscreen) ? pre + [g.width ? `${g.width} × ${g.height}` : '', g.fullscreen ? 'полный экран' : ''].filter(Boolean).join(' · ') : `${pre}Как в игре`,
-      env: inst && g.env && Object.keys(g.env).length ? `${pre}${Object.keys(g.env).length} шт.` : `${pre}Нет`,
-      hooks: inst && (hooks.pre_launch || hooks.wrapper || hooks.post_exit) ? `${pre}заданы` : `${pre}Нет`,
+      jvm: inst && g.jvm_args ? pre + g.jvm_args : _t("{0}Нет", [pre]),
+      win: inst && (g.width || g.fullscreen) ? pre + [g.width ? `${g.width} × ${g.height}` : '', g.fullscreen ? _t("полный экран") : ''].filter(Boolean).join(' · ') : _t("{0}Как в игре", [pre]),
+      env: inst && g.env && Object.keys(g.env).length ? _t("{0}{1} шт.", [pre, Object.keys(g.env).length]) : _t("{0}Нет", [pre]),
+      hooks: inst && (hooks.pre_launch || hooks.wrapper || hooks.post_exit) ? _t("{0}заданы", [pre]) : _t("{0}Нет", [pre]),
     };
     for (const k of KEYS) $(`[data-inh="${k}"]`, f).textContent = txt[k];
   }
@@ -71,12 +71,12 @@
   // ---------- Java ----------
   function javaCard(j, i) {
     const r = st.req;
-    const fit = r == null ? null : j.major === r ? ['is-accent', 'Подходит'] : ['is-warn', `Нужна ${r}`];
+    const fit = r == null ? null : j.major === r ? ['is-accent', _t("Подходит")] : ['is-warn', _t("Нужна {0}", [r])];
     const inp = el('input', { type: 'radio', name: 'isx-java', value: j.path, checked: j.path === st.java });
     const card = el('label', { class: 'isx-jv', title: j.path },
       inp, el('span', { class: 'isx-jv-n' }, String(j.major)),
       el('span', { class: 'isx-jv-t' }, el('b', {}, [j.vendor || 'Java', j.version].join(' · ')), el('span', { class: 'mono' }, j.path)),
-      j.managed ? el('span', { class: 'badge' }, 'Лаунчер') : null,
+      j.managed ? el('span', { class: 'badge' }, _t("Лаунчер")) : null,
       fit ? el('span', { class: `badge ${fit[0]}` }, fit[1]) : null);
     card.style.setProperty('--i', i);
     inp.addEventListener('change', () => { st.java = j.path; $('#isx-java-path').value = j.path; dirty(); });
@@ -90,12 +90,12 @@
     const want = (st.req ? [st.req] : [8, 17, 21]).filter((m) => !have.has(m));
     if (want.length) {
       box.append(el('div', { class: 'isx-get' }, ...want.map((m) => {
-        const b = el('button', { type: 'button', class: 'btn btn-sm' }, el('span', { class: 'lbl' }, `Скачать Java ${m}`));
+        const b = el('button', { type: 'button', class: 'btn btn-sm' }, el('span', { class: 'lbl' }, _t("Скачать Java {0}", [m])));
         b.addEventListener('click', () => install(b, m));
         return b;
       })));
     }
-    if (!list.length && !want.length) box.append(el('p', { class: 'hint' }, 'Java не найдена'));
+    if (!list.length && !want.length) box.append(el('p', { class: 'hint' }, _t("Java не найдена")));
   }
   async function scan() {
     const b = $('#isx-java-scan');
@@ -138,7 +138,7 @@
       st.javas = [j, ...(st.javas || []).filter((x) => x.path !== j.path)];
       $('#isx-java-path').value = j.path;
       paintJavas(); dirty();
-    } catch { lbl.textContent = `Скачать Java ${major}`; } finally { clearInterval(t); }
+    } catch { lbl.textContent = _t("Скачать Java {0}", [major]); } finally { clearInterval(t); }
   }
 
   // ---------- Memory ----------
@@ -167,9 +167,9 @@
   // ---------- Env + hooks ----------
   function envRow(k = '', v = '') {
     const row = el('div', { class: 'isx-env-r' },
-      el('input', { class: 'field mono', value: k, placeholder: 'ИМЯ', spellcheck: false, 'aria-label': 'Имя' }),
-      el('input', { class: 'field mono', value: v, placeholder: 'значение', spellcheck: false, 'aria-label': 'Значение' }));
-    const rm = el('button', { type: 'button', class: 'btn btn-ghost btn-icon btn-sm', 'aria-label': 'Убрать', html: '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="m12 13.414 5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586 6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z"/></g></svg>' });
+      el('input', { class: 'field mono', value: k, placeholder: _t("ИМЯ"), spellcheck: false, 'aria-label': _t("Имя") }),
+      el('input', { class: 'field mono', value: v, placeholder: _t("значение"), spellcheck: false, 'aria-label': _t("Значение") }));
+    const rm = el('button', { type: 'button', class: 'btn btn-ghost btn-icon btn-sm', 'aria-label': _t("Убрать"), html: '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="m12 13.414 5.657 5.657a1 1 0 0 0 1.414-1.414L13.414 12l5.657-5.657a1 1 0 0 0-1.414-1.414L12 10.586 6.343 4.929A1 1 0 0 0 4.93 6.343L10.586 12l-5.657 5.657a1 1 0 1 0 1.414 1.414z"/></g></svg>' });
     rm.addEventListener('click', () => { row.classList.add('is-out'); setTimeout(() => { row.remove(); dirty(); }, 160); });
     row.append(rm);
     return row;
@@ -215,9 +215,9 @@
     $('#isx-wrap').value = hooks.wrapper || '';
     $('#isx-post').value = hooks.post_exit || '';
     const after = $('#isx-after');
-    const opts = [['keep', 'Оставить лаунчер'], ['minimize', 'Свернуть лаунчер'], ['close', 'Закрыть лаунчер']];
+    const opts = [['keep', _t("Оставить лаунчер")], ['minimize', _t("Свернуть лаунчер")], ['close', _t("Закрыть лаунчер")]];
     const label = Object.fromEntries(opts)[g.after_launch || 'keep'];
-    after.replaceChildren(...(inst ? [['', `Как в лаунчере · ${label}`]] : []).concat(opts).map(([v, t]) => el('option', { value: v }, t)));
+    after.replaceChildren(...(inst ? [['', _t("Как в лаунчере · {0}", [label])]] : []).concat(opts).map(([v, t]) => el('option', { value: v }, t)));
     after.value = s.after_launch || (inst ? '' : 'keep');
     inherited();
   }
@@ -285,8 +285,8 @@
     $('[data-sec="install"]', nav).hidden = !inst;
     $('#isx-ava').textContent = inst ? initials(inst.name) : '';
     $('#isx-ava').classList.toggle('is-global', !inst);
-    $('#isx-title').textContent = inst ? inst.name : 'Игра';
-    $('#isx-sub').textContent = inst ? [inst.version, inst.loader === 'vanilla' ? '' : inst.loader].filter(Boolean).join(' · ') : 'Для всех сборок';
+    $('#isx-title').textContent = inst ? inst.name : _t("Игра");
+    $('#isx-sub').textContent = inst ? [inst.version, inst.loader === 'vanilla' ? '' : inst.loader].filter(Boolean).join(' · ') : _t("Для всех сборок");
     $('#isx-name').value = inst ? inst.name : '';
     $('#isx-group').value = inst?.group || '';
     paintCovers();

@@ -11,21 +11,21 @@
   const base = (id) => (isWin ? `http://addon.localhost/${id}/` : `addon://localhost/${id}/`);
   // [label, what it means in plain words, risky = highlighted in the consent dialog]
   const PERM = {
-    instances_read: ['Видеть сборки', 'Список сборок, их версии и моды. Ничего не меняет.'],
-    accounts_read: ['Видеть аккаунты', 'Имена аккаунтов. Токены входа плагинам недоступны.'],
-    ui_pages: ['Свои вкладки', 'Добавляет свои страницы в боковую панель.'],
-    ui_overlay: ['Анимация запуска', 'Показывает анимацию поверх окна, пока запускается игра. Клики проходят сквозь неё, Esc убирает.'],
-    storage: ['Своё хранилище', 'Хранит свои настройки внутри лаунчера (до 1 МБ). Другие плагины их не видят.'],
-    instances_manage: ['Изменять сборки', 'Менять настройки сборок, включать, выключать и удалять моды.', true],
-    instance_files: ['Изменять файлы сборок', 'Читать и менять конфиги, настройки и данные миров внутри папок сборок. Моды, программы и файлы вне сборок ему недоступны.', true],
-    accounts_manage: ['Управлять аккаунтами', 'Выбирать и удалять аккаунты.', true],
-    network: ['Сеть', 'Обращаться к сайтам из списка плагина:', true],
-    game_launch: ['Запускать игру', 'Устанавливать и запускать сборки, останавливать игру.', true],
-    accounts_provide: ['Вход через сторонний сервис', 'Сохранять аккаунты своего сервиса входа.', true],
-    process: ['Запускать программы', 'Запускать программы на компьютере.', true],
+    instances_read: [_t("Видеть сборки"), _t("Список сборок, их версии и моды. Ничего не меняет.")],
+    accounts_read: [_t("Видеть аккаунты"), _t("Имена аккаунтов. Токены входа плагинам недоступны.")],
+    ui_pages: [_t("Свои вкладки"), _t("Добавляет свои страницы в боковую панель.")],
+    ui_overlay: [_t("Анимация запуска"), _t("Показывает анимацию поверх окна, пока запускается игра. Клики проходят сквозь неё, Esc убирает.")],
+    storage: [_t("Своё хранилище"), _t("Хранит свои настройки внутри лаунчера (до 1 МБ). Другие плагины их не видят.")],
+    instances_manage: [_t("Изменять сборки"), _t("Менять настройки сборок, включать, выключать и удалять моды."), true],
+    instance_files: [_t("Изменять файлы сборок"), _t("Читать и менять конфиги, настройки и данные миров внутри папок сборок. Моды, программы и файлы вне сборок ему недоступны."), true],
+    accounts_manage: [_t("Управлять аккаунтами"), _t("Выбирать и удалять аккаунты."), true],
+    network: [_t("Сеть"), _t("Обращаться к сайтам из списка плагина:"), true],
+    game_launch: [_t("Запускать игру"), _t("Устанавливать и запускать сборки, останавливать игру."), true],
+    accounts_provide: [_t("Вход через сторонний сервис"), _t("Сохранять аккаунты своего сервиса входа."), true],
+    process: [_t("Запускать программы"), _t("Запускать программы на компьютере."), true],
   };
-  const TIER = { interface: 'Интерфейс', function: 'Функция', extended: 'Расширенный' };
-  const TRUST = { official: 'Официальный', verified: 'Проверено', community: 'Сообщество' };
+  const TIER = { interface: _t("Интерфейс"), function: _t("Функция"), extended: _t("Расширенный") };
+  const TRUST = { official: _t("Официальный"), verified: _t("Проверено"), community: _t("Сообщество") };
   const TOKENS = ['--bg', '--surface-1', '--surface-2', '--text', '--text-2', '--text-3', '--line', '--accent', '--on-accent', '--font-ui', '--r-control', '--r-card'];
   let list = [];
   let view = '';
@@ -182,12 +182,12 @@
   let asking = null;
   function askPerms(a) {
     asking = a.id;
-    document.getElementById('ap-title').textContent = `Права плагина «${a.name}»`;
+    document.getElementById('ap-title').textContent = _t("Права плагина «{0}»", [a.name]);
     const warn = document.getElementById('ap-warn');
     warn.hidden = a.trust !== 'community' && !a.signature_error;
     warn.textContent = a.signature_error
-      ? 'Подпись нарушена: файлы плагина изменены после проверки.'
-      : 'Плагин не проверен командой Freedom Launcher. Рискованные права давайте только тем, кому доверяете.';
+      ? _t("Подпись нарушена: файлы плагина изменены после проверки.")
+      : _t("Плагин не проверен командой Freedom Launcher. Рискованные права давайте только тем, кому доверяете.");
     const box = document.getElementById('ap-list');
     const rows = (a.permissions || []).map((p) => {
       const [label, desc, risky] = PERM[p.id] || [p.id, ''];
@@ -197,10 +197,10 @@
       cb.checked = p.granted || !p.declined;
       const extra = p.id === 'network' && a.hosts?.length ? ` ${a.hosts.join(', ')}` : '';
       return h('label', `ap-row${risky ? ' is-risky' : ''}`, cb,
-        h('span', 'grow', h('span', 't', label, risky ? h('span', 'badge is-warn', 'Внимание') : null),
+        h('span', 'grow', h('span', 't', label, risky ? h('span', 'badge is-warn', _t("Внимание")) : null),
           h('span', 's', desc + extra)));
     });
-    box.replaceChildren(...(rows.length ? rows : [h('div', 'hint', 'Плагину не нужны особые права.')]));
+    box.replaceChildren(...(rows.length ? rows : [h('div', 'hint', _t("Плагину не нужны особые права."))]));
     window.FUI.openDlg('dlg-addon-perms');
   }
 
@@ -214,27 +214,27 @@
     }
     const meta = [a.version && `v${a.version}`, a.author].filter(Boolean).join(' · ');
     const badge = a.signature_error
-      ? h('span', 'badge is-warn', 'Подпись нарушена')
+      ? h('span', 'badge is-warn', _t("Подпись нарушена"))
       : h('span', `badge${a.trust === 'community' ? '' : ' is-accent'}`, TRUST[a.trust] || a.trust);
-    if (a.signature_error) badge.title = `${a.signature_error}. Файлы пакета изменены после подписи — он работает как «Сообщество».`;
+    if (a.signature_error) badge.title = _t("{0}. Файлы пакета изменены после подписи — он работает как «Сообщество».", [a.signature_error]);
     const perms = h('div', 'addon-perms');
     for (const p of a.permissions || []) {
-      const label = p.id === 'network' && a.hosts?.length ? `Сеть: ${a.hosts.join(', ')}` : PERM[p.id]?.[0] || p.id;
+      const label = p.id === 'network' && a.hosts?.length ? _t("Сеть: {0}", [a.hosts.join(', ')]) : PERM[p.id]?.[0] || p.id;
       const off = !p.granted && p.declined;
       const c = h('span', `chip tier-${p.tier}${off ? ' is-off' : p.granted ? '' : ' is-new'}`, label);
-      c.title = off ? 'Не разрешено' : `Уровень «${TIER[p.tier] || p.tier}»`;
+      c.title = off ? _t("Не разрешено") : _t("Уровень «{0}»", [TIER[p.tier] || p.tier]);
       perms.append(c);
     }
-    if (!a.permissions?.length) perms.append(h('span', 'chip', 'Без особых прав'));
+    if (!a.permissions?.length) perms.append(h('span', 'chip', _t("Без особых прав")));
     const info = h('div', 'grow', h('div', 't', a.name, ' ', badge), h('div', 's', a.description || meta), perms);
     r.append(info);
     if (a.pending) {
-      const b = h('button', 'btn btn-primary', h('span', 'lbl', a.enabled ? 'Новые права…' : 'Разрешить…'));
+      const b = h('button', 'btn btn-primary', h('span', 'lbl', a.enabled ? _t("Новые права…") : _t("Разрешить…")));
       b.onclick = () => askPerms(a);
       r.append(b);
     } else {
       if (a.permissions?.length) {
-        const b = h('button', 'btn btn-ghost', h('span', 'lbl', 'Права…'));
+        const b = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Права…")));
         b.onclick = () => askPerms(a);
         r.append(b);
       }
@@ -247,7 +247,7 @@
       r.append(sw);
     }
     if (a.enabled || !a.pending) {
-      const x = h('button', 'btn btn-ghost', h('span', 'lbl', 'Отозвать'));
+      const x = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Отозвать")));
       x.onclick = () => act('addons.revoke', { id: a.id });
       r.append(x);
     }
@@ -258,7 +258,7 @@
     const box = document.querySelector('#addon-list');
     if (!box) return;
     box.replaceChildren(...(list.length ? list.map(row)
-      : [h('div', 'r', h('div', 'grow', h('div', 't', 'Плагинов пока нет')))]));
+      : [h('div', 'r', h('div', 'grow', h('div', 't', _t("Плагинов пока нет"))))]));
   }
 
   async function act(name, args) {

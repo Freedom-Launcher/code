@@ -60,9 +60,9 @@
   const home = () => (S.instances.length ? show('home') : show('empty'));
   const toKind = (k) => () => { show('discover'); const b = $(`#disc-kind [data-kind="${k}"]`); if (b?.getAttribute('aria-selected') !== 'true') b?.click(); };
   function crumbs(e) {
-    const lib = { t: 'Библиотека', go: home };
+    const lib = { t: _t("Библиотека"), go: home };
     switch (e.view) {
-      case 'create': return [lib, { t: 'Новая сборка' }];
+      case 'create': return [lib, { t: _t("Новая сборка") }];
       case 'instance': {
         const i = byId(e.inst);
         if (!i) return [lib];
@@ -73,19 +73,19 @@
       }
       case 'discover': {
         const i = e.inst && byId(e.inst);
-        if (!i) return [{ t: 'Каталог', go: toKind('modpack') }, { t: label('#disc-kind', 'kind', e.sub) }];
+        if (!i) return [{ t: _t("Каталог"), go: toKind('modpack') }, { t: label('#disc-kind', 'kind', e.sub) }];
         const ico = bg(el('i', { class: 'cr-ico', 'aria-hidden': 'true' }), iconName(i));
-        return [lib, { t: i.name, ico, go: () => openInstance(i.id) }, { t: `Добавить · ${label('#disc-kind', 'kind', e.sub)}` }];
+        return [lib, { t: i.name, ico, go: () => openInstance(i.id) }, { t: _t("Добавить · {0}", [label('#disc-kind', 'kind', e.sub)]) }];
       }
       case 'project': {
         const p = e.proj || {};
         const ico = window.FMods?.icon(p.icon, p.title || '');
         ico?.classList.add('cr-ico');
-        return [{ t: 'Каталог', go: toKind('modpack') }, { t: label('#disc-kind', 'kind', p.kind || 'mod'), go: toKind(p.kind || 'mod') }, { t: p.title || '…', ico }];
+        return [{ t: _t("Каталог"), go: toKind('modpack') }, { t: label('#disc-kind', 'kind', p.kind || 'mod'), go: toKind(p.kind || 'mod') }, { t: p.title || '…', ico }];
       }
-      case 'settings': return [{ t: 'Настройки', go: () => go({ view: 'settings', sub: 'look' }) }, { t: label('#set-seg', 'pane', e.sub) }];
-      case 'accounts': return [{ t: 'Аккаунты' }];
-      case 'skins': return [{ t: 'Скины' }];
+      case 'settings': return [{ t: _t("Настройки"), go: () => go({ view: 'settings', sub: 'look' }) }, { t: label('#set-seg', 'pane', e.sub) }];
+      case 'accounts': return [{ t: _t("Аккаунты") }];
+      case 'skins': return [{ t: _t("Скины") }];
       default: return [lib];
     }
   }

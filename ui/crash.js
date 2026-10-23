@@ -8,10 +8,10 @@
   card.hidden = true;
   tab.insertBefore(card, tab.querySelector('.log-wrap'));
 
-  const settings = (id) => ({ label: 'Настройки Java и памяти', run: () => window.FInstSettings?.open(id, 'java') });
-  const content = () => ({ label: 'Открыть «Контент»', run: () => $('#ip-tabs [data-tab="content"]')?.click() });
+  const settings = (id) => ({ label: _t("Настройки Java и памяти"), run: () => window.FInstSettings?.open(id, 'java') });
+  const content = () => ({ label: _t("Открыть «Контент»"), run: () => $('#ip-tabs [data-tab="content"]')?.click() });
   const find = (id, q) => ({
-    label: `Найти «${q}» в каталоге`,
+    label: _t("Найти «{0}» в каталоге", [q]),
     run: () => {
       window.FMods?.scoped(id);
       requestAnimationFrame(() => { const f = $('#disc-q'); if (f) { f.value = q; f.dispatchEvent(new Event('input', { bubbles: true })); } });
@@ -22,39 +22,39 @@
   // First matching rule wins; order goes from the most specific cause to the most generic.
   const RULES = [
     (t, id) => /java\.lang\.OutOfMemoryError|Could not reserve enough space|insufficient memory for the Java Runtime/.test(t) && {
-      title: 'Игре не хватило памяти',
-      text: 'Java упёрлась в лимит памяти. Выделите сборке больше (обычно 4–6 ГБ для модов хватает) или уберите тяжёлые моды и шейдеры.',
+      title: _t("Игре не хватило памяти"),
+      text: _t("Java упёрлась в лимит памяти. Выделите сборке больше (обычно 4–6 ГБ для модов хватает) или уберите тяжёлые моды и шейдеры."),
       acts: [settings(id)],
     },
     (t, id) => /UnsupportedClassVersionError|has been compiled by a more recent version of the Java Runtime|requires Java \d+|Incompatible Java/i.test(t) && {
-      title: 'Не та версия Java',
-      text: 'Игра или мод собраны под более новую Java. Выберите в настройках сборки Java той версии, которую требует Minecraft (для 1.20.5+ — Java 21).',
+      title: _t("Не та версия Java"),
+      text: _t("Игра или мод собраны под более новую Java. Выберите в настройках сборки Java той версии, которую требует Minecraft (для 1.20.5+ — Java 21)."),
       acts: [settings(id)],
     },
     (t, id) => {
       const m = pick(t, [/requires (?:any version|version [^\s,]+|[^,\n]*?) of (?:mod )?'?([\w.\- ]+?)'?,? which is missing/i, /- Install ([\w.\-]+), (?:any version|version)/, /Mod ID: '([\w.\-]+)'.*?Requested by/s, /Missing (?:mandatory )?dependenc(?:y|ies)[^\n]*?'([\w.\-]+)'/i]);
-      return m && { title: `Не хватает мода «${m[1].trim()}»`, text: 'Один из модов не работает без него. Установите его в эту сборку — версия подберётся под игру и загрузчик.', acts: [find(id, m[1].trim())] };
+      return m && { title: _t("Не хватает мода «{0}»", [m[1].trim()]), text: _t("Один из модов не работает без него. Установите его в эту сборку — версия подберётся под игру и загрузчик."), acts: [find(id, m[1].trim())] };
     },
     (t, id) => /Found duplicate mods?|Duplicate mods? found|duplicate mod ids?/i.test(t) && {
-      title: 'Один мод установлен дважды',
-      text: 'В папке модов лежат две версии одного мода. Оставьте одну — более новую.',
+      title: _t("Один мод установлен дважды"),
+      text: _t("В папке модов лежат две версии одного мода. Оставьте одну — более новую."),
       acts: [content(id)],
     },
     (t, id) => {
       const m = pick(t, [/Mixin apply for mod ([\w.\-]+) failed/i, /mixins?\.json:[^\n]*from mod ([\w.\-]+)/i]);
       return (m || /MixinApplyError|InvalidInjectionException|Mixin transformation of [^\n]+ failed/.test(t)) && {
-        title: m ? `Конфликт мода «${m[1]}» с другими` : 'Моды конфликтуют между собой',
-        text: 'Мод не смог встроиться в игру — обычно из-за несовместимости с другим модом или версией. Попробуйте обновить его или временно отключить.',
+        title: m ? _t("Конфликт мода «{0}» с другими", [m[1]]) : _t("Моды конфликтуют между собой"),
+        text: _t("Мод не смог встроиться в игру — обычно из-за несовместимости с другим модом или версией. Попробуйте обновить его или временно отключить."),
         acts: [content(id)],
       };
     },
     (t, id) => {
       const m = pick(t, [/Incompatible mods? found!?[^\n]*\n[^\n]*?([^\n]+)/i, /(Mod [^\n]+? is incompatible with [^\n]+)/i]);
-      return m && { title: 'Моды несовместимы', text: m[1].trim().replace(/^[-\s]+/, ''), acts: [content(id)] };
+      return m && { title: _t("Моды несовместимы"), text: m[1].trim().replace(/^[-\s]+/, ''), acts: [content(id)] };
     },
     (t) => /Pixel format not accelerated|GLFW error 65542|driver does not appear to support OpenGL|Couldn't set pixel format|No OpenGL context/i.test(t) && {
-      title: 'Проблема с видеодрайвером',
-      text: 'Игра не смогла создать окно OpenGL. Обновите драйвер видеокарты; на ноутбуке запускайте Java на дискретной видеокарте.',
+      title: _t("Проблема с видеодрайвером"),
+      text: _t("Игра не смогла создать окно OpenGL. Обновите драйвер видеокарты; на ноутбуке запускайте Java на дискретной видеокарте."),
       acts: [],
     },
   ];
@@ -64,25 +64,25 @@
     const desc = /^Description: (.+)$/m.exec(text);
     const err = text.split('\n').find((l) => /\b(ERROR|FATAL)\b|Exception:/.test(l));
     return {
-      title: 'Игра вылетела',
-      text: desc ? `Причина из отчёта: ${desc[1].trim()}` : err ? err.replace(/^\[[^\]]*\]\s*(\[[^\]]*\]:?\s*)?/, '').trim().slice(0, 240) : 'Точную причину в логе найти не удалось — посмотрите строки с ошибками.',
+      title: _t("Игра вылетела"),
+      text: desc ? _t("Причина из отчёта: {0}", [desc[1].trim()]) : err ? err.replace(/^\[[^\]]*\]\s*(\[[^\]]*\]:?\s*)?/, '').trim().slice(0, 240) : _t("Точную причину в логе найти не удалось — посмотрите строки с ошибками."),
       acts: [],
     };
   }
 
   function paint(id, ex, d, report) {
     const btn = (a, cls = '') => { const b = el('button', { class: `btn btn-sm ${cls}`, type: 'button' }, a.label); b.addEventListener('click', a.run); return b; };
-    const close = el('button', { class: 'btn btn-icon btn-ghost log-doc-x', type: 'button', 'aria-label': 'Скрыть' }, '×');
+    const close = el('button', { class: 'btn btn-icon btn-ghost log-doc-x', type: 'button', 'aria-label': _t("Скрыть") }, '×');
     close.addEventListener('click', () => { dismissed.set(id, ex.at); card.hidden = true; });
-    const errs = { label: 'Только ошибки', run: () => $('#log-level [data-lv="error"]')?.click() };
-    const code = ex.code == null ? 'процесс завершён системой' : `код выхода ${ex.code}`;
+    const errs = { label: _t("Только ошибки"), run: () => $('#log-level [data-lv="error"]')?.click() };
+    const code = ex.code == null ? _t("процесс завершён системой") : _t("код выхода {0}", [ex.code]);
     card.replaceChildren(
       el('div', { class: 'log-doc-ic', 'aria-hidden': 'true' }, '!'),
       el('div', { class: 'log-doc-b' },
         el('b', {}, d.title),
         el('p', {}, d.text),
         el('div', { class: 'log-doc-acts' }, ...d.acts.map((a, i) => btn(a, i ? '' : 'btn-primary')), btn(errs, 'btn-ghost')),
-        el('span', { class: 'log-doc-m' }, report ? `${code} · отчёт: ${report}` : code)),
+        el('span', { class: 'log-doc-m' }, report ? _t("{0} · отчёт: {1}", [code, report]) : code)),
       close);
     card.hidden = false;
   }
@@ -102,10 +102,10 @@
       if (seen.get(id) === ex.at) continue;
       seen.set(id, ex.at);
       if (!ex.crashed) continue;
-      const name = byId(id)?.name || 'Сборка';
-      toast(`${name}: игра вылетела`, {
+      const name = byId(id)?.name || _t("Сборка");
+      toast(_t("{0}: игра вылетела", [name]), {
         error: true, ms: 9000,
-        action: { label: 'Разобрать', run: () => { openInstance(id); $('#ip-tabs [data-tab="logs"]')?.click(); } },
+        action: { label: _t("Разобрать"), run: () => { openInstance(id); $('#ip-tabs [data-tab="logs"]')?.click(); } },
       });
       if (S.view === 'instance' && S.current === id && !tab.hidden) check(id);
     }

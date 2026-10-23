@@ -14,11 +14,11 @@
   function day(t) {
     const d = new Date(t * 1000), n = new Date();
     const k = Math.round((midnight(n) - midnight(d)) / 864e5);
-    if (k === 0) return 'Сегодня';
-    if (k === 1) return 'Вчера';
-    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', ...(d.getFullYear() === n.getFullYear() ? {} : { year: 'numeric' }) });
+    if (k === 0) return _t("Сегодня");
+    if (k === 1) return _t("Вчера");
+    return d.toLocaleDateString(_LOC, { day: 'numeric', month: 'long', ...(d.getFullYear() === n.getFullYear() ? {} : { year: 'numeric' }) });
   }
-  const when = (t) => new Date(t * 1000).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  const when = (t) => new Date(t * 1000).toLocaleString(_LOC, { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
   const folder = () => invoke('open_shots_folder', { instance: S.current }).catch((e) => toast(String(e), { error: true }));
 
   function tile(s, n) {
@@ -35,7 +35,7 @@
     const groups = new Map();
     list.forEach((s) => { const d = day(s.taken); if (!groups.has(d)) groups.set(d, []); groups.get(d).push(s); });
     let n = 0;
-    const open = el('button', { class: 'btn btn-sm btn-ghost', type: 'button', 'data-id': 'instance.shots.folder' }, 'Открыть папку');
+    const open = el('button', { class: 'btn btn-sm btn-ghost', type: 'button', 'data-id': 'instance.shots.folder' }, _t("Открыть папку"));
     open.addEventListener('click', folder);
     const head = el('div', { class: 'shots-head' }, el('span', { class: 'n' }, `${list.length} ${plural(list.length, 'скриншот', 'скриншота', 'скриншотов')}`), open);
     return [head, ...[...groups].map(([d, ss]) => el('section', { class: 'shot-day' },
@@ -43,9 +43,9 @@
       el('div', { class: 'shot-grid' }, ...ss.map((s) => tile(s, n++)))))];
   }
   function empty() {
-    const b = el('button', { class: 'btn btn-sm', type: 'button' }, 'Открыть папку');
+    const b = el('button', { class: 'btn btn-sm', type: 'button' }, _t("Открыть папку"));
     b.addEventListener('click', folder);
-    return el('div', { class: 'table-empty tall' }, el('b', {}, 'Скриншотов пока нет'), el('span', {}, 'F2 в игре'), b);
+    return el('div', { class: 'table-empty tall' }, el('b', {}, _t("Скриншотов пока нет")), el('span', {}, _t("F2 в игре")), b);
   }
   async function paint(force = false) {
     if (!visible() || !S.current) return;
@@ -65,7 +65,7 @@
     disarm();
     img.src = src(S.current, s.file);
     $('#sv-when').textContent = when(s.taken);
-    $('#sv-meta').textContent = `${at + 1} из ${list.length} · ${fmtBytes(s.size)}`;
+    $('#sv-meta').textContent = _t("{0} из {1} · {2}", [at + 1, list.length, fmtBytes(s.size)]);
     view.querySelectorAll('.sv-nav').forEach((b) => { b.hidden = list.length < 2; });
     if (dir && !still()) img.animate([{ opacity: 0, transform: `translateX(${dir * 28}px) scale(.985)` }, { opacity: 1, transform: 'none' }], { duration: 240, easing: EASE });
   }
@@ -90,11 +90,11 @@
     disarm();
     setTimeout(() => { if (!view.hasAttribute('data-open')) view.hidden = true; }, still() ? 0 : 200);
   }
-  function disarm() { clearTimeout(armed); armed = 0; $('#sv-del').classList.remove('is-armed'); $('#sv-del .t').textContent = 'Удалить'; }
+  function disarm() { clearTimeout(armed); armed = 0; $('#sv-del').classList.remove('is-armed'); $('#sv-del .t').textContent = _t("Удалить"); }
   async function del() {
     const b = $('#sv-del');
     if (!b.classList.contains('is-armed')) {
-      b.classList.add('is-armed'); $('#sv-del .t').textContent = 'Точно удалить?';
+      b.classList.add('is-armed'); $('#sv-del .t').textContent = _t("Точно удалить?");
       armed = setTimeout(disarm, 3000);
       return;
     }
@@ -102,7 +102,7 @@
     try {
       await run(b, 'screenshots.delete', { instance: S.current, file: s.file });
       list.splice(at, 1);
-      toast('Скриншот удалён');
+      toast(_t("Скриншот удалён"));
       if (!list.length) close(); else show(Math.min(at, list.length - 1));
       box.replaceChildren(...(list.length ? grid() : [empty()]));
     } catch { /* run() shows it */ } finally { b.dataset.state = 'idle'; }

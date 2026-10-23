@@ -5,7 +5,7 @@
   const f = $('#dlg-inst');
   if (!f) return;
   const pick = $('#isx-loader'), ver = $('#isx-ver'), lver = $('#isx-lver'), apply = $('#isx-apply'), chg = $('#isx-chg');
-  const NAMES = { vanilla: 'Ванилла', fabric: 'Fabric', forge: 'Forge', neoforge: 'NeoForge', quilt: 'Quilt' };
+  const NAMES = { vanilla: _t("Ванилла"), fabric: 'Fabric', forge: 'Forge', neoforge: 'NeoForge', quilt: 'Quilt' };
   const st = { inst: null, loader: 'vanilla', versions: null, seq: 0 };
   const opt = (v, t = v) => el('option', { value: v }, t);
   const label = (l, v, lv) => [NAMES[l] || l, v, l === 'vanilla' ? '' : lv].filter(Boolean).join(' ');
@@ -28,12 +28,12 @@
     const vanilla = st.loader === 'vanilla';
     $('#isx-lver-row').hidden = vanilla;
     if (vanilla) { lver.replaceChildren(); changed(); return; }
-    $('#isx-lver-l').textContent = `Версия ${NAMES[st.loader]}`;
+    $('#isx-lver-l').textContent = _t("Версия {0}", [NAMES[st.loader]]);
     lver.disabled = true;
-    lver.replaceChildren(opt('', 'Загрузка…'));
+    lver.replaceChildren(opt('', _t("Загрузка…")));
     const list = await call('loaders.versions', { loader: st.loader, game: ver.value }).catch(() => []);
     if (seq !== st.seq) return;
-    lver.replaceChildren(...(list.length ? list.map((x) => opt(x.version, x.stable ? x.version : `${x.version} · beta`)) : [opt('', 'Нет для этой версии')]));
+    lver.replaceChildren(...(list.length ? list.map((x) => opt(x.version, x.stable ? x.version : `${x.version} · beta`)) : [opt('', _t("Нет для этой версии"))]));
     const keep = i.loader === st.loader && i.version === ver.value && list.some((x) => x.version === i.loader_version);
     lver.value = keep ? i.loader_version : (list.find((x) => x.stable) || list[0])?.version || '';
     lver.disabled = !list.length || !!i.pack;
@@ -50,7 +50,7 @@
 
   apply.addEventListener('click', async () => {
     const i = st.inst;
-    if (isRunning(i.id)) { toast('Сначала закройте игру'); return; }
+    if (isRunning(i.id)) { toast(_t("Сначала закройте игру")); return; }
     try {
       await run(apply, 'instances.set_game', { instance: i.id, version: ver.value, loader: st.loader, loader_version: st.loader === 'vanilla' ? null : lver.value || null });
       await reloadInstances();
@@ -63,16 +63,16 @@
   unlink.addEventListener('click', async () => {
     const lbl = $('.lbl', unlink);
     if (!armed) {
-      lbl.textContent = 'Точно отвязать?';
+      lbl.textContent = _t("Точно отвязать?");
       unlink.classList.add('is-danger');
-      armed = setTimeout(() => { armed = 0; lbl.textContent = 'Отвязать'; unlink.classList.remove('is-danger'); }, 2600);
+      armed = setTimeout(() => { armed = 0; lbl.textContent = _t("Отвязать"); unlink.classList.remove('is-danger'); }, 2600);
       return;
     }
     clearTimeout(armed); armed = 0;
     try {
       await run(unlink, 'instances.unlink', { instance: st.inst.id });
       await reloadInstances();
-      lbl.textContent = 'Отвязать';
+      lbl.textContent = _t("Отвязать");
       unlink.classList.remove('is-danger');
       open(byId(st.inst.id));
     } catch { /* toast shown */ }
@@ -83,7 +83,7 @@
     st.inst = i;
     const linked = !!i.pack;
     $('#isx-pack-block').hidden = !linked;
-    if (linked) $('#isx-pack').textContent = `Версия ${i.pack.version_number} · версия игры и загрузчик меняются вместе со сборкой`;
+    if (linked) $('#isx-pack').textContent = _t("Версия {0} · версия игры и загрузчик меняются вместе со сборкой", [i.pack.version_number]);
     $('#isx-game').classList.toggle('is-locked', linked);
     $$('button', pick).forEach((b) => { b.disabled = linked; });
     ver.disabled = linked;

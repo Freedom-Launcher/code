@@ -9,7 +9,7 @@
     pack: `${SV}<path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>`,
     content: `${SV}<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"/></svg>`,
   };
-  const WHAT = { mod: 'моды', resourcepack: 'ресурспаки', shader: 'шейдеры', datapack: 'датапаки' };
+  const WHAT = { mod: _t("моды"), resourcepack: _t("ресурспаки"), shader: _t("шейдеры"), datapack: _t("датапаки") };
   const ov = el('div', { class: 'drop-ov', 'aria-hidden': 'true' });
   const ic = el('span', { class: 'drop-ic' }), t = el('b'), s = el('span', { class: 'drop-s' });
   ov.append(el('div', { class: 'drop-card' }, ic, t, s));
@@ -26,12 +26,12 @@
   function paint() {
     if (!mode) { ov.removeAttribute('data-on'); return; }
     ic.innerHTML = ICO[mode];
-    if (mode === 'skin') { ic.innerHTML = ICO.content; t.textContent = 'Добавить скин'; s.textContent = paths.find((p) => /\.png$/i.test(p))?.split(/[\\/]/).pop() || ''; }
-    else if (mode === 'pack') { t.textContent = 'Импортировать сборку'; s.textContent = paths.find(isPack)?.split(/[\\/]/).pop() || ''; }
+    if (mode === 'skin') { ic.innerHTML = ICO.content; t.textContent = _t("Добавить скин"); s.textContent = paths.find((p) => /\.png$/i.test(p))?.split(/[\\/]/).pop() || ''; }
+    else if (mode === 'pack') { t.textContent = _t("Импортировать сборку"); s.textContent = paths.find(isPack)?.split(/[\\/]/).pop() || ''; }
     else {
       const k = window.FContent.kind?.() || 'mod';
-      t.textContent = `Добавить ${WHAT[k] || 'файлы'}`;
-      s.textContent = `в «${byId(S.current)?.name || 'сборку'}»`;
+      t.textContent = _t("Добавить {0}", [WHAT[k] || _t("файлы")]);
+      s.textContent = _t("в «{0}»", [byId(S.current)?.name || _t("сборку")]);
     }
     ov.setAttribute('data-on', '');
   }

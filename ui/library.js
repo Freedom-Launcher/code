@@ -35,7 +35,7 @@
   const PIN_SVG = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M16.735 2.835a2 2 0 0 0-2.615-.186l-2.913 2.185a9 9 0 0 1-4.127 1.71l-2.177.31c-.73.105-1.265.891-.913 1.662.331.723 1.385 2.629 4.36 5.72l-4.178 4.178a1 1 0 1 0 1.414 1.414l4.178-4.178c3.091 2.975 4.997 4.029 5.72 4.36.77.352 1.557-.183 1.661-.913l.311-2.177a9 9 0 0 1 1.71-4.127L21.35 9.88a2 2 0 0 0-.186-2.615zM15.32 4.25l4.43 4.43-2.184 2.914a11 11 0 0 0-2.09 5.044l-.143 1.001c-.98-.624-2.603-1.837-4.869-4.103C8.2 11.27 6.986 9.648 6.362 8.668l1-.143a11 11 0 0 0 5.045-2.09z"/></g></svg>';
   sortSel.value = localStorage.getItem(LS.sort) || 'played';
   bySel.value = localStorage.getItem(LS.by) || 'group';
-  const coll = new Intl.Collator('ru', { numeric: true, sensitivity: 'base' });
+  const coll = new Intl.Collator(_LOC, { numeric: true, sensitivity: 'base' });
   const verKey = (v) => v.split(/[.-]/).map((x) => String(+x || 0).padStart(4, '0')).join('.');
   const SORT = {
     played: (a, b) => (b.last_played || 0) - (a.last_played || 0) || b.created_at - a.created_at,
@@ -53,8 +53,8 @@
   function playBtn(i) {
     const on = isRunning(i.id), busy = S.playing === i.id;
     return el('span', {
-      class: `hp${on ? ' on' : ''}${busy ? ' busy' : ''}`, role: 'button', title: on ? 'Остановить' : 'Играть',
-      'aria-label': `${on ? 'Остановить' : 'Играть'}: ${i.name}`, 'data-id': 'home.card.play',
+      class: `hp${on ? ' on' : ''}${busy ? ' busy' : ''}`, role: 'button', title: on ? _t("Остановить") : _t("Играть"),
+      'aria-label': `${on ? _t("Остановить") : _t("Играть")}: ${i.name}`, 'data-id': 'home.card.play',
       onpointerdown: (e) => e.stopPropagation(),
       onclick: (e) => { e.stopPropagation(); e.preventDefault(); if (!busy) togglePlay(i.id, true); },
     }, svgIco(on ? STOP_D : PLAY_D));
@@ -63,14 +63,14 @@
   function card(i) {
     return el('button', { class: `hcard${hid.has(i.id) ? ' is-hid' : ''}${sel.has(i.id) ? ' is-sel' : ''}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
       bg(el('i', {}, playBtn(i)), coverName(i)), el('b', {}, i.name), el('span', {}, instMeta(i)),
-      pin.has(i.id) ? el('em', { class: 'pin', 'aria-label': 'Закреплена', html: PIN_SVG }) : '');
+      pin.has(i.id) ? el('em', { class: 'pin', 'aria-label': _t("Закреплена"), html: PIN_SVG }) : '');
   }
 
   function head(name, n) {
     const id = `${bySel.value}:${name}`;
     const h = el('button', { class: 'lib-gh', type: 'button', 'aria-expanded': String(!shut.has(id)), 'data-id': 'home.group' },
       svgIco('<path d="m6 4 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'),
-      el('b', {}, name || 'Без группы'), el('span', {}, String(n)));
+      el('b', {}, name || _t("Без группы")), el('span', {}, String(n)));
     h.addEventListener('click', () => {
       shut.has(id) ? shut.delete(id) : shut.add(id);
       localStorage.setItem(LS.shut, JSON.stringify([...shut]));
@@ -80,19 +80,19 @@
   }
 
   function render() {
-    const term = q.value.trim().toLocaleLowerCase('ru');
+    const term = q.value.trim().toLocaleLowerCase(_LOC);
     const list = S.instances
-      .filter((i) => !term || [i.name, i.version, LOADER_NAMES[i.loader] || 'vanilla', i.group || ''].some((s) => s.toLocaleLowerCase('ru').includes(term)))
+      .filter((i) => !term || [i.name, i.version, LOADER_NAMES[i.loader] || 'vanilla', i.group || ''].some((s) => s.toLocaleLowerCase(_LOC).includes(term)))
       .filter((i) => term || showHid || !hid.has(i.id))
       .sort(SORT[sortSel.value] || SORT.played)
       // «Вручную» is exactly where the user put each card; other orders keep pinned ones first.
       .sort((a, b) => (sortSel.value === 'manual' ? 0 : pin.has(b.id) - pin.has(a.id)));
     for (const id of sel) if (!byId(id)) sel.delete(id);
     const nh = S.instances.filter((i) => hid.has(i.id)).length, hb = $('#lib-hid');
-    hb.hidden = !nh; hb.textContent = `Скрытые · ${nh}`; hb.setAttribute('aria-pressed', String(showHid));
+    hb.hidden = !nh; hb.textContent = _t("Скрытые · {0}", [nh]); hb.setAttribute('aria-pressed', String(showHid));
     // Only real group sections switch the row to block layout; a flat list must stay a grid.
     grid.classList.remove('is-grouped');
-    if (!list.length) return grid.replaceChildren(el('p', { class: 'lib-none' }, term ? 'Ничего не найдено' : ''));
+    if (!list.length) return grid.replaceChildren(el('p', { class: 'lib-none' }, term ? _t("Ничего не найдено") : ''));
     const key = KEY[bySel.value];
     if (!key) return grid.replaceChildren(...list.map(card));
     const groups = new Map();
@@ -104,7 +104,7 @@
       const [h, closed] = head(n, groups.get(n).length);
       const own = bySel.value === 'group' && n, d = own && deco[n]?.v ? { ...DECO_DEF, ...deco[n] } : null;
       return el('section', { class: `lib-g${closed ? ' is-shut' : ''}${d ? ` has-deco is-${d.mode === 'back' ? 'back' : 'banner'}` : ''}`, 'data-group': n }, h,
-        own ? el('button', { type: 'button', class: 'lib-gpic', 'data-tip': 'Картинка группы', 'aria-label': `Картинка группы «${n}»`, 'data-id': 'home.group.pic', html: IMG_SVG, onclick: () => openDeco(n) }) : null,
+        own ? el('button', { type: 'button', class: 'lib-gpic', 'data-tip': _t("Картинка группы"), 'aria-label': _t("Картинка группы «{0}»", [n]), 'data-id': 'home.group.pic', html: IMG_SVG, onclick: () => openDeco(n) }) : null,
         d ? decoEl(d) : null,
         el('div', { class: 'home-row' }, ...(closed ? [] : groups.get(n).map(card))));
     }));
@@ -126,11 +126,11 @@
     };
     DD.title = el('h2');
     DD.pv = el('div', { class: 'deco-pv' });
-    DD.pick = el('button', { type: 'button', class: 'btn', 'data-id': 'dialog.library.deco.pick', onclick: () => file.click() }, el('span', { class: 'lbl' }, 'Выбрать картинку…'));
-    DD.del = el('button', { type: 'button', class: 'btn btn-ghost', 'data-id': 'dialog.library.deco.remove', onclick: dropD }, 'Убрать картинку');
-    DD.modes = el('div', { class: 'grp-chips deco-modes' }, ...[['banner', 'Полосой над группой'], ['back', 'Фоном группы']]
+    DD.pick = el('button', { type: 'button', class: 'btn', 'data-id': 'dialog.library.deco.pick', onclick: () => file.click() }, el('span', { class: 'lbl' }, _t("Выбрать картинку…")));
+    DD.del = el('button', { type: 'button', class: 'btn btn-ghost', 'data-id': 'dialog.library.deco.remove', onclick: dropD }, _t("Убрать картинку"));
+    DD.modes = el('div', { class: 'grp-chips deco-modes' }, ...[['banner', _t("Полосой над группой")], ['back', _t("Фоном группы")]]
       .map(([m, t]) => el('button', { type: 'button', class: 'chip', 'data-m': m, onclick: () => setD({ mode: m }) }, t)));
-    DD.rows = el('div', { class: 'rows deco-rows' }, mk('h', 'Высота полосы', 60, 420, 10), mk('zoom', 'Масштаб', 100, 300, 5), mk('x', 'Сдвиг по горизонтали', 0, 100, 1), mk('y', 'Сдвиг по вертикали', 0, 100, 1));
+    DD.rows = el('div', { class: 'rows deco-rows' }, mk('h', _t("Высота полосы"), 60, 420, 10), mk('zoom', _t("Масштаб"), 100, 300, 5), mk('x', _t("Сдвиг по горизонтали"), 0, 100, 1), mk('y', _t("Сдвиг по вертикали"), 0, 100, 1));
     file.addEventListener('change', async () => {
       const f = file.files?.[0]; file.value = '';
       if (!f) return;
@@ -140,22 +140,22 @@
         setD({ id, v: Date.now() });
       } catch (err) { toast(String(err), { error: true }); }
     });
-    DD.f = el('form', { class: 'dialog dlg-deco', id: 'dlg-deco', 'data-id': 'dialog.library.deco', role: 'dialog', 'aria-label': 'Картинка группы' },
+    DD.f = el('form', { class: 'dialog dlg-deco', id: 'dlg-deco', 'data-id': 'dialog.library.deco', role: 'dialog', 'aria-label': _t("Картинка группы") },
       DD.title, DD.pv, el('div', { class: 'deco-pick' }, DD.pick, file), DD.modes, DD.rows,
-      el('div', { class: 'actions' }, DD.del, el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn btn-primary', 'data-close': '' }, el('span', { class: 'lbl' }, 'Готово'))));
+      el('div', { class: 'actions' }, DD.del, el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn btn-primary', 'data-close': '' }, el('span', { class: 'lbl' }, _t("Готово")))));
     DD.f.addEventListener('submit', (e) => e.preventDefault());
     ($('#scrim') || document.body.lastChild).after(DD.f);
   }
   function paintD() {
     const d = { ...DECO_DEF, ...deco[dg] }, has = !!d.v;
-    DD.title.textContent = `Картинка группы · ${dg}`;
-    DD.pv.replaceChildren(has ? decoEl(d) : el('span', {}, 'Картинка не выбрана'));
-    DD.pick.lastChild.textContent = has ? 'Заменить…' : 'Выбрать картинку…';
+    DD.title.textContent = _t("Картинка группы · {0}", [dg]);
+    DD.pv.replaceChildren(has ? decoEl(d) : el('span', {}, _t("Картинка не выбрана")));
+    DD.pick.lastChild.textContent = has ? _t("Заменить…") : _t("Выбрать картинку…");
     DD.del.hidden = !has;
     for (const b of DD.modes.children) b.classList.toggle('is-on', b.dataset.m === d.mode);
     for (const k of ['h', 'zoom', 'x', 'y']) {
       DD[k].r.value = d[k];
-      DD[k].v.textContent = k === 'h' ? `${d.h} px` : k === 'zoom' ? (d.zoom === 100 ? 'По размеру' : `${d.zoom}%`) : d[k] === 50 ? 'По центру' : `${d[k]}%`;
+      DD[k].v.textContent = k === 'h' ? `${d.h} px` : k === 'zoom' ? (d.zoom === 100 ? _t("По размеру") : `${d.zoom}%`) : d[k] === 50 ? _t("По центру") : `${d[k]}%`;
     }
     DD.rows.querySelector('[data-k="h"]').hidden = d.mode === 'back';
   }
@@ -181,7 +181,7 @@
     target = byId(ctxInst());
     if (!target) return;
     targets = sel.has(target.id) && sel.size > 1 ? [...sel].filter((x) => byId(x)) : [target.id];
-    $('#dlg-group h2').textContent = targets.length > 1 ? `Группа · ${targets.length} сборки` : 'Группа';
+    $('#dlg-group h2').textContent = targets.length > 1 ? _t("Группа · {0} сборки", [targets.length]) : _t("Группа");
     name.value = target.group || '';
     const all = [...new Set(S.instances.map((i) => i.group).filter(Boolean))].sort(coll.compare);
     chips.replaceChildren(...all.map((g) => el('button', { type: 'button', class: `chip${g === target.group ? ' is-on' : ''}`, onclick: () => { name.value = g; name.focus(); } }, g)));
@@ -204,9 +204,9 @@
   // ---------- Pin / hide ----------
   $('#menu-ctx-instance').addEventListener('ctx-open', (e) => {
     const id = e.detail.dataset.inst;
-    $('#cx-pin').lastChild.textContent = pin.has(id) ? 'Открепить' : 'Закрепить';
-    $('#cx-hide').lastChild.textContent = hid.has(id) ? 'Показать в библиотеке' : 'Скрыть в библиотеке';
-    $('#cx-rail').lastChild.textContent = railHid.has(id) ? 'Вернуть на панель' : 'Скрыть с панели';
+    $('#cx-pin').lastChild.textContent = pin.has(id) ? _t("Открепить") : _t("Закрепить");
+    $('#cx-hide').lastChild.textContent = hid.has(id) ? _t("Показать в библиотеке") : _t("Скрыть в библиотеке");
+    $('#cx-rail').lastChild.textContent = railHid.has(id) ? _t("Вернуть на панель") : _t("Скрыть с панели");
   });
   const flip = (set, key, id) => { set.has(id) ? set.delete(id) : set.add(id); keep(key, set); render(); renderRail(); };
   $('#cx-pin').addEventListener('click', () => { FUI.closeMenu(); flip(pin, 'fl.lib.pin', ctxInst()); });
@@ -214,7 +214,7 @@
     FUI.closeMenu();
     const id = ctxInst(), was = hid.has(id);
     flip(hid, 'fl.lib.hidden', id);
-    if (!was) toast('Скрыта в библиотеке', { action: { label: 'Вернуть', run: () => flip(hid, 'fl.lib.hidden', id) } });
+    if (!was) toast(_t("Скрыта в библиотеке"), { action: { label: _t("Вернуть"), run: () => flip(hid, 'fl.lib.hidden', id) } });
   });
   $('#lib-hid').addEventListener('click', () => { showHid = !showHid; render(); });
   $('#cx-rail').addEventListener('click', () => {
@@ -222,7 +222,7 @@
     const id = ctxInst(), was = railHid.has(id);
     const tog = () => { railHid.has(id) ? railHid.delete(id) : railHid.add(id); keep('fl.rail.hidden', railHid); renderRail(); };
     tog();
-    if (!was) toast('Скрыта с панели', { action: { label: 'Вернуть', run: tog } });
+    if (!was) toast(_t("Скрыта с панели"), { action: { label: _t("Вернуть"), run: tog } });
   });
 
   // ---------- Selection: Ctrl/Shift-click, box select with the left button (like Explorer / Blender) ----------
@@ -391,7 +391,7 @@
       try {
         for (const x of moved) await call('instances.update', { instance: x, group: tg });
         await reloadInstances();
-        if (moved.length > 1) toast(`${moved.length} сборки перенесены в «${tg || 'Без группы'}»`);
+        if (moved.length > 1) toast(_t("{0} сборки перенесены в «{1}»", [moved.length, tg || _t("Без группы")]));
         return;
       } catch (e) { toast(String(e), { error: true }); }
     }

@@ -18,13 +18,13 @@
     ov = document.createElement('div');
     ov.className = 'crop-ov';
     ov.innerHTML = '<div class="crop" role="dialog" aria-modal="true" data-id="dialog.crop"><h2></h2>'
-      + '<div class="crop-body"><div class="crop-stage"><canvas class="crop-cv" tabindex="0" aria-label="Область кадра: перетаскивайте, колесо меняет размер"></canvas></div>'
+      + _t("<div class=\"crop-body\"><div class=\"crop-stage\"><canvas class=\"crop-cv\" tabindex=\"0\" aria-label=\"Область кадра: перетаскивайте, колесо меняет размер\"></canvas></div>")
       + '<div class="crop-side"><div class="crop-pv"></div><span class="crop-meta mono"></span></div></div>'
       + '<div class="crop-zoom"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path fill="currentColor" d="M10.5 2a8.5 8.5 0 0 1 6.676 13.762l3.652 3.652a1 1 0 0 1-1.414 1.414l-3.652-3.652A8.5 8.5 0 1 1 10.5 2m0 2a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13M14 9.5a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2z"/></g></svg>'
-      + '<input type="range" class="ue-sl crop-sl" min="0" max="100" step="0.1" aria-label="Масштаб">'
+      + _t("<input type=\"range\" class=\"ue-sl crop-sl\" min=\"0\" max=\"100\" step=\"0.1\" aria-label=\"Масштаб\">")
       + '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path fill="currentColor" d="M10.5 2a8.5 8.5 0 0 1 6.873 13.502l-.197.26 3.652 3.652a1 1 0 0 1-1.32 1.498l-.094-.084-3.652-3.652A8.5 8.5 0 1 1 10.5 2m0 2a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13m0 2a1 1 0 0 1 .993.883L11.5 7v2.5H14a1 1 0 0 1 .117 1.993L14 11.5h-2.5V14a1 1 0 0 1-1.993.117L9.5 14v-2.5H7a1 1 0 0 1-.117-1.993L7 9.5h2.5V7a1 1 0 0 1 1-1"/></g></svg></div>'
-      + '<div class="actions"><button type="button" class="btn btn-ghost crop-other">Другое фото</button><span class="spacer"></span>'
-      + '<button type="button" class="btn btn-ghost crop-x">Отмена</button><button type="button" class="btn btn-primary crop-ok"><span class="lbl">Сохранить</span></button></div></div>';
+      + _t("<div class=\"actions\"><button type=\"button\" class=\"btn btn-ghost crop-other\">Другое фото</button><span class=\"spacer\"></span>")
+      + _t("<button type=\"button\" class=\"btn btn-ghost crop-x\">Отмена</button><button type=\"button\" class=\"btn btn-primary crop-ok\"><span class=\"lbl\">Сохранить</span></button></div></div>");
     document.body.append(ov);
     const q = (s) => ov.querySelector(s);
     cv = q('.crop-cv'); ctx = cv.getContext('2d'); stage = q('.crop-stage'); pvBox = q('.crop-pv'); meta = q('.crop-meta');
@@ -181,7 +181,7 @@
   }
   async function load(src) {
     let bmp;
-    try { bmp = await createImageBitmap(src); } catch { window.FUI?.toast('Не удалось открыть картинку', { error: true }); return false; }
+    try { bmp = await createImageBitmap(src); } catch { window.FUI?.toast(_t("Не удалось открыть картинку"), { error: true }); return false; }
     st.bmp?.close?.();
     Object.assign(st, { bmp, iw: bmp.width, ih: bmp.height });
     size();

@@ -5,8 +5,8 @@ const { $, $$, toast, progress, openDlg, closeDlg, closeMenu, swapText } = windo
 const call = (name, args = null) => invoke('action', { name, args });
 
 const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'empty' };
-const KIND = { microsoft: 'Microsoft', offline: 'Офлайн', provider: 'Сервис' };
-const STAGE = { idle: 'Подготовка', loader: 'Готовим загрузчик…', java: 'Java', version: 'Версия', libraries: 'Библиотеки', assets: 'Ресурсы', natives: 'Нативные файлы', launch: 'Запуск', done: 'Готово' };
+const KIND = { microsoft: 'Microsoft', offline: _t("Офлайн"), provider: _t("Сервис") };
+const STAGE = { idle: _t("Подготовка"), loader: _t("Готовим загрузчик…"), java: 'Java', version: _t("Версия"), libraries: _t("Библиотеки"), assets: _t("Ресурсы"), natives: _t("Нативные файлы"), launch: _t("Запуск"), done: _t("Готово") };
 const PLAY_SVG = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M5.669 4.76a1.469 1.469 0 0 1 2.04-1.177c1.062.454 3.442 1.533 6.462 3.276 3.021 1.744 5.146 3.267 6.069 3.958.788.591.79 1.763.001 2.356-.914.687-3.013 2.19-6.07 3.956-3.06 1.766-5.412 2.832-6.464 3.28-.906.387-1.92-.2-2.038-1.177-.138-1.142-.396-3.735-.396-7.237 0-3.5.257-6.092.396-7.235"/></g></svg>';
 
 function el(tag, attrs = {}, ...kids) {
@@ -22,14 +22,14 @@ function el(tag, attrs = {}, ...kids) {
   n.append(...kids.filter((c) => c != null && c !== false));
   return n;
 }
-const fmtBytes = (b) => (b >= 1 << 30 ? `${(b / (1 << 30)).toFixed(1)} ГБ` : b >= 1 << 20 ? `${(b / (1 << 20)).toFixed(0)} МБ` : `${Math.round(b / 1024)} КБ`);
+const fmtBytes = (b) => (b >= 1 << 30 ? _t("{0} ГБ", [(b / (1 << 30)).toFixed(1)]) : b >= 1 << 20 ? _t("{0} МБ", [(b / (1 << 20)).toFixed(0)]) : _t("{0} КБ", [Math.round(b / 1024)]));
 const initials = (s) => (String(s ?? '').trim()[0] || '?').toUpperCase();
 const ago = (t) => {
   const d = Math.max(0, Date.now() / 1000 - t);
-  if (d < 3600) return 'только что';
-  if (d < 86400) return `${Math.floor(d / 3600)} ч назад`;
+  if (d < 3600) return _t("только что");
+  if (d < 86400) return _t("{0} ч назад", [Math.floor(d / 3600)]);
   const n = Math.floor(d / 86400);
-  return n === 1 ? 'вчера' : `${n} дн назад`;
+  return n === 1 ? _t("вчера") : _t("{0} дн назад", [n]);
 };
 const byId = (id) => S.instances.find((i) => i.id === id);
 
@@ -61,12 +61,12 @@ document.addEventListener('click', async (ev) => {
   if (!a) return;
   ev.preventDefault();
   let args = null;
-  try { args = a.dataset.args ? JSON.parse(a.dataset.args) : null; } catch { toast('Неверный data-args', { error: true }); return; }
+  try { args = a.dataset.args ? JSON.parse(a.dataset.args) : null; } catch { toast(_t("Неверный data-args"), { error: true }); return; }
   const result = await run(a, a.dataset.action, args, a.hasAttribute('data-from-theme')).catch(() => null);
   if (result === null) return;
   const name = a.dataset.action;
   if (name.startsWith('accounts.')) renderAccounts(result);
-  if (name.startsWith('safe.')) $('#safe-msg').textContent = 'Готово. Перезапустите лаунчер.';
+  if (name.startsWith('safe.')) $('#safe-msg').textContent = _t("Готово. Перезапустите лаунчер.");
 });
 
 // ---------- Navigation: views and the rail ----------
@@ -92,7 +92,7 @@ function show(view) {
 // the create page; anywhere else it stays a toast with «Открыть».
 function landed(id, text) {
   if (S.view === 'create') { if (text) toast(text); openInstance(id); return; }
-  toast(text || 'Сборка готова', { action: { label: 'Открыть', run: () => openInstance(id) } });
+  toast(text || _t("Сборка готова"), { action: { label: _t("Открыть"), run: () => openInstance(id) } });
 }
 function openInstance(id) {
   S.current = id;
@@ -158,13 +158,13 @@ function renderAccounts(state) {
   $('#acc-list').replaceChildren(...state.accounts.map((a) => el('button', {
     class: 'menu-item acc-row', 'data-action': 'accounts.select', 'data-args': JSON.stringify({ id: a.id }), 'aria-selected': String(a.id === state.selected),
   }, headFor(a, 'head head-lg'), el('span', { class: 'acc-txt' }, el('b', {}, a.name), el('span', { class: 'sub' }, kindLabel(a))), a.id === state.selected ? el('span', { class: 'acc-check' }, '✓') : '')));
-  if (!state.accounts.length) $('#acc-list').append(el('div', { class: 'menu-item faint' }, 'Нет аккаунтов'));
+  if (!state.accounts.length) $('#acc-list').append(el('div', { class: 'menu-item faint' }, _t("Нет аккаунтов")));
   $('#offline-open').hidden = !state.offline_available;
   const sel = state.accounts.find((a) => a.id === state.selected);
   if (S.view === 'home') renderHome();
-  swapText($('#account-name'), sel ? sel.name : 'Войти');
+  swapText($('#account-name'), sel ? sel.name : _t("Войти"));
   $('#account-head').replaceWith(Object.assign(headFor(sel), { id: 'account-head' }));
-  $('#account-kind').textContent = sel ? kindLabel(sel) : 'Нет аккаунта';
+  $('#account-kind').textContent = sel ? kindLabel(sel) : _t("Нет аккаунта");
   if (S.view === 'accounts') renderAccountsPage();
   document.dispatchEvent(new Event('accounts:change'));
 }
@@ -177,14 +177,14 @@ async function msWindowLogin() {
   msWinBusy = true;
   const b = $('#ms-win-open');
   b.disabled = true;
-  $('#ms-win-hint').textContent = 'Войдите в аккаунт в открывшемся окне Microsoft…';
+  $('#ms-win-hint').textContent = _t("Войдите в аккаунт в открывшемся окне Microsoft…");
   try {
     renderAccounts(await invoke('ms_window_login'));
     closeDlg();
-    toast('Вход выполнен');
+    toast(_t("Вход выполнен"));
   } catch (e) {
     const m = String(e);
-    if (m !== 'SIGNIN_WINDOW_OPEN') $('#ms-win-hint').textContent = m === 'cancelled' ? 'Окно входа закрыто. Можно открыть его снова или войти по коду.' : m;
+    if (m !== 'SIGNIN_WINDOW_OPEN') $('#ms-win-hint').textContent = m === 'cancelled' ? _t("Окно входа закрыто. Можно открыть его снова или войти по коду.") : m;
   } finally { msWinBusy = false; b.disabled = false; }
 }
 $('#ms-win-open').addEventListener('click', msWindowLogin);
@@ -193,17 +193,17 @@ $('#dlg-login').addEventListener('dialog:open', () => { msMode(false); msWindowL
 
 async function msDeviceLogin() {
   $('#ms-code').textContent = '· · · · · · · ·';
-  $('#ms-hint').textContent = 'Получаем код…';
+  $('#ms-hint').textContent = _t("Получаем код…");
   let flow;
   try { flow = await call('accounts.microsoft.begin'); } catch (e) { $('#ms-hint').textContent = String(e); return; }
   $('#ms-code').textContent = flow.user_code;
-  $('#ms-hint').textContent = 'Ждём подтверждения на странице Microsoft…';
+  $('#ms-hint').textContent = _t("Ждём подтверждения на странице Microsoft…");
   $('#ms-open').onclick = () => invoke('open_login_page', { url: flow.verification_uri }).catch((e) => toast(String(e), { error: true }));
   $('#ms-copy').onclick = (e) => navigator.clipboard.writeText(flow.user_code).then(() => { e.currentTarget.dataset.state = 'success'; setTimeout(() => { e.currentTarget.dataset.state = 'idle'; }, 1000); });
   try {
     renderAccounts(await call('accounts.microsoft.wait'));
     closeDlg();
-    toast('Вход выполнен');
+    toast(_t("Вход выполнен"));
   } catch (e) { $('#ms-hint').textContent = String(e); }
 }
 
@@ -216,8 +216,8 @@ $('#dlg-offline').addEventListener('submit', async (ev) => {
 // ---------- Instances: rail tiles, covers, instance page ----------
 const lastTs = (i) => i.last_played || i.created_at;
 const recent = () => [...S.instances].sort((a, b) => lastTs(b) - lastTs(a));
-const fmtPlay = (s) => (s < 3600 ? `${Math.max(1, Math.round(s / 60))} мин` : `${Math.floor(s / 3600)} ч${s % 3600 >= 60 ? ` ${Math.floor((s % 3600) / 60)} мин` : ''}`);
-const playedText = (i) => (i.last_played ? `играли ${ago(i.last_played)}${i.playtime_secs > 0 ? ` · ${fmtPlay(i.playtime_secs)} в игре` : ''}` : 'ещё не запускали');
+const fmtPlay = (s) => (s < 3600 ? _t("{0} мин", [Math.max(1, Math.round(s / 60))]) : _t("{0} ч{1}", [Math.floor(s / 3600), s % 3600 >= 60 ? _t(" {0} мин", [Math.floor((s % 3600) / 60)]) : '']));
+const playedText = (i) => (i.last_played ? _t("играли {0}{1}", [ago(i.last_played), i.playtime_secs > 0 ? _t(" · {0} в игре", [fmtPlay(i.playtime_secs)]) : '']) : _t("ещё не запускали"));
 const isRunning = (id) => S.running.includes(id);
 // Covers: bundled art for now; the choice is per instance (later: own screenshots).
 const COVERS = ['dawn', 'forest', 'ocean', 'nether', 'end'];
@@ -249,14 +249,14 @@ function libOpts(i, kind, after) {
     box.replaceChildren(...items.filter((n) => artStamp(n) !== cur).slice(0, 16).map((n) => {
       const h = artStamp(n);
       const o = el('button', { type: 'button', class: `cover-opt is-own is-lib${kind === 'icon' ? ' is-icon' : ''}`, 'aria-pressed': 'false',
-        'aria-label': kind === 'icon' ? 'Прежняя иконка' : 'Прежняя обложка', 'data-id': `cover.lib.${h.slice(0, 8)}`, onclick: async () => {
+        'aria-label': kind === 'icon' ? _t("Прежняя иконка") : _t("Прежняя обложка"), 'data-id': `cover.lib.${h.slice(0, 8)}`, onclick: async () => {
           try { await call('art.use', { instance: i.id, id: n }); } catch (e) { toast(String(e), { error: true }); return; }
           localStorage.setItem(key, h);
           if (kind === 'cover') { localStorage.setItem(`fl.cover.${i.id}`, 'own'); applyWall(); }
           renderInstances(); after?.();
         } });
       o.style.backgroundImage = `url("${ART}/lib/${encodeURIComponent(n)}")`;
-      o.append(el('span', { class: 'cover-x', role: 'button', 'aria-label': 'Убрать из списка', 'data-tip': 'Убрать из списка', html: X_SVG,
+      o.append(el('span', { class: 'cover-x', role: 'button', 'aria-label': _t("Убрать из списка"), 'data-tip': _t("Убрать из списка"), html: X_SVG,
         onclick: async (e) => { e.stopPropagation(); await call('art.forget', { id: n }).catch(() => {}); artLibDrop(); o.remove(); } }));
       return o;
     }));
@@ -265,7 +265,7 @@ function libOpts(i, kind, after) {
 }
 function pickArt(i, kind, after) {
   closeMenu();
-  return window.FCrop?.open({ kind, title: kind === 'icon' ? 'Иконка сборки' : 'Обложка сборки', save: async (bytes) => {
+  return window.FCrop?.open({ kind, title: kind === 'icon' ? _t("Иконка сборки") : _t("Обложка сборки"), save: async (bytes) => {
     const v = artStamp(await invoke('set_art', bytes, { headers: { 'x-inst': i.id, 'x-kind': kind } }));
     artLibDrop();
     if (kind === 'icon') localStorage.setItem(`fl.icon.${i.id}`, v);
@@ -286,13 +286,13 @@ function coverStrip(i, after) {
   const out = [];
   if (own) {
     const o = coverOpt(`cover:${i.id}:${own}`, cur.startsWith('cover:'), () => pick('own'));
-    o.classList.add('is-own'); o.setAttribute('aria-label', 'Своё фото'); o.dataset.id = 'cover.own';
-    o.append(el('span', { class: 'cover-x', role: 'button', 'aria-label': 'Убрать фото', 'data-tip': 'Убрать фото', html: X_SVG, onclick: (e) => { e.stopPropagation(); clearArt(i, 'cover', after); } }));
+    o.classList.add('is-own'); o.setAttribute('aria-label', _t("Своё фото")); o.dataset.id = 'cover.own';
+    o.append(el('span', { class: 'cover-x', role: 'button', 'aria-label': _t("Убрать фото"), 'data-tip': _t("Убрать фото"), html: X_SVG, onclick: (e) => { e.stopPropagation(); clearArt(i, 'cover', after); } }));
     out.push(o);
   }
   out.push(libOpts(i, 'cover', after));
   out.push(...COVERS.map((n) => coverOpt(n, n === cur, () => pick(n))));
-  out.push(el('button', { type: 'button', class: 'cover-opt cover-add', 'aria-label': 'Своё фото', 'data-tip': 'Своё фото', 'data-id': 'cover.add',
+  out.push(el('button', { type: 'button', class: 'cover-opt cover-add', 'aria-label': _t("Своё фото"), 'data-tip': _t("Своё фото"), 'data-id': 'cover.add',
     html: '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path fill="currentColor" d="M11 20a1 1 0 1 0 2 0v-7h7a1 1 0 1 0 0-2h-7V4a1 1 0 1 0-2 0v7H4a1 1 0 1 0 0 2h7z"/></g></svg>', onclick: () => pickArt(i, 'cover', after) }));
   return out;
 }
@@ -325,7 +325,7 @@ function renderInstancePage() {
   window.FLogs?.reset();
   $('#ip-version').textContent = i.version;
   $('#ip-loader').textContent = LOADER_NAMES[i.loader] || 'Vanilla';
-  $('#ip-created').textContent = new Date(i.created_at * 1000).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  $('#ip-created').textContent = new Date(i.created_at * 1000).toLocaleDateString(_LOC, { day: 'numeric', month: 'long' });
   $('#ip-played').textContent = playedText(i);
   const busy = S.playing === i.id;
   const on = isRunning(i.id);
@@ -334,7 +334,7 @@ function renderInstancePage() {
   else if (pb.dataset.state === 'loading') pb.dataset.state = 'idle';
   pb.classList.toggle('is-running', on);
   pb.classList.toggle('btn-primary', !on);
-  $('#play-label').textContent = on ? 'Остановить' : 'Играть';
+  $('#play-label').textContent = on ? _t("Остановить") : _t("Играть");
   pb.querySelector('svg').innerHTML = on ? '<g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></g>' : '<g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M5.669 4.76a1.469 1.469 0 0 1 2.04-1.177c1.062.454 3.442 1.533 6.462 3.276 3.021 1.744 5.146 3.267 6.069 3.958.788.591.79 1.763.001 2.356-.914.687-3.013 2.19-6.07 3.956-3.06 1.766-5.412 2.832-6.464 3.28-.906.387-1.92-.2-2.038-1.177-.138-1.142-.396-3.735-.396-7.237 0-3.5.257-6.092.396-7.235"/></g>';
   $('#play-status').hidden = !busy;
   window.FPacks?.paint();
@@ -363,7 +363,7 @@ const dataUrl = (bytes) => new Promise((r) => {
   const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(new Blob([bytes], { type: t }));
 });
 function pickCreate(kind) {
-  window.FCrop?.open({ kind, title: kind === 'icon' ? 'Иконка сборки' : 'Обложка сборки', save: async (bytes) => {
+  window.FCrop?.open({ kind, title: kind === 'icon' ? _t("Иконка сборки") : _t("Обложка сборки"), save: async (bytes) => {
     createOwn[kind] = { bytes, url: await dataUrl(bytes) };
     if (kind === 'cover') createCover = 'own';
     paintCreateCovers();
@@ -377,14 +377,14 @@ function paintCreateCovers() {
   $('#c-icon').classList.toggle('is-own', !!ic); $('#c-icon-x').hidden = !ic;
   const out = [];
   if (own) {
-    const o = el('button', { type: 'button', class: 'cover-opt is-own', 'aria-pressed': String(createCover === 'own'), 'aria-label': 'Своё фото', 'data-id': 'cover.own', onclick: () => { createCover = 'own'; paintCreateCovers(); } });
+    const o = el('button', { type: 'button', class: 'cover-opt is-own', 'aria-pressed': String(createCover === 'own'), 'aria-label': _t("Своё фото"), 'data-id': 'cover.own', onclick: () => { createCover = 'own'; paintCreateCovers(); } });
     o.style.backgroundImage = `url("${own.url}")`;
-    o.append(el('span', { class: 'cover-x', role: 'button', 'aria-label': 'Убрать фото', 'data-tip': 'Убрать фото', html: X_SVG,
+    o.append(el('span', { class: 'cover-x', role: 'button', 'aria-label': _t("Убрать фото"), 'data-tip': _t("Убрать фото"), html: X_SVG,
       onclick: (e) => { e.stopPropagation(); createOwn.cover = null; if (createCover === 'own') createCover = COVERS[0]; paintCreateCovers(); } }));
     out.push(o);
   }
   out.push(...COVERS.map((n) => coverOpt(n, n === createCover, (x) => { createCover = x; paintCreateCovers(); })));
-  out.push(el('button', { type: 'button', class: 'cover-opt cover-add', 'aria-label': 'Своё фото', 'data-tip': 'Своё фото', 'data-id': 'cover.add',
+  out.push(el('button', { type: 'button', class: 'cover-opt cover-add', 'aria-label': _t("Своё фото"), 'data-tip': _t("Своё фото"), 'data-id': 'cover.add',
     html: '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path fill="currentColor" d="M11 20a1 1 0 1 0 2 0v-7h7a1 1 0 1 0 0-2h-7V4a1 1 0 1 0-2 0v7H4a1 1 0 1 0 0 2h7z"/></g></svg>', onclick: () => pickCreate('cover') }));
   $('#c-covers').replaceChildren(...out);
 }
@@ -415,8 +415,8 @@ async function loadVersions() {
   const s = $('#c-version');
   try {
     const r = await call('versions.list', { snapshots: $('#c-snapshots').checked });
-    s.replaceChildren(...r.versions.map((v) => el('option', { value: v.id }, v.type === 'snapshot' ? `${v.id} · снапшот` : v.id)));
-  } catch (e) { s.replaceChildren(el('option', { value: '' }, 'Нет списка версий')); toast(String(e), { error: true }); }
+    s.replaceChildren(...r.versions.map((v) => el('option', { value: v.id }, v.type === 'snapshot' ? _t("{0} · снапшот", [v.id]) : v.id)));
+  } catch (e) { s.replaceChildren(el('option', { value: '' }, _t("Нет списка версий"))); toast(String(e), { error: true }); }
 }
 $('#c-snapshots').addEventListener('change', loadVersions);
 let createLoader = 'vanilla';
@@ -442,7 +442,7 @@ $('#create-form').addEventListener('submit', async (ev) => {
 });
 
 // ---------- Import .mrpack: the app stages the bytes, the core builds the instance ----------
-const IMPORT_STAGE = { prepare: 'Читаем сборку', files: 'Скачиваем файлы', overrides: 'Копируем настройки', done: 'Готово' };
+const IMPORT_STAGE = { prepare: _t("Читаем сборку"), files: _t("Скачиваем файлы"), overrides: _t("Копируем настройки"), done: _t("Готово") };
 // The native dialog hands the path to the core, which reads the file itself; the
 // <input> is only a fallback outside Tauri.
 $('#c-import').addEventListener('click', async () => {
@@ -497,7 +497,7 @@ async function runImport(stage) {
     S.instances = await call('instances.list');
     renderInstances();
     btn.dataset.state = 'success';
-    landed(created.id, `${created.name} импортирована`);
+    landed(created.id, _t("{0} импортирована", [created.name]));
     window.FBlocked?.after(created);
   } catch (e) {
     btn.dataset.state = 'error';
@@ -515,9 +515,9 @@ function renderAccountsPage() {
   $('#acc-page').replaceChildren(...st.accounts.map((a) => el('div', { class: 'r', 'data-id': `accounts.${a.id}` },
     headFor(a, 'head'),
     el('div', { class: 'grow' }, el('div', { class: 't' }, a.name), el('div', { class: 's' }, kindLabel(a))),
-    a.id === st.selected ? el('span', { class: 'acc-tag on' }, 'Играю как') : btn('Играть как', 'accounts.select', a.id),
-    btn('Удалить', 'accounts.remove', a.id))));
-  if (!st.accounts.length) $('#acc-page').append(el('div', { class: 'r' }, el('div', { class: 's' }, 'Аккаунтов пока нет')));
+    a.id === st.selected ? el('span', { class: 'acc-tag on' }, _t("Играю как")) : btn(_t("Играть как"), 'accounts.select', a.id),
+    btn(_t("Удалить"), 'accounts.remove', a.id))));
+  if (!st.accounts.length) $('#acc-page').append(el('div', { class: 'r' }, el('div', { class: 's' }, _t("Аккаунтов пока нет"))));
   $('#acc-offline').hidden = !st.offline_available;
 }
 /** Provider accounts show the service name from their addon. */
@@ -531,7 +531,7 @@ function loadProviders() {
   }).catch(() => {});
 }
 // ---------- Home: greeting, recent builds, all builds, glass play bar ----------
-const greet = (h) => (h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : h < 23 ? 'Добрый вечер' : 'Доброй ночи');
+const greet = (h) => (h < 5 ? _t("Доброй ночи") : h < 12 ? _t("Доброе утро") : h < 18 ? _t("Добрый день") : h < 23 ? _t("Добрый вечер") : _t("Доброй ночи"));
 const instMeta = (i) => `${LOADER_NAMES[i.loader] || 'Vanilla'} · ${i.version}`;
 const PLAY_D = '<g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M5.669 4.76a1.469 1.469 0 0 1 2.04-1.177c1.062.454 3.442 1.533 6.462 3.276 3.021 1.744 5.146 3.267 6.069 3.958.788.591.79 1.763.001 2.356-.914.687-3.013 2.19-6.07 3.956-3.06 1.766-5.412 2.832-6.464 3.28-.906.387-1.92-.2-2.038-1.177-.138-1.142-.396-3.735-.396-7.237 0-3.5.257-6.092.396-7.235"/></g>';
 const STOP_D = '<g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></g>';
@@ -542,8 +542,8 @@ function renderHome() {
   $('#home-greet').textContent = `${greet(new Date().getHours())}${acc ? `, ${acc.name}` : ''}`;
   const rc = recent().slice(0, 5).map((i) => el('button', { class: 'rc', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.recent.${i.id}`, onclick: () => openInstance(i.id) },
     bg(el('i'), iconName(i)), el('span', { class: 't' }, el('b', {}, i.name), el('span', {}, instMeta(i))),
-    el('span', { class: `pl${isRunning(i.id) ? ' on' : ''}`, role: 'button', 'aria-label': `Играть: ${i.name}`, onclick: (e) => { e.stopPropagation(); togglePlay(i.id, true); } }, svgIco(isRunning(i.id) ? STOP_D : PLAY_D))));
-  rc.push(el('button', { class: 'rc add', 'data-view': 'create', 'data-id': 'home.create' }, el('i', {}, '+'), el('span', { class: 't' }, el('b', {}, 'Новая сборка'))));
+    el('span', { class: `pl${isRunning(i.id) ? ' on' : ''}`, role: 'button', 'aria-label': _t("Играть: {0}", [i.name]), onclick: (e) => { e.stopPropagation(); togglePlay(i.id, true); } }, svgIco(isRunning(i.id) ? STOP_D : PLAY_D))));
+  rc.push(el('button', { class: 'rc add', 'data-view': 'create', 'data-id': 'home.create' }, el('i', {}, '+'), el('span', { class: 't' }, el('b', {}, _t("Новая сборка")))));
   $('#home-recent').replaceChildren(...rc);
   if (window.FLib) window.FLib.render(); else $('#home-all').replaceChildren(...S.instances.map((i) => el('button', { class: 'hcard', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
     bg(el('i'), coverName(i)), el('b', {}, i.name), el('span', {}, instMeta(i)))));
@@ -561,7 +561,7 @@ function renderHome() {
   hp.classList.toggle('is-running', on);
   hp.classList.toggle('btn-primary', !on);
   hp.dataset.state = S.playing === c.id ? 'loading' : 'idle';
-  $('#hp-label').textContent = on ? 'Остановить' : 'Играть';
+  $('#hp-label').textContent = on ? _t("Остановить") : _t("Играть");
   hp.querySelector('svg').innerHTML = on ? STOP_D : PLAY_D;
 }
 $('#home-play').addEventListener('click', () => togglePlay($('#home-bar').dataset.inst));
@@ -573,9 +573,9 @@ function setRunning() {
   const on = !!starting || names.length > 0;
   $('#running').classList.toggle('is-on', on);
   $('#running').classList.toggle('is-live', !starting && names.length > 0);
-  $('#running-text').textContent = starting ? `Запускается: ${starting.name}`
-    : names.length === 1 ? `Играет: ${names[0]}`
-    : names.length > 1 ? `Запущено сборок: ${names.length}` : 'Ничего не запущено';
+  $('#running-text').textContent = starting ? _t("Запускается: {0}", [starting.name])
+    : names.length === 1 ? _t("Играет: {0}", [names[0]])
+    : names.length > 1 ? _t("Запущено сборок: {0}", [names.length]) : _t("Ничего не запущено");
 }
 // The core owns the truth about game processes; the UI just follows it.
 async function refreshRunning() {
@@ -596,12 +596,12 @@ async function stopGame(id = S.current) {
   if (!id) return;
   await call('game.stop', { instance: id }).catch((e) => toast(String(e), { error: true }));
   await refreshRunning();
-  toast('Игра закрыта');
+  toast(_t("Игра закрыта"));
 }
 async function play(id = S.current, launch = true, stay = false) {
   if (S.playing || !id) return;
-  if (launch && isRunning(id)) { toast('Эта сборка уже запущена'); return; }
-  if (launch && !S.accounts.selected) { toast('Сначала войдите в аккаунт', { error: true }); $('#account-btn').click(); return; }
+  if (launch && isRunning(id)) { toast(_t("Эта сборка уже запущена")); return; }
+  if (launch && !S.accounts.selected) { toast(_t("Сначала войдите в аккаунт"), { error: true }); $('#account-btn').click(); return; }
   const inst = byId(id);
   S.playing = id;
   S.current = id;
@@ -640,7 +640,7 @@ async function play(id = S.current, launch = true, stay = false) {
       if (w && r?.after_launch === 'close') setTimeout(() => w.close(), 800);
     }
     btn.dataset.state = 'success';
-    toast(launch ? 'Игра запущена' : 'Файлы в порядке');
+    toast(launch ? _t("Игра запущена") : _t("Файлы в порядке"));
   } catch (e) {
     btn.dataset.state = 'error';
     if (launch) window.FAddons?.emit('game.failed', { instance: id });
@@ -694,7 +694,7 @@ $('#mi-dup').addEventListener('click', async () => {
     for (const k of ['cover-own', 'icon']) { const v = localStorage.getItem(`fl.${k}.${src}`); if (v) localStorage.setItem(`fl.${k}.${copy.id}`, v); }
     await reloadInstances();
     openInstance(copy.id);
-    toast('Сборка скопирована');
+    toast(_t("Сборка скопирована"));
   } catch (e) { toast(String(e), { error: true }); }
 });
 $('#mi-del').addEventListener('click', () => {
@@ -717,7 +717,7 @@ $('#dlg-del').addEventListener('submit', async (ev) => {
     if (id !== S.current && byId(S.current)) {
       renderRail();
       if (S.view === 'home') renderHome();
-      toast('Сборка удалена');
+      toast(_t("Сборка удалена"));
       return;
     }
     const next = recent()[0];
@@ -725,14 +725,14 @@ $('#dlg-del').addEventListener('submit', async (ev) => {
     // The rail must be rebuilt, otherwise the deleted tile stays and leads nowhere.
     renderRail();
     if (next) openInstance(next.id); else show('empty');
-    toast('Сборка удалена');
+    toast(_t("Сборка удалена"));
   } catch { /* toast shown */ }
 });
 // Right-click menu on instance cards/rows.
 const ctxInst = () => $('#menu-ctx-instance')._host?.dataset.inst;
 $('#menu-ctx-instance').addEventListener('ctx-open', (e) => {
   const on = isRunning(e.detail.dataset.inst), b = $('#cx-play');
-  b.lastChild.textContent = on ? 'Остановить' : 'Играть';
+  b.lastChild.textContent = on ? _t("Остановить") : _t("Играть");
   b.querySelector('svg').innerHTML = on ? STOP_D : PLAY_D;
 });
 $('#cx-play').addEventListener('click', () => { FUI.closeMenu(); const id = ctxInst(); isRunning(id) ? stopGame(id) : play(id, true); });
@@ -761,7 +761,7 @@ $('#set-seg').addEventListener('seg:change', (e) => {
 async function applyTheme(cur, first = false) {
   FTheme.apply(cur);
   window.FEditor?.setTheme(cur.ui);
-  if (cur.fallback) toast(`Тема «${cur.fallback.theme}» не загрузилась: ${cur.fallback.error}. Включена стандартная.`, { error: true });
+  if (cur.fallback) toast(_t("Тема «{0}» не загрузилась: {1}. Включена стандартная.", [cur.fallback.theme, cur.fallback.error]), { error: true });
   if (!first) return;
   for (const screen of cur.templates || []) {
     const t = await call('themes.template', { screen }).catch(() => null);
@@ -864,14 +864,14 @@ function applyWall() {
   const wz = S.look.wall_zoom ?? 100, wx = S.look.wall_x ?? 50, wy = S.look.wall_y ?? 50;
   root.style.setProperty('--wall-zoom', String(wz / 100));
   root.style.setProperty('--wall-pos', `${wx}% ${wy}%`);
-  $('#wall-zoom').value = wz; $('#wall-zoom-val').textContent = wz === 100 ? 'По размеру окна' : `${wz}%`;
-  $('#wall-x').value = wx; $('#wall-x-val').textContent = wx === 50 ? 'По центру' : `${wx}%`;
-  $('#wall-y').value = wy; $('#wall-y-val').textContent = wy === 50 ? 'По центру' : `${wy}%`;
+  $('#wall-zoom').value = wz; $('#wall-zoom-val').textContent = wz === 100 ? _t("По размеру окна") : `${wz}%`;
+  $('#wall-x').value = wx; $('#wall-x-val').textContent = wx === 50 ? _t("По центру") : `${wx}%`;
+  $('#wall-y').value = wy; $('#wall-y-val').textContent = wy === 50 ? _t("По центру") : `${wy}%`;
   root.style.setProperty('--glass-a', String(glass / 100));
   const gblur = S.look.glass_blur;
   root.style.setProperty('--glass-blur', `${gblur}px`);
-  $('#glass-blur').value = gblur; $('#glass-blur-val').textContent = gblur ? `${gblur} px` : 'Прозрачное';
-  $('#wall-blur').value = blur; $('#wall-blur-val').textContent = blur ? `${blur} px` : 'Чёткие';
+  $('#glass-blur').value = gblur; $('#glass-blur-val').textContent = gblur ? `${gblur} px` : _t("Прозрачное");
+  $('#wall-blur').value = blur; $('#wall-blur-val').textContent = blur ? `${blur} px` : _t("Чёткие");
   $('#wall-glass').value = 100 - glass; $('#wall-glass-val').textContent = `${100 - glass}%`;
   $$('#wall-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.wallSet === mode)));
   $('#wall-blur-row').hidden = $('#wall-glass-row').hidden = $('#glass-blur-row').hidden = mode === 'off';
@@ -887,7 +887,7 @@ function applyMenusPlate() {
   root.style.setProperty('--plate-fw', String(L.plate_weight));
   root.dataset.plateMeta = L.plate_meta ? 'on' : 'off';
   $('#pop-alpha').value = L.menu_density; $('#pop-alpha-val').textContent = `${L.menu_density}%`;
-  $('#pop-blur').value = L.menu_blur; $('#pop-blur-val').textContent = L.menu_blur ? `${L.menu_blur} px` : 'Без размытия';
+  $('#pop-blur').value = L.menu_blur; $('#pop-blur-val').textContent = L.menu_blur ? `${L.menu_blur} px` : _t("Без размытия");
   $('#plate-size').value = L.plate_size; $('#plate-size-val').textContent = `${L.plate_size}%`;
   $$('#plate-weight button').forEach((b) => b.setAttribute('aria-selected', String(+b.dataset.v === L.plate_weight)));
   $('#plate-meta').checked = !!L.plate_meta;
@@ -937,7 +937,7 @@ async function applyFont() {
   const root = document.documentElement, L = S.look, want = L.ui_font || 'inter';
   $$('#font-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.v === want)));
   $('#font-file-row').hidden = want !== 'custom';
-  $('#font-file-name').textContent = L.font_stamp ? (L.font_name || 'Свой шрифт') : 'Не выбран';
+  $('#font-file-name').textContent = L.font_stamp ? (L.font_name || _t("Свой шрифт")) : _t("Не выбран");
   $('#font-clear').hidden = !L.font_stamp;
   const FF = {
     system: 'system-ui, "Segoe UI Variable Text", "Segoe UI", -apple-system, sans-serif',
@@ -960,12 +960,12 @@ $('#font-pick').addEventListener('click', () => $('#font-file').click());
 $('#font-file').addEventListener('change', async (e) => {
   const f = e.target.files?.[0]; e.target.value = '';
   if (!f) return;
-  if (f.size > 32 * 1024 * 1024) { toast('Шрифт больше 32 МБ', { error: true }); return; }
+  if (f.size > 32 * 1024 * 1024) { toast(_t("Шрифт больше 32 МБ"), { error: true }); return; }
   try {
     await invoke('set_font', new Uint8Array(await f.arrayBuffer()));
     setLook({ ui_font: 'custom', font_stamp: Date.now(), font_name: f.name.replace(/\.(ttf|otf|woff2?)$/i, '').slice(0, 64) });
     await applyFont();
-    if (document.documentElement.dataset.font !== 'custom') toast('Не удалось применить шрифт', { error: true });
+    if (document.documentElement.dataset.font !== 'custom') toast(_t("Не удалось применить шрифт"), { error: true });
   } catch (err) { toast(String(err), { error: true }); }
 });
 $('#font-clear').addEventListener('click', async () => {
@@ -1035,7 +1035,7 @@ async function start() {
     const r = await call('app.ready');
     // Dev-only: the fixed label overlapped lists near the bottom edge.
     const dev = location.search.includes('dev');
-    if (dev) $('#startup').textContent = `запуск ${r.startup_ms} мс`;
+    if (dev) $('#startup').textContent = _t("запуск {0} мс", [r.startup_ms]);
     if (!info.safe_mode) { loadVersions(); if (dev) window.FUI.devCheck(); }
   }));
 }

@@ -4,14 +4,14 @@
 // picks the downloads up from the Downloads folder by SHA-1 (`modpacks.resolve_blocked`).
 (() => {
   const { $, toast, openDlg, closeDlg } = window.FUI;
-  const plural = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
-  const size = (x) => (!x ? '' : x < 1 << 20 ? `${Math.max(1, Math.round(x / 1024))} КБ` : `${(x / 1048576).toFixed(1)} МБ`);
+  const plural = (n, a, b, c) => _tp(n, a, b, c);
+  const size = (x) => (!x ? '' : x < 1 << 20 ? _t("{0} КБ", [Math.max(1, Math.round(x / 1024))]) : _t("{0} МБ", [(x / 1048576).toFixed(1)]));
   const dlg = $('#dlg-blocked'), list = $('#bk-list'), note = $('#bk-note');
   let inst = null, items = [], timer = 0, checking = false, folder = null;
   const counts = new Map();
 
   function row(b) {
-    const open = el('button', { type: 'button', class: 'btn btn-ghost bk-open', 'data-id': `blocked.open.${b.file_name}` }, el('span', { class: 'lbl' }, 'Скачать'));
+    const open = el('button', { type: 'button', class: 'btn btn-ghost bk-open', 'data-id': `blocked.open.${b.file_name}` }, el('span', { class: 'lbl' }, _t("Скачать")));
     open.addEventListener('click', () => invoke('open_link', { url: b.url }).catch((e) => toast(String(e), { error: true })));
     return el('div', { class: 'fg-row bk-row' },
       el('span', { class: 'fg-ico', 'aria-hidden': 'true' }, (b.title.trim()[0] || '?').toUpperCase()),
@@ -22,9 +22,9 @@
     list.replaceChildren(...items.map(row));
     const n = items.length;
     note.textContent = n
-      ? `Авторы ${n === 1 ? 'этого файла' : 'этих файлов'} разрешают скачивать только с сайта CurseForge. Нажмите «Скачать» у каждого — лаунчер сам заберёт ${n === 1 ? 'файл' : 'файлы'} из папки «Загрузки» и положит в сборку.`
-      : 'Все файлы на месте — сборка готова.';
-    $('#bk-left').textContent = n ? `Осталось ${n} ${plural(n, 'файл', 'файла', 'файлов')}` : '';
+      ? _t("Авторы {0} разрешают скачивать только с сайта CurseForge. Нажмите «Скачать» у каждого — лаунчер сам заберёт {1} из папки «Загрузки» и положит в сборку.", [n === 1 ? _t("этого файла") : _t("этих файлов"), n === 1 ? _t("файл") : _t("файлы")])
+      : _t("Все файлы на месте — сборка готова.");
+    $('#bk-left').textContent = n ? _t("Осталось {0} {1}", [n, plural(n, 'файл', 'файла', 'файлов')]) : '';
   }
   function setCount(id, n) {
     counts.set(id, n);
@@ -38,8 +38,8 @@
       const r = await call('modpacks.resolve_blocked', { instance: inst, ...(folder ? { folder } : {}) });
       items = r.left || [];
       setCount(inst, items.length);
-      if (r.added?.length) toast(`Добавлено в сборку: ${r.added.join(', ')}`);
-      else if (!quiet && items.length) toast('В «Загрузках» пока нет нужных файлов');
+      if (r.added?.length) toast(_t("Добавлено в сборку: {0}", [r.added.join(', ')]));
+      else if (!quiet && items.length) toast(_t("В «Загрузках» пока нет нужных файлов"));
       paint();
       if (!items.length) { stop(); window.FMods?.instance(byId(inst)); }
     } catch (e) { if (!quiet) toast(String(e), { error: true }); }
@@ -67,7 +67,7 @@
 
   $('#bk-check').addEventListener('click', () => check(false));
   $('#bk-pick').addEventListener('click', async () => {
-    const p = await invoke('pick_folder', { title: 'Папка со скачанными файлами' }).catch(() => null);
+    const p = await invoke('pick_folder', { title: _t("Папка со скачанными файлами") }).catch(() => null);
     if (p) { folder = p; check(false); }
   });
   dlg.addEventListener('submit', (e) => { e.preventDefault(); stop(); closeDlg(); });
@@ -86,7 +86,7 @@
       if (!b) return;
       const n = (S.current && counts.get(S.current)) || 0;
       b.hidden = !n;
-      if (n) b.querySelector('.t').textContent = `Докачать ${n}`;
+      if (n) b.querySelector('.t').textContent = _t("Докачать {0}", [n]);
     },
   };
 })();

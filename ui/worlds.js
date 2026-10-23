@@ -17,9 +17,9 @@
     const r = el('div', { class: 'mod-row w-row', 'data-id': `world.${w.id}` });
     r.style.setProperty('--i', String(Math.min(n, 12)));
     const meta = [w.last_played ? ago(w.last_played) : null, w.size ? fmtBytes(w.size) : null].filter(Boolean).join(' · ');
-    const open = el('button', { class: 'btn btn-icon btn-ghost', 'data-tip': 'Открыть папку', 'aria-label': 'Открыть папку', html: FOLDER });
+    const open = el('button', { class: 'btn btn-icon btn-ghost', 'data-tip': _t("Открыть папку"), 'aria-label': _t("Открыть папку"), html: FOLDER });
     open.addEventListener('click', () => invoke('open_world_folder', { instance: S.current, world: w.id }).catch((e) => toast(String(e), { error: true })));
-    const del = el('button', { class: 'btn btn-icon btn-ghost w-del', 'data-tip': 'Удалить', 'aria-label': 'Удалить', html: TRASH });
+    const del = el('button', { class: 'btn btn-icon btn-ghost w-del', 'data-tip': _t("Удалить"), 'aria-label': _t("Удалить"), html: TRASH });
     del.addEventListener('click', () => { pending = w; $('#wdel-name').textContent = w.name; openDlg('dlg-world-del'); });
     r.append(ico(w), el('div', { class: 't' }, el('b', {}, w.name), el('span', {}, meta)), open, del);
     return r;
@@ -34,7 +34,7 @@
     shown = id;
     box.replaceChildren(ws.length
       ? el('div', { class: 'mod-list w-list' }, ...ws.map(row))
-      : el('div', { class: 'table-empty tall' }, el('b', {}, 'Миров пока нет')));
+      : el('div', { class: 'table-empty tall' }, el('b', {}, _t("Миров пока нет"))));
   }
   $('#ip-tabs').addEventListener('click', (e) => { if (e.target.closest('[data-tab="worlds"]')) paint(true); });
   $('#dlg-world-del').addEventListener('submit', async (ev) => {
@@ -42,7 +42,7 @@
     const w = pending; if (!w) return;
     try {
       await run($('#wdel-submit'), 'worlds.delete', { instance: S.current, world: w.id });
-      closeDlg(); toast(`Мир «${w.name}» удалён`);
+      closeDlg(); toast(_t("Мир «{0}» удалён", [w.name]));
       paint(true);
     } catch { /* run() shows it */ } finally { $('#wdel-submit').dataset.state = 'idle'; }
   });
