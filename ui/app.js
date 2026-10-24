@@ -585,6 +585,7 @@ function setRunning() {
   const on = !!starting || names.length > 0;
   $('#running').classList.toggle('is-on', on);
   $('#running').classList.toggle('is-live', !starting && names.length > 0);
+  document.documentElement.toggleAttribute('data-game', names.length > 0);
   $('#running-text').textContent = starting ? _t("Запускается: {0}", [starting.name])
     : names.length === 1 ? _t("Играет: {0}", [names[0]])
     : names.length > 1 ? _t("Запущено сборок: {0}", [names.length]) : _t("Ничего не запущено");
@@ -840,6 +841,12 @@ function setLook(patch) {
   Object.assign(lookPending, patch);
   clearTimeout(lookTimer); lookTimer = setTimeout(flushLook, 250);
 }
+// «Облегчённые эффекты»: on by default for weak PCs until the user picks.
+function fxLite() {
+  const v = localStorage.getItem('fl.fx');
+  if (v) return v === 'lite';
+  return (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4;
+}
 function setMotion(on) {
   localStorage.setItem('fl.motion', on ? 'on' : 'off');
   if (lookReady) call('settings.set', { reduce_motion: !on }).catch((e) => toast(String(e), { error: true }));
@@ -992,6 +999,8 @@ function applyLook() {
   applyFont();
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
+  document.documentElement.dataset.fx = fxLite() ? 'lite' : 'full';
+  $('#fx-lite').checked = fxLite();
   document.documentElement.dataset.cover = S.look.cover;
   document.documentElement.dataset.width = S.look.full_width ? 'full' : 'center';
   document.documentElement.dataset.panels = S.look.panels || 'auto';
@@ -1015,6 +1024,15 @@ document.addEventListener('look:change', () => {
   $('#browse-seg')._place?.(false);
 });
 $('#fx-motion').addEventListener('change', (e) => { setMotion(e.target.checked); applyLook(); });
+$('#fx-lite').addEventListener('change', (e) => { localStorage.setItem('fl.fx', e.target.checked ? 'lite' : 'full'); applyLook(); });
+$('#diag-btn').addEventListener('click', async (e) => {
+  const b = e.currentTarget;
+  if (b.dataset.state === 'loading') return;
+  b.dataset.state = 'loading';
+  try { await invoke('collect_diagnostics'); toast(_t('Архив готов — отправьте его разработчику')); }
+  catch (err) { toast(String(err), { error: true }); }
+  finally { delete b.dataset.state; }
+});
 $('#fx-wide').addEventListener('change', (e) => { setLook({ full_width: e.target.checked }); applyLook(); document.dispatchEvent(new Event('look:change')); });
 
 // ---------- Startup ----------

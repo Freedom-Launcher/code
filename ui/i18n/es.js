@@ -1,5 +1,11 @@
 // Generated: Russian source text -> es.
 window.FL_DICT = {
+"Облегчённые эффекты": "Efectos ligeros",
+"Без размытия стекла — плавнее на слабых ПК": "Sin desenfoque del cristal: más fluido en PC modestos",
+"Диагностика": "Diagnóstico",
+"Логи лаунчера и игры одним архивом — для отчёта об ошибке": "Registros del launcher y del juego en un archivo, para informar de un error",
+"Собрать": "Recopilar",
+"Архив готов — отправьте его разработчику": "Archivo listo: envíalo al desarrollador",
 "Знак в окне, на панели задач и в трее":"Marca en la ventana, la barra de tareas y la bandeja",
 "Только для значка на панели задач и в трее":"Solo para el icono de la barra de tareas y la bandeja",
 "Установить плагин": "Instalar un plugin",

@@ -1,0 +1,16 @@
+/* Freedom Launcher — light effects. Loaded after mono.css.
+   html[data-fx="lite"] («Облегчённые эффекты»): no frosted glass anywhere. A backdrop blur over
+   moving content is the most expensive thing WebView2 paints, so weak PCs stutter on scroll and
+   page changes. Surfaces become dense enough to read without the blur.
+   html[data-game]: while a game runs, the launcher's endless decorative loops stop and leave the
+   GPU to the game. */
+
+html[data-fx="lite"] *, html[data-fx="lite"] *::before, html[data-fx="lite"] *::after {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+/* The wallpaper itself stays blurred (a static filter, painted once), so panels only need a bit
+   more density, not a solid fill — the window keeps its look. */
+html[data-fx="lite"] { --glass-a: .62 !important; --menu-bg: rgba(34, 34, 37, .97) !important; --menu-bg-strong: rgba(24, 24, 27, .98) !important; }
+html[data-fx="lite"][data-theme="light"] { --glass-a: .5 !important; --menu-bg: rgba(252, 252, 253, .98) !important; --menu-bg-strong: rgba(250, 250, 251, .99) !important; }
+
+html[data-game] .running .dot, html[data-game] .live, html[data-game] .upd-dot { animation: none !important; }

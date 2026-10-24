@@ -193,6 +193,19 @@ async fn open_instance_folder(
         .map_err(|e| e.to_string())
 }
 
+/// «Собрать диагностику»: zips the logs and shows the archive in the file manager.
+#[tauri::command]
+async fn collect_diagnostics(state: tauri::State<'_, AppCore>) -> Result<String, String> {
+    let core = Arc::clone(&state.0);
+    let v = core
+        .dispatch(&Caller::BuiltinUi, "diag.collect", serde_json::json!({}))
+        .await
+        .map_err(|e| e.to_string())?;
+    let path = v["path"].as_str().ok_or("no archive")?.to_owned();
+    let _ = tauri_plugin_opener::reveal_item_in_dir(path.clone());
+    Ok(path)
+}
+
 /// Highlights a content file in the system file manager («Показать файл»).
 #[tauri::command]
 async fn reveal_content(state: tauri::State<'_, AppCore>, args: Value) -> Result<(), String> {
@@ -937,6 +950,36 @@ fn tray(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
+static SESSION_LOG: std::sync::OnceLock<std::path::PathBuf> = std::sync::OnceLock::new();
+
+/// One line per launcher start and clean exit in `<data>/logs/session.log`. A `start` with no
+/// `exit` after it means the run before was killed: a crash, out of memory, antivirus, power.
+fn session_mark(what: &str) {
+    let Some(p) = SESSION_LOG.get() else { return };
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let mut log = std::fs::read_to_string(p).unwrap_or_default();
+    if log.len() > 64 * 1024 {
+        let cut = log.len() - 32 * 1024;
+        let cut = (cut..log.len()).find(|&i| log.is_char_boundary(i)).unwrap_or(log.len());
+        log = log[cut..].to_owned();
+    }
+    if what == "start" && log.lines().last().is_some_and(|l| l.starts_with("start")) {
+        log.push_str(&format!("unclean {now} the previous run ended without a normal exit\n"));
+    }
+    log.push_str(&format!(
+        "{what} {now} {} pid {}\n",
+        env!("CARGO_PKG_VERSION"),
+        std::process::id()
+    ));
+    if let Some(d) = p.parent() {
+        let _ = std::fs::create_dir_all(d);
+    }
+    let _ = std::fs::write(p, log);
+}
+
 /// Writes every panic to `<data>/logs/crash-<unix>.log`. With `panic = "unwind"`
 /// a failed background task ends alone and the launcher (and the game) keep running.
 fn crash_log_hook(dir: std::path::PathBuf) {
@@ -1002,6 +1045,10 @@ fn main() {
             }
             let data_dir = app.path().app_data_dir()?;
             crash_log_hook(data_dir.join("logs"));
+            if !safe_mode {
+                let _ = SESSION_LOG.set(data_dir.join("logs").join("session.log"));
+                session_mark("start");
+            }
             let core = Core::new(data_dir, started, safe_mode)?;
             if !safe_mode {
                 if let Err(e) = fl_core::bundled::install(&core.data_dir) {
@@ -1045,6 +1092,7 @@ fn main() {
             stage_mrpack_path,
             pick_folder,
             reveal_content,
+            collect_diagnostics,
             pick_content,
             drop_content,
             updater::update_check,
@@ -1053,7 +1101,11 @@ fn main() {
         ])
         .build(tauri::generate_context!())
         .expect("failed to start Freedom Launcher")
-        .run(|_, _| {});
+        .run(|_, e| {
+            if let tauri::RunEvent::Exit = e {
+                session_mark("exit");
+            }
+        });
 }
 
 #[cfg(test)]

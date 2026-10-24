@@ -1,5 +1,11 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Облегчённые эффекты": "Light effects",
+"Без размытия стекла — плавнее на слабых ПК": "No glass blur — smoother on weak PCs",
+"Диагностика": "Diagnostics",
+"Логи лаунчера и игры одним архивом — для отчёта об ошибке": "Launcher and game logs in one archive — for a bug report",
+"Собрать": "Collect",
+"Архив готов — отправьте его разработчику": "Archive ready — send it to the developer",
 "Знак в окне, на панели задач и в трее":"Mark in the window, taskbar and tray",
 "Только для значка на панели задач и в трее":"Only for the taskbar and tray icon",
 "Установить плагин": "Install a plugin",

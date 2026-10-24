@@ -38,6 +38,7 @@
   <link rel="stylesheet" href="liner.css">
   <link rel="stylesheet" href="logo.css">
   <link rel="stylesheet" href="mono.css">
+  <link rel="stylesheet" href="perf.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
   <script src="i18n-apply.js" defer></script>
   <script src="ui.js" defer></script>
@@ -495,6 +496,8 @@
           <div class="rows set-card" data-id="settings.look.motion">
               <div class="r"><div class="grow"><div class="t">Анимации</div></div>
                 <label class="switch"><input type="checkbox" id="fx-motion" checked><i></i></label></div>
+              <div class="r"><div class="grow"><div class="t">Облегчённые эффекты</div><div class="s">Без размытия стекла — плавнее на слабых ПК</div></div>
+                <label class="switch"><input type="checkbox" id="fx-lite"><i></i></label></div>
           </div>
           <div class="set-label">Окно</div>
           <div class="rows set-card" data-id="settings.look.window">
@@ -589,6 +592,10 @@
           <div class="rows set-card" data-id="settings.updates.card">
               <div class="r upd-row" id="upd-row" data-id="settings.updates"><div class="grow"><div class="t">Обновления<i class="upd-dot" aria-hidden="true"></i></div><div class="s" id="upd-sub"></div><div class="progress upd-prog" id="upd-prog" hidden><i></i></div></div>
                 <button class="btn" id="upd-btn"><span class="lbl"><span class="t">Проверить</span></span></button></div>
+          </div>
+          <div class="rows set-card" data-id="settings.diag.card">
+              <div class="r" data-id="settings.diag"><div class="grow"><div class="t">Диагностика</div><div class="s">Логи лаунчера и игры одним архивом — для отчёта об ошибке</div></div>
+                <button class="btn" id="diag-btn"><span class="lbl">Собрать</span></button></div>
           </div>
         </div>
         <div class="set-none" id="set-none" hidden>Ничего не найдено</div>

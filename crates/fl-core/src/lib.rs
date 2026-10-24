@@ -24,6 +24,7 @@ pub mod addons;
 mod builtin;
 pub mod catalog;
 pub mod curseforge;
+pub mod diag;
 pub mod error;
 pub mod export;
 pub mod foreign;
