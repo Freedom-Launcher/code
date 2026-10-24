@@ -578,6 +578,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             let inst = Instance {
                 id: uuid::Uuid::new_v4().to_string(),
                 dir: free_dir(&c, &s, &name, None),
+                path: String::new(),
                 name,
                 version,
                 loader,
@@ -1138,6 +1139,7 @@ async fn import_mrpack(
     let inst = Instance {
         id: uuid::Uuid::new_v4().to_string(),
         dir,
+        path: String::new(),
         name: plan.name,
         version: plan.mc,
         loader: plan.loader,
@@ -1289,6 +1291,9 @@ fn register_foreign(r: &mut ActionRegistry) {
             name: Option<String>,
             #[serde(default)]
             version: Option<String>,
+            /// Use the folder in place instead of copying it (no duplicate on disk).
+            #[serde(default)]
+            link: bool,
         }
         let a: A = args(a)?;
         uuid::Uuid::parse_str(&a.token).map_err(|_| CoreError::BadArgs("bad token".into()))?;
@@ -1311,6 +1316,31 @@ fn register_foreign(r: &mut ActionRegistry) {
             _ if !f.loader_version.is_empty() => f.loader_version.clone(),
             _ => crate::game::loader::latest(&c, &loader, &mc).await?,
         };
+        if a.link {
+            let gd = std::path::PathBuf::from(&f.game_dir);
+            let _g = c.state_lock.lock().await;
+            let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+            linked_free(&c, &s, &gd)?;
+            let inst = Instance {
+                id: uuid::Uuid::new_v4().to_string(),
+                dir: String::new(),
+                path: gd.to_string_lossy().into_owned(),
+                name,
+                version: mc,
+                loader,
+                loader_version,
+                created_at: unix_now(),
+                last_played: 0,
+                playtime_secs: 0,
+                settings: Default::default(),
+                pack: None,
+                group: String::new(),
+            };
+            s.instances.push(inst.clone());
+            store::save(&c.path(INSTANCES), &s, false)?;
+            p.set_stage("done");
+            return Ok(serde_json::to_value(inst)?);
+        }
         let dir = {
             let _g = c.state_lock.lock().await;
             let s: InstanceStore = store::load(&c.path(INSTANCES))?;
@@ -1334,6 +1364,7 @@ fn register_foreign(r: &mut ActionRegistry) {
         let inst = Instance {
             id: uuid::Uuid::new_v4().to_string(),
             dir,
+            path: String::new(),
             name,
             version: mc,
             loader,
@@ -1376,9 +1407,27 @@ fn free_dir(c: &Core, s: &InstanceStore, name: &str, own: Option<&str>) -> Strin
     })
 }
 
+/// A picked folder can back one instance only, and not the launcher's own folders.
+fn linked_free(c: &Core, s: &InstanceStore, dir: &std::path::Path) -> Result<(), CoreError> {
+    if !dir.is_absolute() {
+        return Err(CoreError::msg("Нужен полный путь к папке"));
+    }
+    let norm = |p: &std::path::Path| p.to_string_lossy().replace('\\', "/").trim_end_matches('/').to_lowercase();
+    let want = norm(dir);
+    let root = c.instances_root();
+    if s.instances.iter().any(|i| norm(&i.game_dir(&root)) == want) {
+        return Err(CoreError::msg("Эта папка уже используется другой сборкой"));
+    }
+    let (r, d) = (norm(&root), norm(&c.data_dir));
+    if want == r || want.starts_with(&format!("{r}/")) || want == d || want.starts_with(&format!("{d}/")) {
+        return Err(CoreError::msg("Эта папка — внутри папок лаунчера"));
+    }
+    Ok(())
+}
+
 /// Gives a folder its new name; on failure (folder open elsewhere) keeps the old one.
 fn move_dir(c: &Core, inst: &mut Instance, new_dir: String) {
-    if new_dir == inst.dir_name() {
+    if inst.is_linked() || new_dir == inst.dir_name() {
         return;
     }
     let from = inst.game_dir(&c.instances_root());
@@ -1392,7 +1441,7 @@ fn move_dir(c: &Core, inst: &mut Instance, new_dir: String) {
 fn migrate_dirs(c: &Core, s: &mut InstanceStore) -> bool {
     let mut changed = false;
     for k in 0..s.instances.len() {
-        if !s.instances[k].dir.is_empty() || c.game_running.is_busy(&s.instances[k].id) {
+        if !s.instances[k].dir.is_empty() || s.instances[k].is_linked() || c.game_running.is_busy(&s.instances[k].id) {
             continue;
         }
         let (id, name) = (s.instances[k].id.clone(), s.instances[k].name.clone());
@@ -1437,7 +1486,7 @@ fn register_instance_manage(r: &mut ActionRegistry) {
             return Ok(json!({ "path": old, "moved": 0 }));
         }
         let s: InstanceStore = store::load(&c.path(INSTANCES))?;
-        let dirs: Vec<String> = s.instances.iter().map(|i| i.dir_name().to_owned()).collect();
+        let dirs: Vec<String> = s.instances.iter().filter(|i| !i.is_linked()).map(|i| i.dir_name().to_owned()).collect();
         crate::relocate::check_target(&old, &new, &c.data_dir, &dirs)?;
         let p = service::progress_for(&c, crate::relocate::PROGRESS_KEY);
         let (o, n, pp) = (old.clone(), new.clone(), std::sync::Arc::clone(&p));
@@ -1471,6 +1520,13 @@ fn register_instance_manage(r: &mut ActionRegistry) {
                 .iter()
                 .position(|i| i.id == instance)
                 .ok_or_else(|| CoreError::BadArgs(format!("no such instance: {instance}")))?;
+            if s.instances[k].is_linked() {
+                // A folder the user picked stays exactly as it is; only the launcher forgets it.
+                s.instances.remove(k);
+                store::save(&c.path(INSTANCES), &s, false)?;
+                crate::art::forget(&c.data_dir, &instance);
+                return Ok(json!({ "instance": instance, "deleted": true, "files_removed": false, "kept_folder": true }));
+            }
             let dir = s.instances[k].game_dir(&c.instances_root());
             // Move the folder aside first: if a file is locked, nothing is lost and the
             // instance stays. Only then forget it and remove the files.
@@ -1520,6 +1576,7 @@ fn register_instance_manage(r: &mut ActionRegistry) {
             let copy = Instance {
                 id: uuid::Uuid::new_v4().to_string(),
                 dir: free_dir(&c, &s, &name, None),
+                path: String::new(),
                 name,
                 created_at: unix_now(),
                 last_played: 0,

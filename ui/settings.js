@@ -17,6 +17,7 @@
 
   // Words people search for that are not on the row itself.
   const KW = {
+    'logo-fg': 'логотип лого знак цвет logo mark color', 'logo-bg': 'логотип подложка фон плитка logo background', 'logo-shape': 'логотип форма круг квадрат logo shape', 'logo-fade': 'логотип перья затухание logo feathers',
     'theme-seg': 'цвет темная светлая theme dark light', 'theme-folder': 'темы папка', 'panels-seg': 'отступы карточки раскладка',
     'fx-wide': 'ширина широкий', 'cover-seg': 'шапка баннер hero', 'fx-lang': 'язык language lang перевод translation мова sprache idioma langue język dil', 'fx-tray': 'трей tray закрытие крестик свернуть окно', 'fx-motion': 'анимация движение motion плавность',
     'pop-alpha': 'меню списки выпадающие прозрачность непрозрачность читаемость', 'pop-blur': 'меню списки выпадающие размытие blur', 'plate-size': 'название плашка карточки размер шрифта', 'plate-weight': 'название плашка жирный насыщенность', 'plate-meta': 'подпись версия загрузчик карточки', 'wall-seg': 'фон картинка wallpaper размытие blur стекло прозрачность', 'wall-blur': 'размытие blur', 'wall-zoom': 'обои масштаб зум увеличение картинка фон', 'wall-x': 'обои сдвиг положение горизонталь фон', 'wall-y': 'обои сдвиг положение вертикаль фон', 'glass-blur': 'размытие blur', 'wall-glass': 'прозрачность непрозрачность',

@@ -3,6 +3,7 @@
 <head>
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <script src="i18n.js"></script>
+  <script src="logo.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Freedom Launcher</title>
@@ -35,6 +36,7 @@
   <link rel="stylesheet" href="frost.css">
   <link rel="stylesheet" href="icons.css">
   <link rel="stylesheet" href="liner.css">
+  <link rel="stylesheet" href="logo.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
   <script src="i18n-apply.js" defer></script>
   <script src="ui.js" defer></script>
@@ -121,6 +123,7 @@
       <section class="view" id="view-home" data-id="view.home">
         <div class="home">
           <h1 class="home-h" id="home-greet">Привет</h1>
+          <p class="home-day" id="home-day" data-id="home.day"></p>
           <div class="home-recent" id="home-recent" data-id="home.recent"></div>
           <div class="sec-head home-sec lib-bar" data-id="home.library.bar"><h2>Все сборки</h2><span class="spacer"></span><label class="lib-q"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M10.5 2a8.5 8.5 0 1 0 5.262 15.176l3.652 3.652a1 1 0 0 0 1.414-1.414l-3.652-3.652A8.5 8.5 0 0 0 10.5 2M4 10.5a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0"/></g></svg><input class="field" id="lib-q" placeholder="Найти" spellcheck="false" data-id="home.library.search"></label><button type="button" class="btn btn-ghost lib-hid" id="lib-hid" data-id="home.library.hidden" aria-pressed="false" hidden></button><select class="field lib-sel" id="lib-sort" aria-label="Сортировка" data-id="home.library.sort"><option value="played">Последняя игра</option><option value="name">Название</option><option value="created">Дата создания</option><option value="time">Время в игре</option><option value="manual">Вручную</option></select><select class="field lib-sel" id="lib-by" aria-label="Группировка" data-id="home.library.group"><option value="group">По группам</option><option value="loader">По загрузчику</option><option value="version">По версии</option><option value="none">Без групп</option></select></div>
           <div class="home-row" id="home-all" data-id="home.all"></div>
@@ -444,6 +447,21 @@
               <div class="r"><div class="grow"><div class="t">Папка тем</div></div>
                 <button class="btn btn-ghost" id="theme-reload" data-id="settings.theme.reload"><span class="lbl">Обновить</span></button>
                 <button class="btn" id="theme-folder" data-id="settings.theme.folder"><span class="lbl">Открыть</span></button></div>
+          </div>
+          <div class="set-label">Логотип</div>
+          <div class="rows set-card" data-id="settings.look.logo">
+              <div class="r"><span class="logo-prev" id="logo-prev" aria-hidden="true"></span><div class="grow"><div class="t">Логотип</div><div class="s">Знак в углу окна</div></div>
+                <button class="btn btn-ghost" id="logo-reset" data-id="settings.logo.reset"><span class="lbl">Сбросить</span></button></div>
+              <div class="r"><div class="grow"><div class="t">Цвет знака</div></div>
+                <button type="button" class="ue-sw" id="logo-fg-c" aria-label="Цвет знака" aria-haspopup="dialog" aria-expanded="false" data-id="settings.logo.fg.color" hidden></button>
+                <div class="seg" id="logo-fg" data-id="settings.logo.fg"><button data-v="text" aria-selected="true">Как текст</button><button data-v="accent">Акцент</button><button data-v="white">Белый</button><button data-v="custom">Свой</button></div></div>
+              <div class="r"><div class="grow"><div class="t">Подложка</div></div>
+                <button type="button" class="ue-sw" id="logo-bg-c" aria-label="Цвет подложки" aria-haspopup="dialog" aria-expanded="false" data-id="settings.logo.bg.color" hidden></button>
+                <div class="seg" id="logo-bg" data-id="settings.logo.bg"><button data-v="none" aria-selected="true">Нет</button><button data-v="accent">Акцент</button><button data-v="grad">Градиент</button><button data-v="dark">Тёмная</button><button data-v="custom">Свой</button></div></div>
+              <div class="r" id="logo-shape-row" hidden><div class="grow"><div class="t">Форма</div></div>
+                <div class="seg" id="logo-shape" data-id="settings.logo.shape"><button data-v="square" aria-selected="true">Квадрат</button><button data-v="round">Круг</button></div></div>
+              <div class="r"><div class="grow"><div class="t">Затухание перьев</div><div class="s">Нижние перья крыльев прозрачнее</div></div>
+                <label class="switch"><input type="checkbox" id="logo-fade" checked data-id="settings.logo.fade"><i></i></label></div>
           </div>
           <div class="set-label">Раскладка</div>
           <div class="rows set-card" data-id="settings.look.layout">
@@ -874,7 +892,7 @@
 
   <form class="dialog" id="dlg-del" data-id="dialog.instance.delete" role="dialog" aria-label="Удалить сборку">
     <h2>Удалить «<span id="del-name"></span>»?</h2>
-    <p class="hint">Миры, моды и настройки этой сборки удалятся с диска.</p>
+    <p class="hint" id="del-hint">Миры, моды и настройки этой сборки удалятся с диска.</p>
     <div class="actions">
       <button type="button" class="btn btn-ghost" data-close>Отмена</button>
       <button type="submit" class="btn btn-danger" id="del-submit"><span class="lbl">Удалить</span></button>
@@ -935,6 +953,7 @@
       <div class="line"><span id="fg-stage"></span><span class="mono num" id="fg-count"></span></div>
       <div class="progress" id="fg-bar"><i></i></div>
     </div>
+    <label class="r fg-link" data-id="foreign.link"><div class="grow"><div class="t">Играть из этой же папки</div><div class="s">Без копии: сборка остаётся на месте, лаунчер просто её запускает</div></div><span class="switch"><input type="checkbox" id="fg-link" checked><i></i></span></label>
     <div class="actions">
       <button type="button" class="btn btn-ghost" id="fg-pick" data-id="foreign.pick"><span class="lbl">Выбрать папку…</span></button>
       <span class="fg-gap"></span>

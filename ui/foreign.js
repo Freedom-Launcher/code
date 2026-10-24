@@ -14,6 +14,10 @@
 
   let found = [], picked = new Map(), busy = false, releases = null;
   const dlg = $('#dlg-foreign'), list = $('#fg-list'), submit = $('#fg-submit');
+  // On: the instance plays straight from the picked folder (no copy, no duplicate on disk).
+  const link = $('#fg-link');
+  link.checked = localStorage.getItem('fl.fg.link') !== 'off';
+  link.addEventListener('change', () => localStorage.setItem('fl.fg.link', link.checked ? 'on' : 'off'));
 
   async function versions() {
     if (releases) return releases;
@@ -98,6 +102,7 @@
     busy = true;
     dlg.classList.add('is-importing');
     $('#fg-pick').disabled = true;
+    link.disabled = true;
     paintFoot();
     const st = $('#fg-status');
     st.hidden = false;
@@ -114,13 +119,14 @@
         $('#fg-count').textContent = `${STAGE[p.stage] || ''} · ${fmtBytes(p.done_bytes)} / ${fmtBytes(p.total_bytes)}`;
       }, 250);
       try {
-        made.push(await call('foreign.import', { path: f.path, token, version: f.pick || null }));
+        made.push(await call('foreign.import', { path: f.path, token, version: f.pick || null, link: link.checked }));
         markDone(f.path);
-      } catch (e) { failed.push(`${f.name}: ${e}`); } finally { clearInterval(poll); }
+      } catch (e) { failed.push(`${f.name}: ${_tr(String(e))}`); } finally { clearInterval(poll); }
     }
     busy = false;
     dlg.classList.remove('is-importing');
     $('#fg-pick').disabled = false;
+    link.disabled = false;
     st.hidden = true;
     S.instances = await call('instances.list');
     renderInstances();

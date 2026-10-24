@@ -53,3 +53,8 @@ html:not([data-theme="light"]) .view::-webkit-scrollbar { display: none; }
 @keyframes fl-quiet-in { from { transform: translateY(6px); } }
 html:not([data-theme="light"]):not([data-motion="off"]) .view.is-active { animation: fl-quiet-in 220ms var(--ease-out) backwards; }
 @media (prefers-reduced-motion: reduce) { .view.is-active { animation: none !important; } }
+/* ---------- Window controls: one quiet pill (solid tint, no blur) ---------- */
+html:not([data-theme="light"]) .win-ctl { align-self: center; height: 32px; padding: 3px; gap: 2px; margin-right: 8px; border-radius: 10px; background: rgba(255, 255, 255, .06); }
+html:not([data-theme="light"]) .win-btn { width: 34px; border-radius: 7px; }
+html:not([data-theme="light"]) .win-btn:hover { background: rgba(255, 255, 255, .09); color: var(--text); }
+html:not([data-theme="light"]) .win-close:hover { background: #c42b1c; color: #fff; }

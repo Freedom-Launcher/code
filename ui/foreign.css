@@ -44,3 +44,5 @@ html[data-wall="on"] .fg-row.skel { background: color-mix(in srgb, var(--surface
 .bk-row:hover { background: transparent; }
 .bk-open { flex: none; }
 #bk-note { margin: 0 0 var(--s-3, 12px); }
+
+.fg-link { cursor: pointer; border-top: 1px solid var(--line); margin-top: 4px; }

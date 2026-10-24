@@ -9,6 +9,10 @@ pub struct Instance {
     /// Folder under `instances/`, derived from the name. Empty = legacy folder named by `id`.
     #[serde(default)]
     pub dir: String,
+    /// A folder picked by the user that the instance uses in place (no copy under
+    /// `instances/`). Empty = the instance lives in `instances/<dir>`.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub path: String,
     pub version: String,
     /// `vanilla` or `fabric`.
     #[serde(default = "vanilla")]
@@ -193,7 +197,14 @@ impl Instance {
     /// The game directory (worlds, mods, configs) of this instance.
     /// `root` is [`crate::Core::instances_root`].
     pub fn game_dir(&self, root: &std::path::Path) -> std::path::PathBuf {
+        if self.is_linked() {
+            return std::path::PathBuf::from(&self.path);
+        }
         root.join(self.dir_name())
+    }
+    /// Uses a folder outside `instances/`: never renamed, moved or deleted by the launcher.
+    pub fn is_linked(&self) -> bool {
+        !self.path.is_empty()
     }
     /// Id of the version this instance launches (its `versions/<id>/` dir).
     pub fn version_id(&self) -> String {

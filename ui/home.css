@@ -180,3 +180,11 @@ html[data-theme="light"] .lib-g.is-back > .lib-deco::after { background: linear-
 .deco-pick { display: flex; gap: 8px; margin-top: 12px; }
 .deco-rows { margin-top: 12px; }
 .dlg-deco .actions .spacer { flex: 1; }
+
+/* Date line under the greeting, with an icon for the time of day */
+.home-day { display: flex; align-items: center; gap: 7px; margin: -10px 0 22px; color: var(--text-3); font-size: 12.5px; font-weight: var(--w-medium, 500); }
+.home-day svg { width: 15px; height: 15px; flex: none; }
+.home-day[data-tod="morning"] svg { color: #f5a94c; }
+.home-day[data-tod="day"] svg { color: #f7c948; }
+.home-day[data-tod="evening"] svg { color: #f0838f; }
+.home-day[data-tod="night"] svg { color: #8f97f7; }

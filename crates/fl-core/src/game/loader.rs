@@ -189,6 +189,7 @@ mod tests {
             id: "i".into(),
             name: "n".into(),
             dir: String::new(),
+            path: String::new(),
             version: "1.21.4".into(),
             loader: loader.into(),
             loader_version: lv.into(),
