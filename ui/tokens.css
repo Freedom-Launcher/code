@@ -46,23 +46,23 @@
   --text: #f7f8f8;
   --text-2: #8a8f98;
   --text-3: #62666d;
-  --accent: #8ab4ff;
-  --accent-hover: #a0c2ff;
-  --accent-press: #779fe8;
-  --on-accent: #0a1730;
-  --accent-soft: rgba(138, 180, 255, .12);
+  --accent: #f4f4f5;
+  --accent-hover: #ffffff;
+  --accent-press: #d4d4d8;
+  --on-accent: #09090b;
+  --accent-soft: rgba(255, 255, 255, .10);
   --danger: #ff6b63;
   --danger-soft: rgba(255, 107, 99, .12);
   --warn: #f2b64b;
-  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(138, 180, 255, .5);
-  --shadow-1: 0 0 0 1px var(--line);
-  --shadow-2: 0 4px 24px rgba(0, 0, 0, .2), 0 0 0 1px var(--line);
-  --shadow-pop: 0 7px 32px rgba(0, 0, 0, .35), 0 0 0 1px var(--line-strong);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(255, 255, 255, .32);
+  --shadow-1: none;
+  --shadow-2: 0 8px 28px -10px rgba(0, 0, 0, .45);
+  --shadow-pop: 0 18px 48px -14px rgba(0, 0, 0, .6);
   --shadow-accent: none;
   /* Weights measured from linear.app (Inter variable): 510 / 590. */
   --w-regular: 400; --w-medium: 510; --w-semibold: 590;
   --tracking-body: -.006em;
-  --tracking-title: -.022em;
+  --tracking-title: -.026em;
 }
 
 [data-theme="light"] {
@@ -80,19 +80,19 @@
   --text: #111113;
   --text-2: #5d5d66;
   --text-3: #9b9ba3;
-  --accent: #2f6fde;
-  --accent-hover: #3a7ce8;
-  --accent-press: #275fc2;
+  --accent: #18181b;
+  --accent-hover: #27272a;
+  --accent-press: #000000;
   --on-accent: #ffffff;
-  --accent-soft: rgba(47, 111, 222, .11);
+  --accent-soft: rgba(0, 0, 0, .07);
   --danger: #e5484d;
   --danger-soft: rgba(229, 72, 77, .1);
   --warn: #c98a12;
-  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(47, 111, 222, .45);
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, .05), 0 0 0 1px var(--line);
-  --shadow-2: 0 4px 42px rgba(0, 0, 0, .06), 0 2px 6px rgba(0, 0, 0, .05), 0 0 0 1px rgba(0, 0, 0, .06);
-  --shadow-pop: 0 18px 50px -12px rgba(0, 0, 0, .18), 0 2px 6px rgba(0, 0, 0, .06), 0 0 0 1px rgba(0, 0, 0, .07);
-  --shadow-accent: inset 0 .5px rgba(255, 255, 255, .4), 0 1px 1px rgba(0, 0, 0, .12), 0 4px 10px -4px rgba(47, 111, 222, .5);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(0, 0, 0, .28);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .04);
+  --shadow-2: 0 6px 30px -10px rgba(0, 0, 0, .12), 0 1px 3px rgba(0, 0, 0, .04);
+  --shadow-pop: 0 18px 46px -16px rgba(0, 0, 0, .22), 0 2px 8px rgba(0, 0, 0, .05);
+  --shadow-accent: none;
 }
 
 /* Reduced motion or "Настройки → Эффекты → Анимации: выкл": fade only, no travel. */

@@ -48,7 +48,7 @@
 .hb-mid { flex: 1; display: flex; justify-content: center; gap: 8px; min-width: 0; }
 .hb-mid .chip { height: 28px; padding: 0 12px; border-radius: calc(8px * var(--rk-chip, 1)); display: flex; align-items: center; background: var(--surface-2); color: var(--text-2); font-size: 12px; white-space: nowrap; }
 .home-play { --h: 44px; min-width: 148px; font-size: 15px; border-radius: calc(12px * var(--rk-btn, 1)); }
-.home-play.btn-primary { box-shadow: 0 8px 28px var(--accent-glow, rgba(138, 180, 255, .3)); }
+.home-play.btn-primary { box-shadow: 0 8px 28px var(--accent-glow, rgba(255, 255, 255, .12)); }
 
 @media (max-width: 1000px) {
   .home { padding: 26px 24px 24px; }

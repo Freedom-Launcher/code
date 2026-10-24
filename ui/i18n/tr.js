@@ -1,5 +1,7 @@
 // Generated: Russian source text -> tr.
 window.FL_DICT = {
+"Знак в окне, на панели задач и в трее":"Pencerede, görev çubuğunda ve tepside işaret",
+"Только для значка на панели задач и в трее":"Yalnızca görev çubuğu ve tepsi simgesi için",
 "Установить плагин": "Eklenti yükle",
 "Архив .zip из репозитория автора": "Yazarın deposundan bir .zip",
 "Выбрать файл…": "Dosya seç…",

@@ -1,5 +1,7 @@
 // Generated: Russian source text -> pl.
 window.FL_DICT = {
+"Знак в окне, на панели задач и в трее":"Znak w oknie, na pasku zadań i w zasobniku",
+"Только для значка на панели задач и в трее":"Tylko dla ikony na pasku zadań i w zasobniku",
 "Установить плагин": "Zainstaluj wtyczkę",
 "Архив .zip из репозитория автора": "Archiwum .zip z repozytorium autora",
 "Выбрать файл…": "Wybierz plik…",

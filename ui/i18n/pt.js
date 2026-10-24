@@ -1,5 +1,7 @@
 // Generated: Russian source text -> pt.
 window.FL_DICT = {
+"Знак в окне, на панели задач и в трее":"Marca na janela, na barra de tarefas e na bandeja",
+"Только для значка на панели задач и в трее":"Apenas para o ícone da barra de tarefas e da bandeja",
 "Установить плагин": "Instalar um plugin",
 "Архив .zip из репозитория автора": "Um .zip do repositório do autor",
 "Выбрать файл…": "Escolher arquivo…",

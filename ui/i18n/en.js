@@ -1,5 +1,7 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Знак в окне, на панели задач и в трее":"Mark in the window, taskbar and tray",
+"Только для значка на панели задач и в трее":"Only for the taskbar and tray icon",
 "Установить плагин": "Install a plugin",
 "Архив .zip из репозитория автора": "A .zip from the author's repository",
 "Выбрать файл…": "Choose file…",

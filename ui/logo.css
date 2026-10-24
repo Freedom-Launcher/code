@@ -1,31 +1,16 @@
 /* Freedom Launcher — logo look (Settings → Внешний вид → «Логотип», logo.js). Loaded after liner.css.
-   Defaults (text-coloured glyph, no plate, fading feathers) look exactly like the plain mark. */
-:root { --logo-fg: var(--text); --logo-bg: transparent; }
+   Inside the app the mark only changes colour. The plate and its shape belong to the system icon
+   (window, taskbar, tray), which logo.js draws on a canvas; the settings preview shows that icon. */
+:root { --logo-fg: var(--text); }
 html[data-logo-fg="accent"] { --logo-fg: var(--accent); }
 html[data-logo-fg="white"] { --logo-fg: #fff; }
 html[data-logo-fg="custom"] { --logo-fg: var(--logo-fg-c, var(--text)); }
-html[data-logo-bg="accent"] { --logo-bg: var(--accent); }
-html[data-logo-bg="dark"] { --logo-bg: #111113; }
-html[data-logo-bg="grad"] { --logo-bg: linear-gradient(150deg, color-mix(in srgb, var(--accent) 55%, #fff), var(--accent) 50%, color-mix(in srgb, var(--accent) 62%, #000)); }
-html[data-logo-bg="custom"] { --logo-bg: var(--logo-bg-c, transparent); }
 
-.rail-logo, .logo-prev { color: var(--logo-fg) !important; transition: color var(--d-2, 160ms) ease, border-radius var(--d-2, 160ms) ease; }
+.rail-logo, .logo-prev, .set-mark, .wc-mark { color: var(--logo-fg) !important; transition: color var(--d-2, 160ms) ease; }
 
-/* Live preview in the settings row */
-.logo-prev { display: grid; place-items: center; flex: none; width: 52px; height: 42px; }
+.logo-prev { display: grid; place-items: center; flex: none; width: 52px; height: 52px; }
 .logo-prev .brand-svg { width: 46px; }
-
-/* With a plate: a square tile, glyph a little smaller */
-html[data-logo-bg]:not([data-logo-bg="none"]) .rail-logo {
-  width: 34px !important; height: 34px !important; background: var(--logo-bg) !important; border-radius: calc(9px * var(--rk-nav, 1));
-}
-html[data-logo-bg]:not([data-logo-bg="none"]) .rail-logo .brand-svg { width: 25px; }
-html[data-logo-bg]:not([data-logo-bg="none"]) .logo-prev { width: 52px; height: 52px; background: var(--logo-bg); border-radius: 14px; }
-html[data-logo-bg]:not([data-logo-bg="none"]) .logo-prev .brand-svg { width: 38px; }
-html[data-logo-bg="dark"]:not([data-theme="light"]) .rail-logo,
-html[data-logo-bg="dark"]:not([data-theme="light"]) .logo-prev { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .09); }
-html[data-logo-bg]:not([data-logo-bg="none"])[data-logo-shape="round"] .rail-logo,
-html[data-logo-bg]:not([data-logo-bg="none"])[data-logo-shape="round"] .logo-prev { border-radius: 50% !important; }
+.logo-prev canvas { display: block; width: 52px; height: 52px; }
 
 /* Feathers without the fade */
 html[data-logo-fade="off"] .brand-svg path[opacity] { opacity: 1; }

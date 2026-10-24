@@ -1,0 +1,94 @@
+/* Freedom Launcher — monochrome layer (0.3.25). Loaded after logo.css, before the live editor sheet.
+   Black-and-white accent, borderless translucent menus, filled (not outlined) controls, a calmer top bar.
+   Taste reference: Liner — one material, no hairlines, depth from tone and blur instead of borders. */
+:root {
+  --fill: rgba(255, 255, 255, .055); --fill-2: rgba(255, 255, 255, .09); --fill-3: rgba(255, 255, 255, .14);
+  --field-focus: inset 0 0 0 1px rgba(255, 255, 255, .24);
+  --menu-bg: rgba(34, 34, 37, .62); --menu-bg-strong: rgba(24, 24, 27, .8);
+  --menu-hover: rgba(255, 255, 255, .08); --menu-sep: rgba(255, 255, 255, .07);
+  --menu-shadow: 0 18px 50px -16px rgba(0, 0, 0, .65);
+  --menu-blur: blur(40px) saturate(1.6);
+  --accent-glow: rgba(255, 255, 255, .08);
+}
+[data-theme="light"] {
+  --fill: rgba(0, 0, 0, .045); --fill-2: rgba(0, 0, 0, .075); --fill-3: rgba(0, 0, 0, .11);
+  --field-focus: inset 0 0 0 1px rgba(0, 0, 0, .28);
+  --menu-bg: rgba(252, 252, 253, .72); --menu-bg-strong: rgba(250, 250, 251, .86);
+  --menu-hover: rgba(0, 0, 0, .055); --menu-sep: rgba(0, 0, 0, .06);
+  --menu-shadow: 0 18px 46px -16px rgba(0, 0, 0, .24), 0 2px 8px rgba(0, 0, 0, .05);
+  --accent-glow: rgba(0, 0, 0, .14);
+}
+
+/* ---------- Menus, lists, pickers, toasts: translucent, no border ---------- */
+.pop, .dd-pop, .cp, .toast { background: var(--menu-bg) !important; box-shadow: var(--menu-shadow) !important; }
+.dialog, .pal-panel { background: var(--menu-bg-strong) !important; box-shadow: var(--menu-shadow) !important; }
+.pop[data-open], .dd-pop[data-open], .cp[data-open], .dialog[data-open], .palette[data-open] .pal-panel, .toast {
+  -webkit-backdrop-filter: var(--menu-blur); backdrop-filter: var(--menu-blur);
+}
+.pop, .dd-pop { border-radius: calc(12px * var(--rk-menu, 1)); padding: 4px; }
+.menu-item, .dd-opt { border-radius: calc(8px * var(--rk-menu, 1)); }
+.menu-item:hover, .menu-item:focus-visible, .dd-opt:hover, .dd-opt.is-active { background: var(--menu-hover); }
+.menu-item > svg { color: var(--text-3); }
+.menu-sep { margin: 4px 8px; background: var(--menu-sep); }
+.toast-act:hover { color: var(--on-accent); }
+
+/* ---------- Controls: filled, no outline ---------- */
+.field, select.field { background-color: var(--fill); box-shadow: none; }
+.field:hover, select.field:hover { background-color: var(--fill-2); box-shadow: none; }
+.field:focus, select.field:focus { background-color: var(--fill-2); box-shadow: var(--field-focus); }
+.seg { background: var(--fill); box-shadow: none; }
+.seg > .seg-pill { background: var(--fill-3); box-shadow: none; }
+[data-theme="light"] .seg > .seg-pill { background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .1); }
+.switch i { background: var(--fill-3); box-shadow: none; }
+.check input { background: var(--fill-2); box-shadow: none; }
+/* White accent in the dark theme: dark knob and dark check marks on it */
+html:not([data-theme="light"]) .switch input:checked + i::after { background: #0a0a0a; box-shadow: none; }
+html:not([data-theme="light"]) .disc-opt[aria-pressed="true"] i {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2.5 6.2 2.3 2.3 4.7-5'/%3E%3C/svg%3E");
+}
+
+/* ---------- Top bar: taller, quiet filled pills, one rhythm ---------- */
+.app { grid-template-rows: calc(48px * var(--sz-top, 1)) minmax(0, 1fr); }
+html .top { gap: 6px; padding-left: 8px; }
+html .top .nav-ctl { gap: 2px; }
+html .top .nav-btn { width: 32px; height: 32px; border-radius: 10px; color: var(--text-2); background: none; }
+html .top .nav-btn svg { width: 18px; height: 18px; }
+html .top .nav-btn:hover:not(:disabled) { background: var(--fill-2); color: var(--text); }
+html .top .nav-btn:disabled { opacity: .3; }
+html .top .crumbs-t .cr { font-size: 13px; font-weight: var(--w-medium); border-radius: 8px; }
+html .top .crumbs-t button.cr:hover { background: var(--fill); }
+html .top .pal-trigger { height: 32px; flex: 0 1 340px; gap: 9px; padding: 0 6px 0 12px; border-radius: 10px;
+  background: var(--fill) !important; box-shadow: none !important; color: var(--text-3); font-size: 13px; }
+html .top .pal-trigger:hover { background: var(--fill-2) !important; color: var(--text-2); }
+html .top .pal-trigger svg { width: 16px; height: 16px; }
+html .top .pal-trigger kbd { background: none; box-shadow: none; color: var(--text-3); font-size: 11px; }
+html .top .running { height: 32px; padding: 0 12px; border-radius: 10px; background: var(--fill); box-shadow: none; font-size: 12.5px; }
+html .top .running .dot { width: 6px; height: 6px; }
+html .top .account-btn { height: 32px; padding: 0 8px 0 5px; border-radius: 10px; background: var(--fill); box-shadow: none; }
+html .top .account-btn:hover { background: var(--fill-2); }
+html .top .account-btn .head { width: 22px; height: 22px; border-radius: 7px; box-shadow: none; }
+html .top .account-btn .caret { width: 14px; height: 14px; }
+html .top .win-ctl { align-self: center; height: 32px; padding: 3px; gap: 2px; margin: 0 8px 0 2px; border-radius: 10px; background: var(--fill); }
+html .top .win-btn { width: 34px; border-radius: 7px; color: var(--text-2); }
+html .top .win-btn:hover { background: var(--fill-2); color: var(--text); }
+html .top .win-close:hover { background: #c42b1c; color: #fff; }
+html[data-wall="on"] .top .pal-trigger, html[data-wall="on"] .top .running, html[data-wall="on"] .top .account-btn, html[data-wall="on"] .top .win-ctl {
+  background: rgba(0, 0, 0, .28) !important;
+}
+html[data-wall="on"][data-theme="light"] .top .pal-trigger, html[data-wall="on"][data-theme="light"] .top .running,
+html[data-wall="on"][data-theme="light"] .top .account-btn, html[data-wall="on"][data-theme="light"] .top .win-ctl {
+  background: rgba(255, 255, 255, .5) !important;
+}
+
+/* ---------- Rail and bar icons: Solar line, solid when active ----------
+   Solar paths carry their own stroke/fill attributes: the MingCute fill rule must not paint them. */
+svg.mi.si { fill: none; stroke: none; overflow: visible; }
+.rail-btn svg.mi.si { width: 24px; height: 24px; }
+
+/* ---------- Type: tighter headings ---------- */
+.home-h { font-weight: 620; letter-spacing: -.036em; }
+.dialog h2, .empty-stage h2 { letter-spacing: -.026em; }
+/* ---------- Cards and open dropdown buttons: no hairlines ---------- */
+html .rc, html .hb-open { box-shadow: none !important; }
+html .rc:focus-visible, html .hb-open:focus-visible { box-shadow: var(--focus-ring) !important; }
+.dd-btn[aria-expanded="true"] { background-color: var(--fill-2); box-shadow: none; }

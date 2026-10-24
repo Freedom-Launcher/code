@@ -1,5 +1,7 @@
 // Generated: Russian source text -> fr.
 window.FL_DICT = {
+"Знак в окне, на панели задач и в трее":"Logo dans la fenêtre, la barre des tâches et la zone de notification",
+"Только для значка на панели задач и в трее":"Uniquement pour l'icône de la barre des tâches et de la zone de notification",
 "Установить плагин": "Installer un plugin",
 "Архив .zip из репозитория автора": "Une archive .zip du dépôt de l'auteur",
 "Выбрать файл…": "Choisir un fichier…",

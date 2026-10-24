@@ -793,6 +793,60 @@ fn set_close_to_tray(on: bool) {
     CLOSE_TO_TRAY.store(on, std::sync::atomic::Ordering::Relaxed);
 }
 
+/// The launcher's own icon — window, taskbar and tray — drawn by the UI from Settings → Внешний вид →
+/// «Логотип» (glyph colour, plate, shape). An empty `rgba` puts the bundled icon back.
+#[tauri::command]
+fn set_app_icon(app: tauri::AppHandle, rgba: Vec<u8>, w: u32, h: u32) -> Result<(), String> {
+    let img: tauri::image::Image<'static> = if rgba.is_empty() {
+        app.default_window_icon()
+            .cloned()
+            .ok_or_else(|| "no default icon".to_string())?
+            .to_owned()
+    } else {
+        if w == 0 || h == 0 || w > 512 || h > 512 || rgba.len() != (w as usize) * (h as usize) * 4 {
+            return Err("bad icon size".into());
+        }
+        tauri::image::Image::new_owned(rgba, w, h)
+    };
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.set_icon(img.clone());
+        #[cfg(windows)]
+        if let Ok(hwnd) = win.hwnd() {
+            set_big_icon(hwnd.0 as _, &img);
+        }
+    }
+    if let Some(t) = app.tray_by_id("main") {
+        let _ = t.set_icon(Some(img));
+    }
+    Ok(())
+}
+
+/// Tauri sets only the small window icon; the taskbar and Alt+Tab use the big one.
+#[cfg(windows)]
+fn set_big_icon(hwnd: windows_sys::Win32::Foundation::HWND, img: &tauri::image::Image<'_>) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{CreateIcon, DestroyIcon, SendMessageW, ICON_BIG, WM_SETICON};
+    static PREV: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let (w, h) = (img.width() as i32, img.height() as i32);
+    let mut bgra = img.rgba().to_vec();
+    let mut and_mask = Vec::with_capacity(bgra.len() / 4);
+    for p in bgra.chunks_exact_mut(4) {
+        and_mask.push(p[3].wrapping_sub(u8::MAX));
+        p.swap(0, 2);
+    }
+    // SAFETY: both buffers outlive the call and hold w*h pixels; the previous handle is ours to free.
+    unsafe {
+        let icon = CreateIcon(std::ptr::null_mut(), w, h, 1, 32, and_mask.as_ptr(), bgra.as_ptr());
+        if icon.is_null() {
+            return;
+        }
+        SendMessageW(hwnd, WM_SETICON, ICON_BIG as usize, icon as isize);
+        let old = PREV.swap(icon as usize, std::sync::atomic::Ordering::Relaxed);
+        if old != 0 {
+            DestroyIcon(old as _);
+        }
+    }
+}
+
 fn show_main(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.unminimize();
@@ -965,6 +1019,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             action,
             set_close_to_tray,
+            set_app_icon,
             set_ui_strings,
             theme_action,
             open_login_page,

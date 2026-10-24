@@ -23,7 +23,7 @@
   const FAMILY = { accent: 'accent', bg: 'bg', 'surface-1': 'bg', 'surface-2': 'bg', 'surface-3': 'bg', text: 'text', danger: 'danger', warn: 'warn', glass: 'glass' };
   const PRESETS = {
     dark: {
-      accent: ['#8ab4ff', '#5b8cff', '#4cc2ff', '#22d3ee', '#f472b6', '#fb7185', '#ff8a4c', '#fbbf24', '#e4e4e7'],
+      accent: ['#f4f4f5', '#8ab4ff', '#5b8cff', '#4cc2ff', '#22d3ee', '#f472b6', '#fb7185', '#ff8a4c', '#fbbf24'],
       bg: ['#08090a', '#0b0d12', '#0a0f1c', '#110e0c', '#000000'],
       text: ['#f7f8f8', '#ffffff', '#ece8e1', '#e3ebf7'],
       danger: ['#ff6b63', '#f43f5e', '#ef4444'],
@@ -31,7 +31,7 @@
       glass: ['#0e1016', '#0a0f1c', '#140f0c', '#000000'],
     },
     light: {
-      accent: ['#2f6fde', '#1d4ed8', '#0284c7', '#0891b2', '#db2777', '#e11d48', '#ea580c', '#d97706', '#3f3f46'],
+      accent: ['#18181b', '#2f6fde', '#1d4ed8', '#0284c7', '#0891b2', '#db2777', '#e11d48', '#ea580c', '#d97706'],
       bg: ['#f5f5f6', '#f1f5f9', '#f6f3ee', '#ffffff'],
       text: ['#111113', '#000000', '#1c1917', '#0f172a'],
       danger: ['#e5484d', '#dc2626', '#be123c'],

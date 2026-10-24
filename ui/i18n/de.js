@@ -1,5 +1,7 @@
 // Generated: Russian source text -> de.
 window.FL_DICT = {
+"Знак в окне, на панели задач и в трее":"Zeichen im Fenster, in der Taskleiste und im Tray",
+"Только для значка на панели задач и в трее":"Nur für das Taskleisten- und Tray-Symbol",
 "Установить плагин": "Plugin installieren",
 "Архив .zip из репозитория автора": "Ein .zip aus dem Repository des Autors",
 "Выбрать файл…": "Datei wählen…",
