@@ -80,10 +80,13 @@ html[data-wall="on"][data-theme="light"] .top .account-btn, html[data-wall="on"]
   background: rgba(255, 255, 255, .5) !important;
 }
 
-/* ---------- Rail and bar icons: Solar line, solid when active ----------
-   Solar paths carry their own stroke/fill attributes: the MingCute fill rule must not paint them. */
-svg.mi.si { fill: none; stroke: none; overflow: visible; }
-.rail-btn svg.mi.si { width: 24px; height: 24px; }
+/* ---------- Rail icons: MingCute fill, state by opacity only (both themes) ---------- */
+.rail-btn { background: none !important; box-shadow: none !important; color: var(--text); opacity: .55;
+  transition: opacity 150ms ease-out, transform 100ms ease; }
+.rail-btn:hover { opacity: .9; }
+.rail-btn:active { transform: scale(.96); }
+.rail-btn[aria-current="page"] { opacity: 1; }
+.rail-btn svg.mi.mi { width: 26px; height: 26px; }
 
 /* ---------- Type: tighter headings ---------- */
 .home-h { font-weight: 620; letter-spacing: -.036em; }
