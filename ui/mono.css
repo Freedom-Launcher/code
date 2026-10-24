@@ -95,3 +95,30 @@ html[data-wall="on"][data-theme="light"] .top .account-btn, html[data-wall="on"]
 html .rc, html .hb-open { box-shadow: none !important; }
 html .rc:focus-visible, html .hb-open:focus-visible { box-shadow: var(--focus-ring) !important; }
 .dd-btn[aria-expanded="true"] { background-color: var(--fill-2); box-shadow: none; }
+
+/* ---------- No hairlines in wallpaper (glass) mode either ----------
+   Glass panels, cards, fields and pickers get depth from tone and blur only. Selection keeps its ring, focus keeps its ring. */
+html[data-wall="on"] .rail, html[data-wall="on"] .main { box-shadow: var(--glass-shadow) !important; }
+html[data-wall="on"] .tile, html[data-wall="on"][data-theme="light"] .tile { box-shadow: none; }
+html .home-bar { box-shadow: 0 12px 40px rgba(0, 0, 0, .3) !important; }
+html[data-theme="light"] .home-bar { box-shadow: 0 12px 40px rgba(20, 30, 60, .14) !important; }
+html .hb-open > i, html .c-banner { box-shadow: none; }
+html .hcard > i { box-shadow: 0 10px 30px rgba(0, 0, 0, .22); }
+html .hcard:hover > i { box-shadow: 0 16px 36px rgba(0, 0, 0, .3); }
+html .c-icon { box-shadow: 0 8px 20px rgba(0, 0, 0, .32); }
+html .c-icon:focus-visible { box-shadow: var(--focus-ring); }
+html .field, html select.field, html .field:hover, html select.field:hover { box-shadow: none !important; }
+html .field:focus, html select.field:focus { box-shadow: var(--field-focus) !important; }
+html .cover-opt:not([aria-pressed="true"]), html .cover-opt.cover-add, html .cover-opt.upload { box-shadow: none; }
+html .cover-opt.cover-add, html .cover-opt.upload { background: var(--fill-2); }
+html .cover-opt.cover-add:hover, html .cover-opt.upload:hover { background: var(--fill-3); color: var(--text); box-shadow: none; }
+html .pick button { background: var(--fill); box-shadow: none; }
+html .pick button:hover { background: var(--fill-2); }
+html .pick button[aria-pressed="true"] { background: var(--fill-3); box-shadow: none; color: var(--text); }
+html .mod-card, html .disc-side, html .set-card, html .set-search, html .isx-block, html .isx-block[data-own].is-on,
+html .col-set, html .ct-row, html .ct-pill, html .ctv-item, html kbd { box-shadow: none; }
+html .col-set[aria-pressed="true"], html .ct-pill[aria-selected="true"], html .ctv-item[aria-selected="true"] { background: var(--fill-3); box-shadow: none; }
+html[data-wall="on"][data-theme="light"] .btn:not(.btn-primary):not(.btn-ghost),
+html[data-wall="on"][data-theme="light"] .pal-trigger { box-shadow: none !important; }
+html .form-foot { border-top: 0; }
+html .field:focus, html select.field:focus { background-color: var(--fill-3); box-shadow: none !important; }
