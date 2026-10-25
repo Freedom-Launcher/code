@@ -1224,5 +1224,17 @@ window.FL_DICT = {
 "Такой копии нет": "No such backup",
 "Не удалось заменить мир: папка открыта в другой программе": "Couldn't replace the world: the folder is open in another program",
 "В мире есть файл с недопустимым именем": "The world has a file with an invalid name",
+"Резервная копия мира…": "Backing up the world…",
+"Не удалось сделать копию мира: {0}": "Couldn't back up the world: {0}",
+"Открываем мир «{0}»": "Opening world “{0}”",
+"Продолжить в последнем мире": "Continue last world",
+"Играть в этом мире": "Play this world",
+"Резервные копии миров": "World backups",
+"Копия перед запуском": "Back up before launch",
+"Сохранять мир перед каждым запуском игры, чтобы его можно было вернуть.": "Save the world before every game launch so it can be restored.",
+"Хранить автокопий": "Automatic copies to keep",
+"Старые автокопии удаляются, сделанные вручную остаются.": "Older automatic copies are deleted; ones made by hand stay.",
+"Такого мира нет": "No such world",
+"Сразу в мир можно зайти начиная с Minecraft 1.20": "Jumping straight into a world needs Minecraft 1.20 or newer",
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "file", "other": "files"}, "мод|мода|модов": {"one": "mod", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "resource pack", "other": "resource packs"}, "шейдер|шейдера|шейдеров": {"one": "shader", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "datapack", "other": "datapacks"}, "мир|мира|миров": {"one": "world", "other": "worlds"}, "сборка|сборки|сборок": {"one": "instance", "other": "instances"}, "скриншот|скриншота|скриншотов": {"one": "screenshot", "other": "screenshots"}, "копия|копии|копий": {"one": "backup", "other": "backups"}};

@@ -1224,5 +1224,17 @@ window.FL_DICT = {
 "Такой копии нет": "Cette sauvegarde n'existe pas",
 "Не удалось заменить мир: папка открыта в другой программе": "Impossible de remplacer le monde : le dossier est ouvert dans un autre programme",
 "В мире есть файл с недопустимым именем": "Le monde contient un fichier au nom invalide",
+"Резервная копия мира…": "Sauvegarde du monde…",
+"Не удалось сделать копию мира: {0}": "Impossible de sauvegarder le monde : {0}",
+"Открываем мир «{0}»": "Ouverture du monde « {0} »",
+"Продолжить в последнем мире": "Continuer dans le dernier monde",
+"Играть в этом мире": "Jouer dans ce monde",
+"Резервные копии миров": "Sauvegardes des mondes",
+"Копия перед запуском": "Sauvegarder avant le lancement",
+"Сохранять мир перед каждым запуском игры, чтобы его можно было вернуть.": "Sauvegarder le monde avant chaque lancement du jeu pour pouvoir le restaurer.",
+"Хранить автокопий": "Copies automatiques à garder",
+"Старые автокопии удаляются, сделанные вручную остаются.": "Les anciennes copies automatiques sont supprimées, celles faites à la main restent.",
+"Такого мира нет": "Ce monde n'existe pas",
+"Сразу в мир можно зайти начиная с Minecraft 1.20": "Entrer directement dans un monde nécessite Minecraft 1.20 ou plus récent",
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "fichier", "many": "fichiers", "other": "fichiers"}, "мод|мода|модов": {"one": "mod", "many": "mods", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "pack de ressources", "many": "packs de ressources", "other": "packs de ressources"}, "шейдер|шейдера|шейдеров": {"one": "shader", "many": "shaders", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "pack de données", "many": "packs de données", "other": "packs de données"}, "мир|мира|миров": {"one": "monde", "many": "mondes", "other": "mondes"}, "сборка|сборки|сборок": {"one": "instance", "many": "instances", "other": "instances"}, "скриншот|скриншота|скриншотов": {"one": "capture d'écran", "many": "captures d'écran", "other": "captures d'écran"}, "копия|копии|копий": {"one": "sauvegarde", "many": "sauvegardes", "other": "sauvegardes"}};

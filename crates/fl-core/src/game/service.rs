@@ -222,20 +222,49 @@ async fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
 }
 
 /// Makes sure everything is installed, then starts the game.
-pub async fn launch_instance(core: &Core, instance: &str) -> Result<Value, CoreError> {
+/// `world` opens that world right away; `last` opens the one played most recently.
+pub async fn launch_instance(
+    core: &Core,
+    instance: &str,
+    world: Option<String>,
+    last: bool,
+) -> Result<Value, CoreError> {
     let auth = launch_auth(core).await?;
     let inst = find_instance(core, instance)?;
+    let gd = inst.game_dir(&core.instances_root());
+    let world = match world {
+        Some(w) => {
+            let ok = !w.trim().is_empty()
+                && w.len() <= 128
+                && !w.starts_with('.')
+                && !w.contains(['/', '\\', ':', '\0']);
+            if !ok || !gd.join("saves").join(&w).join("level.dat").is_file() {
+                return Err(CoreError::msg("Такого мира нет"));
+            }
+            if !launch::quick_play_supported(&inst.version) {
+                return Err(CoreError::msg("Сразу в мир можно зайти начиная с Minecraft 1.20"));
+            }
+            Some(w)
+        }
+        None if last && launch::quick_play_supported(&inst.version) => crate::backups::latest_world(&gd),
+        None => None,
+    };
     if !core.game_running.begin(instance) {
         return Ok(json!({ "instance": instance, "already_running": true }));
     }
-    let res = start(core, &inst, auth).await;
+    let res = start(core, &inst, auth, world).await;
     if res.is_err() {
         core.game_running.cancel(instance);
     }
     res
 }
 
-async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, CoreError> {
+async fn start(
+    core: &Core,
+    inst: &Instance,
+    auth: LaunchAuth,
+    world: Option<String>,
+) -> Result<Value, CoreError> {
     let layout = Layout::new(core);
     // Full verification is `game.install`; a launch only installs when needed.
     if !layout.installed_marker(&inst.version_id()).exists() {
@@ -287,6 +316,10 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
     if set.fullscreen == Some(true) {
         args.push("--fullscreen".into());
     }
+    if let Some(w) = &world {
+        args.push("--quickPlaySingleplayer".into());
+        args.push(w.clone());
+    }
     // Variables like Prism/Modrinth give hooks, plus the user's own.
     let mut vars: std::collections::BTreeMap<String, String> = [
         ("INST_ID", inst.id.clone()),
@@ -321,6 +354,25 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
             )));
         }
     }
+    // A copy of the world about to be played; a failed copy never blocks the game.
+    let mut backup_error = None;
+    let mut backup = None;
+    if set.auto_backup == Some(true) {
+        let target = world.clone().or_else(|| crate::backups::latest_world(&opts.game_dir));
+        if let Some(w) = target {
+            let pr = progress_for(core, &inst.id);
+            pr.set_stage("backup");
+            let gd = opts.game_dir.clone();
+            let keep = set.backup_keep.unwrap_or(5) as usize;
+            let now = unix_now();
+            match tokio::task::spawn_blocking(move || crate::backups::auto(&gd, &w, now, keep)).await {
+                Ok(Ok(made)) => backup = made,
+                Ok(Err(e)) => backup_error = Some(e.to_string()),
+                Err(e) => backup_error = Some(e.to_string()),
+            }
+            pr.set_stage("launch");
+        }
+    }
     let wrapper = line(&set.hooks.wrapper);
     let child = launch::spawn(&java, &args, &opts.game_dir, wrapper.as_deref(), &vars)?;
     if let Some(post) = line(&set.hooks.post_exit) {
@@ -336,6 +388,9 @@ async fn start(core: &Core, inst: &Instance, auth: LaunchAuth) -> Result<Value, 
         "pid": pid,
         "memory_mb": opts.memory_mb,
         "after_launch": set.after_launch.as_deref().unwrap_or("keep"),
+        "world": world,
+        "backup": backup,
+        "backup_error": backup_error,
     }))
 }
 

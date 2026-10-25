@@ -46,6 +46,22 @@ pub fn default_memory_mb(total_ram_mb: Option<u64>) -> u32 {
     }
 }
 
+/// Whether the game knows `--quickPlaySingleplayer` (opening a world right away):
+/// releases from 1.20, snapshots from 23w14a, and the year-numbered versions (26.1…).
+pub fn quick_play_supported(mc: &str) -> bool {
+    if let Some((y, rest)) = mc.split_once('w') {
+        if let (Ok(y), Some(wk)) = (y.parse::<u32>(), rest.get(..2).and_then(|w| w.parse::<u32>().ok())) {
+            return y > 23 || (y == 23 && wk >= 14);
+        }
+    }
+    let mut p = mc.split(['.', '-', ' ', '_']);
+    match p.next() {
+        Some("1") => p.next().and_then(|m| m.parse::<u32>().ok()).is_some_and(|m| m >= 20),
+        Some(n) => n.parse::<u32>().is_ok_and(|n| n >= 25),
+        None => false,
+    }
+}
+
 /// Total physical memory in MB, when the OS tells us.
 pub fn total_ram_mb() -> Option<u64> {
     #[cfg(windows)]
@@ -344,6 +360,16 @@ mod tests {
         assert_eq!(default_memory_mb(Some(16 * 1024)), 4096);
         assert_eq!(default_memory_mb(Some(32 * 1024)), 6144);
         assert_eq!(default_memory_mb(None), 4096);
+    }
+
+    #[test]
+    fn quick_play_versions() {
+        for v in ["1.20", "1.20.1", "1.21.4", "1.20-pre1", "23w14a", "24w10a", "26.1", "26.1-snapshot-2"] {
+            assert!(quick_play_supported(v), "{v}");
+        }
+        for v in ["1.19.4", "1.8.9", "23w13a", "22w45a", "b1.7.3", "", "rd-132211"] {
+            assert!(!quick_play_supported(v), "{v}");
+        }
     }
 
     #[test]

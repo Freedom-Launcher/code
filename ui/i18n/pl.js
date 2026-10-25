@@ -1224,5 +1224,17 @@ window.FL_DICT = {
 "Такой копии нет": "Nie ma takiej kopii",
 "Не удалось заменить мир: папка открыта в другой программе": "Nie udało się zastąpić świata: folder jest otwarty w innym programie",
 "В мире есть файл с недопустимым именем": "Świat zawiera plik o niedozwolonej nazwie",
+"Резервная копия мира…": "Kopia świata…",
+"Не удалось сделать копию мира: {0}": "Nie udało się skopiować świata: {0}",
+"Открываем мир «{0}»": "Otwieramy świat „{0}”",
+"Продолжить в последнем мире": "Kontynuuj w ostatnim świecie",
+"Играть в этом мире": "Graj w tym świecie",
+"Резервные копии миров": "Kopie zapasowe światów",
+"Копия перед запуском": "Kopia przed uruchomieniem",
+"Сохранять мир перед каждым запуском игры, чтобы его можно было вернуть.": "Zapisuj świat przed każdym uruchomieniem gry, aby można go było przywrócić.",
+"Хранить автокопий": "Liczba automatycznych kopii",
+"Старые автокопии удаляются, сделанные вручную остаются.": "Starsze automatyczne kopie są usuwane, ręczne zostają.",
+"Такого мира нет": "Nie ma takiego świata",
+"Сразу в мир можно зайти начиная с Minecraft 1.20": "Wejście prosto do świata wymaga Minecraft 1.20 lub nowszego",
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "plik", "few": "pliki", "many": "plików", "other": "pliku"}, "мод|мода|модов": {"one": "mod", "few": "mody", "many": "modów", "other": "modu"}, "ресурспак|ресурспака|ресурспаков": {"one": "paczka zasobów", "few": "paczki zasobów", "many": "paczek zasobów", "other": "paczki zasobów"}, "шейдер|шейдера|шейдеров": {"one": "shader", "few": "shadery", "many": "shaderów", "other": "shadera"}, "датапак|датапака|датапаков": {"one": "paczka danych", "few": "paczki danych", "many": "paczek danych", "other": "paczki danych"}, "мир|мира|миров": {"one": "świat", "few": "światy", "many": "światów", "other": "świata"}, "сборка|сборки|сборок": {"one": "instancja", "few": "instancje", "many": "instancji", "other": "instancji"}, "скриншот|скриншота|скриншотов": {"one": "zrzut ekranu", "few": "zrzuty ekranu", "many": "zrzutów ekranu", "other": "zrzutu ekranu"}, "копия|копии|копий": {"one": "kopia", "few": "kopie", "many": "kopii", "other": "kopii"}};

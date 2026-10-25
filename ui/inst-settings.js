@@ -239,6 +239,7 @@
     }
     const a = $('#isx-after').value;
     if (a && !(st.mode === 'global' && a === 'keep')) o.after_launch = a;
+    Object.assign(o, st.extra || {});
     return JSON.parse(JSON.stringify(o));
   }
   const key = () => JSON.stringify([collect(), $('#isx-name').value, $('#isx-group').value.trim()]);
@@ -279,6 +280,7 @@
     const [g] = await Promise.all([call('settings.get'), memInfo()]);
     Object.assign(st, { mode: inst ? 'inst' : 'global', inst, javas: null, lastHook: null });
     st.base = inst ? g.game || {} : {};
+    { const src = (inst ? inst.settings : g.game) || {}; st.extra = { auto_backup: src.auto_backup, backup_keep: src.backup_keep }; }
     st.req = inst ? null : null;
     f.classList.toggle('is-global', !inst);
     $('[data-sec="general"]', nav).hidden = !inst;

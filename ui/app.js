@@ -6,7 +6,7 @@ const call = (name, args = null) => invoke('action', { name, args });
 
 const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'empty' };
 const KIND = { microsoft: 'Microsoft', offline: _t("Офлайн"), provider: _t("Сервис") };
-const STAGE = { idle: _t("Подготовка"), loader: _t("Готовим загрузчик…"), java: 'Java', version: _t("Версия"), libraries: _t("Библиотеки"), assets: _t("Ресурсы"), natives: _t("Нативные файлы"), launch: _t("Запуск"), done: _t("Готово") };
+const STAGE = { idle: _t("Подготовка"), loader: _t("Готовим загрузчик…"), java: 'Java', version: _t("Версия"), libraries: _t("Библиотеки"), assets: _t("Ресурсы"), natives: _t("Нативные файлы"), launch: _t("Запуск"), backup: _t("Резервная копия мира…"), done: _t("Готово") };
 const PLAY_SVG = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M5.669 4.76a1.469 1.469 0 0 1 2.04-1.177c1.062.454 3.442 1.533 6.462 3.276 3.021 1.744 5.146 3.267 6.069 3.958.788.591.79 1.763.001 2.356-.914.687-3.013 2.19-6.07 3.956-3.06 1.766-5.412 2.832-6.464 3.28-.906.387-1.92-.2-2.038-1.177-.138-1.142-.396-3.735-.396-7.237 0-3.5.257-6.092.396-7.235"/></g></svg>';
 
 function el(tag, attrs = {}, ...kids) {
@@ -258,6 +258,13 @@ const recent = () => [...S.instances].sort((a, b) => lastTs(b) - lastTs(a));
 const fmtPlay = (s) => (s < 3600 ? _t("{0} мин", [Math.max(1, Math.round(s / 60))]) : _t("{0} ч{1}", [Math.floor(s / 3600), s % 3600 >= 60 ? _t(" {0} мин", [Math.floor((s % 3600) / 60)]) : '']));
 const playedText = (i) => (i.last_played ? _t("играли {0}{1}", [ago(i.last_played), i.playtime_secs > 0 ? _t(" · {0} в игре", [fmtPlay(i.playtime_secs)]) : '']) : _t("ещё не запускали"));
 const isRunning = (id) => S.running.includes(id);
+// Mirrors fl-core `quick_play_supported`: 1.20+, snapshots from 23w14a, year-numbered versions.
+const qpOk = (v = '') => {
+  const s = /^(\d{2})w(\d{2})/.exec(String(v));
+  if (s) return +s[1] > 23 || (+s[1] === 23 && +s[2] >= 14);
+  const [a, b] = String(v).split(/[.\- _]/);
+  return a === '1' ? +b >= 20 : /^\d+$/.test(a || '') && +a >= 25;
+};
 // Covers: bundled art for now; the choice is per instance (later: own screenshots).
 const COVERS = ['dawn', 'forest', 'ocean', 'nether', 'end'];
 const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
@@ -659,7 +666,7 @@ async function stopGame(id = S.current) {
   await refreshRunning();
   toast(_t("Игра закрыта"));
 }
-async function play(id = S.current, launch = true, stay = false) {
+async function play(id = S.current, launch = true, stay = false, opts = {}) {
   if (S.playing || !id) return;
   if (launch && isRunning(id)) { toast(_t("Эта сборка уже запущена")); return; }
   if (launch && !S.accounts.selected) { toast(_t("Сначала войдите в аккаунт"), { error: true }); $('#account-btn').click(); return; }
@@ -686,13 +693,15 @@ async function play(id = S.current, launch = true, stay = false) {
       $('#ps-count').textContent = `${p.done_files} / ${p.total_files}`;
     }
   }, 250);
+  let launched = null;
   try {
     await call('game.install', { instance: id, verify: !launch });
     progress($('#ps-bar'), 1);
     if (launch) {
       $('#ps-stage').textContent = STAGE.launch;
       window.FAddons?.emit('game.launching', { instance: id });
-      const r = await call('game.launch', { instance: id });
+      const r = await call('game.launch', { instance: id, ...opts });
+      launched = r;
       window.FAddons?.emit('game.launched', { instance: id });
       if (!r?.already_running) { const it = byId(id); if (it) it.last_played = Math.floor(Date.now() / 1000); }
       if (!S.running.includes(id)) S.running = [...S.running, id];
@@ -701,7 +710,8 @@ async function play(id = S.current, launch = true, stay = false) {
       if (w && r?.after_launch === 'close') setTimeout(() => w.close(), 800);
     }
     btn.dataset.state = 'success';
-    toast(launch ? _t("Игра запущена") : _t("Файлы в порядке"));
+    toast(!launch ? _t("Файлы в порядке") : launched?.world ? _t("Открываем мир «{0}»", [launched.world]) : _t("Игра запущена"));
+    if (launched?.backup_error) toast(_t("Не удалось сделать копию мира: {0}", [launched.backup_error]), { error: true, ms: 6000 });
   } catch (e) {
     btn.dataset.state = 'error';
     if (launch) window.FAddons?.emit('game.failed', { instance: id });
@@ -796,7 +806,9 @@ $('#menu-ctx-instance').addEventListener('ctx-open', (e) => {
   const on = isRunning(e.detail.dataset.inst), b = $('#cx-play');
   b.lastChild.textContent = on ? _t("Остановить") : _t("Играть");
   b.querySelector('svg').innerHTML = on ? STOP_D : PLAY_D;
+  $('#cx-continue').hidden = on || !qpOk(byId(e.detail.dataset.inst)?.version);
 });
+$('#cx-continue').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(), true, false, { continue: true }); });
 $('#cx-play').addEventListener('click', () => { FUI.closeMenu(); const id = ctxInst(); isRunning(id) ? stopGame(id) : play(id, true); });
 for (const [cx, mi] of [['cx-settings', 'mi-settings'], ['cx-folder', 'mi-folder'], ['cx-dup', 'mi-dup'], ['cx-export', 'mi-export'], ['cx-del', 'mi-del']]) {
   $(`#${cx}`).addEventListener('click', () => {

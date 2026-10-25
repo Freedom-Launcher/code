@@ -1844,8 +1844,16 @@ fn register_game(r: &mut ActionRegistry) {
         },
     );
     r.register("game.launch", P::GameLaunch, true, |c, a| async move {
-        let InstanceArg { instance } = args(a)?;
-        service::launch_instance(&c, &instance).await
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            #[serde(default)]
+            world: Option<String>,
+            #[serde(default, rename = "continue")]
+            last: bool,
+        }
+        let A { instance, world, last } = args(a)?;
+        service::launch_instance(&c, &instance, world, last).await
     });
     r.register(
         "game.running",

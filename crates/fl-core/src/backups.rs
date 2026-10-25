@@ -17,6 +17,9 @@ pub fn dir(game_dir: &Path) -> PathBuf {
     game_dir.join("backups")
 }
 
+/// Marks a copy the launcher made by itself before a launch; only these are pruned.
+const AUTO: &str = " [auto]";
+
 /// Length of the `2026-10-25_21-14-03_` prefix.
 const STAMP: usize = 20;
 
@@ -47,7 +50,14 @@ pub fn matches(file: &str, world: &str) -> bool {
         return false;
     }
     let Some(name) = file[STAMP..].strip_suffix(".zip") else { return false };
-    name == world || strip_copy_no(name) == world
+    let base = strip_copy_no(name);
+    name == world || base == world || base.strip_suffix(AUTO) == Some(world)
+}
+
+/// Whether copy `file` of `world` was made automatically before a launch.
+pub fn is_auto(file: &str, world: &str) -> bool {
+    let name = file.get(STAMP..).and_then(|n| n.strip_suffix(".zip")).unwrap_or_default();
+    matches(file, world) && name != world && strip_copy_no(name) != world
 }
 
 /// File names in the backups folder.
@@ -59,14 +69,14 @@ pub fn files(game_dir: &Path) -> Vec<String> {
         .collect()
 }
 
-fn entry(path: &Path, file: &str) -> Value {
+fn entry(path: &Path, file: &str, auto: bool) -> Value {
     let m = fs::metadata(path).ok();
     let at = m
         .as_ref()
         .and_then(|m| m.modified().ok())
         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
         .map_or(0, |d| d.as_secs());
-    json!({ "id": file, "at": at, "size": m.map_or(0, |m| m.len()) })
+    json!({ "id": file, "at": at, "size": m.map_or(0, |m| m.len()), "auto": auto })
 }
 
 /// Copies of `world`, newest first.
@@ -75,7 +85,7 @@ pub fn list(game_dir: &Path, world: &str) -> Vec<Value> {
     let mut v: Vec<Value> = files(game_dir)
         .into_iter()
         .filter(|f| matches(f, world))
-        .map(|f| entry(&d.join(&f), &f))
+        .map(|f| entry(&d.join(&f), &f, is_auto(&f, world)))
         .collect();
     v.sort_by_key(|e| std::cmp::Reverse(order(e["id"].as_str().unwrap_or_default())));
     v
@@ -117,13 +127,55 @@ fn broken() -> CoreError {
 
 /// Zips `saves/<world>` into a new copy and returns its entry.
 pub fn create(game_dir: &Path, world: &str, now: u64) -> Result<Value, CoreError> {
+    create_as(game_dir, world, now, false)
+}
+
+/// The world played most recently (newest `level.dat`), if there is one.
+pub fn latest_world(game_dir: &Path) -> Option<String> {
+    fs::read_dir(game_dir.join("saves"))
+        .ok()?
+        .flatten()
+        .filter_map(|e| {
+            let n = e.file_name().into_string().ok().filter(|n| !n.starts_with('.'))?;
+            let t = fs::metadata(e.path().join("level.dat")).ok()?.modified().ok()?;
+            Some((t, n))
+        })
+        .max_by(|a, b| a.0.cmp(&b.0).then_with(|| b.1.cmp(&a.1)))
+        .map(|(_, n)| n)
+}
+
+/// The copy made before a launch: skipped when the world has not changed since the newest
+/// copy, and only the `keep` newest automatic copies stay (copies made by hand are never touched).
+pub fn auto(game_dir: &Path, world: &str, now: u64, keep: usize) -> Result<Option<Value>, CoreError> {
+    let saved = fs::metadata(game_dir.join("saves").join(world).join("level.dat"))
+        .and_then(|m| m.modified())
+        .ok();
+    let d = dir(game_dir);
+    let newest = files(game_dir)
+        .into_iter()
+        .filter(|f| matches(f, world))
+        .filter_map(|f| fs::metadata(d.join(f)).and_then(|m| m.modified()).ok())
+        .max();
+    if newest.zip(saved).is_some_and(|(c, s)| c >= s) {
+        return Ok(None);
+    }
+    let made = create_as(game_dir, world, now, true)?;
+    for e in list(game_dir, world).iter().filter(|e| e["auto"] == true).skip(keep.max(1)) {
+        if let Some(f) = e["id"].as_str() {
+            let _ = fs::remove_file(d.join(f));
+        }
+    }
+    Ok(Some(made))
+}
+
+fn create_as(game_dir: &Path, world: &str, now: u64, auto: bool) -> Result<Value, CoreError> {
     let src = game_dir.join("saves").join(world);
     if !src.join("level.dat").is_file() {
         return Err(CoreError::BadArgs(format!("no such world: {world}")));
     }
     let out = dir(game_dir);
     fs::create_dir_all(&out)?;
-    let base = format!("{}{world}", stamp(now));
+    let base = format!("{}{world}{}", stamp(now), if auto { AUTO } else { "" });
     let mut name = format!("{base}.zip");
     let mut n = 1;
     while out.join(&name).exists() {
@@ -137,7 +189,7 @@ pub fn create(game_dir: &Path, world: &str, now: u64) -> Result<Value, CoreError
     }
     let dest = out.join(&name);
     fs::rename(&part, &dest)?;
-    Ok(entry(&dest, &name))
+    Ok(entry(&dest, &name, auto))
 }
 
 fn write_zip(src: &Path, world: &str, to: &Path) -> Result<(), CoreError> {
@@ -279,6 +331,38 @@ pub fn delete(game_dir: &Path, world: &str, file: &str) -> Result<(), CoreError>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn automatic_copies_are_marked_skipped_and_pruned() {
+        let g = tmp();
+        let w = g.join("saves").join("World");
+        fs::create_dir_all(&w).unwrap();
+        fs::write(w.join("level.dat"), b"x").unwrap();
+        let touch = |secs: u64| {
+            let f = fs::File::options().write(true).open(w.join("level.dat")).unwrap();
+            f.set_modified(std::time::SystemTime::now() + std::time::Duration::from_secs(secs)).unwrap();
+        };
+        assert!(matches("2026-10-25_21-14-03_World [auto].zip", "World"));
+        assert!(matches("2026-10-25_21-14-03_World [auto] (2).zip", "World"));
+        assert!(is_auto("2026-10-25_21-14-03_World [auto] (2).zip", "World"));
+        assert!(!is_auto("2026-10-25_21-14-03_World.zip", "World"));
+        assert!(!matches("2026-10-25_21-14-03_World [auto].zip", "World [auto] x"));
+        let hand = create(&g, "World", 1_000).unwrap();
+        assert_eq!(hand["auto"], false);
+        // Nothing changed since the copy made by hand.
+        assert!(auto(&g, "World", 1_001, 2).unwrap().is_none());
+        for i in 1..=3 {
+            touch(10 * i);
+            let a = auto(&g, "World", 1_000 + i, 2).unwrap().expect("made");
+            assert_eq!(a["auto"], true);
+        }
+        let all = list(&g, "World");
+        assert_eq!(all.iter().filter(|e| e["auto"] == true).count(), 2);
+        assert_eq!(all.iter().filter(|e| e["auto"] == false).count(), 1);
+        assert_eq!(all[0]["id"], "1970-01-01_00-16-43_World [auto].zip");
+        assert_eq!(latest_world(&g).as_deref(), Some("World"));
+        let _ = fs::remove_dir_all(&g);
+    }
 
     fn tmp() -> PathBuf {
         let d = std::env::temp_dir().join(format!("fl-bk-{}", uuid::Uuid::new_v4()));

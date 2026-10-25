@@ -1224,5 +1224,17 @@ window.FL_DICT = {
 "Такой копии нет": "Esse backup não existe",
 "Не удалось заменить мир: папка открыта в другой программе": "Não foi possível substituir o mundo: a pasta está aberta em outro programa",
 "В мире есть файл с недопустимым именем": "O mundo tem um arquivo com nome inválido",
+"Резервная копия мира…": "Copiando o mundo…",
+"Не удалось сделать копию мира: {0}": "Não foi possível copiar o mundo: {0}",
+"Открываем мир «{0}»": "Abrindo o mundo “{0}”",
+"Продолжить в последнем мире": "Continuar no último mundo",
+"Играть в этом мире": "Jogar neste mundo",
+"Резервные копии миров": "Backups dos mundos",
+"Копия перед запуском": "Copiar antes de iniciar",
+"Сохранять мир перед каждым запуском игры, чтобы его можно было вернуть.": "Salvar o mundo antes de cada início do jogo para poder restaurá-lo.",
+"Хранить автокопий": "Cópias automáticas a manter",
+"Старые автокопии удаляются, сделанные вручную остаются.": "Cópias automáticas antigas são apagadas; as feitas à mão ficam.",
+"Такого мира нет": "Esse mundo não existe",
+"Сразу в мир можно зайти начиная с Minecraft 1.20": "Entrar direto em um mundo requer Minecraft 1.20 ou mais recente",
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "arquivo", "many": "arquivos", "other": "arquivos"}, "мод|мода|модов": {"one": "mod", "many": "mods", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "pacote de recursos", "many": "pacotes de recursos", "other": "pacotes de recursos"}, "шейдер|шейдера|шейдеров": {"one": "shader", "many": "shaders", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "pacote de dados", "many": "pacotes de dados", "other": "pacotes de dados"}, "мир|мира|миров": {"one": "mundo", "many": "mundos", "other": "mundos"}, "сборка|сборки|сборок": {"one": "instância", "many": "instâncias", "other": "instâncias"}, "скриншот|скриншота|скриншотов": {"one": "captura de tela", "many": "capturas de tela", "other": "capturas de tela"}, "копия|копии|копий": {"one": "backup", "many": "backups", "other": "backups"}};

@@ -22,6 +22,8 @@
 .gs-line .isx-num .field { width: 96px; }
 .gs-res { display: flex; align-items: center; gap: 6px; }
 .gs-res .field { width: 96px; }
+.gs-keep .field { width: 96px; }
+.gs-keep.is-off .t { color: var(--text-3); }
 .gs-res span { color: var(--text-3); }
 .gs-sel, .gs-sel + .dd-btn { width: 220px; }
 .gs-hooks { gap: 12px; }

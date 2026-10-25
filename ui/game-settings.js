@@ -171,6 +171,26 @@
     ];
   }
 
+  // ---------- World backups ----------
+  function bkRows() {
+    const on = el('input', { type: 'checkbox', checked: !!st.game.auto_backup, 'aria-label': _t("Копия перед запуском") });
+    const keep = el('input', { class: 'field', type: 'number', min: 1, max: 50, value: st.game.backup_keep ?? 5, 'aria-label': _t("Хранить автокопий") });
+    const keepRow = el('div', { class: 'r gs-keep' },
+      el('div', { class: 'grow' }, el('div', { class: 't' }, _t("Хранить автокопий")), el('div', { class: 's' }, _t("Старые автокопии удаляются, сделанные вручную остаются."))), keep);
+    const sync = () => { keep.disabled = !on.checked; keepRow.classList.toggle('is-off', !on.checked); };
+    on.addEventListener('change', () => { st.game.auto_backup = on.checked || undefined; sync(); saveGame(true); });
+    keep.addEventListener('change', () => {
+      const n = Math.min(50, Math.max(1, Math.round(+keep.value) || 5));
+      keep.value = n; st.game.backup_keep = n === 5 ? undefined : n; saveGame(true);
+    });
+    sync();
+    return [
+      el('label', { class: 'r' }, el('div', { class: 'grow' }, el('div', { class: 't' }, _t("Копия перед запуском")),
+        el('div', { class: 's' }, _t("Сохранять мир перед каждым запуском игры, чтобы его можно было вернуть."))), el('span', { class: 'switch' }, on, el('i'))),
+      keepRow,
+    ];
+  }
+
   // ---------- Hooks ----------
   function hooksBlock() {
     st.game.hooks ||= {};
@@ -208,6 +228,7 @@
       ...sec('Java', ...MAJORS.map(jvRow)),
       ...sec(_t("Память и аргументы"), memBlock(), field(_t("Аргументы JVM"), 'jvm_args', '-XX:+UseG1GC'), envBlock()),
       ...sec(_t("Окно"), ...winRows(), afterRow()),
+      ...sec(_t("Резервные копии миров"), ...bkRows()),
       ...sec(_t("Хуки запуска"), hooksBlock()),
       ...sec(_t("Ресурсы"), ...(root ? [root] : [])),
     );

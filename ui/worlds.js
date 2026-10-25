@@ -25,7 +25,11 @@
     open.addEventListener('click', () => invoke('open_world_folder', { instance: S.current, world: w.id }).catch((e) => toast(String(e), { error: true })));
     const del = el('button', { class: 'btn btn-icon btn-ghost w-del', 'data-tip': _t("Удалить"), 'aria-label': _t("Удалить"), html: TRASH });
     del.addEventListener('click', () => { pending = w; $('#wdel-name').textContent = w.name; openDlg('dlg-world-del'); });
-    r.append(ico(w), el('div', { class: 't' }, el('b', {}, w.name), el('span', {}, meta)), bk, open, del);
+    const go = qpOk(byId(S.current)?.version)
+      ? el('button', { class: 'btn btn-sm btn-ghost w-play', 'data-tip': _t("Играть в этом мире"), html: PLAY_SVG }, el('span', { class: 'lbl' }, _t("Играть")))
+      : null;
+    go?.addEventListener('click', () => play(S.current, true, false, { world: w.id }));
+    r.append(ico(w), el('div', { class: 't' }, el('b', {}, w.name), el('span', {}, meta)), go, bk, open, del);
     return r;
   }
   async function paint(force = false) {
@@ -95,7 +99,7 @@
       } catch (e) { toast(String(e), { error: true }); }
     });
     const meta = [ago(b.at), b.size ? fmtBytes(b.size) : null].filter(Boolean).join(' · ');
-    r.append(el('i', { class: 'mod-ico wbk-ico', html: HISTORY }), el('div', { class: 't' }, el('b', {}, when(b.at)), el('span', {}, meta)), rest, del);
+    r.append(el('i', { class: 'mod-ico wbk-ico', html: HISTORY }), el('div', { class: 't' }, el('b', {}, when(b.at), b.auto ? el('em', { class: 'badge-sm wbk-auto' }, _t("авто")) : null), el('span', {}, meta)), rest, del);
     return r;
   }
   async function paintBk() {

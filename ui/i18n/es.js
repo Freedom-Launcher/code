@@ -1224,5 +1224,17 @@ window.FL_DICT = {
 "Такой копии нет": "Esa copia no existe",
 "Не удалось заменить мир: папка открыта в другой программе": "No se pudo reemplazar el mundo: la carpeta está abierta en otro programa",
 "В мире есть файл с недопустимым именем": "El mundo tiene un archivo con un nombre no válido",
+"Резервная копия мира…": "Copiando el mundo…",
+"Не удалось сделать копию мира: {0}": "No se pudo copiar el mundo: {0}",
+"Открываем мир «{0}»": "Abriendo el mundo «{0}»",
+"Продолжить в последнем мире": "Continuar en el último mundo",
+"Играть в этом мире": "Jugar en este mundo",
+"Резервные копии миров": "Copias de seguridad de mundos",
+"Копия перед запуском": "Copia antes de jugar",
+"Сохранять мир перед каждым запуском игры, чтобы его можно было вернуть.": "Guardar el mundo antes de cada inicio del juego para poder restaurarlo.",
+"Хранить автокопий": "Copias automáticas a conservar",
+"Старые автокопии удаляются, сделанные вручную остаются.": "Las copias automáticas antiguas se borran; las hechas a mano se quedan.",
+"Такого мира нет": "Ese mundo no existe",
+"Сразу в мир можно зайти начиная с Minecraft 1.20": "Entrar directamente a un mundo requiere Minecraft 1.20 o superior",
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "archivo", "many": "archivos", "other": "archivos"}, "мод|мода|модов": {"one": "mod", "many": "mods", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "paquete de recursos", "many": "paquetes de recursos", "other": "paquetes de recursos"}, "шейдер|шейдера|шейдеров": {"one": "shader", "many": "shaders", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "paquete de datos", "many": "paquetes de datos", "other": "paquetes de datos"}, "мир|мира|миров": {"one": "mundo", "many": "mundos", "other": "mundos"}, "сборка|сборки|сборок": {"one": "instancia", "many": "instancias", "other": "instancias"}, "скриншот|скриншота|скриншотов": {"one": "captura", "many": "capturas", "other": "capturas"}, "копия|копии|копий": {"one": "copia", "many": "copias", "other": "copias"}};

@@ -1224,5 +1224,17 @@ window.FL_DICT = {
 "Такой копии нет": "Böyle bir yedek yok",
 "Не удалось заменить мир: папка открыта в другой программе": "Dünya değiştirilemedi: klasör başka bir programda açık",
 "В мире есть файл с недопустимым именем": "Dünyada geçersiz adlı bir dosya var",
+"Резервная копия мира…": "Dünya yedekleniyor…",
+"Не удалось сделать копию мира: {0}": "Dünya yedeklenemedi: {0}",
+"Открываем мир «{0}»": "“{0}” dünyası açılıyor",
+"Продолжить в последнем мире": "Son dünyada devam et",
+"Играть в этом мире": "Bu dünyada oyna",
+"Резервные копии миров": "Dünya yedekleri",
+"Копия перед запуском": "Başlatmadan önce yedekle",
+"Сохранять мир перед каждым запуском игры, чтобы его можно было вернуть.": "Geri yüklenebilmesi için dünyayı her oyun başlatılışından önce kaydet.",
+"Хранить автокопий": "Saklanacak otomatik kopya",
+"Старые автокопии удаляются, сделанные вручную остаются.": "Eski otomatik kopyalar silinir, elle yapılanlar kalır.",
+"Такого мира нет": "Böyle bir dünya yok",
+"Сразу в мир можно зайти начиная с Minecraft 1.20": "Doğrudan dünyaya girmek için Minecraft 1.20 veya üstü gerekir",
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "dosya", "other": "dosya"}, "мод|мода|модов": {"one": "mod", "other": "mod"}, "ресурспак|ресурспака|ресурспаков": {"one": "kaynak paketi", "other": "kaynak paketi"}, "шейдер|шейдера|шейдеров": {"one": "shader", "other": "shader"}, "датапак|датапака|датапаков": {"one": "veri paketi", "other": "veri paketi"}, "мир|мира|миров": {"one": "dünya", "other": "dünya"}, "сборка|сборки|сборок": {"one": "profil", "other": "profil"}, "скриншот|скриншота|скриншотов": {"one": "ekran görüntüsü", "other": "ekran görüntüsü"}, "копия|копии|копий": {"one": "yedek", "other": "yedek"}};

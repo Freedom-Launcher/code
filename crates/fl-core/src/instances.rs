@@ -67,6 +67,12 @@ pub struct InstanceSettings {
     pub after_launch: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fullscreen: Option<bool>,
+    /// Zip the world about to be played before every launch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_backup: Option<bool>,
+    /// Automatic copies kept per world; older ones are deleted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub backup_keep: Option<u32>,
     /// Extra environment variables for the game process.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub env: Option<std::collections::BTreeMap<String, String>>,
@@ -120,6 +126,9 @@ impl InstanceSettings {
         {
             return bad("after_launch must be keep, minimize or close");
         }
+        if self.backup_keep.is_some_and(|k| !(1..=50).contains(&k)) {
+            return bad("backup_keep must be 1-50");
+        }
         let line = |v: &Option<String>| {
             v.as_deref()
                 .is_some_and(|c| c.len() > 1024 || c.contains(['\n', '\r', '\0']))
@@ -162,6 +171,8 @@ impl InstanceSettings {
                 .clone()
                 .or_else(|| base.after_launch.clone()),
             fullscreen: self.fullscreen.or(base.fullscreen),
+            auto_backup: self.auto_backup.or(base.auto_backup),
+            backup_keep: self.backup_keep.or(base.backup_keep),
             env: self.env.clone().or_else(|| base.env.clone()),
             hooks: self.hooks.over(&base.hooks),
         }

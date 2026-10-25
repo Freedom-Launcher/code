@@ -1224,5 +1224,17 @@ window.FL_DICT = {
 "Такой копии нет": "Diese Sicherung gibt es nicht",
 "Не удалось заменить мир: папка открыта в другой программе": "Welt konnte nicht ersetzt werden: Der Ordner ist in einem anderen Programm geöffnet",
 "В мире есть файл с недопустимым именем": "Die Welt enthält eine Datei mit ungültigem Namen",
+"Резервная копия мира…": "Welt wird gesichert…",
+"Не удалось сделать копию мира: {0}": "Welt konnte nicht gesichert werden: {0}",
+"Открываем мир «{0}»": "Welt „{0}“ wird geöffnet",
+"Продолжить в последнем мире": "In der letzten Welt weiterspielen",
+"Играть в этом мире": "In dieser Welt spielen",
+"Резервные копии миров": "Welt-Sicherungen",
+"Копия перед запуском": "Vor dem Start sichern",
+"Сохранять мир перед каждым запуском игры, чтобы его можно было вернуть.": "Die Welt vor jedem Spielstart sichern, damit sie wiederhergestellt werden kann.",
+"Хранить автокопий": "Automatische Kopien behalten",
+"Старые автокопии удаляются, сделанные вручную остаются.": "Ältere automatische Kopien werden gelöscht, manuelle bleiben.",
+"Такого мира нет": "Diese Welt gibt es nicht",
+"Сразу в мир можно зайти начиная с Minecraft 1.20": "Direkt in eine Welt geht erst ab Minecraft 1.20",
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "Datei", "other": "Dateien"}, "мод|мода|модов": {"one": "Mod", "other": "Mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "Ressourcenpaket", "other": "Ressourcenpakete"}, "шейдер|шейдера|шейдеров": {"one": "Shader", "other": "Shader"}, "датапак|датапака|датапаков": {"one": "Datenpaket", "other": "Datenpakete"}, "мир|мира|миров": {"one": "Welt", "other": "Welten"}, "сборка|сборки|сборок": {"one": "Instanz", "other": "Instanzen"}, "скриншот|скриншота|скриншотов": {"one": "Screenshot", "other": "Screenshots"}, "копия|копии|копий": {"one": "Sicherung", "other": "Sicherungen"}};
