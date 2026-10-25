@@ -159,12 +159,16 @@
     w.hidden = !ws.length;
   }
 
+  let lastCk = '', lastVk = '', lastLk = '';
   async function paintCats() {
     const k = kind, s = src, key = `${s}:${k}`;
     if (!catCache.has(key)) catCache.set(key, call('mods.categories', { kind: k, source: s }).catch(() => { catCache.delete(key); return []; }));
     const list = await catCache.get(key);
     if (k !== kind || s !== src) return;
     for (const c of list) { if (c.label) catLabels.set(c.name, c.label); if (c.header_label) headLabels.set(c.header, c.header_label); }
+    const ck = [key, list.length, [...cats].sort().join(','), [...excl].sort().join(','), document.documentElement.lang].join('|');
+    if (ck === lastCk && $('#disc-cats').children.length) return;
+    lastCk = ck;
     // Modrinth's sidebar: one group per tag header.
     const groups = new Map();
     for (const c of list) {
@@ -204,6 +208,9 @@ const CHEV = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidde
     $('#disc-loaders-g').hidden = !free;
     if (!free) return;
     const box = $('#disc-loaders');
+    const lkey = [order.join(','), [...loaders].sort().join(','), document.documentElement.lang].join('|');
+    if (lkey === lastLk && box.children.length) return;
+    lastLk = lkey;
     const before = new Map([...box.children].map((r) => [r.dataset.loader, r.getBoundingClientRect().top]));
     box.replaceChildren(...order.map((l, i) => {
       const b = opt(LOADER_NAMES[l] || l, loaders.has(l), `discover.loader.${l}`, () => {
@@ -273,6 +280,9 @@ const CHEV = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidde
     const q = vq.trim().toLowerCase();
     const list = all.filter((v) => !q || v.toLowerCase().includes(q));
     const shown = [...list.filter((v) => vers.has(v)), ...list.filter((v) => !vers.has(v))].slice(0, 300);
+    const vk = [k, all.length, q, [...vers].sort().join(','), document.documentElement.lang].join('|');
+    if (vk === lastVk && $('#disc-vers').children.length) return;
+    lastVk = vk;
     $('#disc-vers').replaceChildren(...(shown.length ? shown.map((v) => opt(v, vers.has(v), `discover.version.${v}`, (b) => {
       toggle(vers, v); b.setAttribute('aria-pressed', String(vers.has(v))); changed();
     })) : [el('div', { class: 'disc-none' }, _t("Ничего"))]));

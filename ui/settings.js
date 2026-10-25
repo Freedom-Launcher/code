@@ -42,12 +42,13 @@
     if (instant) requestAnimationFrame(() => { ink.style.transition = ''; });
   }
   const placeSegs = (root) => requestAnimationFrame(() => $$('.seg', root).forEach((s) => s._place?.(true)));
-  function reveal(p) {
+  function reveal(p, quiet) {
     panes().forEach((x) => { x.hidden = x.dataset.pane !== p; });
     const pane = paneOf(p);
     if (!pane) return;
     RENDER[p]?.();
     placeSegs(pane);
+    if (quiet) return;
     pane.classList.remove('is-enter'); void pane.offsetWidth; pane.classList.add('is-enter');
   }
   function select(p, quiet) {
@@ -204,7 +205,7 @@
   const RENDER = { stats: renderStats, keys: renderKeys, about: renderAbout };
 
   /** Called when the settings view becomes visible. */
-  function shown() { if (!wrap.hasAttribute('data-search')) reveal(cur()); placeInk(true); }
+  function shown() { if (!wrap.hasAttribute('data-search')) reveal(cur(), true); placeInk(true); }
 
   reveal(cur());
   window.FSettings = { open, entries, shown, current: cur };

@@ -70,9 +70,16 @@ document.addEventListener('click', async (ev) => {
 });
 
 // ---------- Navigation: views and the rail ----------
+let navAt = 0, navT = 0;
 function show(view) {
   // Unknown names are ignored so a stray [data-view] can never blank the window.
   if (!document.getElementById(`view-${view}`)) return;
+  // Rapid switching: drop entrance motion so quick clicks land instantly.
+  if (S.view !== view) {
+    const now = performance.now(), root = document.documentElement;
+    root.toggleAttribute('data-navfast', now - navAt < 400); navAt = now;
+    clearTimeout(navT); navT = setTimeout(() => root.removeAttribute('data-navfast'), 450);
+  }
   S.view = view;
   if (view !== 'discover' && view !== 'project') window.FMods?.unscope?.();
   $$('.view').forEach((x) => x.classList.toggle('is-active', x.id === `view-${view}`));
@@ -80,7 +87,7 @@ function show(view) {
   $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === lit ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   $$('#rail-list .tile').forEach((t) => (view === 'instance' && t.dataset.inst === S.current ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
   if (view === 'settings') requestAnimationFrame(() => { window.FSettings?.shown(); $('#cover-seg')._place?.(false); $('#panels-seg')._place?.(false); $('#wall-seg')._place?.(false); $('#browse-seg')._place?.(false); });
-  if (view === 'home') renderHome();
+  if (view === 'home') renderHome(true);
   if (view === 'create') prepareCreate();
   if (view === 'accounts') { renderAccountsPage(); loadProviders(); }
   if (view === 'discover') window.FMods?.discover();
@@ -548,17 +555,26 @@ function renderDay() {
   p.dataset.tod = tod;
   p.replaceChildren(svgIco(DAY_ICO[tod]), el('span', {}, d.charAt(0).toUpperCase() + d.slice(1)));
 }
-function renderHome() {
+let homeSig = '', homeFreshT = 0;
+function renderHome(lazy) {
   const acc = S.accounts.accounts.find((a) => a.id === S.accounts.selected);
   $('#home-greet').textContent = `${greet(new Date().getHours())}${acc ? `, ${acc.name}` : ''}`;
   renderDay();
-  const rc = recent().slice(0, 5).map((i) => el('button', { class: 'rc', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.recent.${i.id}`, onclick: () => openInstance(i.id) },
-    bg(el('i'), iconName(i)), el('span', { class: 't' }, el('b', {}, i.name), el('span', {}, instMeta(i))),
-    el('span', { class: `pl${isRunning(i.id) ? ' on' : ''}`, role: 'button', 'aria-label': _t("Играть: {0}", [i.name]), onclick: (e) => { e.stopPropagation(); togglePlay(i.id, true); } }, svgIco(isRunning(i.id) ? STOP_D : PLAY_D))));
-  rc.push(el('button', { class: 'rc add', 'data-view': 'create', 'data-id': 'home.create' }, el('i', {}, '+'), el('span', { class: 't' }, el('b', {}, _t("Новая сборка")))));
-  $('#home-recent').replaceChildren(...rc);
-  if (window.FLib) window.FLib.render(); else $('#home-all').replaceChildren(...S.instances.map((i) => el('button', { class: 'hcard', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
-    bg(el('i'), coverName(i)), el('b', {}, i.name), el('span', {}, instMeta(i)))));
+  // Re-entering home with unchanged data keeps the existing cards (no rebuild, no replayed stagger).
+  const hs = JSON.stringify([S.instances, S.running, S.current, S.accounts.selected, S.playing, S.settings, S.ui, S.theme?.id, document.documentElement.lang]);
+  const same = lazy && hs === homeSig && $('#home-recent').children.length > 0;
+  homeSig = hs;
+  if (!same) {
+    const root = document.documentElement; root.setAttribute('data-homefresh', ''); clearTimeout(homeFreshT);
+    homeFreshT = setTimeout(() => root.removeAttribute('data-homefresh'), 800);
+    const rc = recent().slice(0, 5).map((i) => el('button', { class: 'rc', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.recent.${i.id}`, onclick: () => openInstance(i.id) },
+      bg(el('i'), iconName(i)), el('span', { class: 't' }, el('b', {}, i.name), el('span', {}, instMeta(i))),
+      el('span', { class: `pl${isRunning(i.id) ? ' on' : ''}`, role: 'button', 'aria-label': _t("Играть: {0}", [i.name]), onclick: (e) => { e.stopPropagation(); togglePlay(i.id, true); } }, svgIco(isRunning(i.id) ? STOP_D : PLAY_D))));
+    rc.push(el('button', { class: 'rc add', 'data-view': 'create', 'data-id': 'home.create' }, el('i', {}, '+'), el('span', { class: 't' }, el('b', {}, _t("Новая сборка")))));
+    $('#home-recent').replaceChildren(...rc);
+    if (window.FLib) window.FLib.render(); else $('#home-all').replaceChildren(...S.instances.map((i) => el('button', { class: 'hcard', 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
+      bg(el('i'), coverName(i)), el('b', {}, i.name), el('span', {}, instMeta(i)))));
+  }
   const c = byId(S.current) || recent()[0];
   const bar = $('#home-bar');
   bar.hidden = !c;

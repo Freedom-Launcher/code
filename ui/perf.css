@@ -14,3 +14,15 @@ html[data-fx="lite"] { --glass-a: .62 !important; --menu-bg: rgba(34, 34, 37, .9
 html[data-fx="lite"][data-theme="light"] { --glass-a: .5 !important; --menu-bg: rgba(252, 252, 253, .98) !important; --menu-bg-strong: rgba(250, 250, 251, .99) !important; }
 
 html[data-game] .running .dot, html[data-game] .live, html[data-game] .upd-dot { animation: none !important; }
+
+/* ---------- Page switching (0.3.29) ---------- */
+/* A short, small lift instead of 220ms; transform only (opacity would drop the glass blur). */
+@keyframes fl-nav-in { from { transform: translateY(3px); } }
+html:not([data-motion="off"]) .main > .view.is-active { animation: fl-nav-in 140ms var(--ease-out, ease-out) backwards; }
+/* Quick clicks: no entrance motion at all. */
+html[data-navfast] .view.is-active, html[data-navfast] .view.is-active .rc, html[data-navfast] .view.is-active .hcard,
+html[data-navfast] .set-pane.is-enter > *, html[data-navfast] .disc-scope { animation: none !important; }
+/* Home cards stagger only when they were actually rebuilt, not on every return to home. */
+html:not([data-homefresh]) #view-home .rc, html:not([data-homefresh]) #view-home .hcard { animation: none !important; }
+html[data-motion="off"] .view.is-active { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .view.is-active { animation: none !important; } }
