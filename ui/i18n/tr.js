@@ -2,10 +2,6 @@
 window.FL_DICT = {
 "Облегчённые эффекты": "Hafif efektler",
 "Без размытия стекла — плавнее на слабых ПК": "Cam bulanıklığı yok — zayıf bilgisayarlarda daha akıcı",
-"Диагностика": "Tanılama",
-"Логи лаунчера и игры одним архивом — для отчёта об ошибке": "Başlatıcı ve oyun günlükleri tek arşivde — hata bildirimi için",
-"Собрать": "Topla",
-"Архив готов — отправьте его разработчику": "Arşiv hazır — geliştiriciye gönderin",
 "Знак в окне, на панели задач и в трее":"Pencerede, görev çubuğunda ve tepside işaret",
 "Только для значка на панели задач и в трее":"Yalnızca görev çubuğu ve tepsi simgesi için",
 "Установить плагин": "Eklenti yükle",

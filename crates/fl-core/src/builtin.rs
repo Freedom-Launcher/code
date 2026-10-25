@@ -1030,31 +1030,6 @@ fn register_import(r: &mut ActionRegistry) {
         std::fs::create_dir_all(&d)?;
         Ok(json!({ "instance": instance, "path": d }))
     });
-    r.register("diag.collect", P::InstancesRead, false, |c, _| async move {
-        let s: InstanceStore = store::load(&c.path(INSTANCES)).unwrap_or_default();
-        let root = c.instances_root();
-        let games = s
-            .instances
-            .iter()
-            .map(|i| crate::diag::Game { name: i.name.clone(), dir: i.game_dir(&root) })
-            .collect::<Vec<_>>();
-        let info = json!({
-            "app": c.info(),
-            "os": std::env::consts::OS,
-            "arch": std::env::consts::ARCH,
-            "cpu_threads": std::thread::available_parallelism().map(|n| n.get()).unwrap_or(0),
-            "ram_mb": crate::game::launch::total_ram_mb(),
-            "recent_exits": c.game_running.exits(),
-            "instances": s.instances,
-        });
-        let text = serde_json::to_string_pretty(&info).unwrap_or_default();
-        let data = c.data_dir.clone();
-        let now = unix_now();
-        let path = tokio::task::spawn_blocking(move || crate::diag::collect(&data, &text, &games, now))
-            .await
-            .map_err(|e| CoreError::msg(e.to_string()))??;
-        Ok(json!({ "path": path }))
-    });
     r.register("worlds.folder", P::InstancesRead, true, |c, a| async move {
         let WorldArg { instance, world } = args(a)?;
         let (_, d) = world_dir(&c, &instance, &world)?;

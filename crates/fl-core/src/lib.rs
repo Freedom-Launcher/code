@@ -27,7 +27,6 @@ pub mod addons;
 mod builtin;
 pub mod catalog;
 pub mod curseforge;
-pub mod diag;
 pub mod error;
 pub mod export;
 pub mod foreign;
@@ -102,7 +101,6 @@ impl Core {
             game_progress: Default::default(),
             game_running: Default::default(),
         }))
-        .inspect(|c| c.game_running.set_journal(c.data_dir.join("logs").join("games.log")))
     }
 
     /// Single entry point for every action call.

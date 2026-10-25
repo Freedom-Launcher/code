@@ -1073,14 +1073,6 @@ document.addEventListener('look:change', () => {
 });
 $('#fx-motion').addEventListener('change', (e) => { setMotion(e.target.checked); applyLook(); });
 $('#fx-lite').addEventListener('change', (e) => { localStorage.setItem('fl.fx', e.target.checked ? 'lite' : 'full'); applyLook(); });
-$('#diag-btn').addEventListener('click', async (e) => {
-  const b = e.currentTarget;
-  if (b.dataset.state === 'loading') return;
-  b.dataset.state = 'loading';
-  try { await invoke('collect_diagnostics'); toast(_t('Архив готов — отправьте его разработчику')); }
-  catch (err) { toast(String(err), { error: true }); }
-  finally { delete b.dataset.state; }
-});
 $('#fx-wide').addEventListener('change', (e) => { setLook({ full_width: e.target.checked }); applyLook(); document.dispatchEvent(new Event('look:change')); });
 
 // ---------- Startup ----------

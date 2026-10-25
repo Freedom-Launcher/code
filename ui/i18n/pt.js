@@ -2,10 +2,6 @@
 window.FL_DICT = {
 "Облегчённые эффекты": "Efeitos leves",
 "Без размытия стекла — плавнее на слабых ПК": "Sem desfoque de vidro — mais fluido em PCs fracos",
-"Диагностика": "Diagnóstico",
-"Логи лаунчера и игры одним архивом — для отчёта об ошибке": "Logs do launcher e do jogo em um arquivo — para relatar um erro",
-"Собрать": "Coletar",
-"Архив готов — отправьте его разработчику": "Arquivo pronto — envie ao desenvolvedor",
 "Знак в окне, на панели задач и в трее":"Marca na janela, na barra de tarefas e na bandeja",
 "Только для значка на панели задач и в трее":"Apenas para o ícone da barra de tarefas e da bandeja",
 "Установить плагин": "Instalar um plugin",
