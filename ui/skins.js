@@ -266,7 +266,8 @@
     marks();
   }
   async function loadDefaults() {
-    if (defs) return renderDefaults();
+    // Coming back to the page keeps the grid that is already there.
+    if (defs) return q('#sk-defaults .sk-card:not(.is-skel), #sk-defaults .sk-nothing') ? marks() : renderDefaults();
     renderDefaults();
     const r = await call('skins.defaults').catch(() => null);
     if (r?.skins) { defs = r.skins; renderDefaults(); }
@@ -402,7 +403,12 @@
     q('#sk-empty').hidden = true; q('#sk-body').hidden = false;
     if (!prof) q('#sk-name').textContent = acc.name;
     loadDefaults();
-    try { prof = await call('skins.profile', { id: acc.id }); sel = null; paint(); renderDefaults(); }
+    try {
+      const p = await call('skins.profile', { id: acc.id });
+      // Same profile as on screen: only the marks change, the cards stay (no re-bake, no fade).
+      if (prof && p && JSON.stringify(p) === JSON.stringify(prof) && q('#sk-saved').childElementCount) { prof = p; sel = null; marks(); return; }
+      prof = p; sel = null; paint(); if (defs) marks(); else renderDefaults();
+    }
     catch (e) { empty(String(e?.message || e)); }
   }
   async function drop(path) {

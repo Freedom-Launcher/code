@@ -26,3 +26,13 @@ html[data-navfast] .set-pane.is-enter > *, html[data-navfast] .disc-scope { anim
 html:not([data-homefresh]) #view-home .rc, html:not([data-homefresh]) #view-home .hcard { animation: none !important; }
 html[data-motion="off"] .view.is-active { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .view.is-active { animation: none !important; } }
+
+/* 0.3.30: the current-page highlight in the rail appears at once, without a fade. */
+.rail-btn, html:not([data-theme="light"]) .rail-btn { transition: transform 100ms ease, background 120ms ease, color 120ms ease; }
+html[data-navfast] .crumbs-t .cr.is-new { animation: none !important; }
+/* 0.3.30: pages stay laid out while hidden. Switching used to drop a page's whole
+   layout (display: none) and rebuild it on return — the main cost of a tab switch.
+   A hidden page now only skips painting, keeps its scroll position and costs nothing. */
+.main > .view { display: flex; flex-direction: column; position: absolute; inset: 0; height: auto;
+  content-visibility: hidden; visibility: hidden; pointer-events: none; }
+.main > .view.is-active { content-visibility: visible; visibility: visible; pointer-events: auto; }

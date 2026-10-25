@@ -52,7 +52,10 @@ async function run(target, name, args = null, fromTheme = false) {
 document.addEventListener('click', async (ev) => {
   const v = ev.target.closest('[data-view]');
   if (v) {
-    show(v.dataset.view);
+    // The rail already switched on press; the click only finishes the job.
+    const early = pdNav && pdNav.b === v && performance.now() - pdNav.t < 1000 && S.view === v.dataset.view;
+    pdNav = null;
+    if (!early) show(v.dataset.view, true);
     if (v.dataset.pane) window.FSettings?.open(v.dataset.pane);
     closeMenu();
     return;
@@ -70,12 +73,36 @@ document.addEventListener('click', async (ev) => {
 });
 
 // ---------- Navigation: views and the rail ----------
-let navAt = 0, navT = 0;
-function show(view) {
+let navAt = 0, navT = 0, navTok = 0, pdNav = null;
+// Rail buttons switch on press, like a native tab bar: the highlight and the page
+// change before the mouse is released instead of after the old page finished work.
+document.addEventListener('pointerdown', (ev) => {
+  if (ev.button !== 0 || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+  const b = ev.target.closest('.rail-btn[data-view]');
+  if (!b || b.disabled) return;
+  pdNav = { b, t: performance.now() };
+  show(b.dataset.view, true);
+});
+const afterPaint = (fn) => requestAnimationFrame(() => setTimeout(fn, 0));
+// Showing a view again (display: none → visible) restarts every CSS entrance animation
+// inside it, so text faded in anew on each visit. Finish those at once — a page you
+// come back to is simply there; only the view's own short slide keeps playing.
+function settle(node) {
+  if (!node?.getAnimations) return;
+  for (const a of node.getAnimations({ subtree: true })) {
+    if (a.effect?.target === node) continue;
+    const t = a.effect?.getComputedTiming?.();
+    if (!t || t.endTime === Infinity) continue;
+    try { a.finish(); } catch { /* not finishable */ }
+  }
+}
+function show(view, defer) {
   // Unknown names are ignored so a stray [data-view] can never blank the window.
-  if (!document.getElementById(`view-${view}`)) return;
+  const node = document.getElementById(`view-${view}`);
+  if (!node) return;
+  const changed = S.view !== view;
   // Rapid switching: drop entrance motion so quick clicks land instantly.
-  if (S.view !== view) {
+  if (changed) {
     const now = performance.now(), root = document.documentElement;
     root.toggleAttribute('data-navfast', now - navAt < 400); navAt = now;
     clearTimeout(navT); navT = setTimeout(() => root.removeAttribute('data-navfast'), 450);
@@ -86,12 +113,17 @@ function show(view) {
   const lit = view === 'project' ? 'discover' : view;
   $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === lit ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   $$('#rail-list .tile').forEach((t) => (view === 'instance' && t.dataset.inst === S.current ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
-  if (view === 'settings') requestAnimationFrame(() => { window.FSettings?.shown(); $('#cover-seg')._place?.(false); $('#panels-seg')._place?.(false); $('#wall-seg')._place?.(false); $('#browse-seg')._place?.(false); });
+  if (changed) settle(node);
+  // Per-view work: from the rail it runs once the switch has painted, and only for the
+  // page that is still open — a burst of clicks renders just the last page.
+  const tok = ++navTok;
+  const run = defer ? (fn) => afterPaint(() => { if (tok === navTok && S.view === view) fn(); }) : (fn) => fn();
+  if (view === 'settings') (defer ? run : requestAnimationFrame)(() => { window.FSettings?.shown(); $('#cover-seg')._place?.(false); $('#panels-seg')._place?.(false); $('#wall-seg')._place?.(false); $('#browse-seg')._place?.(false); });
   if (view === 'home') renderHome(true);
   if (view === 'create') prepareCreate();
-  if (view === 'accounts') { renderAccountsPage(); loadProviders(); }
-  if (view === 'discover') window.FMods?.discover();
-  if (view === 'skins') window.FSkins?.shown();
+  if (view === 'accounts') run(() => { renderAccountsPage(); loadProviders(); });
+  if (view === 'discover') run(() => window.FMods?.discover());
+  if (view === 'skins') run(() => window.FSkins?.shown());
   window.FAddons?.shown?.(view);
   window.FNav?.note();
 }
