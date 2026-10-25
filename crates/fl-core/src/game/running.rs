@@ -9,6 +9,35 @@ use std::time::Instant;
 #[derive(Default)]
 pub struct Running {
     inner: Mutex<Inner>,
+    /// `<data>/logs/games.log`: one line per game start and end, kept across launcher
+    /// restarts so a diagnostics archive shows how the last sessions ended.
+    journal: std::sync::OnceLock<std::path::PathBuf>,
+}
+
+fn journal_write(p: &std::path::Path, line: &str) {
+    let mut log = std::fs::read_to_string(p).unwrap_or_default();
+    if log.len() > 64 * 1024 {
+        let cut = log.len() - 32 * 1024;
+        let cut = (cut..log.len()).find(|&i| log.is_char_boundary(i)).unwrap_or(log.len());
+        log = log[cut..].to_owned();
+    }
+    log.push_str(&format!("{} {line}\n", crate::unix_now()));
+    if let Some(d) = p.parent() {
+        let _ = std::fs::create_dir_all(d);
+    }
+    let _ = std::fs::write(p, log);
+}
+
+fn exit_line(id: &str, e: &Exit) -> String {
+    let how = if e.stopped {
+        "stopped".to_owned()
+    } else {
+        match e.code {
+            Some(c) => format!("code {c} (0x{:08x})", c as u32),
+            None => "killed".to_owned(),
+        }
+    };
+    format!("exit {id} {how} secs {}", e.secs)
 }
 
 #[derive(Default)]
@@ -45,7 +74,7 @@ impl Exit {
 }
 
 /// Drops processes that have exited.
-fn reap(g: &mut Inner) {
+fn reap(g: &mut Inner, journal: Option<&std::path::Path>) {
     let mut done = Vec::new();
     let mut ended = Vec::new();
     g.children.retain(|id, (c, t)| {
@@ -59,6 +88,11 @@ fn reap(g: &mut Inner) {
         ended.push((id.clone(), Exit::new(code, false, secs)));
         false
     });
+    if let Some(p) = journal {
+        for (id, e) in &ended {
+            journal_write(p, &exit_line(id, e));
+        }
+    }
     g.exits.extend(ended);
     for (id, _) in &done {
         if let Some(mut c) = g.after_exit.remove(id) {
@@ -76,7 +110,7 @@ impl Running {
     /// Reserves the instance for a launch; `false` if it is starting or running.
     pub fn begin(&self, id: &str) -> bool {
         let mut g = self.lock();
-        reap(&mut g);
+        reap(&mut g, self.journal.get().map(|p| p.as_path()));
         if g.children.contains_key(id) || g.starting.contains(id) {
             return false;
         }
@@ -89,7 +123,15 @@ impl Running {
         self.lock().starting.remove(id);
     }
 
+    /// Keeps the start/end journal in `path` (`logs/games.log`).
+    pub fn set_journal(&self, path: std::path::PathBuf) {
+        let _ = self.journal.set(path);
+    }
+
     pub fn started(&self, id: &str, child: Child) {
+        if let Some(p) = self.journal.get() {
+            journal_write(p, &format!("start {id} pid {} launcher {}", child.id(), crate::VERSION));
+        }
         let mut g = self.lock();
         g.starting.remove(id);
         g.children.insert(id.to_owned(), (child, Instant::now()));
@@ -99,7 +141,7 @@ impl Running {
     /// How each instance's last session ended (only instances that ran since the launcher started).
     pub fn exits(&self) -> HashMap<String, Exit> {
         let mut g = self.lock();
-        reap(&mut g);
+        reap(&mut g, self.journal.get().map(|p| p.as_path()));
         g.exits.clone()
     }
 
@@ -111,20 +153,20 @@ impl Running {
     /// Ended sessions since the last call, for playtime bookkeeping.
     pub fn take_finished(&self) -> Vec<(String, u64)> {
         let mut g = self.lock();
-        reap(&mut g);
+        reap(&mut g, self.journal.get().map(|p| p.as_path()));
         std::mem::take(&mut g.finished)
     }
 
     pub fn is_busy(&self, id: &str) -> bool {
         let mut g = self.lock();
-        reap(&mut g);
+        reap(&mut g, self.journal.get().map(|p| p.as_path()));
         g.children.contains_key(id) || g.starting.contains(id)
     }
 
     /// `(running, starting)` instance ids.
     pub fn list(&self) -> (Vec<String>, Vec<String>) {
         let mut g = self.lock();
-        reap(&mut g);
+        reap(&mut g, self.journal.get().map(|p| p.as_path()));
         let mut run: Vec<String> = g.children.keys().cloned().collect();
         let mut st: Vec<String> = g.starting.iter().cloned().collect();
         run.sort();
@@ -141,7 +183,11 @@ impl Running {
                 let _ = c.wait();
                 let secs = t.elapsed().as_secs();
                 g.finished.push((id.to_owned(), secs));
-                g.exits.insert(id.to_owned(), Exit::new(None, true, secs));
+                let e = Exit::new(None, true, secs);
+                if let Some(p) = self.journal.get() {
+                    journal_write(p, &exit_line(id, &e));
+                }
+                g.exits.insert(id.to_owned(), e);
                 if let Some(mut c) = g.after_exit.remove(id) {
                     let _ = c.spawn();
                 }
@@ -173,6 +219,28 @@ mod tests {
         assert!(r.begin("i1"));
         r.cancel("i1");
         assert!(r.begin("i1"));
+    }
+
+    #[test]
+    fn journal_keeps_starts_and_ends() {
+        let p = std::env::temp_dir().join(format!("fl-games-{}.log", std::process::id()));
+        let _ = std::fs::remove_file(&p);
+        let r = Running::default();
+        r.set_journal(p.clone());
+        assert!(r.begin("j1"));
+        let mut c = Command::new("false").spawn().unwrap();
+        let _ = c.wait();
+        r.started("j1", c);
+        let _ = r.list();
+        assert!(r.begin("j2"));
+        r.started("j2", Command::new("sleep").arg("5").spawn().unwrap());
+        assert!(r.stop("j2"));
+        let log = std::fs::read_to_string(&p).unwrap();
+        let _ = std::fs::remove_file(&p);
+        assert!(log.contains("start j1 pid "), "{log}");
+        assert!(log.contains("exit j1 code 1 (0x00000001) secs "), "{log}");
+        assert!(log.contains("exit j2 stopped secs "), "{log}");
+        assert!(log.contains(&format!("launcher {}", crate::VERSION)), "{log}");
     }
 
     #[test]

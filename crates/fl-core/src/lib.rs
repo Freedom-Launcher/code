@@ -5,6 +5,9 @@
 //! addons all go through the same [`Core::dispatch`] entry point, and every call
 //! is checked against the caller's permissions.
 
+/// Launcher release version (from `app/tauri.conf.json`).
+pub const VERSION: &str = env!("FL_VERSION");
+
 use std::{
     path::PathBuf,
     sync::{Arc, OnceLock},
@@ -99,6 +102,7 @@ impl Core {
             game_progress: Default::default(),
             game_running: Default::default(),
         }))
+        .inspect(|c| c.game_running.set_journal(c.data_dir.join("logs").join("games.log")))
     }
 
     /// Single entry point for every action call.
@@ -134,7 +138,7 @@ impl Core {
     pub fn http(&self) -> &reqwest::Client {
         self.http.get_or_init(|| {
             reqwest::Client::builder()
-                .user_agent(concat!("FreedomLauncher/", env!("CARGO_PKG_VERSION")))
+                .user_agent(concat!("FreedomLauncher/", env!("FL_VERSION")))
                 .build()
                 .expect("failed to build HTTP client")
         })
@@ -168,7 +172,7 @@ impl Core {
     pub fn info(&self) -> Value {
         json!({
             "name": "Freedom Launcher",
-            "version": env!("CARGO_PKG_VERSION"),
+            "version": env!("FL_VERSION"),
             "safe_mode": self.safe_mode,
             "startup_ms": self.ready_ms.get(),
             "data_dir": self.data_dir,

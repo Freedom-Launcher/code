@@ -971,7 +971,7 @@ fn session_mark(what: &str) {
     }
     log.push_str(&format!(
         "{what} {now} {} pid {}\n",
-        env!("CARGO_PKG_VERSION"),
+        fl_core::VERSION,
         std::process::id()
     ));
     if let Some(d) = p.parent() {
@@ -992,7 +992,7 @@ fn crash_log_hook(dir: std::path::PathBuf) {
         let thread = std::thread::current();
         let text = format!(
             "Freedom Launcher {}\nthread: {}\n{}\n\n{}\n",
-            env!("CARGO_PKG_VERSION"),
+            fl_core::VERSION,
             thread.name().unwrap_or("?"),
             info,
             std::backtrace::Backtrace::force_capture()

@@ -18,7 +18,7 @@ fn client() -> &'static reqwest::Client {
     static C: OnceLock<reqwest::Client> = OnceLock::new();
     C.get_or_init(|| {
         reqwest::Client::builder()
-            .user_agent(concat!("FreedomLauncher/", env!("CARGO_PKG_VERSION")))
+            .user_agent(concat!("FreedomLauncher/", env!("FL_VERSION")))
             .redirect(Policy::custom(|a| {
                 if a.previous().len() >= 5 || a.url().scheme() != "https" {
                     a.stop()

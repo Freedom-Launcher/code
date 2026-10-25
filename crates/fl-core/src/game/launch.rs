@@ -158,7 +158,7 @@ pub fn build_args(
             opts.resolution.map_or(String::new(), |r| r.1.to_string()),
         ),
         ("launcher_name", "freedom-launcher".into()),
-        ("launcher_version", env!("CARGO_PKG_VERSION").into()),
+        ("launcher_version", env!("FL_VERSION").into()),
     ]);
 
     let mut args = vec![format!("-Xmx{}M", opts.memory_mb), "-Xms512M".to_owned()];

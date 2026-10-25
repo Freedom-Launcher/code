@@ -135,7 +135,7 @@ fn client() -> &'static reqwest::Client {
         reqwest::Client::builder()
             .user_agent(concat!(
                 "FreedomLauncher/",
-                env!("CARGO_PKG_VERSION"),
+                env!("FL_VERSION"),
                 " (addon)"
             ))
             .redirect(Policy::none())
