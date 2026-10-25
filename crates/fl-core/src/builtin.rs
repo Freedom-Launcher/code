@@ -11,7 +11,7 @@ use crate::{
     addons,
     game::service,
     instances::{self, Instance, InstanceStore},
-    catalog, curseforge, modrinth, mods, mrpack, msauth, people,
+    backups, catalog, curseforge, modrinth, mods, mrpack, msauth, people,
     settings::Settings,
     store, themes, unix_now, versions, Core, CoreError, Permission as P,
 };
@@ -627,6 +627,7 @@ fn list_worlds(saves: &std::path::Path) -> Vec<Value> {
         })
         .collect();
     out.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+    let copies = saves.parent().map(backups::files).unwrap_or_default();
     out.into_iter()
         .map(|(t, name)| {
             let d = saves.join(&name);
@@ -636,7 +637,8 @@ fn list_worlds(saves: &std::path::Path) -> Vec<Value> {
                 .and_then(|_| std::fs::read(d.join("icon.png")).ok())
                 .filter(|b| b.starts_with(b"\x89PNG"))
                 .map(|b| format!("data:image/png;base64,{}", crate::skins::b64_encode(&b)));
-            json!({ "id": name, "name": name, "last_played": t, "icon": icon, "size": dir_size(&d, 0) })
+            let n = copies.iter().filter(|f| backups::matches(f, &name)).count();
+            json!({ "id": name, "name": name, "last_played": t, "icon": icon, "size": dir_size(&d, 0), "backups": n })
         })
         .collect()
 }
@@ -1045,6 +1047,67 @@ fn register_import(r: &mut ActionRegistry) {
             .map_err(|e| CoreError::msg(format!("Не удалось удалить мир (папка открыта в другой программе?): {e}")))?;
         let cleaned = std::fs::remove_dir_all(&trash).is_ok();
         Ok(json!({ "instance": instance, "world": world, "deleted": true, "files_removed": cleaned }))
+    });
+    // World backups: zip copies in `<game dir>/backups/`, named like the game's own "Make Backup".
+    r.register("worlds.backups", P::InstancesRead, false, |c, a| async move {
+        let WorldArg { instance, world } = args(a)?;
+        let (i, _) = world_dir(&c, &instance, &world)?;
+        let g = i.game_dir(&c.instances_root());
+        Ok(json!(backups::list(&g, &world)))
+    });
+    r.register("worlds.backup", P::InstancesManage, false, |c, a| async move {
+        let WorldArg { instance, world } = args(a)?;
+        let _g = c.state_lock.lock().await;
+        let (i, _) = world_dir(&c, &instance, &world)?;
+        let g = i.game_dir(&c.instances_root());
+        tokio::task::spawn_blocking(move || backups::create(&g, &world, unix_now()))
+            .await
+            .map_err(|e| CoreError::msg(e.to_string()))?
+    });
+    r.register("worlds.restore", P::InstancesManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            world: String,
+            backup: String,
+        }
+        let A { instance, world, backup } = args(a)?;
+        if !valid_world(&world) {
+            return Err(CoreError::BadArgs(format!("bad world: {world}")));
+        }
+        let _g = c.state_lock.lock().await;
+        let i = instance_by_id(&c, &instance)?;
+        idle(&c, &i)?;
+        let g = i.game_dir(&c.instances_root());
+        let c2 = std::sync::Arc::clone(&c);
+        let id = i.id.clone();
+        tokio::task::spawn_blocking(move || {
+            backups::restore(&g, &world, &backup, unix_now(), || c2.game_running.is_busy(&id))
+        })
+        .await
+        .map_err(|e| CoreError::msg(e.to_string()))?
+    });
+    r.register("worlds.backup_delete", P::InstancesManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            world: String,
+            backup: String,
+        }
+        let A { instance, world, backup } = args(a)?;
+        if !valid_world(&world) {
+            return Err(CoreError::BadArgs(format!("bad world: {world}")));
+        }
+        let i = instance_by_id(&c, &instance)?;
+        backups::delete(&i.game_dir(&c.instances_root()), &world, &backup)?;
+        Ok(json!({ "deleted": true }))
+    });
+    r.register("worlds.backups_folder", P::InstancesRead, true, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let d = backups::dir(&i.game_dir(&c.instances_root()));
+        std::fs::create_dir_all(&d)?;
+        Ok(json!({ "instance": instance, "path": d }))
     });
     r.register(
         "instances.worlds",

@@ -226,6 +226,33 @@ html[data-l-filters="right"] .disc-body[data-filters="off"] .disc-side { transfo
 @keyframes w-pulse { 50% { opacity: .45; } }
 [data-motion="off"] .w-list .w-row, [data-motion="off"] .w-skel .sk { animation: none; }
 @media (hover: none) { .w-row .btn-icon { opacity: 1; } }
+/* Backups dialog */
+.dialog.wbk { width: min(540px, calc(100vw - 48px)); }
+.dialog.wbk h2 { margin-bottom: 2px; }
+.wbk-sub { margin: 0 0 var(--s-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wbk-list { max-height: min(340px, calc(100vh - 300px)); overflow-y: auto; border-radius: var(--r-card); }
+.wbk-rows .wbk-row { min-height: 54px; gap: 10px; }
+.wbk-ico { width: 34px; height: 34px; box-shadow: none; background: var(--surface-2); color: var(--text-3); }
+.wbk-ico svg { width: 18px; height: 18px; }
+.wbk-restore .lbl { display: grid; }
+.wbk-restore .lbl > span { grid-area: 1 / 1; text-align: center; }
+.wbk-restore .lbl .b, .wbk-restore[data-armed] .lbl .a { visibility: hidden; }
+.wbk-restore[data-armed] .lbl .b { visibility: visible; }
+.wbk-restore[data-armed] { background: var(--accent); color: var(--on-accent); }
+.wbk-row .wbk-del { opacity: 0; transition: opacity var(--d-2) var(--ease-out), background-color var(--d-2), color var(--d-2); }
+.wbk-row:hover .wbk-del, .wbk-row:focus-within .wbk-del, .wbk-del[data-armed] { opacity: 1; }
+.wbk-del:hover, .wbk-del[data-armed] { color: var(--danger, #e5484d); }
+.wbk-del[data-armed] { background: var(--danger-soft); }
+.wbk-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 168px; padding: var(--s-4); border-radius: var(--r-card); background: var(--surface-2); text-align: center; }
+.wbk-empty b { color: var(--text-2); font-weight: var(--w-medium); font-size: var(--text-md); }
+.wbk-empty span { max-width: 300px; color: var(--text-3); font-size: var(--text-sm); }
+.wbk-big { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 4px; border-radius: 50%; background: var(--surface-3); color: var(--text-3); }
+.wbk-big svg { width: 22px; height: 22px; }
+.wbk-note { margin-top: var(--s-3); }
+.dialog.wbk .actions { margin-top: var(--s-5); align-items: center; }
+.wbk-gap { flex: 1; }
+.dialog.wbk .actions #wbk-folder { margin-left: calc(-1 * var(--s-3)); }
+@media (hover: none) { .wbk-row .wbk-del { opacity: 1; } }
 
 /* Pages, Modrinth style. */
 .disc-pager { display: flex; align-items: center; justify-content: center; gap: var(--s-3); margin: 22px 0 6px; position: relative; }

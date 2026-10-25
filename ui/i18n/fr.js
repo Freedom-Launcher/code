@@ -1206,6 +1206,23 @@ window.FL_DICT = {
 "Архив": "Archivé",
 "Не удалось открыть профиль": "Impossible d'ouvrir le profil",
 "Владелец": "Propriétaire",
-"Авторы": "Créateurs"
+"Авторы": "Créateurs",
+"Резервные копии": "Sauvegardes",
+"Создать копию": "Créer une sauvegarde",
+"Копий пока нет": "Aucune sauvegarde pour l'instant",
+"Создайте первую, чтобы можно было вернуть мир к этому моменту.": "Créez-en une pour pouvoir ramener le monde à ce moment.",
+"Перед восстановлением текущий мир тоже сохраняется в копию.": "Avant une restauration, le monde actuel est aussi sauvegardé.",
+"Восстановить": "Restaurer",
+"Точно?": "Sûr ?",
+"Удалить копию": "Supprimer la sauvegarde",
+"Нажмите ещё раз, чтобы удалить": "Cliquez encore pour supprimer",
+"Копия создана": "Sauvegarde créée",
+"Копия удалена": "Sauvegarde supprimée",
+"Мир «{0}» восстановлен": "Monde « {0} » restauré",
+"Копия повреждена": "La sauvegarde est endommagée",
+"В копии нет мира": "La sauvegarde ne contient aucun monde",
+"Такой копии нет": "Cette sauvegarde n'existe pas",
+"Не удалось заменить мир: папка открыта в другой программе": "Impossible de remplacer le monde : le dossier est ouvert dans un autre programme",
+"В мире есть файл с недопустимым именем": "Le monde contient un fichier au nom invalide",
 };
-window.FL_PLURALS = {"файл|файла|файлов": {"one": "fichier", "many": "fichiers", "other": "fichiers"}, "мод|мода|модов": {"one": "mod", "many": "mods", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "pack de ressources", "many": "packs de ressources", "other": "packs de ressources"}, "шейдер|шейдера|шейдеров": {"one": "shader", "many": "shaders", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "pack de données", "many": "packs de données", "other": "packs de données"}, "мир|мира|миров": {"one": "monde", "many": "mondes", "other": "mondes"}, "сборка|сборки|сборок": {"one": "instance", "many": "instances", "other": "instances"}, "скриншот|скриншота|скриншотов": {"one": "capture d'écran", "many": "captures d'écran", "other": "captures d'écran"}};
+window.FL_PLURALS = {"файл|файла|файлов": {"one": "fichier", "many": "fichiers", "other": "fichiers"}, "мод|мода|модов": {"one": "mod", "many": "mods", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "pack de ressources", "many": "packs de ressources", "other": "packs de ressources"}, "шейдер|шейдера|шейдеров": {"one": "shader", "many": "shaders", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "pack de données", "many": "packs de données", "other": "packs de données"}, "мир|мира|миров": {"one": "monde", "many": "mondes", "other": "mondes"}, "сборка|сборки|сборок": {"one": "instance", "many": "instances", "other": "instances"}, "скриншот|скриншота|скриншотов": {"one": "capture d'écran", "many": "captures d'écran", "other": "captures d'écran"}, "копия|копии|копий": {"one": "sauvegarde", "many": "sauvegardes", "other": "sauvegardes"}};

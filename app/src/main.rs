@@ -343,6 +343,16 @@ async fn open_logs_folder(
     open_action_path(app, core, "logs.folder", serde_json::json!({ "instance": instance })).await
 }
 
+#[tauri::command]
+async fn open_backups_folder(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+    instance: String,
+) -> Result<(), String> {
+    let core = Arc::clone(&state.0);
+    open_action_path(app, core, "worlds.backups_folder", serde_json::json!({ "instance": instance })).await
+}
+
 /// Serves screenshots: `shot://localhost/<instance>/<file>` (Windows: `http://shot.localhost/...`).
 fn shot_protocol(
     app: &tauri::AppHandle,
@@ -1029,6 +1039,7 @@ fn main() {
             open_world_folder,
             open_shots_folder,
             open_logs_folder,
+            open_backups_folder,
             open_themes_folder,
             addon_action,
             open_addons_folder,

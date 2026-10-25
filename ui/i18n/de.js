@@ -1206,6 +1206,23 @@ window.FL_DICT = {
 "Архив": "Archiviert",
 "Не удалось открыть профиль": "Profil konnte nicht geöffnet werden",
 "Владелец": "Inhaber",
-"Авторы": "Ersteller"
+"Авторы": "Ersteller",
+"Резервные копии": "Sicherungen",
+"Создать копию": "Sicherung erstellen",
+"Копий пока нет": "Noch keine Sicherungen",
+"Создайте первую, чтобы можно было вернуть мир к этому моменту.": "Erstelle die erste, um die Welt auf diesen Moment zurücksetzen zu können.",
+"Перед восстановлением текущий мир тоже сохраняется в копию.": "Vor dem Wiederherstellen wird auch die aktuelle Welt gesichert.",
+"Восстановить": "Wiederherstellen",
+"Точно?": "Sicher?",
+"Удалить копию": "Sicherung löschen",
+"Нажмите ещё раз, чтобы удалить": "Zum Löschen erneut klicken",
+"Копия создана": "Sicherung erstellt",
+"Копия удалена": "Sicherung gelöscht",
+"Мир «{0}» восстановлен": "Welt „{0}“ wiederhergestellt",
+"Копия повреждена": "Die Sicherung ist beschädigt",
+"В копии нет мира": "Die Sicherung enthält keine Welt",
+"Такой копии нет": "Diese Sicherung gibt es nicht",
+"Не удалось заменить мир: папка открыта в другой программе": "Welt konnte nicht ersetzt werden: Der Ordner ist in einem anderen Programm geöffnet",
+"В мире есть файл с недопустимым именем": "Die Welt enthält eine Datei mit ungültigem Namen",
 };
-window.FL_PLURALS = {"файл|файла|файлов": {"one": "Datei", "other": "Dateien"}, "мод|мода|модов": {"one": "Mod", "other": "Mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "Ressourcenpaket", "other": "Ressourcenpakete"}, "шейдер|шейдера|шейдеров": {"one": "Shader", "other": "Shader"}, "датапак|датапака|датапаков": {"one": "Datenpaket", "other": "Datenpakete"}, "мир|мира|миров": {"one": "Welt", "other": "Welten"}, "сборка|сборки|сборок": {"one": "Instanz", "other": "Instanzen"}, "скриншот|скриншота|скриншотов": {"one": "Screenshot", "other": "Screenshots"}};
+window.FL_PLURALS = {"файл|файла|файлов": {"one": "Datei", "other": "Dateien"}, "мод|мода|модов": {"one": "Mod", "other": "Mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "Ressourcenpaket", "other": "Ressourcenpakete"}, "шейдер|шейдера|шейдеров": {"one": "Shader", "other": "Shader"}, "датапак|датапака|датапаков": {"one": "Datenpaket", "other": "Datenpakete"}, "мир|мира|миров": {"one": "Welt", "other": "Welten"}, "сборка|сборки|сборок": {"one": "Instanz", "other": "Instanzen"}, "скриншот|скриншота|скриншотов": {"one": "Screenshot", "other": "Screenshots"}, "копия|копии|копий": {"one": "Sicherung", "other": "Sicherungen"}};

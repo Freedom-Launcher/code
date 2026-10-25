@@ -1206,6 +1206,23 @@ window.FL_DICT = {
 "Архив": "Zarchiwizowany",
 "Не удалось открыть профиль": "Nie udało się otworzyć profilu",
 "Владелец": "Właściciel",
-"Авторы": "Twórcy"
+"Авторы": "Twórcy",
+"Резервные копии": "Kopie zapasowe",
+"Создать копию": "Utwórz kopię",
+"Копий пока нет": "Brak kopii",
+"Создайте первую, чтобы можно было вернуть мир к этому моменту.": "Utwórz pierwszą, aby móc przywrócić świat do tej chwili.",
+"Перед восстановлением текущий мир тоже сохраняется в копию.": "Przed przywróceniem bieżący świat również trafia do kopii.",
+"Восстановить": "Przywróć",
+"Точно?": "Na pewno?",
+"Удалить копию": "Usuń kopię",
+"Нажмите ещё раз, чтобы удалить": "Kliknij ponownie, aby usunąć",
+"Копия создана": "Kopia utworzona",
+"Копия удалена": "Kopia usunięta",
+"Мир «{0}» восстановлен": "Przywrócono świat „{0}”",
+"Копия повреждена": "Kopia jest uszkodzona",
+"В копии нет мира": "Kopia nie zawiera świata",
+"Такой копии нет": "Nie ma takiej kopii",
+"Не удалось заменить мир: папка открыта в другой программе": "Nie udało się zastąpić świata: folder jest otwarty w innym programie",
+"В мире есть файл с недопустимым именем": "Świat zawiera plik o niedozwolonej nazwie",
 };
-window.FL_PLURALS = {"файл|файла|файлов": {"one": "plik", "few": "pliki", "many": "plików", "other": "pliku"}, "мод|мода|модов": {"one": "mod", "few": "mody", "many": "modów", "other": "modu"}, "ресурспак|ресурспака|ресурспаков": {"one": "paczka zasobów", "few": "paczki zasobów", "many": "paczek zasobów", "other": "paczki zasobów"}, "шейдер|шейдера|шейдеров": {"one": "shader", "few": "shadery", "many": "shaderów", "other": "shadera"}, "датапак|датапака|датапаков": {"one": "paczka danych", "few": "paczki danych", "many": "paczek danych", "other": "paczki danych"}, "мир|мира|миров": {"one": "świat", "few": "światy", "many": "światów", "other": "świata"}, "сборка|сборки|сборок": {"one": "instancja", "few": "instancje", "many": "instancji", "other": "instancji"}, "скриншот|скриншота|скриншотов": {"one": "zrzut ekranu", "few": "zrzuty ekranu", "many": "zrzutów ekranu", "other": "zrzutu ekranu"}};
+window.FL_PLURALS = {"файл|файла|файлов": {"one": "plik", "few": "pliki", "many": "plików", "other": "pliku"}, "мод|мода|модов": {"one": "mod", "few": "mody", "many": "modów", "other": "modu"}, "ресурспак|ресурспака|ресурспаков": {"one": "paczka zasobów", "few": "paczki zasobów", "many": "paczek zasobów", "other": "paczki zasobów"}, "шейдер|шейдера|шейдеров": {"one": "shader", "few": "shadery", "many": "shaderów", "other": "shadera"}, "датапак|датапака|датапаков": {"one": "paczka danych", "few": "paczki danych", "many": "paczek danych", "other": "paczki danych"}, "мир|мира|миров": {"one": "świat", "few": "światy", "many": "światów", "other": "świata"}, "сборка|сборки|сборок": {"one": "instancja", "few": "instancje", "many": "instancji", "other": "instancji"}, "скриншот|скриншота|скриншотов": {"one": "zrzut ekranu", "few": "zrzuty ekranu", "many": "zrzutów ekranu", "other": "zrzutu ekranu"}, "копия|копии|копий": {"one": "kopia", "few": "kopie", "many": "kopii", "other": "kopii"}};

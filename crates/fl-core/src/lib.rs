@@ -40,6 +40,7 @@ pub mod mrpack;
 pub mod msauth;
 pub mod net;
 pub mod people;
+pub mod backups;
 pub mod permissions;
 pub mod providers;
 pub mod relocate;

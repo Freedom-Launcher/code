@@ -936,6 +936,19 @@
     </div>
   </form>
 
+  <form class="dialog wbk" id="dlg-world-bk" data-id="dialog.world.backups" role="dialog" aria-label="Резервные копии">
+    <h2>Резервные копии</h2>
+    <p class="hint wbk-sub" id="wbk-world"></p>
+    <div class="wbk-list" id="wbk-list"></div>
+    <p class="hint wbk-note">Перед восстановлением текущий мир тоже сохраняется в копию.</p>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" id="wbk-folder">Открыть папку</button>
+      <span class="wbk-gap"></span>
+      <button type="button" class="btn btn-ghost" data-close>Закрыть</button>
+      <button type="submit" class="btn btn-primary" id="wbk-make"><span class="lbl">Создать копию</span></button>
+    </div>
+  </form>
+
   <form class="dialog" id="dlg-packver" data-id="dialog.pack.version" role="dialog" aria-label="Версия сборки">
     <h2>Версия сборки</h2>
     <div><label class="label" for="pv-ver">Версия</label><select class="field" id="pv-ver"></select></div>

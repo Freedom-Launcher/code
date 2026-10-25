@@ -1206,6 +1206,23 @@ window.FL_DICT = {
 "Архив": "Archived",
 "Не удалось открыть профиль": "Couldn't open the profile",
 "Владелец": "Owner",
-"Авторы": "Creators"
+"Авторы": "Creators",
+"Резервные копии": "Backups",
+"Создать копию": "Create backup",
+"Копий пока нет": "No backups yet",
+"Создайте первую, чтобы можно было вернуть мир к этому моменту.": "Make the first one to be able to bring the world back to this moment.",
+"Перед восстановлением текущий мир тоже сохраняется в копию.": "Before a restore, the current world is backed up too.",
+"Восстановить": "Restore",
+"Точно?": "Sure?",
+"Удалить копию": "Delete backup",
+"Нажмите ещё раз, чтобы удалить": "Click again to delete",
+"Копия создана": "Backup created",
+"Копия удалена": "Backup deleted",
+"Мир «{0}» восстановлен": "World \"{0}\" restored",
+"Копия повреждена": "The backup is damaged",
+"В копии нет мира": "The backup has no world in it",
+"Такой копии нет": "No such backup",
+"Не удалось заменить мир: папка открыта в другой программе": "Couldn't replace the world: the folder is open in another program",
+"В мире есть файл с недопустимым именем": "The world has a file with an invalid name",
 };
-window.FL_PLURALS = {"файл|файла|файлов": {"one": "file", "other": "files"}, "мод|мода|модов": {"one": "mod", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "resource pack", "other": "resource packs"}, "шейдер|шейдера|шейдеров": {"one": "shader", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "datapack", "other": "datapacks"}, "мир|мира|миров": {"one": "world", "other": "worlds"}, "сборка|сборки|сборок": {"one": "instance", "other": "instances"}, "скриншот|скриншота|скриншотов": {"one": "screenshot", "other": "screenshots"}};
+window.FL_PLURALS = {"файл|файла|файлов": {"one": "file", "other": "files"}, "мод|мода|модов": {"one": "mod", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "resource pack", "other": "resource packs"}, "шейдер|шейдера|шейдеров": {"one": "shader", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "datapack", "other": "datapacks"}, "мир|мира|миров": {"one": "world", "other": "worlds"}, "сборка|сборки|сборок": {"one": "instance", "other": "instances"}, "скриншот|скриншота|скриншотов": {"one": "screenshot", "other": "screenshots"}, "копия|копии|копий": {"one": "backup", "other": "backups"}};

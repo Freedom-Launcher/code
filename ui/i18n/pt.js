@@ -1206,6 +1206,23 @@ window.FL_DICT = {
 "Архив": "Arquivado",
 "Не удалось открыть профиль": "Não foi possível abrir o perfil",
 "Владелец": "Proprietário",
-"Авторы": "Criadores"
+"Авторы": "Criadores",
+"Резервные копии": "Backups",
+"Создать копию": "Criar backup",
+"Копий пока нет": "Nenhum backup ainda",
+"Создайте первую, чтобы можно было вернуть мир к этому моменту.": "Crie o primeiro para poder voltar o mundo a este momento.",
+"Перед восстановлением текущий мир тоже сохраняется в копию.": "Antes de restaurar, o mundo atual também é salvo em backup.",
+"Восстановить": "Restaurar",
+"Точно?": "Certeza?",
+"Удалить копию": "Excluir backup",
+"Нажмите ещё раз, чтобы удалить": "Clique de novo para excluir",
+"Копия создана": "Backup criado",
+"Копия удалена": "Backup excluído",
+"Мир «{0}» восстановлен": "Mundo “{0}” restaurado",
+"Копия повреждена": "O backup está danificado",
+"В копии нет мира": "O backup não contém um mundo",
+"Такой копии нет": "Esse backup não existe",
+"Не удалось заменить мир: папка открыта в другой программе": "Não foi possível substituir o mundo: a pasta está aberta em outro programa",
+"В мире есть файл с недопустимым именем": "O mundo tem um arquivo com nome inválido",
 };
-window.FL_PLURALS = {"файл|файла|файлов": {"one": "arquivo", "many": "arquivos", "other": "arquivos"}, "мод|мода|модов": {"one": "mod", "many": "mods", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "pacote de recursos", "many": "pacotes de recursos", "other": "pacotes de recursos"}, "шейдер|шейдера|шейдеров": {"one": "shader", "many": "shaders", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "pacote de dados", "many": "pacotes de dados", "other": "pacotes de dados"}, "мир|мира|миров": {"one": "mundo", "many": "mundos", "other": "mundos"}, "сборка|сборки|сборок": {"one": "instância", "many": "instâncias", "other": "instâncias"}, "скриншот|скриншота|скриншотов": {"one": "captura de tela", "many": "capturas de tela", "other": "capturas de tela"}};
+window.FL_PLURALS = {"файл|файла|файлов": {"one": "arquivo", "many": "arquivos", "other": "arquivos"}, "мод|мода|модов": {"one": "mod", "many": "mods", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "pacote de recursos", "many": "pacotes de recursos", "other": "pacotes de recursos"}, "шейдер|шейдера|шейдеров": {"one": "shader", "many": "shaders", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "pacote de dados", "many": "pacotes de dados", "other": "pacotes de dados"}, "мир|мира|миров": {"one": "mundo", "many": "mundos", "other": "mundos"}, "сборка|сборки|сборок": {"one": "instância", "many": "instâncias", "other": "instâncias"}, "скриншот|скриншота|скриншотов": {"one": "captura de tela", "many": "capturas de tela", "other": "capturas de tela"}, "копия|копии|копий": {"one": "backup", "many": "backups", "other": "backups"}};

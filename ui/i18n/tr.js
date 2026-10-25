@@ -1206,6 +1206,23 @@ window.FL_DICT = {
 "Архив": "Arşivlendi",
 "Не удалось открыть профиль": "Profil açılamadı",
 "Владелец": "Sahip",
-"Авторы": "Yapımcılar"
+"Авторы": "Yapımcılar",
+"Резервные копии": "Yedekler",
+"Создать копию": "Yedek oluştur",
+"Копий пока нет": "Henüz yedek yok",
+"Создайте первую, чтобы можно было вернуть мир к этому моменту.": "Dünyayı bu ana geri döndürebilmek için ilk yedeği oluştur.",
+"Перед восстановлением текущий мир тоже сохраняется в копию.": "Geri yüklemeden önce mevcut dünya da yedeklenir.",
+"Восстановить": "Geri yükle",
+"Точно?": "Emin misin?",
+"Удалить копию": "Yedeği sil",
+"Нажмите ещё раз, чтобы удалить": "Silmek için tekrar tıkla",
+"Копия создана": "Yedek oluşturuldu",
+"Копия удалена": "Yedek silindi",
+"Мир «{0}» восстановлен": "“{0}” dünyası geri yüklendi",
+"Копия повреждена": "Yedek bozuk",
+"В копии нет мира": "Yedekte dünya yok",
+"Такой копии нет": "Böyle bir yedek yok",
+"Не удалось заменить мир: папка открыта в другой программе": "Dünya değiştirilemedi: klasör başka bir programda açık",
+"В мире есть файл с недопустимым именем": "Dünyada geçersiz adlı bir dosya var",
 };
-window.FL_PLURALS = {"файл|файла|файлов": {"one": "dosya", "other": "dosya"}, "мод|мода|модов": {"one": "mod", "other": "mod"}, "ресурспак|ресурспака|ресурспаков": {"one": "kaynak paketi", "other": "kaynak paketi"}, "шейдер|шейдера|шейдеров": {"one": "shader", "other": "shader"}, "датапак|датапака|датапаков": {"one": "veri paketi", "other": "veri paketi"}, "мир|мира|миров": {"one": "dünya", "other": "dünya"}, "сборка|сборки|сборок": {"one": "profil", "other": "profil"}, "скриншот|скриншота|скриншотов": {"one": "ekran görüntüsü", "other": "ekran görüntüsü"}};
+window.FL_PLURALS = {"файл|файла|файлов": {"one": "dosya", "other": "dosya"}, "мод|мода|модов": {"one": "mod", "other": "mod"}, "ресурспак|ресурспака|ресурспаков": {"one": "kaynak paketi", "other": "kaynak paketi"}, "шейдер|шейдера|шейдеров": {"one": "shader", "other": "shader"}, "датапак|датапака|датапаков": {"one": "veri paketi", "other": "veri paketi"}, "мир|мира|миров": {"one": "dünya", "other": "dünya"}, "сборка|сборки|сборок": {"one": "profil", "other": "profil"}, "скриншот|скриншота|скриншотов": {"one": "ekran görüntüsü", "other": "ekran görüntüsü"}, "копия|копии|копий": {"one": "yedek", "other": "yedek"}};
