@@ -36,14 +36,14 @@ html[data-motion="on"] .welcome:not([hidden]) .wc-card, html[data-motion="on"] .
 /* ---------- 4. Nothing frosted inside the frosted panel ----------
    .main is already a backdrop-filter; a second one inside it (sticky toolbar, column header, selection bar,
    play bar) is painted black by WebView2. These bars use dense tints instead. */
-.main .ct-top, .main .ct-head, .main .ct-bar, .main .home-bar,
+.main .ct-top, .main .ct-head, .main .ct-bar,
 html[data-wall] .main .ct-top.is-stuck, html[data-wall] .main .ct-head.is-stuck {
   -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
 }
 html[data-wall="on"] .main .ct-top.is-stuck, html[data-wall="on"] .main .ct-head.is-stuck { background: rgba(17, 19, 25, .94); }
 html[data-wall="on"][data-theme="light"] .main .ct-top.is-stuck, html[data-wall="on"][data-theme="light"] .main .ct-head.is-stuck { background: rgba(255, 255, 255, .94); }
-.main .home-bar, .main .ct-bar { background: rgba(20, 21, 27, .97); }
-[data-theme="light"] .main .home-bar, [data-theme="light"] .main .ct-bar { background: rgba(255, 255, 255, .97); }
+.main .ct-bar { background: rgba(20, 21, 27, .97); }
+[data-theme="light"] .main .ct-bar { background: rgba(255, 255, 255, .97); }
 
 /* ---------- 3. Chips over pictures: solid tints ---------- */
 .hero-chip, .hero-view, .c-banner-chip, .hcard > .pin, .sk-t, .sk-badge {
@@ -54,3 +54,22 @@ html[data-wall="on"][data-theme="light"] .main .ct-top.is-stuck, html[data-wall=
 .hcard > .pin { background: rgba(0, 0, 0, .66); }
 .sk-t { background: rgba(0, 0, 0, .7); }
 [data-cover="none"] .hero-view { background: var(--surface-2); }
+
+/* ---------- 5. The home play bar is real glass (0.3.36) ----------
+   In wallpaper mode the panel's blur lives on .main::before, a sibling layer under the views, so .main
+   itself is no longer a backdrop root and the sticky play bar can frost the cards scrolling under it. */
+html[data-wall="on"] .main { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html[data-wall="on"] .main::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.45); backdrop-filter: blur(var(--glass-blur)) saturate(1.45);
+}
+.main .home-bar {
+  background: rgba(18, 20, 27, .56);
+  -webkit-backdrop-filter: blur(26px) saturate(1.6); backdrop-filter: blur(26px) saturate(1.6);
+}
+[data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .62); }
+.main .home-bar .hb-mid .chip { background: rgba(255, 255, 255, .08); }
+[data-theme="light"] .main .home-bar .hb-mid .chip { background: rgba(10, 20, 40, .06); }
+/* Light effects: no blur, so the bar becomes a dense tint that still reads over cards. */
+html[data-fx="lite"] .main .home-bar { background: rgba(22, 23, 30, .93); }
+html[data-fx="lite"][data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .95); }

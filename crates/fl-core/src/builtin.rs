@@ -11,7 +11,7 @@ use crate::{
     addons,
     game::service,
     instances::{self, Instance, InstanceStore},
-    backups, catalog, curseforge, modrinth, mods, mrpack, msauth, people,
+    backups, catalog, curseforge, modrinth, mods, mrpack, msauth, people, servers,
     settings::Settings,
     store, themes, unix_now, versions, Core, CoreError, Permission as P,
 };
@@ -1851,9 +1851,11 @@ fn register_game(r: &mut ActionRegistry) {
             world: Option<String>,
             #[serde(default, rename = "continue")]
             last: bool,
+            #[serde(default)]
+            server: Option<String>,
         }
-        let A { instance, world, last } = args(a)?;
-        service::launch_instance(&c, &instance, world, last).await
+        let A { instance, world, last, server } = args(a)?;
+        service::launch_instance(&c, &instance, world, last, server).await
     });
     r.register(
         "game.running",
@@ -1864,6 +1866,75 @@ fn register_game(r: &mut ActionRegistry) {
     r.register("game.stop", P::GameLaunch, true, |c, a| async move {
         let InstanceArg { instance } = args(a)?;
         Ok(service::stop(&c, &instance).await)
+    });
+    // The game's own multiplayer list (`servers.dat`) and the server list ping.
+    r.register("servers.list", P::InstancesRead, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let gd = i.game_dir(&c.instances_root());
+        Ok(json!({ "instance": instance, "servers": servers::list(&gd)? }))
+    });
+    r.register("servers.save", P::InstancesManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            #[serde(default)]
+            index: Option<usize>,
+            #[serde(default)]
+            ip_was: Option<String>,
+            #[serde(default)]
+            name: String,
+            ip: String,
+        }
+        let A { instance, index, ip_was, name, ip } = args(a)?;
+        let _g = c.state_lock.lock().await;
+        let i = instance_by_id(&c, &instance)?;
+        idle(&c, &i)?;
+        let gd = i.game_dir(&c.instances_root());
+        Ok(json!(servers::save(&gd, index, ip_was.as_deref(), &name, &ip)?))
+    });
+    r.register("servers.delete", P::InstancesManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            index: usize,
+            ip: String,
+        }
+        let A { instance, index, ip } = args(a)?;
+        let _g = c.state_lock.lock().await;
+        let i = instance_by_id(&c, &instance)?;
+        idle(&c, &i)?;
+        let gd = i.game_dir(&c.instances_root());
+        servers::remove(&gd, index, &ip)?;
+        Ok(json!({ "instance": instance, "deleted": true }))
+    });
+    r.register("servers.ping", P::Network, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            address: String,
+        }
+        let A { address } = args(a)?;
+        Ok(servers::ping(c.http(), &address).await)
+    });
+    // «Ускорение сборки»: memory, Java flags and performance mods.
+    r.register("perf.analyze", P::Internal, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        crate::perf::analyze(&c, &i).await
+    });
+    r.register("perf.apply", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            #[serde(default)]
+            memory: bool,
+            #[serde(default)]
+            flags: bool,
+            #[serde(default)]
+            mods: Vec<String>,
+        }
+        let A { instance, memory, flags, mods } = args(a)?;
+        crate::perf::apply(&c, &instance, memory, flags, &mods).await
     });
 }
 

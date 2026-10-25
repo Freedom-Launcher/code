@@ -1,0 +1,45 @@
+/* Freedom Launcher — instance «Серверы» tab (0.3.36). Rows reuse .mod-row / .mod-list from mods.css. */
+.srv-bar { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; min-height: 32px; }
+.sv-count { color: var(--text-3); font-size: var(--text-sm); }
+.sv-add svg { width: 15px; height: 15px; }
+
+.sv-list .sv-row { animation: w-in var(--d-4) var(--ease-out-2) backwards; animation-delay: calc(var(--i, 0) * 24ms); }
+[data-motion="off"] .sv-list .sv-row { animation: none; }
+.sv-row { min-height: 64px; }
+.sv-ico { position: relative; overflow: hidden; image-rendering: pixelated; font-size: 13px; }
+.sv-ico img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--d-3) var(--ease-out); }
+.sv-ico.is-img img { opacity: 1; }
+.sv-row.is-off .sv-ico { filter: grayscale(.8); opacity: .7; }
+
+.sv-row .t .sv-line { display: flex; align-items: baseline; gap: 8px; margin-top: 3px; min-width: 0; font-size: var(--text-sm); }
+.sv-addr { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-size: 12px; }
+.sv-motd { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.sv-motd > span { color: var(--c, inherit); }
+html[data-theme="light"] .sv-motd > span { color: color-mix(in srgb, var(--c, currentColor) 62%, #1a1d24); }
+.sv-dim { color: var(--text-3); }
+.sv-err { color: var(--danger, #e5484d); }
+
+.sv-stat { display: flex; align-items: center; gap: 10px; flex: none; margin-left: 4px; }
+.sv-players { color: var(--text-2); font-size: var(--text-sm); min-width: 54px; text-align: right; }
+.sv-ver { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sv-sig { display: inline-flex; align-items: flex-end; gap: 2px; width: 18px; height: 14px; }
+.sv-sig i { flex: 1; border-radius: 1px; background: var(--fill-3, rgba(127, 127, 127, .28)); }
+.sv-sig i:nth-child(1) { height: 30%; } .sv-sig i:nth-child(2) { height: 55%; }
+.sv-sig i:nth-child(3) { height: 78%; } .sv-sig i:nth-child(4) { height: 100%; }
+.sv-sig[data-n="4"] i, .sv-sig[data-n="3"] i:nth-child(-n+3) { background: #3fb950; }
+.sv-sig[data-n="2"] i:nth-child(-n+2) { background: #d4a72c; }
+.sv-sig[data-n="1"] i:nth-child(1) { background: #e5484d; }
+
+.sv-row .btn-icon, .sv-row .sv-play { opacity: 0; transition: opacity var(--d-2) var(--ease-out), background-color var(--d-2), color var(--d-2); }
+.sv-row:hover .btn-icon, .sv-row:focus-within .btn-icon, .sv-row:hover .sv-play, .sv-row:focus-within .sv-play { opacity: 1; }
+.sv-play svg { width: 14px; height: 14px; }
+.sv-row .sv-del:hover, .sv-row .sv-del[data-armed] { color: var(--danger, #e5484d); opacity: 1; }
+.sv-row .sv-del[data-armed] { background: color-mix(in srgb, var(--danger, #e5484d) 14%, transparent); }
+@media (hover: none) { .sv-row .btn-icon, .sv-row .sv-play { opacity: 1; } }
+@media (max-width: 900px) { .sv-ver { display: none; } }
+
+.dialog#dlg-server { width: min(520px, calc(100vw - 32px)); }
+.sv-preview { margin-top: 14px; border-radius: var(--r-card); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.sv-preview .sv-row { animation: none; }.srv-bar .spacer { flex: 1; }
+.sv-row .t .sv-line > span { display: inline; margin-top: 0; }
+.sv-row .t .sv-motd span { display: inline; margin: 0; font-size: inherit; color: var(--c, inherit); }

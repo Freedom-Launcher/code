@@ -710,7 +710,7 @@ async function play(id = S.current, launch = true, stay = false, opts = {}) {
       if (w && r?.after_launch === 'close') setTimeout(() => w.close(), 800);
     }
     btn.dataset.state = 'success';
-    toast(!launch ? _t("Файлы в порядке") : launched?.world ? _t("Открываем мир «{0}»", [launched.world]) : _t("Игра запущена"));
+    toast(!launch ? _t("Файлы в порядке") : launched?.world ? _t("Открываем мир «{0}»", [launched.world]) : launched?.server ? _t("Подключаемся к {0}", [launched.server]) : _t("Игра запущена"));
     if (launched?.backup_error) toast(_t("Не удалось сделать копию мира: {0}", [launched.backup_error]), { error: true, ms: 6000 });
   } catch (e) {
     btn.dataset.state = 'error';
@@ -810,7 +810,7 @@ $('#menu-ctx-instance').addEventListener('ctx-open', (e) => {
 });
 $('#cx-continue').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(), true, false, { continue: true }); });
 $('#cx-play').addEventListener('click', () => { FUI.closeMenu(); const id = ctxInst(); isRunning(id) ? stopGame(id) : play(id, true); });
-for (const [cx, mi] of [['cx-settings', 'mi-settings'], ['cx-folder', 'mi-folder'], ['cx-dup', 'mi-dup'], ['cx-export', 'mi-export'], ['cx-del', 'mi-del']]) {
+for (const [cx, mi] of [['cx-settings', 'mi-settings'], ['cx-perf', 'mi-perf'], ['cx-folder', 'mi-folder'], ['cx-dup', 'mi-dup'], ['cx-export', 'mi-export'], ['cx-del', 'mi-del']]) {
   $(`#${cx}`).addEventListener('click', () => {
     FUI.closeMenu();
     S.ctxAct = ctxInst();

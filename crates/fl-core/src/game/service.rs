@@ -228,7 +228,18 @@ pub async fn launch_instance(
     instance: &str,
     world: Option<String>,
     last: bool,
+    server: Option<String>,
 ) -> Result<Value, CoreError> {
+    let server = server.map(|s| s.trim().to_owned()).filter(|s| !s.is_empty());
+    if let Some(s) = &server {
+        if !crate::servers::valid_address(s) {
+            return Err(CoreError::msg("Неверный адрес сервера"));
+        }
+        if world.is_some() {
+            return Err(CoreError::msg("Выберите что-то одно: мир или сервер"));
+        }
+    }
+    let last = last && server.is_none();
     let auth = launch_auth(core).await?;
     let inst = find_instance(core, instance)?;
     let gd = inst.game_dir(&core.instances_root());
@@ -252,7 +263,7 @@ pub async fn launch_instance(
     if !core.game_running.begin(instance) {
         return Ok(json!({ "instance": instance, "already_running": true }));
     }
-    let res = start(core, &inst, auth, world).await;
+    let res = start(core, &inst, auth, world, server).await;
     if res.is_err() {
         core.game_running.cancel(instance);
     }
@@ -264,6 +275,7 @@ async fn start(
     inst: &Instance,
     auth: LaunchAuth,
     world: Option<String>,
+    server: Option<String>,
 ) -> Result<Value, CoreError> {
     let layout = Layout::new(core);
     // Full verification is `game.install`; a launch only installs when needed.
@@ -320,6 +332,18 @@ async fn start(
         args.push("--quickPlaySingleplayer".into());
         args.push(w.clone());
     }
+    // Straight onto a server: Quick Play on 1.20+, the old --server/--port before that.
+    if let Some(s) = &server {
+        if launch::quick_play_supported(&inst.version) {
+            args.push("--quickPlayMultiplayer".into());
+            args.push(s.clone());
+        } else if let Some((host, port)) = crate::servers::split(s) {
+            args.push("--server".into());
+            args.push(host);
+            args.push("--port".into());
+            args.push(port.unwrap_or(25565).to_string());
+        }
+    }
     // Variables like Prism/Modrinth give hooks, plus the user's own.
     let mut vars: std::collections::BTreeMap<String, String> = [
         ("INST_ID", inst.id.clone()),
@@ -357,7 +381,7 @@ async fn start(
     // A copy of the world about to be played; a failed copy never blocks the game.
     let mut backup_error = None;
     let mut backup = None;
-    if set.auto_backup == Some(true) {
+    if set.auto_backup == Some(true) && server.is_none() {
         let target = world.clone().or_else(|| crate::backups::latest_world(&opts.game_dir));
         if let Some(w) = target {
             let pr = progress_for(core, &inst.id);
@@ -389,6 +413,7 @@ async fn start(
         "memory_mb": opts.memory_mb,
         "after_launch": set.after_launch.as_deref().unwrap_or("keep"),
         "world": world,
+        "server": server,
         "backup": backup,
         "backup_error": backup_error,
     }))

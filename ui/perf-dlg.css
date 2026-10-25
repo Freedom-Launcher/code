@@ -1,0 +1,44 @@
+/* Freedom Launcher — «Ускорение сборки» dialog (0.3.36). Not to be confused with perf.css (render performance). */
+.dialog.pf { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); display: flex; flex-direction: column; }
+.dialog.pf h2 { margin-bottom: 4px; }
+.pf-sub { margin: 0 0 var(--s-4); color: var(--text-3); }
+.pf-body { flex: 1; min-height: 0; overflow: auto; margin: 0 calc(var(--s-5) * -1); padding: 0 var(--s-5) 2px; }
+
+.pf-head { display: flex; align-items: center; gap: 16px; padding: 2px 0 12px; }
+.pf-head .t { min-width: 0; }
+.pf-head .t b { display: block; font-weight: var(--w-semibold); font-size: 15px; color: var(--text); }
+.pf-head .t span { display: block; margin-top: 4px; color: var(--text-3); font-size: var(--text-sm); }
+.pf-ring { position: relative; width: 64px; height: 64px; flex: none; --tone: #e5484d; }
+.pf-ring[data-tone="good"] { --tone: #3fb950; }
+.pf-ring[data-tone="mid"] { --tone: #d4a72c; }
+.pf-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.pf-ring circle { fill: none; stroke-width: 6; }
+.pf-ring .bg { stroke: var(--fill-3, rgba(127, 127, 127, .25)); }
+.pf-ring .fg { stroke: var(--tone); stroke-linecap: round; transition: stroke-dashoffset 900ms var(--ease-out-2, ease-out); }
+.pf-ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 18px; font-weight: var(--w-semibold); color: var(--text); }
+[data-motion="off"] .pf-ring .fg { transition: none; }
+
+.pf-sec { margin: 14px 0 6px; font-size: 11px; font-weight: var(--w-semibold); letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+.pf-list { border-radius: var(--r-card); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.pf-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px 8px 10px; cursor: pointer; transition: background-color var(--d-2) var(--ease-out); }
+.pf-row + .pf-row { box-shadow: inset 0 1px 0 var(--line); }
+.pf-row:hover { background: var(--fill); }
+.pf-row.is-done { cursor: default; }
+.pf-row.is-done:hover { background: none; }
+.pf-ico { width: 36px; height: 36px; flex: none; display: grid; place-items: center; overflow: hidden; border-radius: calc(9px * var(--rk-icon, 1)); background: var(--fill-2); color: var(--text-2); font-style: normal; font-size: 12px; font-weight: var(--w-semibold); }
+.pf-ico img { width: 100%; height: 100%; object-fit: cover; }
+.pf-ico svg { width: 18px; height: 18px; color: var(--accent); }
+.pf-row .t { flex: 1; min-width: 0; }
+.pf-row .t b { display: block; font-weight: var(--w-semibold); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-row .t span { display: block; margin-top: 2px; font-size: var(--text-sm); color: var(--text-3); }
+.pf-row .t .pf-note { color: #d4a72c; }
+.pf-state { flex: none; color: #3fb950; background: color-mix(in srgb, #3fb950 14%, transparent); }
+.pf-state.is-warn { color: var(--text-3); background: var(--fill-2); }
+.pf-van { margin: 12px 0 0; }
+
+.pf-skel .sk { display: block; border-radius: calc(4px * var(--rk-chip, 1)); background: var(--surface-3); animation: w-pulse 1.2s ease-in-out infinite; }
+.pf-skel .pf-ring.sk { border-radius: 50%; }
+.pf-skel .pf-ico.sk { background: var(--surface-3); }
+.pf-skel b.sk { width: 46%; height: 12px; }
+.pf-skel span.sk { width: 28%; height: 10px; margin-top: 7px; }
+[data-motion="off"] .pf-skel .sk { animation: none; }
