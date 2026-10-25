@@ -1189,6 +1189,27 @@ window.FL_DICT = {
 "шаблон: тег {0}> запрещён": "Vorlage: Tag {0}> ist nicht erlaubt",
 "шейдерам нужна сборка с загрузчиком": "Shader benötigen eine Instanz mit Loader",
 "это не текстовый файл": "Das ist keine Textdatei",
-"Рекомендуется": "Empfohlen"
+"Рекомендуется": "Empfohlen",
+"Мод": "Mod",
+"Ресурспак": "Ressourcenpaket",
+"Шейдер": "Shader",
+"По имени": "Nach Name",
+"Организация": "Organisation",
+"Открыть в браузере": "Im Browser öffnen",
+"Проекты": "Projekte",
+"Загрузки": "Downloads",
+"Лайки": "Likes",
+"Подписчики": "Follower",
+"На Modrinth с": "Auf Modrinth seit",
+"Самый популярный": "Am beliebtesten",
+"Участники": "Mitglieder",
+"Организации": "Organisationen",
+"Поиск по проектам": "Projekte durchsuchen",
+"Показать ещё": "Mehr anzeigen",
+"Проектов нет": "Keine Projekte",
+"Архив": "Archiviert",
+"Не удалось открыть профиль": "Profil konnte nicht geöffnet werden",
+"Владелец": "Inhaber",
+"Авторы": "Ersteller"
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "Datei", "other": "Dateien"}, "мод|мода|модов": {"one": "Mod", "other": "Mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "Ressourcenpaket", "other": "Ressourcenpakete"}, "шейдер|шейдера|шейдеров": {"one": "Shader", "other": "Shader"}, "датапак|датапака|датапаков": {"one": "Datenpaket", "other": "Datenpakete"}, "мир|мира|миров": {"one": "Welt", "other": "Welten"}, "сборка|сборки|сборок": {"one": "Instanz", "other": "Instanzen"}, "скриншот|скриншота|скриншотов": {"one": "Screenshot", "other": "Screenshots"}};

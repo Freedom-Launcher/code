@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="mods.css">
   <link rel="stylesheet" href="content.css">
   <link rel="stylesheet" href="project.css">
+  <link rel="stylesheet" href="author.css">
   <link rel="stylesheet" href="glass.css">
   <link rel="stylesheet" href="palette.css">
   <link rel="stylesheet" href="welcome.css">
@@ -58,6 +59,7 @@
   <script src="foreign.js" defer></script>
   <script src="md.js" defer></script>
   <script src="project.js" defer></script>
+  <script src="author.js" defer></script>
   <script src="palette.js" defer></script>
   <script src="welcome.js" defer></script>
   <script src="editor-core.js" defer></script>
@@ -414,6 +416,14 @@
           <div data-slot="project.end"></div>
         </div>
         <div class="pop" id="menu-proj" role="menu" data-id="project.menu"><button class="menu-item" data-do="open">Открыть на Modrinth</button><button class="menu-item" data-do="copy">Скопировать ссылку</button></div>
+      </section>
+      <section class="view" id="view-author" data-id="view.author">
+        <div class="narrow">
+          <button class="btn btn-ghost proj-back" id="auth-back" data-id="author.back"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path d="M24 0v24H0V0h24ZM12.593 23.258l-.011.002-.071.035-.02.004-.014-.004-.071-.035c-.01-.004-.019-.001-.024.005l-.004.01-.017.428.005.02.01.013.104.074.015.004.012-.004.104-.074.012-.016.004-.017-.017-.427c-.002-.01-.009-.017-.017-.018Zm.265-.113-.013.002-.185.093-.01.01-.003.011.018.43.005.012.008.007.201.093c.012.004.023 0 .029-.008l.004-.014-.034-.614c-.003-.012-.01-.02-.02-.022Zm-.715.002a.023.023 0 0 0-.027.006l-.006.014-.034.614c0 .012.007.02.017.024l.015-.002.201-.093.01-.008.004-.011.017-.43-.003-.012-.01-.01-.184-.092Z"/><path fill="currentColor" d="M8.293 12.707a1 1 0 0 1 0-1.414l5.657-5.657a1 1 0 1 1 1.414 1.414L10.414 12l4.95 4.95a1 1 0 0 1-1.414 1.414l-5.657-5.657Z"/></g></svg><span class="lbl">Назад</span></button>
+          <header class="auth-hero" id="auth-head" data-id="author.header"></header>
+          <div class="auth-body" id="auth-body" data-id="author.body"></div>
+          <div data-slot="author.end"></div>
+        </div>
       </section>
       <section class="view" id="view-settings" data-id="view.settings">
       <div class="set-wrap">

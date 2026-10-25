@@ -1,0 +1,111 @@
+/* Author and organization page: a hero with who they are, quick stats, people, then their projects. */
+#view-author .narrow { max-width: clamp(640px, 86vw, 1380px); }
+.auth-hero {
+  position: relative; display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; gap: 22px; align-items: center;
+  padding: 24px 26px; border-radius: var(--r-card); overflow: hidden;
+  background: radial-gradient(90% 170% at 0% 0%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 62%), var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.auth-ava {
+  width: 104px; height: 104px; display: grid; place-items: center; overflow: hidden; border-radius: 50%;
+  background: var(--surface-3); box-shadow: 0 0 0 1px var(--line), 0 10px 30px rgba(0, 0, 0, .22);
+  color: var(--text-2); font: var(--w-semibold) 38px/1 var(--font-display); font-style: normal;
+}
+.auth-ava.is-org { border-radius: calc(26px * var(--rk-icon, 1)); }
+.auth-ava img { width: 100%; height: 100%; object-fit: cover; }
+.auth-title { min-width: 0; }
+.auth-kicker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.auth-title h1 { margin: 0; color: var(--text); font: var(--w-semibold) var(--text-2xl)/1.15 var(--font-display); letter-spacing: -.02em; overflow-wrap: anywhere; }
+.auth-bio {
+  margin: 8px 0 0; max-width: 78ch; color: var(--text-2); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.auth-title .sk-t { width: 40%; height: 26px; }
+.auth-title .sk-l { width: 65%; height: 12px; margin-top: 12px; }
+.auth-actions { display: flex; gap: 8px; align-self: start; }
+.auth-actions .btn svg { width: 15px; height: 15px; }
+.auth-actions .btn-icon { padding: 0; aspect-ratio: 1; justify-content: center; }
+
+.auth-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 12px 0 18px; }
+.auth-stat {
+  position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 14px 16px;
+  border: 0; border-radius: var(--r-card); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line);
+  color: inherit; font: inherit; text-align: left;
+}
+.auth-stat > span { color: var(--text-3); font-size: var(--text-xs); font-weight: var(--w-semibold); letter-spacing: .04em; text-transform: uppercase; }
+.auth-stat > b { color: var(--text); font: var(--w-semibold) var(--text-xl)/1.15 var(--font-display); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.auth-stat.is-text > b { font-size: var(--text-lg); line-height: 1.55; }
+.auth-stat.is-link { padding-right: 36px; cursor: pointer; transition: box-shadow var(--d-2) var(--ease-out); }
+.auth-stat.is-link:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.auth-stat.is-link:hover > b { color: var(--accent); }
+.auth-stat.is-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.auth-stat .go { position: absolute; right: 12px; bottom: 15px; color: var(--text-3); font-style: normal; }
+.auth-stat .go svg { display: block; width: 18px; height: 18px; }
+.auth-stat .sk-s { width: 40%; height: 10px; }
+.auth-stat .sk-n { width: 55%; height: 20px; }
+
+.auth-people { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 20px; }
+.auth-lbl { margin-right: 4px; color: var(--text-3); font-size: var(--text-xs); font-weight: var(--w-semibold); letter-spacing: .04em; text-transform: uppercase; }
+.auth-person {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 280px; height: 34px; padding: 0 12px 0 4px;
+  border: 0; border-radius: var(--r-pill); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text); font: inherit; font-size: var(--text-sm); font-weight: var(--w-medium); cursor: pointer;
+  transition: box-shadow var(--d-2) var(--ease-out);
+}
+.auth-person:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.auth-person:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.auth-person > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.auth-person > small { color: var(--text-3); font-size: var(--text-xs); white-space: nowrap; }
+.auth-person .ct-ava { width: 26px; height: 26px; font-size: 11px; }
+.auth-person .ct-ava.is-org { border-radius: calc(7px * var(--rk-icon, 1)); }
+
+.auth-pills { margin: 0 0 12px; }
+.auth-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+.auth-bar .grow { flex: 1 1 240px; }
+.auth-bar .auth-sort { width: auto; flex: none; }
+.auth-arch {
+  display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: var(--r-chip, 6px);
+  background: rgba(242, 182, 75, .12); color: var(--warn, #f2b64b); font-size: 10px; font-style: normal; font-weight: var(--w-semibold);
+}
+.auth-grid .mod-card.is-archived .mod-ico { filter: grayscale(.85); }
+.auth-grid .mod-card.is-skel { min-height: 150px; align-content: start; }
+.auth-grid .mod-card.is-skel .sk-l { width: 70%; height: 12px; }
+.auth-fail { min-height: 240px; }
+
+/* Project page: the «by» line under the title and the creators card in the sidebar. */
+.proj-by { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.proj-by .auth-person { height: 28px; padding: 0 10px 0 3px; gap: 6px; }
+.proj-by .auth-person .ct-ava { width: 22px; height: 22px; font-size: 10px; }
+.proj-by-more { color: var(--text-3); font-size: var(--text-sm); }
+.proj-members { display: flex; flex-direction: column; gap: 2px; margin: 0 -8px; }
+.proj-member {
+  display: grid; grid-template-columns: 32px minmax(0, 1fr) 16px; align-items: center; gap: 10px; min-height: 44px; padding: 6px 8px;
+  border: 0; border-radius: calc(10px * var(--rk-btn, 1)); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  transition: background-color var(--d-2) var(--ease-out);
+}
+.proj-member:hover { background: var(--hover); }
+.proj-member:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.proj-member .ct-ava { width: 32px; height: 32px; font-size: 12px; }
+.proj-member .ct-ava.is-org { border-radius: calc(8px * var(--rk-icon, 1)); }
+.proj-member .nm { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.proj-member b { color: var(--text); font-size: var(--text-sm); font-weight: var(--w-semibold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proj-member small { color: var(--text-3); font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proj-member .go { color: var(--text-3); font-style: normal; transition: color var(--d-2) var(--ease-out); }
+.proj-member:hover .go { color: var(--accent); }
+.proj-member .go svg { display: block; width: 16px; height: 16px; }
+.proj-members-more { margin: 8px 0 0; }
+
+/* Catalog cards: the author name opens their page. */
+.mod-card .mod-by { width: fit-content; max-width: 100%; cursor: pointer; border-radius: 4px; transition: color var(--d-2) var(--ease-out); }
+.mod-card .mod-by:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.mod-card .mod-by:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.crumbs-t .cr-ico.is-ava { display: grid; place-items: center; overflow: hidden; border-radius: 50%; color: var(--text-3); font-size: 9px; font-style: normal; font-weight: var(--w-semibold); }
+.crumbs-t .cr-ico.is-ava.is-org { border-radius: calc(5px * var(--rk-icon, 1)); }
+.crumbs-t .cr-ico.is-ava img { width: 100%; height: 100%; object-fit: cover; }
+
+@media (max-width: 720px) {
+  .auth-hero { grid-template-columns: 72px minmax(0, 1fr); padding: 18px; }
+  .auth-ava { width: 72px; height: 72px; font-size: 28px; }
+  .auth-actions { grid-column: 1 / -1; }
+}

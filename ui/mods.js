@@ -459,6 +459,15 @@ const CHEV = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidde
   }, { rootMargin: '600px' }).observe($('#disc-more'));
   document.addEventListener('look:browse', () => { if (S.view === 'discover') search(true); });
 
+  // The author name opens their page in the launcher; the rest of the card opens the project.
+  function byOf(h) {
+    const cf = String(h.project_id).startsWith('cf:');
+    const who = cf ? (h.author_id ? { kind: 'cf', id: String(h.author_id) } : null) : (h.author ? { kind: 'user', id: h.author } : null);
+    if (!who) return el('span', {}, h.author);
+    const go = (e) => { e.stopPropagation(); window.FAuthor?.open(who.kind, who.id, { kind: who.kind, name: h.author }); };
+    return el('span', { class: 'mod-by', tabindex: '0', 'data-id': `discover.author.${h.slug}`, onclick: go, onkeydown: (e) => { if (e.key === 'Enter') go(e); } }, h.author);
+  }
+
   function card(h) {
     const k = kind;
     const on = k !== 'modpack' && have.has(h.project_id);
@@ -467,7 +476,7 @@ const CHEV = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidde
     const open = () => window.FProject?.open(h.project_id, k, h);
     return el('article', { class: 'mod-card', 'data-project': h.project_id, tabindex: '0', onclick: open, onkeydown: (e) => { if (e.key === 'Enter' && e.target === e.currentTarget) open(); } },
       icon(h.icon_url, h.title),
-      el('div', { class: 't' }, el('b', {}, h.title), el('span', {}, h.author)),
+      el('div', { class: 't' }, el('b', {}, h.title), byOf(h)),
       el('p', {}, h.description),
       el('div', { class: 'foot' }, el('span', { class: 'dl' }, _t("{0} загрузок", [fmtN(h.downloads)])), b));
   }

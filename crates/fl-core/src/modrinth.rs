@@ -261,6 +261,9 @@ pub struct Hit {
     pub description: String,
     #[serde(default)]
     pub author: String,
+    /// CurseForge author id; empty for Modrinth, whose `author` is the owner's username.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub author_id: String,
     #[serde(default)]
     pub icon_url: Option<String>,
     #[serde(default)]

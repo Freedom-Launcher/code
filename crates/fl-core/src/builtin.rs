@@ -11,7 +11,7 @@ use crate::{
     addons,
     game::service,
     instances::{self, Instance, InstanceStore},
-    catalog, curseforge, modrinth, mods, mrpack, msauth,
+    catalog, curseforge, modrinth, mods, mrpack, msauth, people,
     settings::Settings,
     store, themes, unix_now, versions, Core, CoreError, Permission as P,
 };
@@ -2042,6 +2042,20 @@ fn register_mods(r: &mut ActionRegistry) {
         Ok(serde_json::to_value(
             catalog::project_versions(&c, &id).await?,
         )?)
+    });
+    // Who made a project, and a creator's page with every project of theirs.
+    r.register("catalog.credits", P::Network, false, |c, a| async move {
+        let id = project_arg(a)?;
+        people::credits(&c, &id).await
+    });
+    r.register("catalog.person", P::Network, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            kind: String,
+            id: String,
+        }
+        let A { kind, id } = args(a)?;
+        people::profile(&c, &kind, &id).await
     });
     r.register("mods.categories", P::Network, false, |c, a| async move {
         #[derive(Deserialize)]

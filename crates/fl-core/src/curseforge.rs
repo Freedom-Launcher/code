@@ -76,7 +76,7 @@ pub fn class_id(kind: Kind) -> u32 {
     }
 }
 
-fn project_type(class: u32) -> &'static str {
+pub(crate) fn project_type(class: u32) -> &'static str {
     match class {
         12 => "resourcepack",
         6552 => "shader",
@@ -97,7 +97,7 @@ pub fn loader_type(l: &str) -> Option<u32> {
     }
 }
 
-fn loader_of_type(t: u32) -> Option<&'static str> {
+pub(crate) fn loader_of_type(t: u32) -> Option<&'static str> {
     match t {
         1 => Some("forge"),
         4 => Some("fabric"),
@@ -205,6 +205,10 @@ pub struct CfAuthor {
     pub id: u64,
     #[serde(default, deserialize_with = "nn")]
     pub name: String,
+    #[serde(default, deserialize_with = "nn")]
+    pub url: String,
+    #[serde(default, rename = "avatarUrl", deserialize_with = "nn")]
+    pub avatar_url: String,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -404,6 +408,7 @@ fn to_hit(m: &CfMod) -> Hit {
         title: m.name.clone(),
         description: m.summary.clone(),
         author: m.authors.first().map(|a| a.name.clone()).unwrap_or_default(),
+        author_id: m.authors.first().map(|a| a.id.to_string()).unwrap_or_default(),
         icon_url: icon(m),
         downloads: m.download_count.max(0.0) as u64,
         follows: m.thumbs_up_count,
@@ -713,6 +718,26 @@ pub async fn version(core: &Core, project: &str, id: &str) -> Result<Version, Co
 }
 
 /// Several projects at once.
+/// Every project an author is credited on, most downloaded first (at most 200).
+pub async fn by_author(core: &Core, author: u64) -> Result<Vec<CfMod>, CoreError> {
+    let mut out: Vec<CfMod> = Vec::new();
+    let mut index = 0u64;
+    loop {
+        let url = format!(
+            "{API}/mods/search?gameId={GAME}&authorId={author}&sortField=6&sortOrder=desc&index={index}&pageSize=50"
+        );
+        let r: Resp<Vec<CfMod>> = get(core, &url).await?;
+        let n = r.data.len() as u64;
+        let total = r.pagination.map_or(0, |p| p.total_count);
+        out.extend(r.data);
+        index += n;
+        if n < 50 || index >= total || index >= 200 {
+            break;
+        }
+    }
+    Ok(out)
+}
+
 pub async fn mods(core: &Core, ids: &[u64]) -> Result<Vec<CfMod>, CoreError> {
     let mut out = Vec::new();
     for chunk in ids.chunks(500) {

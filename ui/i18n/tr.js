@@ -1189,6 +1189,27 @@ window.FL_DICT = {
 "шаблон: тег {0}> запрещён": "şablon: {0}> etiketi yasak",
 "шейдерам нужна сборка с загрузчиком": "gölgelendiriciler yükleyicili bir profil gerektirir",
 "это не текстовый файл": "bu bir metin dosyası değil",
-"Рекомендуется": "Önerilen"
+"Рекомендуется": "Önerilen",
+"Мод": "Mod",
+"Ресурспак": "Kaynak paketi",
+"Шейдер": "Shader",
+"По имени": "Ada göre",
+"Организация": "Organizasyon",
+"Открыть в браузере": "Tarayıcıda aç",
+"Проекты": "Projeler",
+"Загрузки": "İndirmeler",
+"Лайки": "Beğeniler",
+"Подписчики": "Takipçiler",
+"На Modrinth с": "Modrinth'e katılım",
+"Самый популярный": "En popüler",
+"Участники": "Üyeler",
+"Организации": "Organizasyonlar",
+"Поиск по проектам": "Projelerde ara",
+"Показать ещё": "Daha fazla göster",
+"Проектов нет": "Proje yok",
+"Архив": "Arşivlendi",
+"Не удалось открыть профиль": "Profil açılamadı",
+"Владелец": "Sahip",
+"Авторы": "Yapımcılar"
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "dosya", "other": "dosya"}, "мод|мода|модов": {"one": "mod", "other": "mod"}, "ресурспак|ресурспака|ресурспаков": {"one": "kaynak paketi", "other": "kaynak paketi"}, "шейдер|шейдера|шейдеров": {"one": "shader", "other": "shader"}, "датапак|датапака|датапаков": {"one": "veri paketi", "other": "veri paketi"}, "мир|мира|миров": {"one": "dünya", "other": "dünya"}, "сборка|сборки|сборок": {"one": "profil", "other": "profil"}, "скриншот|скриншота|скриншотов": {"one": "ekran görüntüsü", "other": "ekran görüntüsü"}};

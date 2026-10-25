@@ -1189,6 +1189,27 @@ window.FL_DICT = {
 "шаблон: тег {0}> запрещён": "modèle : balise {0}> interdite",
 "шейдерам нужна сборка с загрузчиком": "les shaders nécessitent une instance avec loader",
 "это не текстовый файл": "ce n’est pas un fichier texte",
-"Рекомендуется": "Recommandé"
+"Рекомендуется": "Recommandé",
+"Мод": "Mod",
+"Ресурспак": "Pack de ressources",
+"Шейдер": "Shader",
+"По имени": "Par nom",
+"Организация": "Organisation",
+"Открыть в браузере": "Ouvrir dans le navigateur",
+"Проекты": "Projets",
+"Загрузки": "Téléchargements",
+"Лайки": "J'aime",
+"Подписчики": "Abonnés",
+"На Modrinth с": "Sur Modrinth depuis le",
+"Самый популярный": "Le plus populaire",
+"Участники": "Membres",
+"Организации": "Organisations",
+"Поиск по проектам": "Rechercher des projets",
+"Показать ещё": "Afficher plus",
+"Проектов нет": "Aucun projet",
+"Архив": "Archivé",
+"Не удалось открыть профиль": "Impossible d'ouvrir le profil",
+"Владелец": "Propriétaire",
+"Авторы": "Créateurs"
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "fichier", "many": "fichiers", "other": "fichiers"}, "мод|мода|модов": {"one": "mod", "many": "mods", "other": "mods"}, "ресурспак|ресурспака|ресурспаков": {"one": "pack de ressources", "many": "packs de ressources", "other": "packs de ressources"}, "шейдер|шейдера|шейдеров": {"one": "shader", "many": "shaders", "other": "shaders"}, "датапак|датапака|датапаков": {"one": "pack de données", "many": "packs de données", "other": "packs de données"}, "мир|мира|миров": {"one": "monde", "many": "mondes", "other": "mondes"}, "сборка|сборки|сборок": {"one": "instance", "many": "instances", "other": "instances"}, "скриншот|скриншота|скриншотов": {"one": "capture d'écran", "many": "captures d'écran", "other": "captures d'écran"}};

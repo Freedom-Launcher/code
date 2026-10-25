@@ -1189,6 +1189,27 @@ window.FL_DICT = {
 "шаблон: тег {0}> запрещён": "szablon: tag {0}> jest zabroniony",
 "шейдерам нужна сборка с загрузчиком": "shadery wymagają paczki z loaderem",
 "это не текстовый файл": "to nie jest plik tekstowy",
-"Рекомендуется": "Zalecane"
+"Рекомендуется": "Zalecane",
+"Мод": "Mod",
+"Ресурспак": "Paczka zasobów",
+"Шейдер": "Shader",
+"По имени": "Według nazwy",
+"Организация": "Organizacja",
+"Открыть в браузере": "Otwórz w przeglądarce",
+"Проекты": "Projekty",
+"Загрузки": "Pobrania",
+"Лайки": "Polubienia",
+"Подписчики": "Obserwujący",
+"На Modrinth с": "Na Modrinth od",
+"Самый популярный": "Najpopularniejszy",
+"Участники": "Członkowie",
+"Организации": "Organizacje",
+"Поиск по проектам": "Szukaj projektów",
+"Показать ещё": "Pokaż więcej",
+"Проектов нет": "Brak projektów",
+"Архив": "Zarchiwizowany",
+"Не удалось открыть профиль": "Nie udało się otworzyć profilu",
+"Владелец": "Właściciel",
+"Авторы": "Twórcy"
 };
 window.FL_PLURALS = {"файл|файла|файлов": {"one": "plik", "few": "pliki", "many": "plików", "other": "pliku"}, "мод|мода|модов": {"one": "mod", "few": "mody", "many": "modów", "other": "modu"}, "ресурспак|ресурспака|ресурспаков": {"one": "paczka zasobów", "few": "paczki zasobów", "many": "paczek zasobów", "other": "paczki zasobów"}, "шейдер|шейдера|шейдеров": {"one": "shader", "few": "shadery", "many": "shaderów", "other": "shadera"}, "датапак|датапака|датапаков": {"one": "paczka danych", "few": "paczki danych", "many": "paczek danych", "other": "paczki danych"}, "мир|мира|миров": {"one": "świat", "few": "światy", "many": "światów", "other": "świata"}, "сборка|сборки|сборок": {"one": "instancja", "few": "instancje", "many": "instancji", "other": "instancji"}, "скриншот|скриншота|скриншотов": {"one": "zrzut ekranu", "few": "zrzuty ekranu", "many": "zrzutów ekranu", "other": "zrzutu ekranu"}};

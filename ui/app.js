@@ -108,9 +108,9 @@ function show(view, defer) {
     clearTimeout(navT); navT = setTimeout(() => root.removeAttribute('data-navfast'), 450);
   }
   S.view = view;
-  if (view !== 'discover' && view !== 'project') window.FMods?.unscope?.();
+  if (view !== 'discover' && view !== 'project' && view !== 'author') window.FMods?.unscope?.();
   $$('.view').forEach((x) => x.classList.toggle('is-active', x.id === `view-${view}`));
-  const lit = view === 'project' ? 'discover' : view;
+  const lit = view === 'project' || view === 'author' ? 'discover' : view;
   $$('.rail-btn[data-view]').forEach((b) => (b.dataset.view === lit ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   $$('#rail-list .tile').forEach((t) => (view === 'instance' && t.dataset.inst === S.current ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
   if (changed) settle(node);

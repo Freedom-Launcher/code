@@ -8,6 +8,7 @@
   const sel = (root) => $(`${root} [aria-selected="true"]`);
   const label = (root, attr, v) => $(`${root} [data-${attr}="${v}"]`)?.textContent.trim() || v;
   let proj = null; // { id, kind, title, icon } of the open project page
+  let auth = null; // { kind, id, name, avatar } of the open author page
 
   function snap() {
     const v = S.view || 'home';
@@ -16,6 +17,7 @@
     if (v === 'settings') e.sub = sel('#set-seg')?.dataset.pane || 'look';
     if (v === 'discover') { e.sub = sel('#disc-kind')?.dataset.kind || 'modpack'; const sc = window.FMods?.scopeOf?.(); if (sc) e.inst = sc; }
     if (v === 'project' && proj) { e.proj = { ...proj }; e.sub = proj.id; }
+    if (v === 'author' && auth) { e.auth = { ...auth }; e.sub = `${auth.kind}:${auth.id}`; }
     return e;
   }
   const key = (e) => e && [e.view, e.inst || '', e.sub || ''].join('|');
@@ -43,6 +45,8 @@
         window.FMods?.scoped(e.inst, e.sub);
       } else if (e.view === 'project' && e.proj) {
         await window.FProject?.open(e.proj.id, e.proj.kind, { project_id: e.proj.id, title: e.proj.title, icon_url: e.proj.icon });
+      } else if (e.view === 'author' && e.auth) {
+        await window.FAuthor?.open(e.auth.kind, e.auth.id, { kind: e.auth.kind, name: e.auth.name, avatar: e.auth.avatar });
       } else {
         show(byId(e.inst) || e.view !== 'instance' ? e.view : 'home');
         if (e.view === 'settings') window.FSettings?.open(e.sub);
@@ -82,6 +86,11 @@
         const ico = window.FMods?.icon(p.icon, p.title || '');
         ico?.classList.add('cr-ico');
         return [{ t: _t("Каталог"), go: toKind('modpack') }, { t: label('#disc-kind', 'kind', p.kind || 'mod'), go: toKind(p.kind || 'mod') }, { t: p.title || '…', ico }];
+      }
+      case 'author': {
+        const a = e.auth || {};
+        const ico = window.FAuthor?.ava({ kind: a.kind, name: a.name || '?', avatar: a.avatar }, 'cr-ico is-ava');
+        return [{ t: _t("Каталог"), go: toKind('modpack') }, { t: a.name || '…', ico }];
       }
       case 'settings': return [{ t: _t("Настройки"), go: () => go({ view: 'settings', sub: 'look' }) }, { t: label('#set-seg', 'pane', e.sub) }];
       case 'accounts': return [{ t: _t("Аккаунты") }];
@@ -124,6 +133,6 @@
   });
   document.addEventListener('mousedown', (e) => { if (e.button === 3 || e.button === 4) e.preventDefault(); });
 
-  window.FNav = { note, back, fwd, canBack: () => past.length > 0, project: (p) => { proj = p; } };
+  window.FNav = { note, back, fwd, canBack: () => past.length > 0, project: (p) => { proj = p; }, author: (a) => { auth = a; } };
   note();
 })();

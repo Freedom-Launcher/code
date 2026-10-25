@@ -24,6 +24,7 @@
   let back = 'discover';
   let tab = 'desc';
   let shown = 30;
+  let credits = null; // { org, members } from catalog.credits
   const f = { loader: '', game: '', channel: '' };
 
   function ago(iso) {
@@ -85,7 +86,9 @@
     p = null;
     versions = [];
     Object.assign(f, { loader: '', game: '', channel: '' });
+    credits = null;
     paintSkeleton(h);
+    call('catalog.credits', { id }).then((c) => { if (my !== seq) return; credits = c; if (p) { paintHead(FMods.context()); paintSide(); } }).catch(() => {});
     window.FNav?.project({ id, kind, title: h?.title || '', icon: h?.icon_url || '' });
     show('project');
     $('#view-project').closest('.main')?.scrollTo({ top: 0 });
@@ -157,7 +160,7 @@
     const tags = el('div', { class: 'proj-tags' }, ...p.categories.filter((c) => !LOADER_NAMES[c] && !PLATFORM[c]).map((c) => el('span', { class: 'badge' }, FMods.catName(c))));
     $('#proj-head').replaceChildren(
       FMods.icon(p.icon_url, p.title),
-      el('div', { class: 'proj-title' }, el('h1', {}, p.title), el('p', {}, p.description), stats, tags),
+      el('div', { class: 'proj-title' }, el('h1', {}, p.title), byline(), el('p', {}, p.description), stats, tags),
       el('div', { class: 'proj-actions' }, b, more));
   }
 
@@ -166,6 +169,34 @@
     const a = el('a', { class: 'proj-link', href: url, title: url }, el('span', {}, label), el('i', { 'aria-hidden': 'true' }, '↗'));
     a.addEventListener('click', (e) => { e.preventDefault(); follow(url); });
     return a;
+  }
+
+  // Who made it: the organization, else up to two members, as pills under the title.
+  function byline() {
+    if (!credits || !window.FAuthor) return null;
+    const ppl = credits.org ? [credits.org] : credits.members.slice(0, 2);
+    if (!ppl.length) return null;
+    const rest = credits.org ? 0 : credits.members.length - ppl.length;
+    return el('div', { class: 'proj-by', 'data-id': 'project.by' }, ...ppl.map((c) => FAuthor.person(c)), rest > 0 ? el('span', { class: 'proj-by-more' }, `+${rest}`) : null);
+  }
+  const NEXT = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.707 11.293a1 1 0 0 1 0 1.414l-5.657 5.657a1 1 0 1 1-1.414-1.414l4.95-4.95-4.95-4.95a1 1 0 0 1 1.414-1.414l5.657 5.657Z"/></svg>';
+  function member(c, sub) {
+    const b = el('button', { type: 'button', class: 'proj-member', 'data-id': `project.creator.${c.kind}.${c.id}` },
+      FAuthor.ava(c), el('span', { class: 'nm' }, el('b', {}, c.name), sub ? el('small', {}, sub) : null), el('i', { class: 'go', 'aria-hidden': 'true', html: NEXT }));
+    b.addEventListener('click', () => FAuthor.open(c.kind, c.id, c));
+    return b;
+  }
+  // The creators card: the organization first, then every member with their role.
+  function creditsCard(sec) {
+    if (!credits || !window.FAuthor) return null;
+    const rows = [];
+    if (credits.org) rows.push(member(credits.org, _t("Организация")));
+    for (const m of credits.members) rows.push(member(m, m.role ? FAuthor.role(m.role) : isCf() ? _t("Автор") : ''));
+    if (!rows.length) return null;
+    const box = el('div', { class: 'proj-members' }, ...rows.slice(0, 6));
+    const more = rows.length > 6 ? el('button', { class: 'btn btn-ghost btn-sm proj-members-more', 'data-id': 'project.creators.more' }, el('span', { class: 'lbl' }, _t("Показать ещё"))) : null;
+    more?.addEventListener('click', () => { box.replaceChildren(...rows); more.remove(); });
+    return sec(_t("Авторы"), box, more);
   }
 
   function paintSide() {
@@ -182,7 +213,7 @@
     const links = [[_t("Исходный код"), p.source_url], [_t("Сообщить о проблеме"), p.issues_url], [_t("Вики"), p.wiki_url], ['Discord', p.discord_url],
       ...p.donation_urls.map((d) => [_t("Поддержать{0}", [d.platform ? ` · ${d.platform}` : '']), d.url])].filter(([, u]) => u);
     const lic = p.license && (p.license.name || p.license.id.replace(/^LicenseRef-/, '').replace(/-/g, ' '));
-    $('#proj-side').replaceChildren(compat,
+    $('#proj-side').replaceChildren(...[creditsCard(sec)].filter(Boolean), compat,
       ...(links.length ? [sec(_t("Ссылки"), el('div', { class: 'proj-links' }, ...links.map(([l, u]) => linkBtn(l, u))))] : []),
       sec(_t("Подробности"), lic ? row(_t("Лицензия"), lic) : null, row(_t("Опубликован"), date(p.published)), row(_t("Обновлён"), date(p.updated))));
   }
