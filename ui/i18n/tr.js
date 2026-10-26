@@ -1,5 +1,7 @@
 // Generated: Russian source text -> tr.
 window.FL_DICT = {
+"Права: {0}": "İzinler: {0}",
+"Установка в один клик": "Tek tıkla kurulum",
 "Соберите лаунчер под себя: ставьте только то, что нужно. Каждый плагин живёт в песочнице и может лишь то, что вы разрешили.": "Başlatıcıyı kendine göre kur: yalnızca ihtiyacın olanı yükle. Her eklenti korumalı bir alanda çalışır ve yalnızca izin verdiklerini yapabilir.",
 "Установить из .zip": ".zip'ten yükle",
 "Найти плагин": "Eklenti ara",

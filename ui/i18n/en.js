@@ -1,5 +1,7 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Права: {0}": "Permissions: {0}",
+"Установка в один клик": "One-click install",
 "Соберите лаунчер под себя: ставьте только то, что нужно. Каждый плагин живёт в песочнице и может лишь то, что вы разрешили.": "Make the launcher yours: install only what you need. Every plugin lives in a sandbox and can do only what you allow.",
 "Установить из .zip": "Install from .zip",
 "Найти плагин": "Find a plugin",

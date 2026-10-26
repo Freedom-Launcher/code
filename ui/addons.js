@@ -272,17 +272,43 @@
     b.onclick = () => askPerms(a);
     return stop(b);
   }
+  const SVG_SHIELD = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.2 4.5 5v6.1c0 4.6 3.1 8.9 7.5 10.7 4.4-1.8 7.5-6.1 7.5-10.7V5L12 2.2Z"/></svg>';
+  const letter = (a) => ([...String(a.name || a.id).trim()][0] || '?').toUpperCase();
+  function banner(a) {
+    const b = h('div', 'plg-banner', icon(a));
+    b.style.setProperty('--h', String(hue(a.id)));
+    b.dataset.l = letter(a);
+    b.setAttribute('aria-hidden', 'true');
+    return b;
+  }
+  function flags(a, st, stText) {
+    const [cls, txt] = a.error ? ['is-warn', _t("Ошибка")]
+      : a.signature_error ? ['is-warn', _t("Подпись нарушена")]
+      : [a.trust === 'community' ? '' : 'is-accent', TRUST[a.trust] || a.trust || ''];
+    const t = h('span', `plg-flag ${cls}`.trim(), h('i'), txt);
+    if (a.signature_error) t.title = _t("{0}. Файлы пакета изменены после подписи — он работает как «Сообщество».", [a.signature_error]);
+    return h('div', 'plg-flags', t, h('span', `plg-flag is-st-${st}`, h('i'), stText));
+  }
+  function permStat(a) {
+    const ps = a.permissions || [];
+    const s = h('span', `plg-stat${ps.length ? '' : ' is-safe'}${a.pending ? ' is-attn' : ''}`);
+    s.innerHTML = SVG_SHIELD;
+    s.append(ps.length ? _t("Права: {0}", [String(ps.length)]) : _t("Без особых прав"));
+    if (ps.length) s.title = ps.map((p) => PERM[p.id]?.[0] || p.id).join(', ');
+    return s;
+  }
   function card(a, i) {
     const [st, stText] = state(a);
     const c = h('article', `plg-card is-${st}`);
     c.dataset.id = `addon.${a.id}`;
     c.style.setProperty('--i', String(i));
-    const meta = a.error ? _t("Ошибка в пакете") : [a.version && `v${a.version}`, a.author].filter(Boolean).join(' · ');
-    c.append(
-      h('div', 'plg-top', icon(a), h('div', 'plg-who', h('div', 'plg-name', h('span', 'plg-n', a.name || a.id), trustBadge(a)), h('div', 'plg-meta', meta))),
-      h('p', `plg-desc${a.error ? ' is-error' : ''}`, a.error || a.description || _t("Автор не добавил описание.")));
-    if (!a.error) c.append(chips(a, 3));
-    const foot = h('div', 'plg-foot', h('span', `plg-state is-${st}`, h('i'), stText), h('span', 'grow'));
+    const meta = a.error ? _t("Ошибка в пакете") : [a.author, a.version && `v${a.version}`].filter(Boolean).join(' · ');
+    c.append(banner(a), flags(a, st, stText),
+      h('div', 'plg-body', h('div', 'plg-name', a.name || a.id), h('div', 'plg-meta', meta),
+        h('p', `plg-desc${a.error ? ' is-error' : ''}`, a.error || a.description || _t("Автор не добавил описание."))));
+    const foot = h('div', 'plg-foot');
+    if (!a.error) foot.append(permStat(a));
+    foot.append(h('span', 'grow'));
     if (a.error) {
       const b = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Открыть папку")));
       b.type = 'button';
