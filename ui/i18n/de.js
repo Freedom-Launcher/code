@@ -1,5 +1,17 @@
 // Generated: Russian source text -> de.
 window.FL_DICT = {
+"Свой интерфейс": "Eigene Oberfläche",
+"Добавляет свои кнопки, пункты меню и блоки в лаунчер.": "Fügt eigene Schaltflächen, Menüeinträge und Blöcke in den Launcher ein.",
+"Где работает": "Wo es wirkt",
+"Страница сборки": "Modpack-Seite",
+"Кнопка на странице сборки": "Schaltfläche auf der Modpack-Seite",
+"Меню сборки": "Modpack-Menü",
+"Правый клик по сборке": "Rechtsklick auf ein Modpack",
+"Логи сборки": "Modpack-Logs",
+"Разбор вылета": "Absturzanalyse",
+"Сначала откройте сборку": "Öffne zuerst ein Modpack",
+"Плагин не ответил": "Das Plugin hat nicht geantwortet",
+"Скопировано · {0}": "Kopiert · {0}",
 "Установленные": "Installiert",
 "Установка…": "Wird installiert…",
 "Поставить лайк на GitHub": "Auf GitHub liken",

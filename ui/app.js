@@ -364,6 +364,7 @@ function renderInstances() {
 function renderInstancePage() {
   const i = byId(S.current);
   if (!i) return;
+  window.FAddons?.instance();
   bg($('#ip-cover'), coverName(i));
   $('#ip-name').textContent = i.name;
   window.FWorlds?.reset();

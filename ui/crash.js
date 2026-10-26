@@ -81,7 +81,7 @@
       el('div', { class: 'log-doc-b' },
         el('b', {}, d.title),
         el('p', {}, d.text),
-        el('div', { class: 'log-doc-acts' }, ...d.acts.map((a, i) => btn(a, i ? '' : 'btn-primary')), btn(errs, 'btn-ghost')),
+        el('div', { class: 'log-doc-acts' }, ...d.acts.map((a, i) => btn(a, i ? '' : 'btn-primary')), btn(errs, 'btn-ghost'), ...(window.FAddons?.buttons('crash', id) || [])),
         el('span', { class: 'log-doc-m' }, report ? _t("{0} · отчёт: {1}", [code, report]) : code)),
       close);
     card.hidden = false;

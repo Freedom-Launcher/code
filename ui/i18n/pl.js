@@ -1,5 +1,17 @@
 // Generated: Russian source text -> pl.
 window.FL_DICT = {
+"Свой интерфейс": "Własny interfejs",
+"Добавляет свои кнопки, пункты меню и блоки в лаунчер.": "Dodaje własne przyciski, pozycje menu i bloki do launchera.",
+"Где работает": "Gdzie działa",
+"Страница сборки": "Strona paczki",
+"Кнопка на странице сборки": "Przycisk na stronie paczki",
+"Меню сборки": "Menu paczki",
+"Правый клик по сборке": "Prawy klik na paczce",
+"Логи сборки": "Logi paczki",
+"Разбор вылета": "Analiza awarii",
+"Сначала откройте сборку": "Najpierw otwórz paczkę",
+"Плагин не ответил": "Wtyczka nie odpowiedziała",
+"Скопировано · {0}": "Skopiowano · {0}",
 "Установленные": "Zainstalowane",
 "Установка…": "Instalowanie…",
 "Поставить лайк на GitHub": "Polub na GitHubie",

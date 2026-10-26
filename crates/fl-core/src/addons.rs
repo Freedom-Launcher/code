@@ -81,6 +81,10 @@ pub struct Manifest {
     /// Own pages, each a tab in the rail (needs `ui_pages`).
     #[serde(default)]
     pub pages: Vec<Page>,
+    #[serde(default)]
+    pub actions: Vec<UiAction>,
+    #[serde(default)]
+    pub panels: Vec<Panel>,
     /// HTML shown full-window while the game starts (needs `ui_overlay`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub launch_overlay: Option<String>,
@@ -96,6 +100,45 @@ pub struct Page {
 }
 
 pub const MAX_PAGES: usize = 4;
+
+/// Native places where an addon action appears as a launcher button or menu item.
+/// The launcher draws them in its own style; the addon only gets `{instance, place}`.
+pub const ACTION_PLACES: [&str; 6] = [
+    "instance.toolbar",
+    "menu.instance",
+    "menu.ctx.instance",
+    "logs.toolbar",
+    "crash",
+    "palette",
+];
+/// Places where an addon panel is rendered inline, inside a launcher screen.
+pub const PANEL_PLACES: [&str; 1] = ["instance.overview"];
+pub const MAX_ACTIONS: usize = 12;
+pub const MAX_PANELS: usize = 4;
+
+/// A command the addon adds to the launcher's own buttons and menus.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct UiAction {
+    pub id: String,
+    pub title: String,
+    /// Launcher icon name (`share`, `note`, `folder`, …).
+    #[serde(default)]
+    pub icon: String,
+    #[serde(default)]
+    pub places: Vec<String>,
+}
+
+/// An inline block of the addon inside a launcher screen (gets the instance id).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Panel {
+    pub id: String,
+    #[serde(default)]
+    pub title: String,
+    /// HTML file of the panel, default `<id>.html`.
+    #[serde(default)]
+    pub entry: String,
+    pub place: String,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProviderInfo {
@@ -247,6 +290,53 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
             return Err(format!("pages.entry: {} — нужен .html внутри папки", p.entry));
         }
     }
+    if (!m.actions.is_empty() || !m.panels.is_empty())
+        && !m.permissions.contains(&Permission::UiPages)
+    {
+        return Err("actions и panels требуют права ui_pages".into());
+    }
+    if m.actions.len() > MAX_ACTIONS {
+        return Err(format!("actions: не больше {MAX_ACTIONS}"));
+    }
+    if m.panels.len() > MAX_PANELS {
+        return Err(format!("panels: не больше {MAX_PANELS}"));
+    }
+    let mut seen = HashSet::new();
+    for a in &m.actions {
+        if !valid_id(&a.id) || !seen.insert(a.id.clone()) {
+            return Err(format!("actions: неверный или повторный id {}", a.id));
+        }
+        if !(1..=40).contains(&a.title.trim().chars().count()) {
+            return Err("actions.title: от 1 до 40 символов".into());
+        }
+        if a.icon.len() > 24 || !a.icon.chars().all(|c| c.is_ascii_lowercase() || c == '-') {
+            return Err(format!("actions.icon: неверное имя {}", a.icon));
+        }
+        if a.places.is_empty()
+            || a.places.len() > ACTION_PLACES.len()
+            || a.places.iter().any(|x| !ACTION_PLACES.contains(&x.as_str()))
+        {
+            return Err(format!("actions.places: неизвестное место у {}", a.id));
+        }
+    }
+    let mut seen = HashSet::new();
+    for p in &mut m.panels {
+        if !valid_id(&p.id) || !seen.insert(p.id.clone()) {
+            return Err(format!("panels: неверный или повторный id {}", p.id));
+        }
+        if p.title.chars().count() > 40 {
+            return Err("panels.title: не больше 40 символов".into());
+        }
+        if !PANEL_PLACES.contains(&p.place.as_str()) {
+            return Err(format!("panels.place: неизвестное место {}", p.place));
+        }
+        if p.entry.is_empty() {
+            p.entry = format!("{}.html", p.id);
+        }
+        if !safe_rel(&p.entry, &["html"]) || file(data_dir, id, &p.entry).is_none() {
+            return Err(format!("panels.entry: {} — нужен .html внутри папки", p.entry));
+        }
+    }
     if let Some(o) = &m.launch_overlay {
         if !m.permissions.contains(&Permission::UiOverlay) {
             return Err("launch_overlay требует права ui_overlay".into());
@@ -293,6 +383,17 @@ pub fn list(data_dir: &Path, st: &State) -> Vec<Value> {
                     .any(|p| p["granted"] == false && p["declined"] == false);
                 let ok = |q: Permission| m.permissions.contains(&q) && e.granted.contains(&q);
                 let pages: Vec<&Page> = if ok(Permission::UiPages) { m.pages.iter().collect() } else { vec![] };
+                let ui = ok(Permission::UiPages);
+                let actions: Vec<&UiAction> = if ui { m.actions.iter().collect() } else { vec![] };
+                let panels: Vec<&Panel> = if ui { m.panels.iter().collect() } else { vec![] };
+                let mut places: Vec<&str> = m
+                    .actions
+                    .iter()
+                    .flat_map(|a| a.places.iter().map(String::as_str))
+                    .chain(m.panels.iter().map(|p| p.place.as_str()))
+                    .collect();
+                places.sort_unstable();
+                places.dedup();
                 let overlay = m.launch_overlay.as_ref().filter(|_| ok(Permission::UiOverlay));
                 json!({
                     "id": m.id, "name": m.name, "version": m.version, "author": m.author,
@@ -302,6 +403,7 @@ pub fn list(data_dir: &Path, st: &State) -> Vec<Value> {
                     "entry": m.entry, "enabled": e.enabled, "pending": pending,
                     "account_provider": m.account_provider,
                     "pages": pages, "launch_overlay": overlay,
+                    "actions": actions, "panels": panels, "places": places,
                     "wants_pages": !m.pages.is_empty(),
                     "wants_overlay": m.launch_overlay.is_some(),
                 })
@@ -473,6 +575,45 @@ mod install_tests {
             "account_provider":{"label":"Ely.by","yggdrasil":"https://evil.example/api"}}"#;
         fs::write(dir(&d).join("ely-by/addon.json"), bad).unwrap();
         assert!(load(&d, "ely-by").is_err());
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn actions_and_panels() {
+        let d = std::env::temp_dir().join(format!("fl-act-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&d).unwrap();
+        let z = d.join("p.zip");
+        let good = r#"{"id":"demo-x","name":"Demo","permissions":["ui_pages"],
+            "actions":[{"id":"go","title":"Go","icon":"share","places":["logs.toolbar","crash"]}],
+            "panels":[{"id":"note","place":"instance.overview","entry":"index.html"}]}"#;
+        zip_of(&z, &[("addon.json", good), ("index.html", "<p>x</p>")]);
+        assert_eq!(install_zip(&d, &z).unwrap(), "demo-x");
+        let bad = [
+            // unknown place
+            r#"{"id":"demo-x","name":"Demo","permissions":["ui_pages"],
+                "actions":[{"id":"go","title":"Go","places":["nowhere"]}]}"#,
+            // no ui_pages
+            r#"{"id":"demo-x","name":"Demo",
+                "actions":[{"id":"go","title":"Go","places":["crash"]}]}"#,
+            // panel file missing
+            r#"{"id":"demo-x","name":"Demo","permissions":["ui_pages"],
+                "panels":[{"id":"note","place":"instance.overview","entry":"nope.html"}]}"#,
+            // duplicate action id
+            r#"{"id":"demo-x","name":"Demo","permissions":["ui_pages"],
+                "actions":[{"id":"go","title":"A","places":["crash"]},{"id":"go","title":"B","places":["crash"]}]}"#,
+            // bad icon name
+            r#"{"id":"demo-x","name":"Demo","permissions":["ui_pages"],
+                "actions":[{"id":"go","title":"Go","icon":"../x","places":["crash"]}]}"#,
+        ];
+        for b in bad {
+            zip_of(&z, &[("addon.json", b), ("index.html", "<p>x</p>")]);
+            assert!(install_zip(&d, &z).is_err(), "{b}");
+        }
+        // Panel entry defaults to <id>.html.
+        let def = r#"{"id":"demo-x","name":"Demo","permissions":["ui_pages"],
+            "panels":[{"id":"note","place":"instance.overview"}]}"#;
+        zip_of(&z, &[("addon.json", def), ("index.html", "<p>x</p>"), ("note.html", "<p>n</p>")]);
+        assert_eq!(install_zip(&d, &z).unwrap(), "demo-x");
         let _ = fs::remove_dir_all(&d);
     }
 }

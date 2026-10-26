@@ -1,9 +1,19 @@
 {
   "id": "notes",
   "name": "Заметки к сборкам",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Freedom Launcher",
   "description": "Свои заметки к каждой сборке: координаты, IP серверов, список дел, что поменять в модах. Сохраняются сами.",
-  "permissions": ["instances_read", "storage", "ui_pages"],
-  "pages": [{ "id": "notes", "title": "Заметки", "entry": "index.html" }]
+  "permissions": [
+    "storage",
+    "ui_pages"
+  ],
+  "panels": [
+    {
+      "id": "note",
+      "title": "Заметка",
+      "place": "instance.overview",
+      "entry": "index.html"
+    }
+  ]
 }

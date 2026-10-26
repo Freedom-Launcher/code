@@ -1,10 +1,30 @@
 {
   "id": "mclogs",
   "name": "Поделиться логом",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Freedom Launcher",
   "description": "Загружает лог игры или отчёт о вылете на mclo.gs и даёт ссылку, которую можно отправить другу или в поддержку.",
-  "permissions": ["instances_read", "instance_files", "network", "ui_pages"],
-  "hosts": ["api.mclo.gs"],
-  "pages": [{ "id": "logs", "title": "Логи", "entry": "index.html" }]
+  "permissions": [
+    "instance_files",
+    "network",
+    "ui_pages"
+  ],
+  "hosts": [
+    "api.mclo.gs",
+    "mclo.gs"
+  ],
+  "actions": [
+    {
+      "id": "share",
+      "title": "Поделиться логом",
+      "icon": "share",
+      "places": [
+        "logs.toolbar",
+        "crash",
+        "menu.instance",
+        "menu.ctx.instance",
+        "palette"
+      ]
+    }
+  ]
 }

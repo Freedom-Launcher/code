@@ -127,6 +127,7 @@ Inline scripts are blocked by the CSP: put code in a `.js` file.
 
 - `fl.call(name, args)` → Promise with the action result.
 - `fl.toast(text)` — short notification in the launcher.
+- `fl.action(id, cb)`, `fl.lang` — see «Actions and panels».
 - `fl.on`, `fl.context`, `fl.overlay.done()` — see «Pages, launch overlay and events».
 - `fl.storage.get/set/delete/keys` — see «Storage».
 - `fl.files.list/read/write/delete` — see «Instance files».
@@ -135,6 +136,38 @@ Inline scripts are blocked by the CSP: put code in a `.js` file.
   see Network below.
 - Theme tokens (`--bg`, `--text`, `--accent`, `--font-ui`, …) are set on the
   addon's `<html>`, and updated when the user switches themes.
+
+## Actions and panels
+
+Plugins build into the launcher's own screens instead of opening tabs of their
+own. Both need `ui_pages` («Свой интерфейс»).
+
+- **Actions** (`actions`, up to 12): `{ "id", "title", "icon", "places" }`.
+  The launcher draws each action in its own style — an icon button, a menu
+  item, a button on a card or a command — in every listed place:
+  `instance.toolbar` (instance page header), `logs.toolbar` (the instance's
+  logs), `crash` (the crash card), `menu.instance` («⋯» on the instance page),
+  `menu.ctx.instance` (right click on an instance), `palette` (command bar, for
+  the open instance). `icon` is a launcher icon name: `share`, `note`,
+  `folder`, `terminal` or `cube` (the default).
+  The code lives in the plugin's `entry` page, which the launcher loads hidden
+  in the background: `fl.action(id, async ({ instance, place }) => result)`.
+  While it runs the button shows progress. The result may be
+  `{ toast?, copy?, open? }`: `copy` goes to the clipboard, `open` (https, a
+  host from `hosts`) becomes an «Открыть» button on the toast. A thrown error is
+  shown as an error toast; after 90 s the launcher stops waiting.
+- **Panels** (`panels`, up to 4): `{ "id", "title"?, "entry"?, "place" }` — a
+  small HTML block rendered inline in a launcher screen and sized to its
+  content (`entry` defaults to `<id>.html`). `instance.overview` sits on the
+  instance page above its tabs; `fl.context.instance` is the open instance and
+  `fl.on('context', cb)` fires when the user opens another one.
+- `fl.lang` is the launcher language (`ru`, `en`, …) for the plugin's own
+  strings.
+
+`pages` are only for whole new screens; small features belong in actions and
+panels. The official plugins use no pages: «Поделиться логом» is an action in
+the logs, on the crash card, in both instance menus and in the command bar;
+«Заметки к сборкам» is a panel on the instance page.
 
 ## Pages, launch overlay and events
 
@@ -151,7 +184,7 @@ Inline scripts are blocked by the CSP: put code in a `.js` file.
   `game.launching`, `game.launched`, `game.failed`, `game.exited` (data
   `{ instance }`), or `*` for all; returns an unsubscribe function.
 - `fl.context` tells the frame where it is:
-  `{ kind: 'slot' | 'page' | 'overlay', slot?, page?, instance? }`.
+  `{ kind: 'slot' | 'page' | 'panel' | 'background' | 'overlay', slot?, page?, panel?, instance?, lang }`.
 
 Page and overlay frames may use any CSS animations, canvas and SVG: they are
 ordinary pages, only without network and without the launcher's own DOM.

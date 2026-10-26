@@ -211,3 +211,14 @@ html[data-theme="light"] .plg-pst.is-ok { color: #1f7a33; }
   .plg-top .plg-q { order: 9; width: 100%; }
 }
 .plg-dh .plg-who { flex: 1; min-width: 0; }
+
+/* Plugin contributions inside the launcher's own screens */
+.plg-acts, .plg-menu { display: contents; }
+.plg-panels { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+.plg-panels:empty { display: none; }
+#addon-bg { position: fixed; left: -10px; top: -10px; width: 1px; height: 1px; overflow: hidden; visibility: hidden; pointer-events: none; }
+.btn.is-busy > svg { animation: plg-spin 0.9s linear infinite; }
+@keyframes plg-spin { to { transform: rotate(360deg); } }
+html[data-motion="off"] .btn.is-busy > svg { animation: none; }
+.plg-where { display: flex; flex-wrap: wrap; gap: 6px; }
+.plg-wchip { padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); font-size: var(--text-xs); }

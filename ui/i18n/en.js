@@ -1,5 +1,17 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Свой интерфейс": "Own interface",
+"Добавляет свои кнопки, пункты меню и блоки в лаунчер.": "Adds its own buttons, menu items and blocks to the launcher.",
+"Где работает": "Where it works",
+"Страница сборки": "Instance page",
+"Кнопка на странице сборки": "Button on the instance page",
+"Меню сборки": "Instance menu",
+"Правый клик по сборке": "Right-click on an instance",
+"Логи сборки": "Instance logs",
+"Разбор вылета": "Crash analysis",
+"Сначала откройте сборку": "Open an instance first",
+"Плагин не ответил": "The plugin didn't respond",
+"Скопировано · {0}": "Copied · {0}",
 "Установленные": "Installed",
 "Установка…": "Installing…",
 "Поставить лайк на GitHub": "Like on GitHub",

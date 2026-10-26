@@ -1,5 +1,17 @@
 // Generated: Russian source text -> tr.
 window.FL_DICT = {
+"Свой интерфейс": "Kendi arayüzü",
+"Добавляет свои кнопки, пункты меню и блоки в лаунчер.": "Başlatıcıya kendi düğmelerini, menü öğelerini ve bloklarını ekler.",
+"Где работает": "Nerede çalışır",
+"Страница сборки": "Paket sayfası",
+"Кнопка на странице сборки": "Paket sayfasında düğme",
+"Меню сборки": "Paket menüsü",
+"Правый клик по сборке": "Pakete sağ tık",
+"Логи сборки": "Paket günlükleri",
+"Разбор вылета": "Çökme analizi",
+"Сначала откройте сборку": "Önce bir paket açın",
+"Плагин не ответил": "Eklenti yanıt vermedi",
+"Скопировано · {0}": "Kopyalandı · {0}",
 "Установленные": "Yüklü",
 "Установка…": "Yükleniyor…",
 "Поставить лайк на GitHub": "GitHub'da beğen",

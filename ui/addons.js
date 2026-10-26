@@ -13,7 +13,7 @@
   const PERM = {
     instances_read: [_t("Видеть сборки"), _t("Список сборок, их версии и моды. Ничего не меняет.")],
     accounts_read: [_t("Видеть аккаунты"), _t("Имена аккаунтов. Токены входа плагинам недоступны.")],
-    ui_pages: [_t("Свои вкладки"), _t("Добавляет свои страницы в боковую панель.")],
+    ui_pages: [_t("Свой интерфейс"), _t("Добавляет свои кнопки, пункты меню и блоки в лаунчер.")],
     ui_overlay: [_t("Анимация запуска"), _t("Показывает анимацию поверх окна, пока запускается игра. Клики проходят сквозь неё, Esc убирает.")],
     storage: [_t("Своё хранилище"), _t("Хранит свои настройки внутри лаунчера (до 1 МБ). Другие плагины их не видят.")],
     instances_manage: [_t("Изменять сборки"), _t("Менять настройки сборок, включать, выключать и удалять моды."), true],
@@ -26,6 +26,14 @@
   };
   const TIER = { interface: _t("Интерфейс"), function: _t("Функция"), extended: _t("Расширенный") };
   const TRUST = { official: _t("Официальный"), verified: _t("Проверено"), community: _t("Сообщество") };
+  const PLACE = {
+    'instance.overview': _t("Страница сборки"), 'instance.toolbar': _t("Кнопка на странице сборки"),
+    'logs.toolbar': _t("Логи сборки"), crash: _t("Разбор вылета"), 'menu.instance': _t("Меню сборки"),
+    'menu.ctx.instance': _t("Правый клик по сборке"), palette: _t("Командная строка"),
+  };
+  const curInst = () => (typeof S !== 'undefined' ? S.current : null);
+  const ctxMsg = (f) => ({ fl: 1, type: 'context', lang: document.documentElement.lang || 'ru', ...f._ctx,
+    ...(f._ctx.kind === 'panel' ? { instance: curInst() } : {}) });
   const TOKENS = ['--bg', '--surface-1', '--surface-2', '--text', '--text-2', '--text-3', '--line', '--accent', '--on-accent', '--font-ui', '--r-control', '--r-card'];
   let list = [];
   let view = '';
@@ -56,9 +64,13 @@
     f.setAttribute('sandbox', 'allow-scripts');
     f.setAttribute('referrerpolicy', 'no-referrer');
     f.src = base(a.id) + file;
+    f._ctx = ctx;
+    f._ready = new Promise((ok) => f.addEventListener('load', ok, { once: true }));
     f.addEventListener('load', () => {
+      f._loaded = true;
+      f._sent = curInst();
       f.contentWindow?.postMessage(themeMsg(), '*');
-      f.contentWindow?.postMessage({ fl: 1, type: 'context', ...ctx }, '*');
+      f.contentWindow?.postMessage(ctxMsg(f), '*');
     });
     return f;
   }
@@ -74,6 +86,7 @@
       }
     }
     rail();
+    contrib();
     if (cur && view === 'addon') {
       const [id, pid] = cur.split('/');
       if (!openPage(id, pid)) { cur = null; window.show?.('home'); }
@@ -157,6 +170,124 @@
   }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay) overlayOff(); });
 
+  // ---------- Contributions: plugins build into the launcher's own screens ----------
+  // Actions become native buttons / menu items / commands; their code runs in a hidden
+  // background frame of the plugin. Panels are inline blocks that get the open instance.
+  const bg = new Map(); // addon id -> background frame
+  const waits = new Map();
+  let aseq = 0;
+  // Icons a plugin action may name (`icon` in addon.json); unknown names fall back to `cube`.
+  const ICO = {
+    share: '<g fill="none"><path fill="currentColor" d="M10.114 4.491c.076-.795.906-1.45 1.743-.972 1.74 1.019 3.382 2.18 4.97 3.421 1.96 1.548 3.533 3.007 4.647 4.172.483.507.438 1.308-.024 1.792a42.072 42.072 0 0 1-3.495 3.228c-1.938 1.587-3.945 3.125-6.13 4.358-.741.418-1.544-.06-1.687-.801l-.017-.113-.227-3.574c-1.816.038-3.574.662-4.98 1.823l-.265.222-.128.104-.247.192c-.04.03-.08.06-.12.088l-.23.16a4.72 4.72 0 0 1-.218.135l-.206.111C2.534 19.314 2 18.892 2 17c0-4.404 3.245-8.323 7.632-8.917l.259-.031zm1.909 1.474-.192 3.472a.5.5 0 0 1-.447.47l-1.361.142c-3.065.366-5.497 2.762-5.948 5.894a9.952 9.952 0 0 1 5.135-1.912l.397-.023 1.704-.036a.5.5 0 0 1 .51.472l.197 3.596c1.603-1.021 3.131-2.196 4.664-3.45a43.717 43.717 0 0 0 2.857-2.595l-.258-.256-.556-.533a48.15 48.15 0 0 0-3.134-2.693 46.172 46.172 0 0 0-3.568-2.548"/></g>',
+    note: '<g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M13.896 3.03a2 2 0 0 1 2.701-.117l.127.117 4.243 4.243a2 2 0 0 1 .117 2.7l-.117.128-10.314 10.314a2 2 0 0 1-1.238.578L9.239 21H4.006a1.01 1.01 0 0 1-1.004-.9l-.006-.11v-5.233a2 2 0 0 1 .467-1.284l.12-.13L13.895 3.03ZM12.17 7.584l-7.174 7.174V19H9.24l7.174-7.174-4.243-4.243Zm3.14-3.14L13.584 6.17l4.243 4.243 1.726-1.726z"/></g>',
+    folder: '<g fill="none"><path fill="currentColor" d="M9.52 3a2 2 0 0 1 1.442.614l.12.137L12.48 5.5H19a2 2 0 0 1 1.995 1.85L21 7.5v1.53a2.001 2.001 0 0 1 1.61 2.398l-.038.147-2.4 8a2 2 0 0 1-1.752 1.418l-.164.007H4a2 2 0 0 1-1.995-1.85L2 19V5a2 2 0 0 1 1.85-1.995L4 3zm11.136 8H6.744l-2.4 8h13.912zM9.519 5H4v8.187l.828-2.762A2 2 0 0 1 6.744 9H19V7.5h-6.52a2 2 0 0 1-1.561-.75z"/></g>',
+    terminal: '<g fill="none"><path fill="currentColor" d="M20 17a1 1 0 0 1 .117 1.993L20 19h-8a1 1 0 0 1-.117-1.993L12 17zM3.636 5.636a1 1 0 0 1 1.32-.083l.094.083 5.657 5.657a1 1 0 0 1 .083 1.32l-.083.094-5.657 5.657a1 1 0 0 1-1.497-1.32l.083-.094L8.586 12l-4.95-4.95a1 1 0 0 1 0-1.414"/></g>',
+    cube: '<g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M11 2.423a2 2 0 0 1 1.842-.082l.158.082 3.33 1.922a2 2 0 0 1 .993 1.569l.007.163v3.846l3.33 1.922a2 2 0 0 1 .994 1.569l.006.163v3.846a2 2 0 0 1-.861 1.644l-.139.088-3.33 1.922a2 2 0 0 1-1.842.082l-.158-.082L12 19.155l-3.33 1.922a2 2 0 0 1-1.843.082l-.157-.082-3.33-1.922a2 2 0 0 1-.993-1.568l-.007-.164v-3.846a2 2 0 0 1 .861-1.644l.139-.088 3.33-1.922V6.077a2 2 0 0 1 .861-1.644l.139-.088zm0 12.31-2.33 1.344v2.69L11 17.424zm2 0v2.69l2.33 1.345v-2.69zm6.66 0-2.33 1.344v2.691l2.33-1.345zm-15.32-.001v2.69l2.33 1.346v-2.69zm11.99-3.077L14 13l2.33 1.345L18.66 13zm-8.66 0L5.34 13l2.33 1.345L10 13zm7.66-4.423L13 8.577v2.691l2.33-1.345zm-6.66 0v2.69L11 11.269v-2.69zM12 4.155 9.67 5.5 12 6.845 14.33 5.5z"/></g>',
+  };
+  const plgIco = (n) => `<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${ICO[n] || ICO.cube}</svg>`;
+  const acts = (place) => list.filter(active)
+    .flatMap((a) => (a.actions || []).filter((x) => x.places?.includes(place)).map((x) => [a, x]));
+  function actBtn(a, x, place, inst) {
+    const menu = place.startsWith('menu.'), wide = menu || place === 'crash';
+    const label = _t(x.title);
+    const b = h('button', menu ? 'menu-item' : wide ? 'btn btn-sm' : 'btn btn-icon btn-ghost');
+    b.type = 'button';
+    b.dataset.plg = `${a.id}.${x.id}`;
+    b.innerHTML = plgIco(x.icon);
+    if (wide) b.append(label); else { b.dataset.tip = label; b.setAttribute('aria-label', label); }
+    b.addEventListener('click', () => runAction(a, x, typeof inst === 'function' ? inst() : inst, place, menu ? null : b));
+    return b;
+  }
+  function contrib() {
+    for (const w of waits.values()) { clearTimeout(w.t); w.reject(new Error(_t("Плагин не ответил"))); }
+    waits.clear();
+    let box = document.getElementById('addon-bg');
+    if (!box) { box = h('div'); box.id = 'addon-bg'; box.setAttribute('aria-hidden', 'true'); document.body.append(box); }
+    bg.clear();
+    for (const a of list) {
+      if (!active(a) || !a.actions?.length) continue;
+      const f = frame(a, a.entry, { kind: 'background' }, 'addon-bg-frame');
+      f.tabIndex = -1;
+      bg.set(a.id, f);
+      box.append(f);
+    }
+    paintContrib();
+  }
+  function paintContrib() {
+    document.querySelectorAll('[data-plg-place]').forEach((box) => {
+      const place = box.dataset.plgPlace;
+      if (place === 'instance.overview') {
+        box.replaceChildren(...list.filter(active).flatMap((a) => (a.panels || []).filter((p) => p.place === place)
+          .map((p) => frame(a, p.entry, { kind: 'panel', place, panel: p.id }, 'addon-panel'))));
+        return;
+      }
+      const who = place === 'menu.ctx.instance' ? () => document.getElementById('menu-ctx-instance')?._host?.dataset.inst : curInst;
+      const items = acts(place).map(([a, x]) => actBtn(a, x, place, who));
+      if (place.startsWith('menu.') && items.length) items.unshift(h('div', 'menu-sep'));
+      box.replaceChildren(...items);
+    });
+  }
+  async function runAction(a, x, inst, place, btn) {
+    window.FUI.closeMenu?.();
+    if (!inst) { toast(_t("Сначала откройте сборку"), { error: true }); return; }
+    const f = bg.get(a.id);
+    if (!f) return;
+    if (btn) { if (btn.classList.contains('is-busy')) return; btn.classList.add('is-busy'); btn.disabled = true; }
+    else toast(`${_t(x.title)}…`);
+    try {
+      await f._ready;
+      const s = ++aseq;
+      const r = await new Promise((resolve, reject) => {
+        const t = setTimeout(() => { waits.delete(s); reject(new Error(_t("Плагин не ответил"))); }, 90000);
+        waits.set(s, { resolve, reject, t, f });
+        f.contentWindow?.postMessage({ fl: 1, type: 'action', seq: s, id: x.id, instance: inst, place }, '*');
+      });
+      actionDone(a, r && typeof r === 'object' ? r : {});
+    } catch (e) {
+      toast(`${_t(a.name)}: ${String(e?.message || e).slice(0, 200)}`, { error: true });
+    } finally {
+      if (btn) { btn.classList.remove('is-busy'); btn.disabled = false; }
+    }
+  }
+  function actionDone(a, r) {
+    const name = _t(a.name);
+    const url = typeof r.open === 'string' ? r.open : '';
+    let host = '';
+    try { const u = new URL(url); if (u.protocol === 'https:') host = u.hostname; } catch { /* not a link */ }
+    const open = host && (a.hosts || []).includes(host)
+      ? { label: _t("Открыть"), run: () => invoke('open_link', { url }).catch((e) => toast(String(e), { error: true })) } : null;
+    const text = r.toast ? String(r.toast).slice(0, 200) : '';
+    if (typeof r.copy === 'string' && r.copy) {
+      const copy = r.copy.slice(0, 4000);
+      const short = copy.replace(/^https?:\/\//, '').slice(0, 60);
+      (navigator.clipboard ? navigator.clipboard.writeText(copy) : Promise.reject(new Error('clipboard'))).then(
+        () => toast(text || _t("Скопировано · {0}", [short]), { action: open }),
+        () => toast(text || short, { action: { label: _t("Скопировать"), run: () => navigator.clipboard?.writeText(copy) } }));
+    } else if (text) toast(`${name}: ${text}`, { action: open });
+    else if (open) toast(name, { action: open });
+  }
+  // Native buttons for places drawn by other modules (the crash card).
+  const buttons = (place, inst) => acts(place).map(([a, x]) => actBtn(a, x, place, inst));
+  // Command bar entries for the open instance.
+  function commands() {
+    const inst = curInst();
+    if (!inst) return [];
+    const nm = (typeof byId === 'function' && byId(inst)?.name) || '';
+    return acts('palette').map(([a, x]) => ({
+      id: `plg.${a.id}.${x.id}`, t: _t(x.title), s: nm ? `${_t(a.name)} · ${nm}` : _t(a.name),
+      k: `${a.id} ${x.id} plugin плагин`, svg: plgIco(x.icon), run: () => runAction(a, x, inst, 'palette', null),
+    }));
+  }
+  // The open instance changed: panels follow it.
+  function instance() {
+    const id = curInst();
+    document.querySelectorAll('iframe.addon-panel').forEach((f) => {
+      if (!f._loaded || f._sent === id) return;
+      f._sent = id;
+      f.contentWindow?.postMessage(ctxMsg(f), '*');
+    });
+  }
+
   // ---------- Events to addons that may see instances ----------
   function emit(name, data = {}) {
     if (name === 'game.launching') overlayOn(data.instance);
@@ -175,11 +306,18 @@
     if (!f) return; // only our own addon frames may talk to us
     const id = f.dataset.addon;
     if (m.type === 'resize') {
-      if (f.dataset.kind === 'slot') f.style.height = `${Math.max(0, Math.min(2000, Number(m.height) || 0))}px`;
+      if (f.dataset.kind === 'slot' || f.dataset.kind === 'panel') f.style.height = `${Math.max(0, Math.min(2000, Number(m.height) || 0))}px`;
     } else if (m.type === 'toast') {
       toast(`${f.title}: ${String(m.text).slice(0, 200)}`);
     } else if (m.type === 'overlay-done') {
       if (f === overlay) overlayOff();
+    } else if (m.type === 'action-done') {
+      const w = waits.get(m.seq);
+      if (w && w.f === f) {
+        waits.delete(m.seq);
+        clearTimeout(w.t);
+        if (m.ok) w.resolve(m.value); else w.reject(new Error(m.error || 'error'));
+      }
     } else if (m.type === 'call' && typeof m.name === 'string') {
       let reply;
       try { reply = { ok: true, value: await invoke('addon_action', { id, name: m.name, args: m.args ?? null }) }; }
@@ -514,6 +652,10 @@
     });
     parts.push(h('div', 'plg-sec', h('h3', null, _t("Права")),
       rows.length ? h('div', 'plg-plist', ...rows) : h('div', 'hint', _t("Плагину не нужны особые права."))));
+    if (a.places?.length) {
+      parts.push(h('div', 'plg-sec', h('h3', null, _t("Где работает")),
+        h('div', 'plg-where', ...a.places.map((p) => h('span', 'plg-wchip', PLACE[p] || p)))));
+    }
     if (active(a) && a.pages?.length) {
       parts.push(h('div', 'plg-sec', h('h3', null, _t("Вкладки")), h('div', 'plg-pages', ...a.pages.map((p) => {
         const b = h('button', 'btn', h('span', 'lbl', p.title));
@@ -583,5 +725,5 @@
 
   // Theme switched live: tell running addons.
   const retheme = () => document.querySelectorAll('iframe.addon-frame').forEach((f) => f.contentWindow?.postMessage(themeMsg(), '*'));
-  window.FAddons = Object.freeze({ start, mount, retheme, emit, shown, openPage });
+  window.FAddons = Object.freeze({ start, mount, retheme, emit, shown, openPage, buttons, commands, instance });
 })();

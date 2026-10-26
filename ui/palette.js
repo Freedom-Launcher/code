@@ -81,6 +81,7 @@
     if (S.current) add('act', 'act.folder.inst', _t("Открыть папку сборки"), 'folder', () => folder('open_instance_folder', { instance: S.current }), { k: _t("folder проводник") });
     add('act', 'act.folder.themes', _t("Открыть папку тем"), 'folder', () => folder('open_themes_folder'), { k: 'folder themes' });
     add('act', 'act.folder.addons', _t("Открыть папку плагинов"), 'folder', () => folder('open_addons_folder'), { k: 'folder addons plugins' });
+    (window.FAddons?.commands() || []).forEach((c) => add('act', c.id, c.t, null, c.run, { svg: c.svg, s: c.s, k: c.k }));
     return out;
   }
 
@@ -155,7 +156,7 @@
     let n = nodes.get(c.id);
     const fresh = !n;
     if (fresh) n = el('div', { class: 'pal-item is-new', role: 'option', 'data-id': `palette.${c.id}` });
-    const ico = el('span', { class: `pal-ico${c.cover ? ' is-cover' : ''}`, html: c.ico ? svg(c.ico) : '' });
+    const ico = el('span', { class: `pal-ico${c.cover ? ' is-cover' : ''}`, html: c.svg || (c.ico ? svg(c.ico) : '') });
     if (c.cover) bg(ico, c.cover);
     if (c.live) ico.append(el('i', { class: 'live' }));
     const hint = el('span', { class: 'pal-hint' });

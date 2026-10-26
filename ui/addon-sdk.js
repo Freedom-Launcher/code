@@ -8,6 +8,7 @@
   let context = {};
   const waiting = new Map();
   const handlers = new Map();
+  const actions = new Map();
   const post = (m) => window.parent.postMessage(Object.assign({ fl: 1 }, m), '*');
   const fire = (name, data) => {
     for (const cb of [...(handlers.get(name) || []), ...(handlers.get('*') || [])]) {
@@ -28,6 +29,13 @@
       const { fl: _f, type: _t, ...rest } = m;
       context = Object.freeze(rest);
       fire('context', context);
+    } else if (m.type === 'action' && typeof m.id === 'string') {
+      const reply = (r) => post(Object.assign({ type: 'action-done', seq: m.seq }, r));
+      const cb = actions.get(m.id);
+      if (!cb) { reply({ ok: false, error: `unknown action ${m.id}` }); return; }
+      Promise.resolve().then(() => cb({ instance: m.instance, place: m.place })).then(
+        (v) => reply({ ok: true, value: v && typeof v === 'object' ? JSON.parse(JSON.stringify(v)) : null }),
+        (err) => reply({ ok: false, error: String((err && err.message) || err) }));
     } else if (m.type === 'event' && typeof m.name === 'string') {
       fire(m.name, m.data);
     }
@@ -68,7 +76,17 @@
       handlers.set(name, set);
       return () => set.delete(cb);
     },
-    /** Where this frame is: `{kind: 'slot'|'page'|'overlay', slot?, page?, instance?}`. */
+    /**
+     * Code of an action from `actions` in addon.json. `cb({instance, place})` may return
+     * `{toast?, copy?, open?}`; a thrown error becomes an error toast.
+     */
+    action(id, cb) {
+      actions.set(String(id), cb);
+      return () => actions.delete(String(id));
+    },
+    /** Launcher language (`ru`, `en`, …). */
+    get lang() { return context.lang || 'ru'; },
+    /** Where this frame is: `{kind: 'slot'|'page'|'panel'|'background'|'overlay', slot?, page?, panel?, instance?, lang}`. */
     get context() { return context; },
     /** Own key/value storage, needs `storage`. Values are any JSON. */
     storage: Object.freeze({
