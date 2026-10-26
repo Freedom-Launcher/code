@@ -130,10 +130,11 @@
     view = v;
     lit();
     if (v !== 'plugins' || was === 'plugins') return;
-    const box = document.getElementById('addon-list');
-    box?.classList.add('is-enter');
+    const boxes = ['addon-list', 'plg-catalog'].map((id) => document.getElementById(id)).filter(Boolean);
+    boxes.forEach((b) => b.classList.add('is-enter'));
     render();
-    setTimeout(() => box?.classList.remove('is-enter'), 900);
+    if (tab === 'catalog') loadCat(false);
+    setTimeout(() => boxes.forEach((b) => b.classList.remove('is-enter')), 900);
   }
 
   // ---------- Launch overlay (`ui_overlay`): full window, click-through ----------
@@ -216,16 +217,20 @@
 
   // ---------- «Плагины» page (launcher extensions; code name "addons") ----------
   let filter = 'all', query = '', detail = null, armed = 0;
+  let tab = (() => { try { return localStorage.getItem('fl.plg.tab') === 'installed' ? 'installed' : 'catalog'; } catch { return 'catalog'; } })();
+  let cat = [], catSt = 'idle', catErr = '';
+  const busy = new Set();
   const attn = (a) => !!(a.error || a.pending || a.signature_error);
   const FILTERS = [['all', _t("Все")], ['on', _t("Включены")], ['off', _t("Выключены")], ['attn', _t("Требуют внимания")]];
   const pass = (k, a) => k === 'all' || (k === 'on' ? active(a) : k === 'off' ? !a.error && !a.pending && !a.enabled : attn(a));
   const match = (a) => !query || [a.name, a.id, a.author, a.description].filter(Boolean).join(' ').toLowerCase().includes(query);
   const hue = (s) => { let x = 7; for (const ch of String(s)) x = (x * 31 + ch.codePointAt(0)) % 360; return x; };
+  const hueOf = (a) => a.hue ?? cat.find((e) => e.id === a.id)?.hue ?? hue(a.id);
   const stop = (n) => { n.addEventListener('click', (e) => e.stopPropagation()); return n; };
 
   function icon(a, cls = '') {
-    const n = h('span', `plg-ico ${cls}`.trim(), ([...String(a.name || a.id).trim()][0] || '?').toUpperCase());
-    n.style.setProperty('--h', String(hue(a.id)));
+    const n = h('span', `plg-ico ${cls}`.trim(), letter(a));
+    n.style.setProperty('--h', String(hueOf(a)));
     n.setAttribute('aria-hidden', 'true');
     return n;
   }
@@ -273,10 +278,10 @@
     return stop(b);
   }
   const SVG_SHIELD = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.2 4.5 5v6.1c0 4.6 3.1 8.9 7.5 10.7 4.4-1.8 7.5-6.1 7.5-10.7V5L12 2.2Z"/></svg>';
-  const letter = (a) => ([...String(a.name || a.id).trim()][0] || '?').toUpperCase();
+  const letter = (a) => ([...String(a.name ? _t(a.name) : a.id).trim()][0] || '?').toUpperCase();
   function banner(a) {
     const b = h('div', 'plg-banner', icon(a));
-    b.style.setProperty('--h', String(hue(a.id)));
+    b.style.setProperty('--h', String(hueOf(a)));
     b.dataset.l = letter(a);
     b.setAttribute('aria-hidden', 'true');
     return b;
@@ -304,10 +309,11 @@
     c.style.setProperty('--i', String(i));
     const meta = a.error ? _t("Ошибка в пакете") : [a.author, a.version && `v${a.version}`].filter(Boolean).join(' · ');
     c.append(banner(a), flags(a, st, stText),
-      h('div', 'plg-body', h('div', 'plg-name', a.name || a.id), h('div', 'plg-meta', meta),
-        h('p', `plg-desc${a.error ? ' is-error' : ''}`, a.error || a.description || _t("Автор не добавил описание."))));
+      h('div', 'plg-body', h('div', 'plg-name', a.name ? _t(a.name) : a.id), h('div', 'plg-meta', meta),
+        h('p', `plg-desc${a.error ? ' is-error' : ''}`, a.error || (a.description && _t(a.description)) || _t("Автор не добавил описание."))));
     const foot = h('div', 'plg-foot');
-    if (!a.error) foot.append(permStat(a));
+    const ce = cat.find((e) => e.id === a.id);
+    if (!a.error) foot.append(ce ? nums(ce) : permStat(a));
     foot.append(h('span', 'grow'));
     if (a.error) {
       const b = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Открыть папку")));
@@ -324,14 +330,10 @@
     return c;
   }
   function emptyState() {
-    const art = h('div', 'plg-empty-art');
-    const svg = document.querySelector('.plg-hero-ico svg');
-    if (svg) art.append(svg.cloneNode(true));
-    const b = h('button', 'btn btn-primary', h('span', 'lbl', _t("Установить из .zip")));
+    const b = h('button', 'btn btn-primary', h('span', 'lbl', _t("Открыть каталог")));
     b.type = 'button';
-    b.onclick = install;
-    return h('div', 'plg-empty', art, h('h3', null, _t("Плагинов пока нет")),
-      h('p', null, _t("Плагины добавляют лаунчеру новые возможности: свои вкладки, анимацию запуска, вход через сторонние сервисы. Ставьте только то, что нужно вам.")), b);
+    b.onclick = () => setTab('catalog');
+    return h('div', 'plg-empty', h('h3', null, _t("Плагинов пока нет")), b);
   }
   function noneState() {
     const b = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Сбросить фильтр")));
@@ -345,15 +347,119 @@
     return h('div', 'plg-none', h('b', null, _t("Ничего не нашлось")), h('p', null, _t("Попробуйте другое слово или сбросьте фильтр.")), b);
   }
 
+  // ---------- Catalog: plugins/catalog.json of Freedom-Launcher/releases, live numbers from GitHub ----------
+  const SVG_DL = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v9.59l3.3-3.3a1 1 0 1 1 1.4 1.42l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.42l3.3 3.3V4a1 1 0 0 1 1-1ZM5 19a1 1 0 1 0 0 2h14a1 1 0 1 0 0-2H5Z"/></svg>';
+  const SVG_HEART = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.7 10.6 19.4C5.4 14.7 2 11.6 2 7.8 2 4.7 4.4 2.3 7.5 2.3c1.7 0 3.4.8 4.5 2.1 1.1-1.3 2.8-2.1 4.5-2.1 3.1 0 5.5 2.4 5.5 5.5 0 3.8-3.4 6.9-8.6 11.6L12 20.7Z"/></svg>';
+  const fmtN = (n) => (n >= 1e6 ? _t("{0} млн", [(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)]) : n >= 1e3 ? _t("{0} тыс", [Math.round(n / 1e3)]) : String(n));
+  const newer = (a, b) => {
+    const x = String(a).split('.').map(Number), y = String(b || '').split('.').map(Number);
+    for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d > 0; }
+    return false;
+  };
+  function nums(e) {
+    const dl = h('span', 'plg-num');
+    dl.innerHTML = SVG_DL;
+    dl.append(fmtN(e.downloads || 0));
+    dl.title = _t("Скачиваний: {0}", [String(e.downloads || 0)]);
+    const like = h(e.like_url ? 'button' : 'span', 'plg-num is-like');
+    like.innerHTML = SVG_HEART;
+    like.append(fmtN(e.likes || 0));
+    if (e.like_url) {
+      like.type = 'button';
+      like.dataset.tip = _t("Поставить лайк на GitHub");
+      like.setAttribute('aria-label', _t("Поставить лайк на GitHub"));
+      like.onclick = () => invoke('open_link', { url: e.like_url }).catch((x) => toast(String(x), { error: true }));
+    }
+    return stop(h('div', 'plg-nums', dl, like));
+  }
+  function catCard(e, i) {
+    const have = list.find((a) => a.id === e.id);
+    const upd = !!have && !have.error && newer(e.version, have.version);
+    const c = h('article', `plg-card is-cat${have ? ' is-have' : ''}`);
+    c.style.setProperty('--i', String(i));
+    const fl = [h('span', 'plg-flag is-accent', h('i'), TRUST.official)];
+    if (have) fl.push(upd ? h('span', 'plg-flag is-st-attn', h('i'), _t("Есть обновление")) : h('span', 'plg-flag is-st-on', h('i'), _t("Установлен")));
+    const meta = [e.author, e.version && `v${e.version}`].filter(Boolean).join(' · ');
+    c.append(banner(e), h('div', 'plg-flags', ...fl),
+      h('div', 'plg-body', h('div', 'plg-name', _t(e.name)), h('div', 'plg-meta', meta), h('p', 'plg-desc', _t(e.description || ''))));
+    const wait = busy.has(e.id);
+    const b = h('button', `btn ${have && !upd ? 'btn-ghost' : 'btn-primary'}`, h('span', 'lbl',
+      wait ? _t("Установка…") : upd ? _t("Обновить") : have ? _t("Открыть") : _t("Установить")));
+    b.type = 'button';
+    b.disabled = wait;
+    b.onclick = () => (have && !upd ? (have.error ? setTab('installed') : openDetail(e.id)) : installFrom(e.id));
+    c.append(h('div', 'plg-foot', nums(e), h('span', 'grow'), stop(b)));
+    return c;
+  }
+  function renderCat() {
+    const box = document.getElementById('plg-catalog');
+    if (!box) return;
+    box.hidden = tab !== 'catalog';
+    if (tab !== 'catalog') return;
+    if (!cat.length && (catSt === 'idle' || catSt === 'loading')) {
+      box.replaceChildren(h('div', 'plg-none', h('b', null, _t("Загрузка…"))));
+      return;
+    }
+    if (!cat.length && catSt === 'err') {
+      const b = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Повторить")));
+      b.type = 'button';
+      b.onclick = () => loadCat(true);
+      box.replaceChildren(h('div', 'plg-none', h('b', null, _t("Каталог недоступен")), h('p', null, _tr(catErr)), b));
+      return;
+    }
+    const ok = (e) => !query || [e.name, _t(e.name), e.id, e.description, _t(e.description || '')].filter(Boolean).join(' ').toLowerCase().includes(query);
+    const shown = cat.filter(ok);
+    box.replaceChildren(...(shown.length ? shown.map(catCard) : [noneState()]));
+  }
+  async function loadCat(refresh) {
+    if (catSt === 'loading') return;
+    catSt = 'loading';
+    renderCat();
+    try {
+      const r = await call('addons.catalog', { refresh: !!refresh });
+      cat = Array.isArray(r?.plugins) ? r.plugins : [];
+      catSt = 'ok';
+    } catch (e) {
+      catErr = String(e);
+      catSt = 'err';
+      if (cat.length) toast(_tr(catErr), { error: true });
+    }
+    render();
+  }
+  async function installFrom(id) {
+    if (busy.has(id)) return;
+    busy.add(id);
+    renderCat();
+    let ok = false;
+    try { list = (await call('addons.install_from', { id })) || list; ok = true; } catch (e) { toast(_tr(String(e)), { error: true }); }
+    busy.delete(id);
+    render();
+    if (!ok) return;
+    mount();
+    const a = list.find((x) => x.id === id);
+    if (a?.pending) askPerms(a); else toast(_t("Плагин установлен"));
+  }
+  function setTab(t) {
+    tab = t === 'installed' ? 'installed' : 'catalog';
+    try { localStorage.setItem('fl.plg.tab', tab); } catch { /* no storage */ }
+    if (tab === 'catalog' && catSt !== 'ok') loadCat(false);
+    render();
+  }
+  function tabs(need) {
+    document.querySelectorAll('#plg-tabs .plg-tab').forEach((b) => {
+      const on = b.dataset.tab === tab;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-selected', String(on));
+    });
+    const n = document.getElementById('plg-count');
+    if (n) { n.textContent = list.length ? String(list.length) : ''; n.classList.toggle('is-attn', !!need); }
+  }
+
   function render() {
     const box = document.getElementById('addon-list');
     if (!box) return;
     const on = list.filter(active).length, need = list.filter(attn).length;
     if (filter === 'attn' && !need) filter = 'all';
-    document.getElementById('plg-stats')?.replaceChildren(...(list.length ? [
-      h('span', null, _t("Установлено"), h('b', null, String(list.length))),
-      h('span', null, _t("Включено"), h('b', null, String(on))),
-      need ? h('span', 'is-attn', _t("Требуют внимания"), h('b', null, String(need))) : null].filter(Boolean) : []));
     document.getElementById('plg-filter')?.replaceChildren(...FILTERS.filter(([k]) => k !== 'attn' || need).map(([k, t]) => {
       const b = h('button', `chip${filter === k ? ' is-on' : ''}${k === 'attn' ? ' is-attn' : ''}`, t, h('b', null, String(list.filter((a) => pass(k, a)).length)));
       b.type = 'button';
@@ -362,9 +468,12 @@
       return b;
     }));
     const bar = document.getElementById('plg-bar');
-    if (bar) bar.hidden = !list.length;
+    if (bar) bar.hidden = tab !== 'installed' || !list.length;
     const shown = list.filter((a) => pass(filter, a) && match(a));
     box.replaceChildren(...(!list.length ? [emptyState()] : shown.length ? shown.map(card) : [noneState()]));
+    box.hidden = tab !== 'installed';
+    tabs(need);
+    renderCat();
     if (detail && document.getElementById('dlg-plugin')?.hasAttribute('data-open')) fill();
   }
 
@@ -392,10 +501,10 @@
     const meta = [a.version && `v${a.version}`, a.author].filter(Boolean).join(' · ');
     const [st, stText] = state(a);
     const head = h('div', 'plg-dh', icon(a, 'is-big'),
-      h('div', 'plg-who', h('h2', null, a.name || a.id),
+      h('div', 'plg-who', h('h2', null, a.name ? _t(a.name) : a.id),
         h('div', 'plg-meta', trustBadge(a), meta ? h('span', null, meta) : null, h('span', `plg-state is-${st}`, h('i'), stText))),
       a.pending ? null : toggle(a));
-    const parts = [head, h('p', 'plg-ddesc', a.description || _t("Автор не добавил описание."))];
+    const parts = [head, h('p', 'plg-ddesc', (a.description && _t(a.description)) || _t("Автор не добавил описание."))];
     if (a.signature_error) parts.push(h('p', 'ap-warn', _t("Подпись нарушена: файлы плагина изменены после проверки.")));
     const rows = (a.permissions || []).map((p) => {
       const [label, desc, risky] = PERM[p.id] || [p.id, ''];
@@ -426,7 +535,7 @@
       const r = await invoke('pick_addon');
       if (!r) return;
       list = r;
-      render();
+      setTab('installed');
       mount();
       toast(_t("Плагин установлен. Разрешите его права, чтобы включить."));
     } catch (e) { toast(String(e), { error: true }); }
@@ -462,7 +571,8 @@
       window.FUI.closeDlg();
       act('addons.revoke', { id });
     });
-    document.querySelector('#addon-reload')?.addEventListener('click', () => act('addons.list'));
+    document.querySelector('#addon-reload')?.addEventListener('click', () => { act('addons.list'); loadCat(true); });
+    document.querySelectorAll('#plg-tabs .plg-tab').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
     document.getElementById('dlg-addon-perms')?.addEventListener('submit', (e) => {
       e.preventDefault();
       const permissions = [...document.querySelectorAll('#ap-list input:checked')].map((x) => x.value);

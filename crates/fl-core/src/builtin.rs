@@ -292,6 +292,24 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         let st: addons::State = store::load(&c.path(addons::STATE))?;
         Ok(json!(addons::list(&c.data_dir, &st)))
     });
+    // The official catalog (plugins/catalog.json in Freedom-Launcher/releases) with live
+    // downloads and likes; `install_from` fetches a listed .zip and checks its SHA-256.
+    r.register("addons.catalog", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize, Default)]
+        struct A {
+            #[serde(default)]
+            refresh: bool,
+        }
+        let A { refresh } = if a.is_null() { A::default() } else { args(a)? };
+        let (plugins, offline) = crate::plugin_store::catalog(&c, refresh).await?;
+        Ok(json!({ "plugins": plugins, "offline": offline }))
+    });
+    r.register("addons.install_from", P::Internal, false, |c, a| async move {
+        let IdArg { id } = args(a)?;
+        crate::plugin_store::install(&c, &id).await?;
+        let st: addons::State = store::load(&c.path(addons::STATE))?;
+        Ok(json!(addons::list(&c.data_dir, &st)))
+    });
     r.register("addons.folder", P::Internal, false, |c, _| async move {
         let d = addons::dir(&c.data_dir);
         std::fs::create_dir_all(&d)?;

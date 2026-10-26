@@ -273,3 +273,21 @@ local profiles never load it.
 
 Safe settings (`--safe`, Shift at start) and «Отключить все плагины» run the
 launcher with no addons at all.
+
+## Official catalog
+
+The «Плагины» page opens on the **Каталог** tab. It reads `plugins/catalog.json` from the
+`main` branch of `Freedom-Launcher/releases` (core action `addons.catalog`, cached for 10 minutes,
+last copy used offline). Each entry has `id, name, author, description, version, hue, permissions,
+url, sha256, size, asset, issue`. `addons.install_from {id}` downloads the listed `.zip` (only from
+`raw.githubusercontent.com/Freedom-Launcher/` or `github.com/Freedom-Launcher/`, ≤ 64 MB), checks
+its SHA-256 and installs it like a `.zip` picked by hand; the plugin still asks for its permissions.
+
+- **Likes**: reactions 👍 / ❤ on the plugin's issue (label `plugin`) in `Freedom-Launcher/releases`;
+  the heart on a tile opens that issue.
+- **Downloads**: `download_count` of the asset with the entry's `asset` name in the release tagged
+  `plugins` of the same repository, when it exists (the zip URL then switches to that asset).
+
+Sources of official plugins live in `plugins/<id>/` of this repository.
+`python3 scripts/plugins-pack.py <seed file> <out dir>` signs them as «Официальный», zips them and
+writes `catalog.json`; push the output to `plugins/` of `Freedom-Launcher/releases`.

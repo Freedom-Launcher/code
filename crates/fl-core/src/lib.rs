@@ -24,6 +24,7 @@ pub mod bundled;
 pub mod actions;
 pub mod addon_data;
 pub mod addons;
+pub mod plugin_store;
 mod builtin;
 pub mod catalog;
 pub mod curseforge;
