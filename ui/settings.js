@@ -17,6 +17,7 @@
 
   // Words people search for that are not on the row itself.
   const KW = {
+    'set-plugins-open': 'аддоны плагины расширения addons plugins',
     'logo-fg': 'логотип лого знак цвет logo mark color', 'logo-bg': 'логотип подложка фон плитка logo background', 'logo-shape': 'логотип форма круг квадрат logo shape', 'logo-fade': 'логотип перья затухание logo feathers',
     'theme-seg': 'цвет темная светлая theme dark light', 'theme-folder': 'темы папка', 'panels-seg': 'отступы карточки раскладка',
     'fx-lite': 'облегчённые эффекты производительность лаги тормоза плавность размытие fps performance lite',

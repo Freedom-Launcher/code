@@ -125,7 +125,16 @@
     document.querySelectorAll('#rail-addons .rail-btn').forEach((b) => (view === 'addon' && b.dataset.page === cur
       ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   }
-  function shown(v) { view = v; lit(); }
+  function shown(v) {
+    const was = view;
+    view = v;
+    lit();
+    if (v !== 'plugins' || was === 'plugins') return;
+    const box = document.getElementById('addon-list');
+    box?.classList.add('is-enter');
+    render();
+    setTimeout(() => box?.classList.remove('is-enter'), 900);
+  }
 
   // ---------- Launch overlay (`ui_overlay`): full window, click-through ----------
   let overlay = null;
@@ -201,64 +210,200 @@
           h('span', 's', desc + extra)));
     });
     box.replaceChildren(...(rows.length ? rows : [h('div', 'hint', _t("Плагину не нужны особые права."))]));
+    window.FUI.closeDlg();
     window.FUI.openDlg('dlg-addon-perms');
   }
 
-  // ---------- Settings → Плагины (launcher extensions; code name "addons") ----------
-  function row(a) {
-    const r = h('div', 'r addon-row');
-    r.dataset.id = `addon.${a.id}`;
-    if (a.error) {
-      r.append(h('div', 'grow', h('div', 't', a.id), h('div', 's is-error', a.error)));
-      return r;
-    }
-    const meta = [a.version && `v${a.version}`, a.author].filter(Boolean).join(' · ');
-    const badge = a.signature_error
+  // ---------- «Плагины» page (launcher extensions; code name "addons") ----------
+  let filter = 'all', query = '', detail = null, armed = 0;
+  const attn = (a) => !!(a.error || a.pending || a.signature_error);
+  const FILTERS = [['all', _t("Все")], ['on', _t("Включены")], ['off', _t("Выключены")], ['attn', _t("Требуют внимания")]];
+  const pass = (k, a) => k === 'all' || (k === 'on' ? active(a) : k === 'off' ? !a.error && !a.pending && !a.enabled : attn(a));
+  const match = (a) => !query || [a.name, a.id, a.author, a.description].filter(Boolean).join(' ').toLowerCase().includes(query);
+  const hue = (s) => { let x = 7; for (const ch of String(s)) x = (x * 31 + ch.codePointAt(0)) % 360; return x; };
+  const stop = (n) => { n.addEventListener('click', (e) => e.stopPropagation()); return n; };
+
+  function icon(a, cls = '') {
+    const n = h('span', `plg-ico ${cls}`.trim(), ([...String(a.name || a.id).trim()][0] || '?').toUpperCase());
+    n.style.setProperty('--h', String(hue(a.id)));
+    n.setAttribute('aria-hidden', 'true');
+    return n;
+  }
+  function trustBadge(a) {
+    if (a.error) return h('span', 'badge is-warn', _t("Ошибка"));
+    const b = a.signature_error
       ? h('span', 'badge is-warn', _t("Подпись нарушена"))
-      : h('span', `badge${a.trust === 'community' ? '' : ' is-accent'}`, TRUST[a.trust] || a.trust);
-    if (a.signature_error) badge.title = _t("{0}. Файлы пакета изменены после подписи — он работает как «Сообщество».", [a.signature_error]);
-    const perms = h('div', 'addon-perms');
-    for (const p of a.permissions || []) {
+      : h('span', `badge${a.trust === 'community' ? '' : ' is-accent'}`, TRUST[a.trust] || a.trust || '');
+    if (a.signature_error) b.title = _t("{0}. Файлы пакета изменены после подписи — он работает как «Сообщество».", [a.signature_error]);
+    return b;
+  }
+  function chips(a, max) {
+    const box = h('div', 'addon-perms plg-perms');
+    const ps = a.permissions || [];
+    for (const p of ps.slice(0, max)) {
       const label = p.id === 'network' && a.hosts?.length ? _t("Сеть: {0}", [a.hosts.join(', ')]) : PERM[p.id]?.[0] || p.id;
       const off = !p.granted && p.declined;
       const c = h('span', `chip tier-${p.tier}${off ? ' is-off' : p.granted ? '' : ' is-new'}`, label);
       c.title = off ? _t("Не разрешено") : _t("Уровень «{0}»", [TIER[p.tier] || p.tier]);
-      perms.append(c);
+      box.append(c);
     }
-    if (!a.permissions?.length) perms.append(h('span', 'chip', _t("Без особых прав")));
-    const info = h('div', 'grow', h('div', 't', a.name, ' ', badge), h('div', 's', a.description || meta), perms);
-    r.append(info);
-    if (a.pending) {
-      const b = h('button', 'btn btn-primary', h('span', 'lbl', a.enabled ? _t("Новые права…") : _t("Разрешить…")));
-      b.onclick = () => askPerms(a);
-      r.append(b);
-    } else {
-      if (a.permissions?.length) {
-        const b = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Права…")));
-        b.onclick = () => askPerms(a);
-        r.append(b);
-      }
-      const sw = h('label', 'switch');
-      const inp = h('input');
-      inp.type = 'checkbox';
-      inp.checked = a.enabled;
-      inp.onchange = () => act('addons.set_enabled', { id: a.id, enabled: inp.checked });
-      sw.append(inp, h('i'));
-      r.append(sw);
+    if (ps.length > max) box.append(h('span', 'chip is-more', `+${ps.length - max}`));
+    if (!ps.length) box.append(h('span', 'chip is-safe', _t("Без особых прав")));
+    return box;
+  }
+  function state(a) {
+    if (a.error) return ['err', _t("Не загрузился")];
+    if (a.pending) return ['attn', a.enabled ? _t("Просит новые права") : _t("Ждёт разрешения")];
+    return a.enabled ? ['on', _t("Включён")] : ['off', _t("Выключен")];
+  }
+  function toggle(a) {
+    const sw = h('label', 'switch');
+    const inp = h('input');
+    inp.type = 'checkbox';
+    inp.checked = !!a.enabled;
+    inp.setAttribute('aria-label', a.name || a.id);
+    inp.onchange = () => act('addons.set_enabled', { id: a.id, enabled: inp.checked });
+    sw.append(inp, h('i'));
+    return stop(sw);
+  }
+  function allowBtn(a) {
+    const b = h('button', 'btn btn-primary', h('span', 'lbl', a.enabled ? _t("Новые права…") : _t("Разрешить…")));
+    b.type = 'button';
+    b.onclick = () => askPerms(a);
+    return stop(b);
+  }
+  function card(a, i) {
+    const [st, stText] = state(a);
+    const c = h('article', `plg-card is-${st}`);
+    c.dataset.id = `addon.${a.id}`;
+    c.style.setProperty('--i', String(i));
+    const meta = a.error ? _t("Ошибка в пакете") : [a.version && `v${a.version}`, a.author].filter(Boolean).join(' · ');
+    c.append(
+      h('div', 'plg-top', icon(a), h('div', 'plg-who', h('div', 'plg-name', h('span', 'plg-n', a.name || a.id), trustBadge(a)), h('div', 'plg-meta', meta))),
+      h('p', `plg-desc${a.error ? ' is-error' : ''}`, a.error || a.description || _t("Автор не добавил описание.")));
+    if (!a.error) c.append(chips(a, 3));
+    const foot = h('div', 'plg-foot', h('span', `plg-state is-${st}`, h('i'), stText), h('span', 'grow'));
+    if (a.error) {
+      const b = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Открыть папку")));
+      b.type = 'button';
+      b.onclick = () => invoke('open_addons_folder').catch((e) => toast(String(e), { error: true }));
+      foot.append(b);
+    } else foot.append(a.pending ? allowBtn(a) : toggle(a));
+    c.append(foot);
+    if (!a.error) {
+      c.tabIndex = 0;
+      c.onclick = () => openDetail(a.id);
+      c.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === c) { e.preventDefault(); openDetail(a.id); } };
     }
-    if (a.enabled || !a.pending) {
-      const x = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Отозвать")));
-      x.onclick = () => act('addons.revoke', { id: a.id });
-      r.append(x);
-    }
-    return r;
+    return c;
+  }
+  function emptyState() {
+    const art = h('div', 'plg-empty-art');
+    const svg = document.querySelector('.plg-hero-ico svg');
+    if (svg) art.append(svg.cloneNode(true));
+    const b = h('button', 'btn btn-primary', h('span', 'lbl', _t("Установить из .zip")));
+    b.type = 'button';
+    b.onclick = install;
+    return h('div', 'plg-empty', art, h('h3', null, _t("Плагинов пока нет")),
+      h('p', null, _t("Плагины добавляют лаунчеру новые возможности: свои вкладки, анимацию запуска, вход через сторонние сервисы. Ставьте только то, что нужно вам.")), b);
+  }
+  function noneState() {
+    const b = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Сбросить фильтр")));
+    b.type = 'button';
+    b.onclick = () => {
+      filter = 'all'; query = '';
+      const q = document.getElementById('plg-q');
+      if (q) q.value = '';
+      render();
+    };
+    return h('div', 'plg-none', h('b', null, _t("Ничего не нашлось")), h('p', null, _t("Попробуйте другое слово или сбросьте фильтр.")), b);
   }
 
   function render() {
-    const box = document.querySelector('#addon-list');
+    const box = document.getElementById('addon-list');
     if (!box) return;
-    box.replaceChildren(...(list.length ? list.map(row)
-      : [h('div', 'r', h('div', 'grow', h('div', 't', _t("Плагинов пока нет"))))]));
+    const on = list.filter(active).length, need = list.filter(attn).length;
+    if (filter === 'attn' && !need) filter = 'all';
+    document.getElementById('plg-stats')?.replaceChildren(...(list.length ? [
+      h('span', null, _t("Установлено"), h('b', null, String(list.length))),
+      h('span', null, _t("Включено"), h('b', null, String(on))),
+      need ? h('span', 'is-attn', _t("Требуют внимания"), h('b', null, String(need))) : null].filter(Boolean) : []));
+    document.getElementById('plg-filter')?.replaceChildren(...FILTERS.filter(([k]) => k !== 'attn' || need).map(([k, t]) => {
+      const b = h('button', `chip${filter === k ? ' is-on' : ''}${k === 'attn' ? ' is-attn' : ''}`, t, h('b', null, String(list.filter((a) => pass(k, a)).length)));
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(filter === k));
+      b.onclick = () => { filter = k; render(); };
+      return b;
+    }));
+    const bar = document.getElementById('plg-bar');
+    if (bar) bar.hidden = !list.length;
+    const shown = list.filter((a) => pass(filter, a) && match(a));
+    box.replaceChildren(...(!list.length ? [emptyState()] : shown.length ? shown.map(card) : [noneState()]));
+    if (detail && document.getElementById('dlg-plugin')?.hasAttribute('data-open')) fill();
+  }
+
+  // ---------- Plugin details ----------
+  function openDetail(id) {
+    detail = id;
+    disarm();
+    fill();
+    window.FUI.closeDlg();
+    window.FUI.openDlg('dlg-plugin');
+  }
+  function disarm() {
+    clearTimeout(armed);
+    armed = 0;
+    const b = document.getElementById('plg-revoke');
+    if (!b) return;
+    b.classList.remove('is-danger');
+    b.querySelector('.lbl').textContent = _t("Отозвать права");
+  }
+  function fill() {
+    const a = list.find((x) => x.id === detail);
+    const body = document.getElementById('plg-dlg-body');
+    if (!body) return;
+    if (!a || a.error) { window.FUI.closeDlg(); return; }
+    const meta = [a.version && `v${a.version}`, a.author].filter(Boolean).join(' · ');
+    const [st, stText] = state(a);
+    const head = h('div', 'plg-dh', icon(a, 'is-big'),
+      h('div', 'plg-who', h('h2', null, a.name || a.id),
+        h('div', 'plg-meta', trustBadge(a), meta ? h('span', null, meta) : null, h('span', `plg-state is-${st}`, h('i'), stText))),
+      a.pending ? null : toggle(a));
+    const parts = [head, h('p', 'plg-ddesc', a.description || _t("Автор не добавил описание."))];
+    if (a.signature_error) parts.push(h('p', 'ap-warn', _t("Подпись нарушена: файлы плагина изменены после проверки.")));
+    const rows = (a.permissions || []).map((p) => {
+      const [label, desc, risky] = PERM[p.id] || [p.id, ''];
+      const [k, t] = p.granted ? ['ok', _t("Разрешено")] : p.declined ? ['no', _t("Не разрешено")] : ['new', _t("Ждёт решения")];
+      const extra = p.id === 'network' && a.hosts?.length ? ` ${a.hosts.join(', ')}` : '';
+      return h('div', `plg-prow${risky ? ' is-risky' : ''}`, h('div', 'grow', h('div', 't', label), h('div', 's', desc + extra)), h('span', `plg-pst is-${k}`, t));
+    });
+    parts.push(h('div', 'plg-sec', h('h3', null, _t("Права")),
+      rows.length ? h('div', 'plg-plist', ...rows) : h('div', 'hint', _t("Плагину не нужны особые права."))));
+    if (active(a) && a.pages?.length) {
+      parts.push(h('div', 'plg-sec', h('h3', null, _t("Вкладки")), h('div', 'plg-pages', ...a.pages.map((p) => {
+        const b = h('button', 'btn', h('span', 'lbl', p.title));
+        b.type = 'button';
+        b.onclick = () => { window.FUI.closeDlg(); openPage(a.id, p.id); };
+        return b;
+      }))));
+    }
+    parts.push(h('div', 'plg-id', a.id));
+    body.replaceChildren(...parts);
+    const pb = document.getElementById('plg-perms');
+    if (pb) {
+      pb.hidden = !a.permissions?.length;
+      pb.querySelector('.lbl').textContent = a.pending ? (a.enabled ? _t("Новые права…") : _t("Разрешить…")) : _t("Права…");
+    }
+  }
+  async function install() {
+    try {
+      const r = await invoke('pick_addon');
+      if (!r) return;
+      list = r;
+      render();
+      mount();
+      toast(_t("Плагин установлен. Разрешите его права, чтобы включить."));
+    } catch (e) { toast(String(e), { error: true }); }
   }
 
   async function act(name, args) {
@@ -272,15 +417,24 @@
     render();
     mount();
     document.querySelector('#addon-folder')?.addEventListener('click', () => invoke('open_addons_folder').catch((e) => toast(String(e), { error: true })));
-    document.querySelector('#addon-install')?.addEventListener('click', async () => {
-      try {
-        const r = await invoke('pick_addon');
-        if (!r) return;
-        list = r;
-        render();
-        mount();
-        toast(_t("Плагин установлен. Разрешите его права, чтобы включить."));
-      } catch (e) { toast(String(e), { error: true }); }
+    document.querySelector('#addon-install')?.addEventListener('click', install);
+    document.getElementById('plg-q')?.addEventListener('input', (e) => { query = e.target.value.trim().toLowerCase(); render(); });
+    document.getElementById('plg-perms')?.addEventListener('click', () => {
+      const a = list.find((x) => x.id === detail);
+      if (a) askPerms(a);
+    });
+    document.getElementById('plg-revoke')?.addEventListener('click', (e) => {
+      const b = e.currentTarget;
+      if (!armed) {
+        b.classList.add('is-danger');
+        b.querySelector('.lbl').textContent = _t("Точно отозвать?");
+        armed = setTimeout(disarm, 2600);
+        return;
+      }
+      const id = detail;
+      disarm();
+      window.FUI.closeDlg();
+      act('addons.revoke', { id });
     });
     document.querySelector('#addon-reload')?.addEventListener('click', () => act('addons.list'));
     document.getElementById('dlg-addon-perms')?.addEventListener('submit', (e) => {

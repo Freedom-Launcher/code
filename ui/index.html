@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="home.css">
   <link rel="stylesheet" href="mods.css">
   <link rel="stylesheet" href="servers.css">
+  <link rel="stylesheet" href="plugins.css">
   <link rel="stylesheet" href="perf-dlg.css">
   <link rel="stylesheet" href="content.css">
   <link rel="stylesheet" href="project.css">
@@ -98,6 +99,9 @@
       </button>
       <button class="rail-btn" data-view="skins" data-tip="Скины" data-id="rail.skins" aria-label="Скины">
         <svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M5.707 3.879A3 3 0 0 1 7.828 3c.79 0 1.948-.22 2.302.711a2.001 2.001 0 0 0 3.74 0c.354-.93 1.513-.71 2.302-.71a3 3 0 0 1 2.12.878L22 7.586a2 2 0 0 1 0 2.828l-1.478 1.478c-.52.52-1.246.689-1.9.526l.272 5.432A3 3 0 0 1 15.898 21H8.102a3 3 0 0 1-2.996-3.15l.272-5.432a1.996 1.996 0 0 1-1.9-.526L2 10.414a2 2 0 0 1 0-2.828z"/></g></svg>
+      </button>
+      <button class="rail-btn" data-view="plugins" data-tip="Плагины" data-id="rail.plugins" aria-label="Плагины">
+        <svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M15 20a1 1 0 0 1 .117 1.993L15 22H9a1 1 0 0 1-.117-1.993L9 20zm0-18a1 1 0 0 1 .993.883L16 3v3h2a2 2 0 0 1 1.995 1.85L20 8v5a6 6 0 0 1-5.775 5.996L14 19h-4a6 6 0 0 1-5.996-5.775L4 13V8a2 2 0 0 1 1.85-1.995L6 6h2V3a1 1 0 0 1 1.993-.117L10 3v3h4V3a1 1 0 0 1 1-1m3 6H6v5a4 4 0 0 0 3.8 3.995L10 17h4a4 4 0 0 0 3.995-3.8L18 13z"/></g></svg>
       </button>
       <button class="rail-btn" data-view="settings" data-tip="Настройки" data-id="rail.settings" aria-label="Настройки">
         <svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M10.586 2.1a2 2 0 0 1 2.7-.116l.128.117L15.314 4H18a2 2 0 0 1 1.994 1.85L20 6v2.686l1.9 1.9a2 2 0 0 1 .116 2.701l-.117.127-1.9 1.9V18a2 2 0 0 1-1.85 1.995L18 20h-2.685l-1.9 1.9a2 2 0 0 1-2.701.116l-.127-.116-1.9-1.9H6a2 2 0 0 1-1.995-1.85L4 18v-2.686l-1.9-1.9a2 2 0 0 1-.116-2.701l.116-.127 1.9-1.9V6a2 2 0 0 1 1.85-1.994L6 4h2.686zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6"/></g></svg>
@@ -303,7 +307,7 @@
           <div class="acc-actions">
             <button class="btn btn-primary" data-open="dlg-login" data-id="accounts.add.microsoft"><span class="lbl">Войти через Microsoft</span></button>
             <button class="btn" data-open="dlg-offline" id="acc-offline" data-id="accounts.add.offline" hidden><span class="lbl">Офлайн-профиль</span></button>
-            <button class="btn btn-ghost" data-view="settings" data-pane="addons" data-id="accounts.add.provider"><span class="lbl">Сторонний сервис</span></button>
+            <button class="btn btn-ghost" data-view="plugins" data-id="accounts.add.provider"><span class="lbl">Сторонний сервис</span></button>
           </div>
           <div data-slot="accounts.end"></div>
         </div>
@@ -429,6 +433,37 @@
           <header class="auth-hero" id="auth-head" data-id="author.header"></header>
           <div class="auth-body" id="auth-body" data-id="author.body"></div>
           <div data-slot="author.end"></div>
+        </div>
+      </section>
+      <section class="view" id="view-plugins" data-id="view.plugins">
+        <div class="narrow plg" data-id="plugins.page">
+          <header class="plg-hero" data-id="plugins.hero">
+            <span class="plg-hero-ico" aria-hidden="true"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M15 20a1 1 0 0 1 .117 1.993L15 22H9a1 1 0 0 1-.117-1.993L9 20zm0-18a1 1 0 0 1 .993.883L16 3v3h2a2 2 0 0 1 1.995 1.85L20 8v5a6 6 0 0 1-5.775 5.996L14 19h-4a6 6 0 0 1-5.996-5.775L4 13V8a2 2 0 0 1 1.85-1.995L6 6h2V3a1 1 0 0 1 1.993-.117L10 3v3h4V3a1 1 0 0 1 1-1m3 6H6v5a4 4 0 0 0 3.8 3.995L10 17h4a4 4 0 0 0 3.995-3.8L18 13z"/></g></svg></span>
+            <div class="plg-hero-t">
+              <h1 class="page-h">Плагины</h1>
+              <p class="plg-sub">Соберите лаунчер под себя: ставьте только то, что нужно. Каждый плагин живёт в песочнице и может лишь то, что вы разрешили.</p>
+              <div class="plg-stats" id="plg-stats" data-id="plugins.stats"></div>
+            </div>
+            <div class="plg-hero-acts">
+              <button class="btn btn-primary" id="addon-install" data-id="plugins.install"><span class="lbl">Установить из .zip</span></button>
+              <button class="btn btn-icon" id="addon-reload" data-id="plugins.reload" data-tip="Обновить список" aria-label="Обновить список"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path fill="currentColor" d="M2 12.08c-.006-.862.91-1.356 1.618-.975l.095.058 2.678 1.804c.972.655.377 2.143-.734 2.007l-.117-.02-1.063-.234a8.002 8.002 0 0 0 14.804.605 1 1 0 0 1 1.82.828c-1.987 4.37-6.896 6.793-11.687 5.509A10.003 10.003 0 0 1 2 12.08m.903-4.228C4.89 3.482 9.799 1.06 14.59 2.343a10.002 10.002 0 0 1 7.414 9.581c.007.863-.91 1.358-1.617.976l-.096-.058-2.678-1.804c-.972-.655-.377-2.143.734-2.007l.117.02 1.063.234A8.002 8.002 0 0 0 4.723 8.68a1 1 0 1 1-1.82-.828"/></g></svg></button>
+              <button class="btn btn-icon" id="addon-folder" data-id="plugins.folder" data-tip="Папка плагинов" aria-label="Папка плагинов"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path fill="currentColor" d="M9.52 3a2 2 0 0 1 1.442.614l.12.137L12.48 5.5H19a2 2 0 0 1 1.995 1.85L21 7.5v1.53a2.001 2.001 0 0 1 1.61 2.398l-.038.147-2.4 8a2 2 0 0 1-1.752 1.418l-.164.007H4a2 2 0 0 1-1.995-1.85L2 19V5a2 2 0 0 1 1.85-1.995L4 3zm11.136 8H6.744l-2.4 8h13.912zM9.519 5H4v8.187l.828-2.762A2 2 0 0 1 6.744 9H19V7.5h-6.52a2 2 0 0 1-1.561-.75z"/></g></svg></button>
+            </div>
+          </header>
+          <div class="plg-bar" id="plg-bar" data-id="plugins.bar">
+            <div class="plg-filter" id="plg-filter" role="group" aria-label="Фильтр"></div>
+            <span class="spacer"></span>
+            <label class="plg-q"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M10.5 2a8.5 8.5 0 1 0 5.262 15.176l3.652 3.652a1 1 0 0 0 1.414-1.414l-3.652-3.652A8.5 8.5 0 0 0 10.5 2M4 10.5a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0"/></g></svg><input class="field" id="plg-q" type="search" placeholder="Найти плагин" autocomplete="off" spellcheck="false" data-id="plugins.search"></label>
+          </div>
+          <div class="plg-grid" id="addon-list" data-id="plugins.list"></div>
+          <div class="plg-soon" data-id="plugins.soon">
+            <div class="plg-soon-h"><h2>Скоро в каталоге</h2><span>Официальные плагины от команды Freedom Launcher — установка в один клик</span></div>
+            <div class="plg-soon-grid">
+              <div class="plg-tile"><span class="plg-ico" style="--h:232" aria-hidden="true">D</span><div><b>Статус в Discord</b><span>Показывает друзьям, во что вы играете</span></div><em>Скоро</em></div>
+              <div class="plg-tile"><span class="plg-ico" style="--h:150" aria-hidden="true">S</span><div><b>Статистика игры</b><span>Часы, сессии и итоги года</span></div><em>Скоро</em></div>
+              <div class="plg-tile"><span class="plg-ico" style="--h:18" aria-hidden="true">L</span><div><b>Отчёт о вылете</b><span>Ссылка на лог в один клик через mclo.gs</span></div><em>Скоро</em></div>
+            </div>
+          </div>
         </div>
       </section>
       <section class="view" id="view-settings" data-id="view.settings">
@@ -589,13 +624,9 @@
         </div>
         <div class="set-pane" data-pane="addons" data-id="settings.pane.addons" hidden>
           <h2 class="set-h">Плагины</h2>
-          <div class="rows set-card" id="addon-list" data-id="settings.addons.list"></div>
-          <div class="rows set-card" data-id="settings.addons.folder">
-              <div class="r"><div class="grow"><div class="t">Установить плагин</div><div class="s">Архив .zip из репозитория автора</div></div>
-                <button class="btn btn-primary" id="addon-install" data-id="settings.addons.install"><span class="lbl">Выбрать файл…</span></button></div>
-              <div class="r"><div class="grow"><div class="t">Папка плагинов</div></div>
-                <button class="btn btn-ghost" id="addon-reload" data-id="settings.addons.reload"><span class="lbl">Обновить</span></button>
-                <button class="btn" id="addon-folder" data-id="settings.addons.folder"><span class="lbl">Открыть</span></button></div>
+          <div class="rows set-card" data-id="settings.addons.open">
+            <div class="r"><div class="grow"><div class="t">Плагины на своей странице</div><div class="s">Установка, права, включение и выключение</div></div>
+              <button class="btn btn-primary" id="set-plugins-open" data-view="plugins" data-id="settings.addons.goto"><span class="lbl">Открыть</span></button></div>
           </div>
         </div>
         <div class="set-pane" data-pane="keys" data-id="settings.pane.keys" hidden>
@@ -1033,6 +1064,15 @@
     </div>
   </form>
 
+  <form class="dialog plg-dlg" id="dlg-plugin" data-id="dialog.plugin" role="dialog" aria-label="Плагин">
+    <div id="plg-dlg-body" data-id="plugin.body"></div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" id="plg-revoke" data-id="plugin.revoke"><span class="lbl">Отозвать права</span></button>
+      <span class="fg-gap"></span>
+      <button type="button" class="btn" id="plg-perms" data-id="plugin.perms"><span class="lbl">Права…</span></button>
+      <button type="button" class="btn btn-primary" data-close data-id="plugin.close"><span class="lbl">Готово</span></button>
+    </div>
+  </form>
   <form class="dialog dlg-foreign" id="dlg-addon-perms" data-id="dialog.addon.perms" role="dialog" aria-label="Права плагина">
     <h2 id="ap-title">Права плагина</h2>
     <p class="hint">Плагин работает в песочнице: у него нет доступа к файлам компьютера. Он может только то, что вы отметите. Права можно изменить позже: Настройки → Плагины → «Права…».</p>

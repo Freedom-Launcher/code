@@ -56,6 +56,7 @@
     add('go', 'go.home', _t("Библиотека"), 'home', () => show('home'), { k: _t("библиотека главная домой сборки library home") });
     add('go', 'go.create', _t("Новая сборка"), 'plus', () => show('create'), { k: _t("создать new instance"), keys: [MOD, 'N'] });
     add('go', 'go.skins', _t("Скины"), 'user', () => show('skins'), { k: _t("скины скин плащ модель рук skin skins cape") });
+    add('go', 'go.plugins', _t("Плагины"), 'gear', () => show('plugins'), { k: _t("плагины аддоны расширения addons plugins extensions") });
     add('go', 'go.discover', _t("Каталог"), 'compass', () => show('discover'), { k: _t("каталог обзор моды сборки модпаки ресурспаки шейдеры датапаки modrinth browse mods modpacks") });
     add('go', 'go.accounts', _t("Аккаунты"), 'user', () => show('accounts'), { k: _t("профиль вход microsoft account login") });
     [['look', _t("Внешний вид"), _t("тема оформление раскладка анимации theme")], ['wall', _t("Обои и стекло"), _t("фон картинка прозрачность wallpaper glass")],
