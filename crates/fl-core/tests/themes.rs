@@ -130,3 +130,23 @@ fn shipped_example_theme_is_valid() {
     let m = themes::load(&d, "example").unwrap();
     assert_eq!(m.templates["view.empty"], "empty.html");
 }
+
+/// The shipped example themes pass every check and survive a `.fltheme` round trip.
+#[test]
+fn shipped_themes_load_and_pack() {
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/themes");
+    for id in ["example", "cyberpunk"] {
+        let d = tmp(&[]);
+        let to = d.join("themes").join(id);
+        fs::create_dir_all(&to).unwrap();
+        for e in fs::read_dir(src.join(id)).unwrap().flatten() {
+            fs::copy(e.path(), to.join(e.file_name())).unwrap();
+        }
+        themes::load(&d, id).unwrap_or_else(|e| panic!("{id}: {e}"));
+        let out = d.join(format!("{id}.fltheme"));
+        themes::export_zip(&d, id, &out).unwrap();
+        fs::remove_dir_all(&to).unwrap();
+        assert_eq!(themes::install_zip(&d, &out).unwrap(), id);
+        let _ = fs::remove_dir_all(&d);
+    }
+}

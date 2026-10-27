@@ -571,6 +571,255 @@ pub fn save(
     Ok(id)
 }
 
+/// Files a `.fltheme` archive may carry: the manifest, templates, assets and a readme.
+const PACKAGE: [&str; 14] = [
+    "json", "html", "css", "png", "jpg", "jpeg", "webp", "gif", "svg", "woff2", "woff", "ttf",
+    "md", "txt",
+];
+const MAX_FILES: usize = 512;
+const MAX_BYTES: u64 = 32 << 20;
+
+/// Archive litter added by file managers; skipped, never installed.
+fn junk(n: &str) -> bool {
+    n.starts_with("__MACOSX/")
+        || n.rsplit('/')
+            .next()
+            .is_some_and(|b| matches!(b, ".DS_Store" | "Thumbs.db" | "desktop.ini"))
+}
+
+/// Installs a theme from a `.fltheme` (a zip): `theme.json` at the top of the
+/// archive or inside one top folder. An installed theme with the same id is
+/// replaced only if the new one passes every check; otherwise the old one stays.
+pub fn install_zip(data_dir: &Path, zip_path: &Path) -> R<String> {
+    use std::io::Read;
+    let f = fs::File::open(zip_path).map_err(|_| "файл не найден".to_string())?;
+    let mut z = zip::ZipArchive::new(f).map_err(|_| "это не файл темы (.fltheme)".to_string())?;
+    if z.len() > MAX_FILES {
+        return Err(format!("в архиве больше {MAX_FILES} файлов"));
+    }
+    let names: Vec<String> = (0..z.len())
+        .filter_map(|i| z.by_index(i).ok().map(|e| e.name().replace('\\', "/")))
+        .filter(|n| !junk(n))
+        .collect();
+    let prefix = if names.iter().any(|n| n == "theme.json") {
+        String::new()
+    } else {
+        let top = names
+            .first()
+            .and_then(|n| n.split('/').next())
+            .unwrap_or_default()
+            .to_owned();
+        let p = format!("{top}/");
+        if top.is_empty()
+            || !names.iter().all(|n| n.starts_with(&p))
+            || !names.iter().any(|n| *n == format!("{p}theme.json"))
+        {
+            return Err("в архиве нет theme.json".into());
+        }
+        p
+    };
+    let mut raw = Vec::new();
+    z.by_name(&format!("{prefix}theme.json"))
+        .map_err(|_| "в архиве нет theme.json".to_string())?
+        .take(64 * 1024 + 1)
+        .read_to_end(&mut raw)
+        .map_err(|e| format!("theme.json: {e}"))?;
+    let id = serde_json::from_slice::<Value>(&raw)
+        .ok()
+        .and_then(|v| v["id"].as_str().map(str::to_owned))
+        .filter(|id| valid_id(id) && builtin(id).is_none())
+        .ok_or("theme.json: неверный id")?;
+    let root = dir(data_dir);
+    fs::create_dir_all(&root).map_err(|e| e.to_string())?;
+    let tmp = root.join(format!(".install-{}", uuid::Uuid::new_v4()));
+    if let Err(e) = extract(&mut z, &prefix, &tmp) {
+        let _ = fs::remove_dir_all(&tmp);
+        return Err(e);
+    }
+    let dest = root.join(&id);
+    let old = root.join(format!(".old-{}", uuid::Uuid::new_v4()));
+    let had = dest.exists();
+    if had {
+        fs::rename(&dest, &old).map_err(|e| e.to_string())?;
+    }
+    if let Err(e) = fs::rename(&tmp, &dest) {
+        if had {
+            let _ = fs::rename(&old, &dest);
+        }
+        let _ = fs::remove_dir_all(&tmp);
+        return Err(e.to_string());
+    }
+    if let Err(e) = load(data_dir, &id) {
+        let _ = fs::remove_dir_all(&dest);
+        if had {
+            let _ = fs::rename(&old, &dest);
+        }
+        return Err(e);
+    }
+    let _ = fs::remove_dir_all(&old);
+    Ok(id)
+}
+
+fn extract(z: &mut zip::ZipArchive<fs::File>, prefix: &str, to: &Path) -> R<()> {
+    use std::io::Read;
+    let mut total = 0u64;
+    for i in 0..z.len() {
+        let mut e = z.by_index(i).map_err(|_| "архив повреждён".to_string())?;
+        let name = e.name().replace('\\', "/");
+        if junk(&name) {
+            continue;
+        }
+        let rel = name.strip_prefix(prefix).unwrap_or_default().to_owned();
+        if e.is_dir() || rel.is_empty() {
+            continue;
+        }
+        if e.unix_mode().is_some_and(|m| m & 0o170000 == 0o120000) {
+            return Err("ссылки в архиве не допускаются".into());
+        }
+        if !safe_rel(&rel, &PACKAGE) {
+            return Err(format!("{rel}: недопустимое имя или тип файла"));
+        }
+        let mut data = Vec::new();
+        (&mut e)
+            .take(MAX_BYTES + 1)
+            .read_to_end(&mut data)
+            .map_err(|_| "архив повреждён".to_string())?;
+        total += data.len() as u64;
+        if total > MAX_BYTES {
+            return Err("тема больше 32 МБ".into());
+        }
+        let out = to.join(&rel);
+        if let Some(d) = out.parent() {
+            fs::create_dir_all(d).map_err(|e| e.to_string())?;
+        }
+        fs::write(&out, data).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Packs installed theme `id` into a `.fltheme` file (a zip, `theme.json` on top).
+pub fn export_zip(data_dir: &Path, id: &str, out: &Path) -> R<()> {
+    use std::io::Write;
+    load(data_dir, id)?;
+    let root = dir(data_dir).join(id);
+    let mut files = Vec::new();
+    collect(&root, "", 0, &mut files).map_err(|e| e.to_string())?;
+    let part = out.with_extension("fltheme-part");
+    let res = (|| -> R<()> {
+        let f = fs::File::create(&part).map_err(|e| e.to_string())?;
+        let mut w = zip::ZipWriter::new(f);
+        let o = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+        for rel in &files {
+            let data = fs::read(root.join(rel)).map_err(|e| format!("{rel}: {e}"))?;
+            w.start_file(rel.as_str(), o).map_err(|e| e.to_string())?;
+            w.write_all(&data).map_err(|e| e.to_string())?;
+        }
+        w.finish().map_err(|e| e.to_string())?;
+        Ok(())
+    })();
+    match res {
+        Ok(()) => fs::rename(&part, out).map_err(|e| e.to_string()),
+        Err(e) => {
+            let _ = fs::remove_file(&part);
+            Err(e)
+        }
+    }
+}
+
+fn collect(d: &Path, pre: &str, depth: u8, out: &mut Vec<String>) -> std::io::Result<()> {
+    if depth > 6 {
+        return Ok(());
+    }
+    let mut es: Vec<_> = fs::read_dir(d)?.flatten().collect();
+    es.sort_by_key(|e| e.file_name());
+    for e in es {
+        let name = e.file_name().to_string_lossy().into_owned();
+        let rel = if pre.is_empty() { name } else { format!("{pre}/{name}") };
+        let t = e.file_type()?;
+        if t.is_symlink() {
+            continue;
+        }
+        if t.is_dir() {
+            collect(&e.path(), &rel, depth + 1, out)?;
+        } else if t.is_file() && safe_rel(&rel, &PACKAGE) {
+            out.push(rel);
+        }
+        if out.len() > MAX_FILES {
+            return Err(std::io::Error::other("слишком много файлов"));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod install_tests {
+    use super::*;
+    use std::io::Write;
+
+    fn zip_of(path: &Path, files: &[(&str, &str)]) {
+        let mut w = zip::ZipWriter::new(fs::File::create(path).unwrap());
+        let o = zip::write::SimpleFileOptions::default();
+        for (n, b) in files {
+            w.start_file(*n, o).unwrap();
+            w.write_all(b.as_bytes()).unwrap();
+        }
+        w.finish().unwrap();
+    }
+
+    const M: &str = r##"{"id":"neon","name":"Неон","base":"dark","tokens":{"--accent":"#ff2a6d"},"css":["theme.css"]}"##;
+
+    #[test]
+    fn installs_replaces_rolls_back_and_exports() {
+        let d = std::env::temp_dir().join(format!("fl-tinst-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&d).unwrap();
+        let z = d.join("a.fltheme");
+        let css = |d: &Path| fs::read_to_string(dir(d).join("neon/theme.css")).unwrap();
+        // One top folder, with macOS litter around it.
+        zip_of(
+            &z,
+            &[("neon/theme.json", M), ("neon/theme.css", "a{color:red}"), ("__MACOSX/neon/._theme.css", "x")],
+        );
+        assert_eq!(install_zip(&d, &z).unwrap(), "neon");
+        // Flat layout replaces in place.
+        zip_of(&z, &[("theme.json", M), ("theme.css", "a{color:blue}"), ("README.md", "hi")]);
+        assert_eq!(install_zip(&d, &z).unwrap(), "neon");
+        assert!(css(&d).contains("blue"));
+        // A broken update keeps the working theme.
+        zip_of(&z, &[("theme.json", M), ("theme.css", "@import 'x.css';")]);
+        assert!(install_zip(&d, &z).is_err());
+        assert!(css(&d).contains("blue"));
+        // Built-in ids, escaping paths, scripts and non-archives are refused.
+        zip_of(&z, &[("theme.json", r#"{"id":"default","name":"x"}"#)]);
+        assert!(install_zip(&d, &z).is_err());
+        zip_of(&z, &[("theme.json", M), ("theme.css", "a{}"), ("../evil.css", "a{}")]);
+        assert!(install_zip(&d, &z).is_err());
+        zip_of(&z, &[("theme.json", M), ("theme.css", "a{}"), ("x.js", "alert(1)")]);
+        assert!(install_zip(&d, &z).is_err());
+        zip_of(&z, &[("readme.txt", "no manifest")]);
+        assert!(install_zip(&d, &z).is_err());
+        fs::write(&z, "nope").unwrap();
+        assert!(install_zip(&d, &z).is_err());
+        assert!(css(&d).contains("blue"));
+        // Export round-trips.
+        let out = d.join("neon.fltheme");
+        export_zip(&d, "neon", &out).unwrap();
+        fs::remove_dir_all(dir(&d).join("neon")).unwrap();
+        assert_eq!(install_zip(&d, &out).unwrap(), "neon");
+        assert_eq!(load(&d, "neon").unwrap().tokens["--accent"], "#ff2a6d");
+        assert!(dir(&d).join("neon/README.md").is_file());
+        assert!(export_zip(&d, "default", &out).is_err());
+        // No temporary folders are left behind.
+        let left: Vec<_> = fs::read_dir(dir(&d))
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().starts_with('.'))
+            .collect();
+        assert!(left.is_empty());
+        let _ = fs::remove_dir_all(&d);
+    }
+}
+
 #[cfg(test)]
 mod save_tests {
     use super::*;

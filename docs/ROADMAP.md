@@ -116,3 +116,9 @@
 - `doctor.fix {instance, fixes}` disables, enables or moves files (game must be closed); installing a missing dependency goes through `mods.install` from the UI.
 - `doctor.verify {instance}` matches jar SHA1s against Modrinth and scans jars for known malware markers (`dev/neko/`, fractureiser hosts); jars no catalog knows are listed.
 - UI: instance menu → «Доктор сборки», a strip in the «Контент» tab, and a check before every launch («Исправить и играть» / «Играть так», can be turned off in the dialog).
+
+## Themes from a file (0.3.49)
+
+- `.fltheme` is a zip with `theme.json` at the top (or inside one top folder). `themes.install {path}` checks every file like an installed theme (no scripts, no network, safe paths, 32 MB / 512 files), replaces a theme with the same id only if the new one loads, and keeps the old one otherwise. `themes.export {id, path}` packs an installed theme back into one file.
+- UI: Settings → Вид → «Тема из файла» («Установить…» and «Поделиться»), and dropping a `.fltheme` anywhere on the window installs and switches to it.
+- Bundled example: `docs/themes/cyberpunk` («Киберпанк»), checked by `tests/themes.rs` together with `docs/themes/example`.

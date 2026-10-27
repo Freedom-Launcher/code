@@ -222,6 +222,28 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         store::save(&c.path(SETTINGS), &s, false)?;
         Ok(themes::current(&c.data_dir, &s.theme))
     });
+    // A theme shared as one `.fltheme` file: install it, or pack one for sharing.
+    r.register("themes.install", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            path: String,
+        }
+        let A { path } = args(a)?;
+        let id = themes::install_zip(&c.data_dir, std::path::Path::new(&path))
+            .map_err(CoreError::BadArgs)?;
+        Ok(json!({ "id": id, "list": themes::list(&c.data_dir) }))
+    });
+    r.register("themes.export", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            id: String,
+            path: String,
+        }
+        let A { id, path } = args(a)?;
+        themes::export_zip(&c.data_dir, &id, std::path::Path::new(&path))
+            .map_err(CoreError::BadArgs)?;
+        Ok(json!({ "path": path }))
+    });
     r.register("themes.folder", P::Internal, false, |c, _| async move {
         let d = themes::dir(&c.data_dir);
         std::fs::create_dir_all(&d)?;

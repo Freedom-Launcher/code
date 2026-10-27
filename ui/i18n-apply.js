@@ -33,7 +33,7 @@
   }
 
   if (FI18N.lang !== 'ru') {
-    const NATIVE = ['Открыть', 'Безопасные настройки', 'Выход', 'Вход через Microsoft', 'Файлы', 'Импорт сборки', 'Сборка Modrinth', 'Freedom Launcher — безопасные настройки'];
+    const NATIVE = ['Темы', 'Открыть', 'Безопасные настройки', 'Выход', 'Вход через Microsoft', 'Файлы', 'Импорт сборки', 'Сборка Modrinth', 'Freedom Launcher — безопасные настройки'];
     const strings = Object.fromEntries(NATIVE.map((k) => [k, _t(k)]));
     window.__TAURI__?.core?.invoke?.('set_ui_strings', { strings })?.catch?.(() => {});
   }

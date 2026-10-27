@@ -1,5 +1,13 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Тема из файла": "Theme from a file",
+"Файл .fltheme можно просто перетащить в окно": "You can also drop a .fltheme file onto the window",
+"Установить…": "Install…",
+"Тема «{0}» установлена": "Theme “{0}” installed",
+"Встроенные темы уже есть у всех — поделиться можно своей": "Everyone already has the built-in themes — share one of your own",
+"Тема сохранена: {0}": "Theme saved: {0}",
+"Установить тему": "Install theme",
+"Темы": "Themes",
 "Доктор сборки": "Instance doctor",
 "{0} и ещё {1}": "{0} and {1} more",
 "Повреждённые файлы": "Broken files",

@@ -39,6 +39,10 @@ Settings are not themeable, so you can always switch back.
   `loading` / `success` / `error`, so states are styled in CSS only.
 - `href` / `src` may point only to theme files or `#…`.
 
+## Sharing a theme as one file
+
+A `.fltheme` file is a zip of the theme folder with `theme.json` at the top (a single top folder is also accepted). Drop it onto the launcher window or use Settings → Вид → «Тема из файла» → «Установить…»; «Поделиться» saves the current custom theme as `<id>.fltheme`. Installing runs the same checks as loading, and a broken update never replaces a working theme with the same id. Allowed files: json, html, css, images, fonts, md, txt; up to 512 files and 32 MB.
+
 ## What is rejected
 
 - Tags: `script iframe frame object embed link meta base style form portal foreignObject animate set math`.

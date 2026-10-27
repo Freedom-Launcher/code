@@ -901,6 +901,33 @@ document.addEventListener('fl:theme', async (e) => {
   requestAnimationFrame(() => $('#theme-seg')._place?.(false));
 });
 $('#theme-reload').addEventListener('click', () => { location.hash = 'settings'; location.reload(); });
+// A theme from one .fltheme file (button or drag-and-drop): install, switch to it, say so.
+const isBuiltinTheme = (id) => !id || id === 'default' || id === 'light';
+async function useInstalledTheme(res) {
+  if (!res?.id) return;
+  const prev = S.theme;
+  const cur = await call('themes.set', { theme: res.id }).catch((err) => { toast(String(err), { error: true }); return null; });
+  if (!cur) return;
+  const msg = _t("Тема «{0}» установлена", [cur.name || res.id]);
+  if ((prev?.templates?.length || 0) + (cur.templates?.length || 0) > 0) {
+    try { sessionStorage.setItem('fl:toast', msg); } catch {}
+    location.hash = 'settings'; location.reload(); return;
+  }
+  renderThemes(res.list || await call('themes.list').catch(() => []), cur);
+  applyTheme(cur); window.FAddons.retheme();
+  requestAnimationFrame(() => $('#theme-seg')._place?.(false));
+  toast(msg);
+}
+window.flUseTheme = useInstalledTheme;
+$('#theme-install').addEventListener('click', () => invoke('pick_theme').then(useInstalledTheme).catch((e) => toast(String(e), { error: true })));
+$('#theme-export').addEventListener('click', () => {
+  const id = S.theme?.id;
+  if (isBuiltinTheme(id)) { toast(_t("Встроенные темы уже есть у всех — поделиться можно своей")); return; }
+  invoke('export_theme', { id })
+    .then((r) => { if (r?.path) toast(_t("Тема сохранена: {0}", [String(r.path).split(/[\\/]/).pop()])); })
+    .catch((e) => toast(String(e), { error: true }));
+});
+try { const m = sessionStorage.getItem('fl:toast'); if (m) { sessionStorage.removeItem('fl:toast'); setTimeout(() => toast(m), 600); } } catch {}
 
 // Look (wallpaper, glass, cover, palette) lives in the core (settings.look).
 // localStorage keeps a mirror so the first paint is right before the core answers.

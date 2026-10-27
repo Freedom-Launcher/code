@@ -273,6 +273,53 @@ async fn pick_addon(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) -> 
         .map_err(|e| e.to_string())
 }
 
+/// Settings → Вид → «Установить из файла…»: install a theme `.fltheme`.
+#[tauri::command]
+async fn pick_theme(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) -> Result<Value, String> {
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter(tr("Темы"), &["fltheme", "zip"])
+            .blocking_pick_file()
+            .and_then(|p| p.into_path().ok())
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    let Some(path) = picked else { return Ok(Value::Null) };
+    let core = Arc::clone(&state.0);
+    core.dispatch(&Caller::BuiltinUi, "themes.install", serde_json::json!({ "path": path }))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Settings → Вид → «Поделиться темой»: save the theme as one `.fltheme` file.
+#[tauri::command]
+async fn export_theme(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+    id: String,
+) -> Result<Value, String> {
+    let name = format!("{id}.fltheme");
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter(tr("Темы"), &["fltheme"])
+            .set_file_name(name)
+            .blocking_save_file()
+            .and_then(|p| p.into_path().ok())
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    let Some(mut path) = picked else { return Ok(Value::Null) };
+    if path.extension().is_none_or(|e| e != "fltheme") {
+        path.set_extension("fltheme");
+    }
+    let core = Arc::clone(&state.0);
+    core.dispatch(&Caller::BuiltinUi, "themes.export", serde_json::json!({ "id": id, "path": path }))
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Native folder picker (Settings → Игра → «Папка сборок»); `None` if cancelled.
 #[tauri::command]
 async fn pick_folder(app: tauri::AppHandle, title: Option<String>) -> Result<Option<String>, String> {
@@ -1053,6 +1100,8 @@ fn main() {
             addon_action,
             open_addons_folder,
             pick_addon,
+            pick_theme,
+            export_theme,
             open_exports_folder,
             set_wallpaper,
             clear_wallpaper,
