@@ -28,6 +28,7 @@ pub mod plugin_store;
 mod builtin;
 pub mod catalog;
 pub mod curseforge;
+pub mod doctor;
 pub mod error;
 pub mod export;
 pub mod foreign;

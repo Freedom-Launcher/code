@@ -109,3 +109,10 @@
 
 - Custom instances root: `settings.instances_dir`, `instances.root`, Internal `instances.move_root` (moves folders with progress and rollback, refuses while a game runs). UI: Settings → Игра → «Папка сборок».
 - In-app updater: `tauri-plugin-updater`, minisign key kept outside the repo, feed `latest.json` from the public `Freedom-Launcher/releases` repo (pending creation), `scripts/release-feed.sh`. Build with `TAURI_SIGNING_PRIVATE_KEY`. UI: Settings → Лаунчер → «Обновления».
+
+## Instance doctor (0.3.48)
+
+- `doctor.check {instance}` reads every mod's own metadata (`fabric.mod.json`, `quilt.mod.json`, `META-INF/mods.toml`, `META-INF/neoforge.mods.toml`, nested jars) and reports: broken jars, mods for another loader, mods for another game version (Fabric predicates and Maven ranges), two copies of one mod, declared conflicts (`breaks` / `incompatible`), OptiFine next to Sodium-like renderers, missing or switched-off dependencies (mod ids and catalog `deps`), packs dropped into `mods/`, mods in a Vanilla instance. Missing catalog dependencies are named via Modrinth/CurseForge; offline they are left out.
+- `doctor.fix {instance, fixes}` disables, enables or moves files (game must be closed); installing a missing dependency goes through `mods.install` from the UI.
+- `doctor.verify {instance}` matches jar SHA1s against Modrinth and scans jars for known malware markers (`dev/neko/`, fractureiser hosts); jars no catalog knows are listed.
+- UI: instance menu → «Доктор сборки», a strip in the «Контент» tab, and a check before every launch («Исправить и играть» / «Играть так», can be turned off in the dialog).

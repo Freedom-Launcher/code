@@ -689,6 +689,8 @@ async function play(id = S.current, launch = true, stay = false, opts = {}) {
   if (S.playing || !id) return;
   if (launch && isRunning(id)) { toast(_t("Эта сборка уже запущена")); return; }
   if (launch && !S.accounts.selected) { toast(_t("Сначала войдите в аккаунт"), { error: true }); $('#account-btn').click(); return; }
+  if (launch && window.FDoctor && !(await window.FDoctor.beforeLaunch(id))) return;
+  if (S.playing) return;
   const inst = byId(id);
   S.playing = id;
   S.current = id;
@@ -829,7 +831,7 @@ $('#menu-ctx-instance').addEventListener('ctx-open', (e) => {
 });
 $('#cx-continue').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(), true, false, { continue: true }); });
 $('#cx-play').addEventListener('click', () => { FUI.closeMenu(); const id = ctxInst(); isRunning(id) ? stopGame(id) : play(id, true); });
-for (const [cx, mi] of [['cx-settings', 'mi-settings'], ['cx-perf', 'mi-perf'], ['cx-folder', 'mi-folder'], ['cx-dup', 'mi-dup'], ['cx-export', 'mi-export'], ['cx-share', 'mi-share'], ['cx-icon', 'mi-icon'], ['cx-del', 'mi-del']]) {
+for (const [cx, mi] of [['cx-settings', 'mi-settings'], ['cx-perf', 'mi-perf'], ['cx-doctor', 'mi-doctor'], ['cx-folder', 'mi-folder'], ['cx-dup', 'mi-dup'], ['cx-export', 'mi-export'], ['cx-share', 'mi-share'], ['cx-icon', 'mi-icon'], ['cx-del', 'mi-del']]) {
   $(`#${cx}`).addEventListener('click', () => {
     FUI.closeMenu();
     S.ctxAct = ctxInst();

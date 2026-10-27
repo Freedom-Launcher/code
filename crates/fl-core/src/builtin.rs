@@ -11,7 +11,7 @@ use crate::{
     addons,
     game::service,
     instances::{self, Instance, InstanceStore},
-    backups, catalog, curseforge, modrinth, mods, mrpack, msauth, people, servers,
+    backups, catalog, curseforge, doctor, modrinth, mods, mrpack, msauth, people, servers,
     settings::Settings,
     store, themes, unix_now, versions, Core, CoreError, Permission as P,
 };
@@ -621,6 +621,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     register_foreign(r);
     register_game(r);
     register_mods(r);
+    register_doctor(r);
     register_import(r);
     register_packs(r);
 }
@@ -2520,6 +2521,77 @@ async fn update_instance(
     let out = serde_json::to_value(&s.instances[k])?;
     store::save(&c.path(INSTANCES), &s, false)?;
     Ok(out)
+}
+
+
+/// «Доктор сборки»: finds what would stop the game and fixes it.
+fn register_doctor(r: &mut ActionRegistry) {
+    r.register("doctor.check", P::InstancesRead, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let gd = i.game_dir(&c.instances_root());
+        let (loader, mc) = (i.loader.clone(), i.version.clone());
+        let scan = tokio::task::spawn_blocking(move || doctor::scan(&gd, &loader, &mc))
+            .await
+            .map_err(|e| CoreError::msg(e.to_string()))??;
+        // Titles of missing catalog dependencies; offline they are simply not reported.
+        let mut titles = std::collections::HashMap::new();
+        let ids: Vec<String> = scan.wanted.keys().cloned().collect();
+        let (cf_ids, mr_ids): (Vec<String>, Vec<String>) = ids.into_iter().partition(|id| curseforge::is_cf(id));
+        if !mr_ids.is_empty() {
+            if let Ok(ps) = modrinth::projects(&c, &mr_ids).await {
+                for p in ps {
+                    titles.insert(p.id.clone(), (p.title, p.slug));
+                }
+            }
+        }
+        for id in cf_ids.into_iter().take(8) {
+            if let Ok(p) = catalog::project(&c, &id).await {
+                titles.insert(id, (p.title, p.slug));
+            }
+        }
+        Ok(serde_json::to_value(doctor::finish(scan, &titles))?)
+    });
+    r.register("doctor.fix", P::InstancesManage, true, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            instance: String,
+            fixes: Vec<doctor::Fix>,
+        }
+        let a: A = args(a)?;
+        if a.fixes.len() > 64 {
+            return Err(CoreError::BadArgs("too many fixes".into()));
+        }
+        let i = instance_by_id(&c, &a.instance)?;
+        idle(&c, &i)?;
+        let gd = i.game_dir(&c.instances_root());
+        let mut changed = 0;
+        for f in &a.fixes {
+            changed += doctor::apply(&gd, f)?;
+        }
+        Ok(json!({ "changed": changed }))
+    });
+    r.register("doctor.verify", P::InstancesRead, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let gd = i.game_dir(&c.instances_root());
+        let jars = tokio::task::spawn_blocking(move || doctor::jar_files(&gd))
+            .await
+            .map_err(|e| CoreError::msg(e.to_string()))??;
+        let hashes: Vec<String> = jars.iter().filter(|j| !j.cf).map(|j| j.sha1.clone()).collect();
+        let mut known = std::collections::HashSet::new();
+        let mut online = true;
+        for chunk in hashes.chunks(400) {
+            match modrinth::versions_by_hash(&c, chunk).await {
+                Ok(m) => known.extend(m.into_keys()),
+                Err(_) => online = false,
+            }
+        }
+        let v = tokio::task::spawn_blocking(move || doctor::verify(jars, &known, online))
+            .await
+            .map_err(|e| CoreError::msg(e.to_string()))?;
+        Ok(serde_json::to_value(v)?)
+    });
 }
 
 #[cfg(test)]

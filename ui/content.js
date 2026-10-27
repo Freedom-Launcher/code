@@ -127,6 +127,7 @@
     loading = false;
     for (const s of [...sel]) if (!items.some((m) => m.file === s)) sel.delete(s);
     paint();
+    if (kind === 'mod' && window.FDoctor) window.FDoctor.refresh(i.id).then(() => { if (my === seq) paintList(); });
     // Metadata and updates come from the network after the list is on screen.
     const key = JSON.stringify(at);
     if (fresh || !metaDone.has(key)) {
@@ -188,7 +189,8 @@
     }
     const rows = visible();
     if (!rows.length) { box.replaceChildren(empty(_t("Ничего не найдено"), textBtn(_t("Сбросить фильтры"), reset))); return; }
-    box.replaceChildren(...[dupStrip(), el('div', { class: `ct-list${cols > 1 ? ' is-grid' : ''}`, 'data-cols': cols }, head(rows), ...rows.map(row))].filter(Boolean));
+    const ds = dupStrip();
+    box.replaceChildren(...[kind === 'mod' ? window.FDoctor?.strip(inst, { skipDup: !!ds }) : null, ds, el('div', { class: `ct-list${cols > 1 ? ' is-grid' : ''}`, 'data-cols': cols }, head(rows), ...rows.map(row))].filter(Boolean));
   }
 
   // ---------- Duplicates ----------

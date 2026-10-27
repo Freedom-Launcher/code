@@ -1,0 +1,22 @@
+/* «Доктор сборки» (0.3.48): the dialog reuses the «Ускорение сборки» rows (perf-dlg.css). */
+.dialog.dc { width: min(600px, calc(100vw - 32px)); }
+.dc-row { cursor: default; --tone: var(--accent); }
+.dc-row:hover { background: none; }
+.dc-row[data-l="error"], .dc-badge[data-l="error"] { --tone: #e5484d; }
+.dc-row[data-l="warn"], .dc-badge[data-l="warn"] { --tone: #d4a72c; }
+.dc-row[data-l="ok"], .dc-badge[data-l="ok"] { --tone: #3fb950; }
+.dc .pf-ico.dc-ico { background: color-mix(in srgb, var(--tone) 13%, var(--surface-1)); }
+.dc .pf-ico.dc-ico svg { color: var(--tone); }
+.dc-row .t span { white-space: normal; overflow-wrap: anywhere; }
+.dc-row > .btn { flex: none; }
+.dc-badge { --tone: var(--accent); width: 56px; height: 56px; flex: none; display: grid; place-items: center; border-radius: calc(16px * var(--rk-icon, 1)); background: color-mix(in srgb, var(--tone) 14%, var(--surface-1)); color: var(--tone); }
+.dc-badge svg { width: 28px; height: 28px; }
+.pf-skel .dc-badge.sk { background: var(--surface-3); }
+.dc-auto { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; color: var(--text-2); font-size: var(--text-sm); cursor: pointer; }
+.dialog.dc .actions #dc-skip { margin-left: auto; }
+
+/* Strip above the content list */
+.ct-dupes.ct-doc {
+  background: color-mix(in srgb, #e5484d 8%, var(--surface-1));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #e5484d 28%, transparent);
+}.dialog.dc .actions [hidden] { display: none; }
