@@ -63,16 +63,11 @@ html[data-wall="on"] .main::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.45); backdrop-filter: blur(var(--glass-blur)) saturate(1.45);
 }
-/* 0.3.45: the wallpaper under the bar is already saturated twice (body::before ×1.2, .main::before ×1.45),
-   so a plain blur still read as purple. The bar desaturates what it frosts — neutral glass, not tinted. */
 .main .home-bar {
-  background: rgba(18, 19, 22, .24);
-  -webkit-backdrop-filter: blur(22px) saturate(.35); backdrop-filter: blur(22px) saturate(.35);
+  background: rgba(18, 20, 27, .56);
+  -webkit-backdrop-filter: blur(26px) saturate(1.6); backdrop-filter: blur(26px) saturate(1.6);
 }
-[data-theme="light"] .main .home-bar {
-  background: rgba(255, 255, 255, .38);
-  -webkit-backdrop-filter: blur(22px) saturate(.4); backdrop-filter: blur(22px) saturate(.4);
-}
+[data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .62); }
 .main .home-bar .hb-mid .chip { background: rgba(255, 255, 255, .08); }
 [data-theme="light"] .main .home-bar .hb-mid .chip { background: rgba(10, 20, 40, .06); }
 /* Light effects: no blur, so the bar becomes a dense tint that still reads over cards. */
