@@ -216,6 +216,44 @@
   }
 
   // ---------- Build ----------
+  // Every new instance starts with this options.txt (controls, sound, graphics, language).
+  function tplRow() {
+    const state = el('div', { class: 's gs-tpl-state' });
+    const pick = el('select', { class: 'field gs-sel', 'aria-label': _t("Сборка для шаблона") });
+    const take = el('button', { type: 'button', class: 'btn btn-sm' }, el('span', { class: 'lbl' }, _t("Взять")));
+    const clear = iconBtn(I.x, _t("Убрать шаблон"));
+    const fill = () => {
+      const keep = pick.value;
+      const list = [...(S.instances || [])].sort((a, b) => (b.last_played || 0) - (a.last_played || 0));
+      pick.replaceChildren(...(list.length ? list.map((i) => el('option', { value: i.id }, i.name)) : [el('option', { value: '' }, _t("Сначала создайте сборку"))]));
+      if (list.some((i) => i.id === keep)) pick.value = keep;
+      pick.disabled = take.disabled = !list.length;
+    };
+    const paint = (t) => {
+      state.textContent = t?.exists
+        ? _t("Из «{0}» · {1} параметров", [t.from || 'options.txt', t.keys ?? 0])
+        : _t("Не задан — новые сборки начинают с настроек Minecraft по умолчанию");
+      state.classList.toggle('is-on', !!t?.exists);
+      clear.hidden = !t?.exists;
+    };
+    const err = (e) => toast(String(e?.message || e), { error: true });
+    fill();
+    call('options.template').then(paint, () => paint(null));
+    take.addEventListener('click', async () => {
+      take.disabled = true;
+      try { paint(await call('options.template_from', { instance: pick.value })); toast(_t("Шаблон сохранён — новые сборки получат эти настройки")); } catch (e) { err(e); } finally { take.disabled = !pick.value; }
+    });
+    clear.addEventListener('click', async () => {
+      try { paint(await call('options.template_clear')); toast(_t("Шаблон убран")); } catch (e) { err(e); }
+    });
+    const r = el('div', { class: 'r gs-tpl' },
+      el('div', { class: 'grow' }, el('div', { class: 't' }, _t("Шаблон настроек игры")),
+        el('div', { class: 's' }, _t("Управление, звук, графика и язык, с которых начнётся каждая новая сборка")), state),
+      el('div', { class: 'gs-tpl-ctl' }, pick, clear, take));
+    r.addEventListener('pointerenter', fill);
+    pick.addEventListener('focus', fill);
+    return r;
+  }
   async function build() {
     const [s0, mem] = await Promise.all([call('settings.get').catch(() => null), call('system.memory').catch(() => null)]);
     const s = s0 || {};
@@ -229,6 +267,7 @@
       ...sec(_t("Память и аргументы"), memBlock(), field(_t("Аргументы JVM"), 'jvm_args', '-XX:+UseG1GC'), envBlock()),
       ...sec(_t("Окно"), ...winRows(), afterRow()),
       ...sec(_t("Резервные копии миров"), ...bkRows()),
+      ...sec(_t("Новые сборки"), tplRow()),
       ...sec(_t("Хуки запуска"), hooksBlock()),
       ...sec(_t("Ресурсы"), ...(root ? [root] : [])),
     );

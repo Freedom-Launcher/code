@@ -39,7 +39,7 @@
       kids.push(more);
     }
     kids.push(...shown.map((l) => line(l)));
-    if (!shown.length) kids.push(el('div', { class: 'table-empty tall' }, el('b', {}, !exists ? _t("Лог появится после первого запуска") : lines.length ? _t("Ничего не найдено") : _t("Лог пуст"))));
+    if (!shown.length) kids.push(emptyState(ES_ICO.log, (!exists ? _t("Лог появится после первого запуска") : lines.length ? _t("Ничего не найдено") : _t("Лог пуст"))));
     view.replaceChildren(...kids);
     $('#log-hits').textContent = q && lines.length ? String(shown.length) : '';
     if (stick) view.scrollTop = view.scrollHeight;

@@ -608,13 +608,16 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 pack: None,
                 group: String::new(),
             };
-            std::fs::create_dir_all(inst.game_dir(&c.instances_root()))?;
+            let gd = inst.game_dir(&c.instances_root());
+            std::fs::create_dir_all(&gd)?;
+            apply_options_template(&c, &gd);
             s.instances.push(inst.clone());
             store::save(&c.path(INSTANCES), &s, false)?;
             Ok(serde_json::to_value(inst)?)
         },
     );
     register_instance_manage(r);
+    register_extras(r);
     register_foreign(r);
     register_game(r);
     register_mods(r);
@@ -2538,4 +2541,91 @@ mod world_tests {
         assert!(list_worlds(&d.join("missing")).is_empty());
         std::fs::remove_dir_all(&d).unwrap();
     }
+}
+
+/// Settings → Игра → «Новые сборки»: the options.txt every new instance starts with.
+const OPT_TPL: &str = "options-template.txt";
+/// Where the template came from: `{from, at}`.
+const OPT_TPL_META: &str = "options-template.json";
+
+/// Copies the template into a fresh instance folder; an existing options.txt wins.
+fn apply_options_template(c: &crate::Core, gd: &std::path::Path) {
+    let src = c.path(OPT_TPL);
+    let dst = gd.join("options.txt");
+    if src.is_file() && !dst.exists() {
+        let _ = std::fs::copy(&src, &dst);
+    }
+}
+
+fn opt_tpl_info(c: &crate::Core) -> Value {
+    let Ok(text) = std::fs::read_to_string(c.path(OPT_TPL)) else {
+        return json!({ "exists": false });
+    };
+    let meta: Value = std::fs::read(c.path(OPT_TPL_META))
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or(Value::Null);
+    json!({
+        "exists": true,
+        "keys": text.lines().filter(|l| l.contains(':')).count(),
+        "from": meta.get("from").cloned().unwrap_or(Value::Null),
+        "at": meta.get("at").cloned().unwrap_or(Value::Null),
+    })
+}
+
+fn register_extras(r: &mut ActionRegistry) {
+    r.register("options.template", P::Internal, false, |c, _| async move {
+        Ok(opt_tpl_info(&c))
+    });
+    r.register("options.template_from", P::Internal, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let src = i.game_dir(&c.instances_root()).join("options.txt");
+        if !src.is_file() {
+            return Err(CoreError::msg(
+                "В этой сборке ещё нет options.txt — запустите её один раз",
+            ));
+        }
+        std::fs::copy(&src, c.path(OPT_TPL))?;
+        let meta = json!({ "from": i.name, "at": crate::unix_now() });
+        std::fs::write(c.path(OPT_TPL_META), serde_json::to_vec(&meta)?)?;
+        Ok(opt_tpl_info(&c))
+    });
+    r.register("options.template_clear", P::Internal, false, |c, _| async move {
+        for f in [OPT_TPL, OPT_TPL_META] {
+            let _ = std::fs::remove_file(c.path(f));
+        }
+        Ok(opt_tpl_info(&c))
+    });
+    // Cheap counts for the home hover card: folder listings only, nothing is parsed.
+    r.register("instances.stats", P::InstancesRead, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let gd = i.game_dir(&c.instances_root());
+        let names = |d: &str| -> Vec<String> {
+            std::fs::read_dir(gd.join(d))
+                .map(|rd| {
+                    rd.flatten()
+                        .filter_map(|e| e.file_name().into_string().ok())
+                        .filter(|n| !n.starts_with('.'))
+                        .collect()
+                })
+                .unwrap_or_default()
+        };
+        let mods = names("mods");
+        let packs = |d: &str| {
+            names(d)
+                .iter()
+                .filter(|n| !n.ends_with(".txt") && !n.ends_with(".disabled"))
+                .count()
+        };
+        Ok(json!({
+            "mods": mods.iter().filter(|n| n.ends_with(".jar")).count(),
+            "mods_off": mods.iter().filter(|n| n.ends_with(".jar.disabled")).count(),
+            "resourcepacks": packs("resourcepacks"),
+            "shaderpacks": packs("shaderpacks"),
+            "worlds": list_worlds(&gd.join("saves")).len(),
+            "screenshots": crate::media::list_shots(&gd).len(),
+        }))
+    });
 }

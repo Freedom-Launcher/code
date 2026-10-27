@@ -98,7 +98,8 @@
   }
   function hideTip() { clearTimeout(tipTimer); $('#tip')?.removeAttribute('data-open'); }
   document.addEventListener('pointerover', (e) => {
-    const t = e.target.closest('[data-tip]');
+    let t = e.target.closest('[data-tip]');
+    if (t && t.classList.contains('hcard') && document.documentElement.dataset.peek !== 'off') t = null;
     clearTimeout(tipTimer);
     if (!t) { hideTip(); setTimeout(() => { if (!$('#tip[data-open]')) tipShown = false; }, 300); return; }
     tipTimer = setTimeout(() => showTip(t), tipShown ? 0 : 500);

@@ -173,7 +173,7 @@
     box.replaceChildren(...ps.map(([id, t, n]) => el('button', { type: 'button', class: 'ct-pill', 'aria-selected': String(id === pill), 'data-pill': id }, t, el('span', {}, String(n)))));
   }
 
-  const empty = (title, ...acts) => el('div', { class: 'table-empty ct-empty' }, el('b', {}, title), acts.length ? el('div', { class: 'ct-empty-acts' }, ...acts) : null);
+  const empty = (title, ...acts) => { const n = emptyState(title === _t("Ничего не найдено") ? ES_ICO.search : ES_ICO.box, title, null, ...acts); n.classList.replace('tall', 'ct-empty'); return n; };
   const textBtn = (t, fn, cls = '') => { const b = el('button', { type: 'button', class: `btn btn-sm ${cls}` }, el('span', { class: 'lbl' }, t)); b.addEventListener('click', () => fn(b)); return b; };
 
   function paintList() {

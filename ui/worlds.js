@@ -42,7 +42,7 @@
     shown = id;
     box.replaceChildren(ws.length
       ? el('div', { class: 'mod-list w-list' }, ...ws.map(row))
-      : el('div', { class: 'table-empty tall' }, el('b', {}, _t("Миров пока нет"))));
+      : emptyState(ES_ICO.world, _t("Миров пока нет"), _t("Создайте мир в игре — он появится здесь")));
   }
   $('#ip-tabs').addEventListener('click', (e) => { if (e.target.closest('[data-tab="worlds"]')) paint(true); });
   $('#dlg-world-del').addEventListener('submit', async (ev) => {

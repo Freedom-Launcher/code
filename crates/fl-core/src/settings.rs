@@ -211,6 +211,8 @@ pub struct Look {
     pub density: String,
     /// Whole-interface zoom, percent: 80–150 in steps of 5.
     pub ui_scale: u32,
+    /// Card with playtime and contents when hovering an instance on home.
+    pub peek: bool,
 }
 
 fn panels_auto() -> String {
@@ -237,6 +239,7 @@ impl Default for Look {
             panels: panels_auto(),
             density: "normal".into(),
             ui_scale: 100,
+            peek: true,
             menu_density: 92,
             menu_blur: 24,
             plate_size: 100,
@@ -622,6 +625,14 @@ mod tests {
         assert_eq!(l.patch(&json!({"ui_scale": 10})).unwrap().ui_scale, 80);
         assert_eq!(l.patch(&json!({"ui_scale": 900})).unwrap().ui_scale, 150);
         assert!(l.patch(&json!({"density": "huge"})).is_err());
+    }
+
+    #[test]
+    fn peek_defaults_on_and_patches() {
+        let l = Look::default();
+        assert!(l.peek);
+        assert!(!l.patch(&json!({"peek": false})).unwrap().peek);
+        assert!(l.patch(&json!({"peek": "no"})).is_err());
     }
 
     #[test]

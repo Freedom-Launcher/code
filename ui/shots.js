@@ -45,7 +45,7 @@
   function empty() {
     const b = el('button', { class: 'btn btn-sm', type: 'button' }, _t("Открыть папку"));
     b.addEventListener('click', folder);
-    return el('div', { class: 'table-empty tall' }, el('b', {}, _t("Скриншотов пока нет")), el('span', {}, _t("F2 в игре")), b);
+    return emptyState(ES_ICO.image, _t("Скриншотов пока нет"), _t("F2 в игре"), b);
   }
   async function paint(force = false) {
     if (!visible() || !S.current) return;

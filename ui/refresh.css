@@ -74,3 +74,55 @@ html[data-density="comfy"] .tabs button { height: 44px; }
 html[data-density="compact"] .acc-card { padding: 8px 12px; }
 html[data-density="compact"] .acc-card .acc-face { width: 36px; height: 36px; }
 html[data-density="compact"] .el-card { padding: 10px 12px; }
+
+/* ---------- 0.3.42: hover card on home (solid, no blur) ---------- */
+.peek {
+  position: fixed; z-index: 60; left: 0; top: 0; width: 272px; overflow: hidden; pointer-events: none;
+  border-radius: calc(14px * var(--rk-card, 1)); background: var(--surface-1); color: var(--text);
+  box-shadow: var(--shadow-pop), 0 0 0 1px var(--line-strong);
+  visibility: hidden; opacity: 0; transform: translateY(6px) scale(.98); transform-origin: 0 0;
+  transition: opacity 120ms ease, transform 160ms var(--ease-out, ease), visibility 0s linear 160ms;
+}
+.peek[data-open] { visibility: visible; opacity: 1; transform: none; transition: opacity 120ms ease, transform 160ms var(--ease-out, ease); }
+html[data-motion="off"] .peek { transform: none; }
+.pk-cov { position: relative; height: 96px; background: var(--surface-3) center / cover no-repeat; }
+.pk-cov::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 25%, rgba(0, 0, 0, .62)); }
+.pk-cov b {
+  position: absolute; z-index: 1; left: 14px; right: 14px; bottom: 10px; color: #fff; font-size: 15px; font-weight: var(--w-semibold);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+.pk-body { display: grid; gap: 11px; padding: 11px 14px 14px; }
+.pk-meta { color: var(--text-2); font-size: 12px; }
+.pk-rows { display: grid; gap: 6px; }
+.pk-r { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; }
+.pk-r span { color: var(--text-3); }
+.pk-r b { font-weight: var(--w-medium); text-align: right; }
+.pk-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pk-t { display: grid; gap: 2px; padding: 8px 4px 7px; border-radius: calc(9px * var(--rk-card, 1)); background: var(--surface-2); text-align: center; }
+.pk-t b { font-size: 16px; font-weight: var(--w-semibold); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.pk-t span { color: var(--text-3); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pk-t.sk b { justify-self: center; color: transparent; background: var(--surface-3); border-radius: 4px; }
+
+/* ---------- 0.3.42: empty sections ---------- */
+.table-empty.es { gap: 7px; }
+.es-ico {
+  display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 6px; border-radius: calc(16px * var(--rk-card, 1));
+  background: var(--surface-2); color: var(--text-2); box-shadow: inset 0 0 0 1px var(--line);
+}
+.es-ico svg { width: 26px; height: 26px; }
+.table-empty.es .hint { max-width: 380px; line-height: 1.45; }
+.es-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
+.table-empty.es.ct-empty { min-height: 240px; }
+
+/* ---------- 0.3.42: «Новые сборки» in game settings ---------- */
+.gs-tpl-ctl { display: flex; align-items: center; gap: 6px; flex: none; }
+.gs-tpl-ctl .gs-sel { max-width: 210px; }
+.gs-tpl-state { margin-top: 4px; color: var(--text-3); }
+.gs-tpl-state.is-on { color: var(--text-2); }
+.gs-tpl-state.is-on::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
+
+/* ---------- 0.3.42: light theme over a wallpaper — secondary text and lines stay readable ---------- */
+html[data-wall="on"][data-theme="light"] { --text-2: #44444c; --text-3: #6e6e78; --line: rgba(0, 0, 0, .09); --line-strong: rgba(0, 0, 0, .15); }
+html[data-wall="on"][data-theme="light"] .table-empty { background: rgba(255, 255, 255, .55); }
+html[data-wall="on"] .table-empty { background: rgba(16, 18, 24, .35); }
+html[data-wall="on"][data-fx="lite"] .table-empty { background: var(--surface-1); }

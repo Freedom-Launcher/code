@@ -389,3 +389,52 @@ async fn settings_set_patches_look_and_motion() {
     let s = c.dispatch(&ui, "settings.get", json!(null)).await.unwrap();
     assert!(s["look"].is_null());
 }
+
+#[tokio::test]
+async fn options_template_and_stats() {
+    let c = temp_core(false);
+    let ui = Caller::BuiltinUi;
+    let a = c
+        .dispatch(&ui, "instances.create", json!({"name": "Tpl", "version": "1.21.4"}))
+        .await
+        .unwrap();
+    let id = a["id"].as_str().unwrap().to_owned();
+    let root = c.data_dir.join("instances");
+    assert!(c
+        .dispatch(&ui, "options.template_from", json!({"instance": id}))
+        .await
+        .is_err());
+    std::fs::write(root.join("Tpl").join("options.txt"), "fov:1\nguiScale:2\n").unwrap();
+    let t = c
+        .dispatch(&ui, "options.template_from", json!({"instance": id}))
+        .await
+        .unwrap();
+    assert_eq!(t["exists"], true);
+    assert_eq!(t["keys"], 2);
+    assert_eq!(t["from"], "Tpl");
+    let b = c
+        .dispatch(&ui, "instances.create", json!({"name": "Fresh", "version": "1.21.4"}))
+        .await
+        .unwrap();
+    let fresh = root.join("Fresh");
+    assert_eq!(
+        std::fs::read_to_string(fresh.join("options.txt")).unwrap(),
+        "fov:1\nguiScale:2\n"
+    );
+    std::fs::create_dir_all(fresh.join("mods")).unwrap();
+    std::fs::write(fresh.join("mods").join("a.jar"), "").unwrap();
+    std::fs::write(fresh.join("mods").join("b.jar.disabled"), "").unwrap();
+    let s = c
+        .dispatch(&ui, "instances.stats", json!({"instance": b["id"]}))
+        .await
+        .unwrap();
+    assert_eq!(s["mods"], 1);
+    assert_eq!(s["mods_off"], 1);
+    assert_eq!(s["worlds"], 0);
+    assert_eq!(s["screenshots"], 0);
+    let t = c
+        .dispatch(&ui, "options.template_clear", json!({}))
+        .await
+        .unwrap();
+    assert_eq!(t["exists"], false);
+}

@@ -135,8 +135,8 @@
       el('span', { class: 'spacer' }), re, add);
   }
   function empty() {
-    return el('div', { class: 'table-empty tall' }, el('b', {}, _t("Серверов пока нет")),
-      el('span', { class: 'hint' }, _t("Добавленный сервер появится и в игре, в списке «Сетевая игра».")));
+    return emptyState(ES_ICO.server, _t("Серверов пока нет"),
+      _t("Добавленный сервер появится и в игре, в списке «Сетевая игра»."));
   }
   function skel() {
     return el('div', { class: 'mod-list w-skel' }, ...[0, 1, 2].map(() => el('div', { class: 'mod-row' },
