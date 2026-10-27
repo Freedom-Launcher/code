@@ -49,6 +49,14 @@ async fn theme_action(
         .map_err(|e| e.to_string())
 }
 
+/// Whole-window zoom for «Масштаб интерфейса» (Settings → Вид → Раскладка).
+#[tauri::command]
+fn set_ui_zoom(app: tauri::AppHandle, scale: f64) -> Result<(), String> {
+    let scale = if scale.is_finite() { scale.clamp(0.5, 2.0) } else { 1.0 };
+    let w = app.get_webview_window("main").ok_or("no main window")?;
+    w.set_zoom(scale).map_err(|e| e.to_string())
+}
+
 /// Opens a link from a project page in the system browser: plain https only.
 #[tauri::command]
 fn open_link(app: tauri::AppHandle, url: String) -> Result<(), String> {
@@ -1035,6 +1043,7 @@ fn main() {
             open_login_page,
             ms_window_login,
             open_link,
+            set_ui_zoom,
             open_instance_folder,
             open_world_folder,
             open_shots_folder,

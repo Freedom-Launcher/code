@@ -61,7 +61,7 @@
   }
 
   function card(i) {
-    return el('button', { class: `hcard${hid.has(i.id) ? ' is-hid' : ''}${sel.has(i.id) ? ' is-sel' : ''}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, onclick: () => openInstance(i.id) },
+    return el('button', { class: `hcard${hid.has(i.id) ? ' is-hid' : ''}${sel.has(i.id) ? ' is-sel' : ''}`, 'data-ctx': 'menu-ctx-instance', 'data-inst': i.id, 'data-id': `home.card.${i.id}`, 'data-tip': playedText(i), onclick: () => openInstance(i.id) },
       bg(el('i', {}, playBtn(i)), coverName(i)), el('b', {}, i.name), el('span', {}, instMeta(i)),
       pin.has(i.id) ? el('em', { class: 'pin', 'aria-label': _t("Закреплена"), html: PIN_SVG }) : '');
   }

@@ -391,10 +391,11 @@
   });
 
   // ---------- Page ----------
-  function empty(text) {
+  function empty(text, login = true) {
     q('#sk-body').hidden = true;
     q('#sk-empty').hidden = false;
     q('#sk-empty-t').textContent = text;
+    const b = q('#sk-empty .btn'); if (b) b.hidden = !login;
   }
   async function shown() {
     const st = S.accounts;
@@ -405,11 +406,12 @@
     loadDefaults();
     try {
       const p = await call('skins.profile', { id: acc.id });
+      if (!p) return empty(_t("Профиль скинов не загрузился. Попробуйте ещё раз позже."), false);
       // Same profile as on screen: only the marks change, the cards stay (no re-bake, no fade).
       if (prof && p && JSON.stringify(p) === JSON.stringify(prof) && q('#sk-saved').childElementCount) { prof = p; sel = null; marks(); return; }
       prof = p; sel = null; paint(); if (defs) marks(); else renderDefaults();
     }
-    catch (e) { empty(String(e?.message || e)); }
+    catch (e) { empty(String(e?.message || e), false); }
   }
   async function drop(path) {
     if (!acc || !prof) return;

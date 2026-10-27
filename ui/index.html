@@ -43,6 +43,7 @@
   <link rel="stylesheet" href="logo.css">
   <link rel="stylesheet" href="mono.css">
   <link rel="stylesheet" href="perf.css">
+  <link rel="stylesheet" href="refresh.css">
   <link rel="stylesheet" href="editor-live.css" id="ui-live">
   <script src="i18n-apply.js" defer></script>
   <script src="ui.js" defer></script>
@@ -261,9 +262,16 @@
         <div class="addon-page" id="addon-page"></div>
       </section>
       <section class="view" id="view-empty" data-id="view.empty">
-        <div class="narrow">
+        <div class="narrow empty-lib">
+          <div class="el-art" aria-hidden="true"><i></i><i></i><i></i></div>
           <h1 class="page-h">Сборок пока нет</h1>
-          <button class="btn btn-primary btn-lg" data-view="create" data-id="empty.create"><span class="lbl">Новая сборка</span></button>
+          <p class="el-sub">Сборка — это отдельная копия Minecraft со своей версией, модами и мирами. Начните с чистой или перенесите готовую.</p>
+          <div class="el-grid" data-id="empty.actions">
+            <button type="button" class="el-card is-main" data-view="create" data-id="empty.create"><i><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2m0 5a1 1 0 0 0-.993.883L11 8v3H8a1 1 0 0 0-.117 1.993L8 13h3v3a1 1 0 0 0 1.993.117L13 16v-3h3a1 1 0 0 0 .117-1.993L16 11h-3V8a1 1 0 0 0-1-1"/></g></svg></i><b>Новая сборка</b><span>Версия, загрузчик и моды — на ваш вкус</span></button>
+            <button type="button" class="el-card" id="el-import" data-id="empty.import"><i><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M2.172 4.44A1 1 0 0 1 3 4h11a1 1 0 0 1 .928.629l.751 1.876.34-1.701A1 1 0 0 1 17 4h4a1 1 0 0 1 .98 1.196L21 10.1V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7.807L2.072 5.37a1 1 0 0 1 .1-.932ZM6 11v7h9v-7zm11 0v7h2v-7zm2.18-2 .6-3h-1.96l-.6 3zm-4.657 0-1.2-3H4.477l1.2 3zM11 16a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1"/></g></svg></i><b>Импорт .mrpack</b><span>Готовый модпак из файла</span></button>
+            <button type="button" class="el-card" id="el-foreign" data-id="empty.foreign"><i><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path fill="currentColor" d="M9.52 3a2 2 0 0 1 1.442.614l.12.137L12.48 5.5H19a2 2 0 0 1 1.995 1.85L21 7.5v1.53a2.001 2.001 0 0 1 1.61 2.398l-.038.147-2.4 8a2 2 0 0 1-1.752 1.418l-.164.007H4a2 2 0 0 1-1.995-1.85L2 19V5a2 2 0 0 1 1.85-1.995L4 3zm11.136 8H6.744l-2.4 8h13.912zM9.519 5H4v8.187l.828-2.762A2 2 0 0 1 6.744 9H19V7.5h-6.52a2 2 0 0 1-1.561-.75z"/></g></svg></i><b>Из других лаунчеров</b><span>Prism, CurseForge, Modrinth App и другие</span></button>
+            <button type="button" class="el-card" data-view="discover" data-id="empty.discover"><i><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2m4.243 5.757c-.354-.353-4.95.707-6.364 2.122-1.414 1.414-2.475 6.01-2.122 6.364.354.353 4.95-.707 6.364-2.122 1.415-1.414 2.475-6.01 2.122-6.364M12 11a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/></g></svg></i><b>Каталог</b><span>Модпаки и моды из каталога</span></button>
+          </div>
         </div>
       </section>
       <section class="view" id="view-create" data-id="view.create">
@@ -306,7 +314,8 @@
       <section class="view" id="view-accounts" data-id="view.accounts">
         <div class="narrow">
           <h1 class="page-h">Аккаунты</h1>
-          <div class="rows" id="acc-page" data-id="accounts.list"></div>
+          <div class="acc-list" id="acc-page" data-id="accounts.list"></div>
+          <div class="acc-add-h">Добавить аккаунт</div>
           <div class="acc-actions">
             <button class="btn btn-primary" data-open="dlg-login" data-id="accounts.add.microsoft"><span class="lbl">Войти через Microsoft</span></button>
             <button class="btn" data-open="dlg-offline" id="acc-offline" data-id="accounts.add.offline" hidden><span class="lbl">Офлайн-профиль</span></button>
@@ -515,6 +524,10 @@
                 <div class="seg" id="panels-seg" data-id="settings.layout.panels"><button data-panels-set="auto" aria-selected="true">Авто</button><button data-panels-set="on">Отдельно</button><button data-panels-set="off">Вплотную</button></div></div>
               <div class="r"><div class="grow"><div class="t">На весь экран</div></div>
                 <label class="switch"><input type="checkbox" id="fx-wide" data-id="settings.layout.full-width"><i></i></label></div>
+              <div class="r"><div class="grow"><div class="t">Плотность</div><div class="s">Сколько воздуха между строками и кнопками</div></div>
+                <div class="seg" id="density-seg" data-id="settings.layout.density"><button data-density="compact">Плотно</button><button data-density="normal" aria-selected="true">Обычно</button><button data-density="comfy">Просторно</button></div></div>
+              <div class="r"><div class="grow"><div class="t">Масштаб интерфейса</div><div class="s"><span id="ui-scale-val">100%</span> · Ctrl +/−/0</div></div>
+                <input class="range" type="range" id="ui-scale" min="80" max="150" step="5" value="100" data-id="settings.layout.scale"></div>
               <div class="r"><div class="grow"><div class="t">Обложка сборки</div></div>
                 <div class="seg" id="cover-seg"><button data-cover-set="big" aria-selected="true">Большая</button><button data-cover-set="slim">Узкая</button><button data-cover-set="none">Нет</button></div></div>
           </div>

@@ -207,6 +207,10 @@ pub struct Look {
     /// separate panels) | `off` (everything flush to the window edges).
     #[serde(default = "panels_auto")]
     pub panels: String,
+    /// Spacing between rows, cards and tabs: `compact` | `normal` | `comfy`.
+    pub density: String,
+    /// Whole-interface zoom, percent: 80–150 in steps of 5.
+    pub ui_scale: u32,
 }
 
 fn panels_auto() -> String {
@@ -231,6 +235,8 @@ impl Default for Look {
             browse: "pages".into(),
             per_page: 20,
             panels: panels_auto(),
+            density: "normal".into(),
+            ui_scale: 100,
             menu_density: 92,
             menu_blur: 24,
             plate_size: 100,
@@ -274,6 +280,8 @@ impl Look {
         one_of("palette_pos", &l.palette_pos, &["top", "bottom"])?;
         one_of("browse", &l.browse, &["pages", "scroll"])?;
         one_of("panels", &l.panels, &["auto", "on", "off"])?;
+        one_of("density", &l.density, &["compact", "normal", "comfy"])?;
+        l.ui_scale = ((l.ui_scale.clamp(80, 150) + 2) / 5 * 5).min(150);
         if ![10, 20, 50].contains(&l.per_page) {
             return Err(format!("per_page: «{}» — ожидается 10, 20 или 50", l.per_page));
         }
@@ -601,6 +609,19 @@ mod tests {
         );
         assert_eq!(loader_order(&[]), LOADER_ORDER);
         assert_eq!(Settings::default().loader_priority, s(&LOADER_ORDER));
+    }
+
+    #[test]
+    fn density_and_scale_patch() {
+        let l = Look::default();
+        assert_eq!(l.density, "normal");
+        assert_eq!(l.ui_scale, 100);
+        let p = l.patch(&json!({"density": "compact", "ui_scale": 133})).unwrap();
+        assert_eq!(p.density, "compact");
+        assert_eq!(p.ui_scale, 135);
+        assert_eq!(l.patch(&json!({"ui_scale": 10})).unwrap().ui_scale, 80);
+        assert_eq!(l.patch(&json!({"ui_scale": 900})).unwrap().ui_scale, 150);
+        assert!(l.patch(&json!({"density": "huge"})).is_err());
     }
 
     #[test]

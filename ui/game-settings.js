@@ -52,7 +52,7 @@
   }
   function jvRow(m) {
     const row = el('div', { class: 'r gs-jv', 'data-major': m });
-    const find = btn(_t("Найти"), I.find, 'btn-ghost'), browse = btn(_t("Обзор"), I.folder, 'btn-ghost'), get = btn(_t("Скачать"), I.down);
+    const find = iconBtn(I.find, _t("Найти Java на компьютере")), browse = iconBtn(I.folder, _t("Указать файл java вручную")), get = btn(_t("Скачать"), I.down);
     const reset = iconBtn(I.x, _t("Авто"));
     find.addEventListener('click', async () => {
       const list = (await found()).filter((j) => j.major === m);

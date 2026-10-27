@@ -118,7 +118,7 @@ function show(view, defer) {
   // page that is still open — a burst of clicks renders just the last page.
   const tok = ++navTok;
   const run = defer ? (fn) => afterPaint(() => { if (tok === navTok && S.view === view) fn(); }) : (fn) => fn();
-  if (view === 'settings') (defer ? run : requestAnimationFrame)(() => { window.FSettings?.shown(); $('#cover-seg')._place?.(false); $('#panels-seg')._place?.(false); $('#wall-seg')._place?.(false); $('#browse-seg')._place?.(false); });
+  if (view === 'settings') (defer ? run : requestAnimationFrame)(() => { window.FSettings?.shown(); $('#cover-seg')._place?.(false); $('#panels-seg')._place?.(false); $('#density-seg')._place?.(false); $('#wall-seg')._place?.(false); $('#browse-seg')._place?.(false); });
   if (view === 'home') renderHome(true);
   if (view === 'create') prepareCreate();
   if (view === 'accounts') run(() => { renderAccountsPage(); loadProviders(); });
@@ -492,6 +492,9 @@ $('#create-form').addEventListener('submit', async (ev) => {
 const IMPORT_STAGE = { prepare: _t("Читаем сборку"), files: _t("Скачиваем файлы"), overrides: _t("Копируем настройки"), done: _t("Готово") };
 // The native dialog hands the path to the core, which reads the file itself; the
 // <input> is only a fallback outside Tauri.
+// Empty library: the same entry points as the «Новая сборка» screen.
+$('#el-import')?.addEventListener('click', () => { show('create'); $('#c-import').click(); });
+$('#el-foreign')?.addEventListener('click', () => { show('create'); $('#c-foreign')?.click(); });
 $('#c-import').addEventListener('click', async () => {
   if (!window.__TAURI__) { $('#c-import-file').click(); return; }
   runImport(() => invoke('pick_mrpack'));
@@ -559,12 +562,15 @@ async function runImport(stage) {
 function renderAccountsPage() {
   const st = S.accounts;
   const btn = (label, action, id) => el('button', { class: 'btn btn-sm btn-ghost', 'data-action': action, 'data-args': JSON.stringify({ id }) }, el('span', { class: 'lbl' }, label));
-  $('#acc-page').replaceChildren(...st.accounts.map((a) => el('div', { class: 'r', 'data-id': `accounts.${a.id}` },
-    headFor(a, 'head'),
-    el('div', { class: 'grow' }, el('div', { class: 't' }, a.name), el('div', { class: 's' }, kindLabel(a))),
-    a.id === st.selected ? el('span', { class: 'acc-tag on' }, _t("Играю как")) : btn(_t("Играть как"), 'accounts.select', a.id),
-    btn(_t("Удалить"), 'accounts.remove', a.id))));
-  if (!st.accounts.length) $('#acc-page').append(el('div', { class: 'r' }, el('div', { class: 's' }, _t("Аккаунтов пока нет"))));
+  $('#acc-page').replaceChildren(...st.accounts.map((a) => {
+    const on = a.id === st.selected;
+    return el('div', { class: `acc-card${on ? ' is-on' : ''}`, 'data-id': `accounts.${a.id}` },
+      headFor(a, 'head acc-face'),
+      el('div', { class: 'grow' }, el('div', { class: 't' }, a.name), el('div', { class: 's' }, kindLabel(a))),
+      on ? el('span', { class: 'acc-tag on' }, _t("Играю как")) : btn(_t("Играть как"), 'accounts.select', a.id),
+      btn(_t("Удалить"), 'accounts.remove', a.id));
+  }));
+  if (!st.accounts.length) $('#acc-page').append(el('div', { class: 'acc-none' }, el('b', {}, _t("Аккаунтов пока нет")), el('span', {}, _t("Войдите через Microsoft, чтобы играть на серверах и менять скин."))));
   $('#acc-offline').hidden = !st.offline_available;
 }
 /** Provider accounts show the service name from their addon. */
@@ -827,6 +833,18 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && S.view === 'instance' && !document.querySelector('.dialog[data-open]')) play(S.current, true);
 });
 
+// Ctrl + / Ctrl − / Ctrl 0: interface scale, as in a browser.
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey && e.key !== '+') return;
+  const cur = S.look.ui_scale || 100; let v = cur;
+  if (e.key === '=' || e.key === '+') v += 10; else if (e.key === '-') v -= 10; else if (e.key === '0') v = 100; else return;
+  e.preventDefault();
+  v = Math.min(150, Math.max(80, Math.round(v / 5) * 5));
+  if (v === cur) return;
+  setLook({ ui_scale: v }); applyScale();
+  toast(_t("Масштаб интерфейса: {0}%", [v]), { ms: 1400 });
+});
+
 // ---------- Settings: sections, theme + effects (look is kept in the core, see syncLook) ----------
 $('#set-seg').addEventListener('seg:change', (e) => {
   requestAnimationFrame(() => $('#theme-seg')._place?.(false));
@@ -872,9 +890,9 @@ $('#theme-reload').addEventListener('click', () => { location.hash = 'settings';
 
 // Look (wallpaper, glass, cover, palette) lives in the core (settings.look).
 // localStorage keeps a mirror so the first paint is right before the core answers.
-const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', wall_zoom: 'fl.wall-zoom', wall_x: 'fl.wall-x', wall_y: 'fl.wall-y', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels', menu_density: 'fl.menu-a', menu_blur: 'fl.menu-blur', plate_size: 'fl.plate-size', plate_font: 'fl.plate-font', plate_weight: 'fl.plate-weight', plate_meta: 'fl.plate-meta', ui_font: 'fl.ui-font', font_stamp: 'fl.font-v', font_name: 'fl.font-name' };
-const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, wall_zoom: 100, wall_x: 50, wall_y: 50, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto', menu_density: 92, menu_blur: 24, plate_size: 100, plate_font: 'ui', plate_weight: 600, plate_meta: true, ui_font: 'inter', font_stamp: 0, font_name: '' };
-const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'], browse: ['pages', 'scroll'], panels: ['auto', 'on', 'off'], plate_font: ['ui', 'system', 'mono', 'serif'], ui_font: ['inter', 'system', 'serif', 'mono', 'custom'] };
+const LOOK_KEYS = { wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', wall_zoom: 'fl.wall-zoom', wall_x: 'fl.wall-x', wall_y: 'fl.wall-y', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels', menu_density: 'fl.menu-a', menu_blur: 'fl.menu-blur', plate_size: 'fl.plate-size', plate_font: 'fl.plate-font', plate_weight: 'fl.plate-weight', plate_meta: 'fl.plate-meta', ui_font: 'fl.ui-font', font_stamp: 'fl.font-v', font_name: 'fl.font-name', density: 'fl.density', ui_scale: 'fl.ui-scale' };
+const LOOK_DEF = { wall: 'cover', wall_stamp: 0, wall_blur: 22, wall_zoom: 100, wall_x: 50, wall_y: 50, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto', menu_density: 92, menu_blur: 24, plate_size: 100, plate_font: 'ui', plate_weight: 600, plate_meta: true, ui_font: 'inter', font_stamp: 0, font_name: '', density: 'normal', ui_scale: 100 };
+const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'], browse: ['pages', 'scroll'], panels: ['auto', 'on', 'off'], plate_font: ['ui', 'system', 'mono', 'serif'], ui_font: ['inter', 'system', 'serif', 'mono', 'custom'], density: ['compact', 'normal', 'comfy'] };
 function lookFromCache() {
   const l = { ...LOOK_DEF };
   for (const [k, key] of Object.entries(LOOK_KEYS)) {
@@ -1056,6 +1074,16 @@ $('#font-clear').addEventListener('click', async () => {
     applyFont();
   } catch (err) { toast(String(err), { error: true }); }
 });
+// «Масштаб интерфейса»: native webview zoom, so text stays crisp and layouts reflow.
+let scaleNow = 100;
+function applyScale() {
+  const v = Math.min(150, Math.max(80, Math.round((S.look.ui_scale || 100) / 5) * 5));
+  const r = $('#ui-scale'); if (r) r.value = v;
+  const lv = $('#ui-scale-val'); if (lv) lv.textContent = `${v}%`;
+  if (v === scaleNow) return;
+  scaleNow = v;
+  invoke('set_ui_zoom', { scale: v / 100 }).catch(() => {});
+}
 function applyLook() {
   applyFont();
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
@@ -1065,6 +1093,9 @@ function applyLook() {
   document.documentElement.dataset.cover = S.look.cover;
   document.documentElement.dataset.width = S.look.full_width ? 'full' : 'center';
   document.documentElement.dataset.panels = S.look.panels || 'auto';
+  document.documentElement.dataset.density = S.look.density || 'normal';
+  $$('#density-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.density === (S.look.density || 'normal'))));
+  applyScale();
   $$('#panels-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.panelsSet === (S.look.panels || 'auto'))));
   $('#fx-wide').checked = !!S.look.full_width;
   $$('#cover-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.coverSet === document.documentElement.dataset.cover)));
@@ -1078,6 +1109,10 @@ $('#ip-cover-view').addEventListener('click', (e) => {
 });
 
 $('#panels-seg').addEventListener('seg:change', (e) => { setLook({ panels: e.detail.dataset.panelsSet }); applyLook(); });
+$('#density-seg').addEventListener('seg:change', (e) => { setLook({ density: e.detail.dataset.density }); applyLook(); });
+$('#ui-scale').addEventListener('input', (e) => { $('#ui-scale-val').textContent = `${e.target.value}%`; });
+$('#ui-scale').addEventListener('change', (e) => { setLook({ ui_scale: +e.target.value }); applyScale(); });
+$('#ui-scale').addEventListener('dblclick', () => { setLook({ ui_scale: 100 }); applyScale(); });
 $('#cover-seg').addEventListener('seg:change', (e) => { setLook({ cover: e.detail.dataset.coverSet }); applyLook(); });
 $('#browse-seg').addEventListener('seg:change', (e) => { setLook({ browse: e.detail.dataset.browse }); document.dispatchEvent(new Event('look:browse')); });
 document.addEventListener('look:change', () => {
