@@ -2628,4 +2628,122 @@ fn register_extras(r: &mut ActionRegistry) {
             "screenshots": crate::media::list_shots(&gd).len(),
         }))
     });
+    // Share-by-code: the instance's recipe without files; see `share`.
+    r.register("instances.share_code", P::InstancesRead, false, |c, a| async move {
+        let InstanceArg { instance } = args(a)?;
+        let i = instance_by_id(&c, &instance)?;
+        let gd = i.game_dir(&c.instances_root());
+        let (mut m, mut local) = (Vec::new(), 0usize);
+        for (kind, tag) in crate::share::KINDS {
+            let idx = mods::load_index(&gd, kind)?;
+            let folder = gd.join(kind.folder());
+            let files: Vec<String> = std::fs::read_dir(&folder)
+                .map(|rd| rd.flatten().filter_map(|e| e.file_name().into_string().ok()).collect())
+                .unwrap_or_default();
+            for f in &files {
+                let base = f.strip_suffix(".disabled").unwrap_or(f);
+                if !base.ends_with(kind.ext()) {
+                    continue;
+                }
+                match idx.get(base) {
+                    Some(s) if !s.project_id.is_empty() && !s.version_id.is_empty() => {
+                        m.push((tag.to_owned(), s.project_id.clone(), s.version_id.clone()))
+                    }
+                    _ => local += 1,
+                }
+            }
+        }
+        m.sort();
+        m.dedup();
+        m.truncate(crate::share::MAX_ITEMS);
+        let items = m.len();
+        let code = crate::share::encode(&crate::share::Recipe {
+            n: i.name.clone(),
+            mc: i.version.clone(),
+            l: i.loader.clone(),
+            lv: i.loader_version.clone(),
+            m,
+        });
+        Ok(json!({ "code": code, "items": items, "local": local }))
+    });
+    r.register("instances.from_code", P::InstancesManage, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            code: String,
+            #[serde(default)]
+            name: Option<String>,
+            #[serde(default)]
+            token: Option<String>,
+        }
+        let a: A = args(a)?;
+        let rec = crate::share::decode(&a.code)?;
+        let name = a
+            .name
+            .map(|n| n.trim().to_owned())
+            .filter(|n| !n.is_empty())
+            .unwrap_or_else(|| rec.n.trim().to_owned());
+        instances::validate(&name, &rec.mc)?;
+        let loader = if rec.l.is_empty() { "vanilla".to_owned() } else { rec.l.clone() };
+        if !instances::LOADERS.contains(&loader.as_str()) {
+            return Err(CoreError::BadArgs(format!("unknown loader: {loader}")));
+        }
+        let p = service::progress_for(&c, a.token.as_deref().unwrap_or("share-code"));
+        p.set_stage("prepare");
+        let loader_version = match loader.as_str() {
+            "vanilla" => String::new(),
+            _ if !rec.lv.is_empty() => rec.lv.clone(),
+            _ => crate::game::loader::latest(&c, &loader, &rec.mc).await?,
+        };
+        let inst = {
+            let _g = c.state_lock.lock().await;
+            let mut s: InstanceStore = store::load(&c.path(INSTANCES))?;
+            let inst = Instance {
+                id: uuid::Uuid::new_v4().to_string(),
+                dir: free_dir(&c, &s, &name, None),
+                path: String::new(),
+                name,
+                version: rec.mc.clone(),
+                loader,
+                loader_version,
+                created_at: unix_now(),
+                last_played: 0,
+                playtime_secs: 0,
+                settings: Default::default(),
+                pack: None,
+                group: String::new(),
+            };
+            let gd = inst.game_dir(&c.instances_root());
+            std::fs::create_dir_all(&gd)?;
+            apply_options_template(&c, &gd);
+            s.instances.push(inst.clone());
+            store::save(&c.path(INSTANCES), &s, false)?;
+            inst
+        };
+        let gd = inst.game_dir(&c.instances_root());
+        use std::sync::atomic::Ordering::Relaxed;
+        p.total_files.store(rec.m.len() as u64, Relaxed);
+        p.set_stage("files");
+        let (mut added, mut failed) = (0usize, Vec::new());
+        for (tag, project, version) in &rec.m {
+            let kind = crate::share::kind_of(tag).expect("decode checks tags");
+            let res: Result<Vec<String>, CoreError> = async {
+                let loaders = content_loaders(&inst, kind)?;
+                let t = mods::Target {
+                    game_dir: &gd,
+                    kind,
+                    mc: &inst.version,
+                    loaders: &loaders,
+                };
+                mods::install(&c, t, project, Some(version)).await
+            }
+            .await;
+            match res {
+                Ok(v) => added += v.len(),
+                Err(e) => failed.push(e.to_string()),
+            }
+            p.done_files.fetch_add(1, Relaxed);
+        }
+        p.set_stage("done");
+        Ok(json!({ "instance": inst, "added": added, "failed": failed }))
+    });
 }

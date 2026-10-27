@@ -1,5 +1,16 @@
 // Generated: Russian source text -> tr.
 window.FL_DICT = {
+"Поделиться кодом": "Kod olarak paylaş",
+"Сборка по коду": "Koddan profil",
+"Вставьте код, которым с вами поделились. Лаунчер создаст новую сборку и скачает всё из каталога.": "Seninle paylaşılan kodu yapıştır. Başlatıcı yeni bir profil oluşturur ve her şeyi katalogdan indirir.",
+"Как в коде": "Koddaki gibi",
+"По коду": "Koddan",
+"Из каталога: {0}": "Katalogdan: {0}",
+"Добавлены вручную и не попадут в код: {0}": "Elle eklenen, koda girmeyen: {0}",
+"Код скопирован": "Kod kopyalandı",
+"Не установилось: {0}": "Yüklenemedi: {0}",
+"Это не код сборки Freedom Launcher": "Bu bir Freedom Launcher profil kodu değil",
+"Друг вставит код в «Новая сборка → По коду», и лаунчер сам скачает ту же версию игры, загрузчик и моды. Миры и настройки в код не входят.": "Arkadaşın kodu “Yeni profil → Koddan” bölümüne yapıştırır, başlatıcı aynı oyun sürümünü, yükleyiciyi ve modları indirir. Dünyalar ve ayarlar dahil değildir.",
 "Карточка при наведении": "Üzerine gelince kart",
 "Время в игре и что внутри сборки на главной": "Ana sayfada oyun süresi ve kurulumun içeriği",
 "Последний запуск": "Son oynama",

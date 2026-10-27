@@ -1,5 +1,16 @@
 // Generated: Russian source text -> it.
 window.FL_DICT = {
+"Поделиться кодом": "Condividi come codice",
+"Сборка по коду": "Istanza da codice",
+"Вставьте код, которым с вами поделились. Лаунчер создаст новую сборку и скачает всё из каталога.": "Incolla il codice che ti hanno condiviso. Il launcher crea una nuova istanza e scarica tutto dal catalogo.",
+"Как в коде": "Come nel codice",
+"По коду": "Da codice",
+"Из каталога: {0}": "Dal catalogo: {0}",
+"Добавлены вручную и не попадут в код: {0}": "Aggiunti a mano, non nel codice: {0}",
+"Код скопирован": "Codice copiato",
+"Не установилось: {0}": "Non installato: {0}",
+"Это не код сборки Freedom Launcher": "Questo non è un codice istanza di Freedom Launcher",
+"Друг вставит код в «Новая сборка → По коду», и лаунчер сам скачает ту же версию игры, загрузчик и моды. Миры и настройки в код не входят.": "Un amico incolla il codice in «Nuova istanza → Da codice» e il launcher scarica la stessa versione del gioco, il loader e le mod. Mondi e impostazioni non sono inclusi.",
 "Карточка при наведении": "Scheda al passaggio del mouse",
 "Время в игре и что внутри сборки на главной": "Tempo di gioco e contenuto dell'istanza nella Home",
 "Последний запуск": "Ultima partita",

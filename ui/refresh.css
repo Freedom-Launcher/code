@@ -126,3 +126,10 @@ html[data-wall="on"][data-theme="light"] { --text-2: #44444c; --text-3: #6e6e78;
 html[data-wall="on"][data-theme="light"] .table-empty { background: rgba(255, 255, 255, .55); }
 html[data-wall="on"] .table-empty { background: rgba(16, 18, 24, .35); }
 html[data-wall="on"][data-fx="lite"] .table-empty { background: var(--surface-1); }
+
+/* 0.3.43 — share-by-code dialogs. */
+.dlg-share .sh-code { display: block; width: 100%; height: auto; min-height: 128px; max-height: 220px; resize: none; overflow-y: auto; padding: 10px 12px; box-sizing: border-box;
+  font: 500 12px/1.55 var(--font-mono); word-break: break-all; white-space: pre-wrap; }
+.dlg-share #sh-code { color: var(--text-2); }
+.dlg-share #sh-hint:empty { display: none; }
+.dlg-share .play-status { margin: 0; }

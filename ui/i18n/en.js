@@ -1,5 +1,16 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Поделиться кодом": "Share as code",
+"Сборка по коду": "Instance from code",
+"Вставьте код, которым с вами поделились. Лаунчер создаст новую сборку и скачает всё из каталога.": "Paste the code someone shared with you. The launcher creates a new instance and downloads everything from the catalog.",
+"Как в коде": "As in the code",
+"По коду": "From code",
+"Из каталога: {0}": "From the catalog: {0}",
+"Добавлены вручную и не попадут в код: {0}": "Added by hand, not in the code: {0}",
+"Код скопирован": "Code copied",
+"Не установилось: {0}": "Couldn't install: {0}",
+"Это не код сборки Freedom Launcher": "This is not a Freedom Launcher instance code",
+"Друг вставит код в «Новая сборка → По коду», и лаунчер сам скачает ту же версию игры, загрузчик и моды. Миры и настройки в код не входят.": "A friend pastes the code into “New instance → From code” and the launcher downloads the same game version, loader and mods. Worlds and settings aren't included.",
 "Карточка при наведении": "Hover card",
 "Время в игре и что внутри сборки на главной": "Playtime and what's inside an instance on Home",
 "Последний запуск": "Last played",

@@ -37,6 +37,7 @@ pub mod keychain;
 pub mod media;
 pub mod modrinth;
 pub mod mods;
+pub mod share;
 pub mod mrpack;
 pub mod msauth;
 pub mod net;

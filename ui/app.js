@@ -829,7 +829,7 @@ $('#menu-ctx-instance').addEventListener('ctx-open', (e) => {
 });
 $('#cx-continue').addEventListener('click', () => { FUI.closeMenu(); play(ctxInst(), true, false, { continue: true }); });
 $('#cx-play').addEventListener('click', () => { FUI.closeMenu(); const id = ctxInst(); isRunning(id) ? stopGame(id) : play(id, true); });
-for (const [cx, mi] of [['cx-settings', 'mi-settings'], ['cx-perf', 'mi-perf'], ['cx-folder', 'mi-folder'], ['cx-dup', 'mi-dup'], ['cx-export', 'mi-export'], ['cx-del', 'mi-del']]) {
+for (const [cx, mi] of [['cx-settings', 'mi-settings'], ['cx-perf', 'mi-perf'], ['cx-folder', 'mi-folder'], ['cx-dup', 'mi-dup'], ['cx-export', 'mi-export'], ['cx-share', 'mi-share'], ['cx-icon', 'mi-icon'], ['cx-del', 'mi-del']]) {
   $(`#${cx}`).addEventListener('click', () => {
     FUI.closeMenu();
     S.ctxAct = ctxInst();

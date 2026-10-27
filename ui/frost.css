@@ -64,12 +64,12 @@ html[data-wall="on"] .main::before {
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.45); backdrop-filter: blur(var(--glass-blur)) saturate(1.45);
 }
 .main .home-bar {
-  background: rgba(18, 20, 27, .56);
-  -webkit-backdrop-filter: blur(26px) saturate(1.6); backdrop-filter: blur(26px) saturate(1.6);
+  background: rgba(40, 43, 54, .36);
+  -webkit-backdrop-filter: blur(26px) saturate(1.7) brightness(1.08); backdrop-filter: blur(26px) saturate(1.7) brightness(1.08);
 }
-[data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .62); }
+[data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .5); }
 .main .home-bar .hb-mid .chip { background: rgba(255, 255, 255, .08); }
 [data-theme="light"] .main .home-bar .hb-mid .chip { background: rgba(10, 20, 40, .06); }
 /* Light effects: no blur, so the bar becomes a dense tint that still reads over cards. */
-html[data-fx="lite"] .main .home-bar { background: rgba(22, 23, 30, .93); }
-html[data-fx="lite"][data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .95); }
+html[data-fx="lite"] .main .home-bar { background: rgba(50, 53, 65, .84); }
+html[data-fx="lite"][data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .86); }
