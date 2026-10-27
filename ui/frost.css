@@ -71,5 +71,5 @@ html[data-wall="on"] .main::before {
 .main .home-bar .hb-mid .chip { background: rgba(255, 255, 255, .08); }
 [data-theme="light"] .main .home-bar .hb-mid .chip { background: rgba(10, 20, 40, .06); }
 /* Light effects: no blur, so the bar becomes a dense tint that still reads over cards. */
-html[data-fx="lite"] .main .home-bar { background: rgba(50, 53, 65, .84); }
-html[data-fx="lite"][data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .86); }
+html[data-fx="lite"] .main .home-bar { background: rgba(22, 23, 30, .93); }
+html[data-fx="lite"][data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .95); }
