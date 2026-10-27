@@ -133,3 +133,29 @@ html[data-wall="on"][data-fx="lite"] .table-empty { background: var(--surface-1)
 .dlg-share #sh-code { color: var(--text-2); }
 .dlg-share #sh-hint:empty { display: none; }
 .dlg-share .play-status { margin: 0; }
+
+/* 0.3.44 — share picker (like the .mrpack export) and the short link. */
+#dlg-share { width: min(560px, calc(100vw - 48px)); }
+.sh-head { display: flex; align-items: center; gap: var(--s-2); min-height: 26px; }
+.sh-head .label { margin: 0; font-variant-numeric: tabular-nums; }
+.sh-tools { display: flex; gap: 2px; margin-left: auto; }
+.sh-q[hidden], .sh-list [hidden], .sh-out[hidden] { display: none !important; }
+.sh-list { max-height: min(320px, 40vh); margin-top: 0; }
+.sh-list .sh-group { color: var(--text); font-weight: var(--w-semibold); }
+.sh-list .sh-group:not(:first-child), .sh-list .sh-local-h { margin-top: 6px; }
+.sh-list .sh-item { padding-left: 22px; }
+.disc-opt[aria-pressed="mixed"] i {
+  background: var(--accent) center / 10px no-repeat; box-shadow: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M3 6h6'/%3E%3C/svg%3E");
+}
+.sh-local-h { padding: 4px 6px 2px; color: var(--text-3); font-size: var(--text-xs); }
+.sh-local { padding: 3px 6px 3px 22px; color: var(--text-3); font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sh-out { display: flex; flex-direction: column; gap: 6px; }
+.sh-outrow { display: flex; gap: var(--s-2); align-items: flex-start; }
+.dlg-share .sh-out .sh-code { flex: 1; min-width: 0; min-height: 64px; max-height: 120px; }
+.dlg-share .sh-out .sh-code.is-link { min-height: 0; height: 34px; padding-top: 8px; padding-bottom: 8px; overflow: hidden; white-space: nowrap; word-break: normal; color: var(--text); }
+.sh-out .hint { margin: 0; }
+/* Dark theme: white accent, so the dash is dark (as the check in mono.css). */
+html:not([data-theme="light"]) .disc-opt[aria-pressed="mixed"] i {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M3 6h6'/%3E%3C/svg%3E");
+}

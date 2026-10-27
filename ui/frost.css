@@ -63,11 +63,12 @@ html[data-wall="on"] .main::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.45); backdrop-filter: blur(var(--glass-blur)) saturate(1.45);
 }
+/* 0.3.44: no saturate/brightness — they pulled the wallpaper's colour into a purple cast. */
 .main .home-bar {
-  background: rgba(40, 43, 54, .36);
-  -webkit-backdrop-filter: blur(26px) saturate(1.7) brightness(1.08); backdrop-filter: blur(26px) saturate(1.7) brightness(1.08);
+  background: rgba(16, 17, 20, .2);
+  -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
 }
-[data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .5); }
+[data-theme="light"] .main .home-bar { background: rgba(255, 255, 255, .32); }
 .main .home-bar .hb-mid .chip { background: rgba(255, 255, 255, .08); }
 [data-theme="light"] .main .home-bar .hb-mid .chip { background: rgba(10, 20, 40, .06); }
 /* Light effects: no blur, so the bar becomes a dense tint that still reads over cards. */

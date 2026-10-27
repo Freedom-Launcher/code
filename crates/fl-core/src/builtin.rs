@@ -2573,6 +2573,94 @@ fn opt_tpl_info(c: &crate::Core) -> Value {
     })
 }
 
+/// One catalog item of an instance, as offered in the share dialog.
+struct ShareItem {
+    tag: &'static str,
+    project: String,
+    version: String,
+    title: String,
+    number: String,
+    icon: String,
+    enabled: bool,
+}
+
+impl ShareItem {
+    fn key(&self) -> String {
+        format!("{}:{}", self.tag, self.project)
+    }
+}
+
+#[derive(Deserialize)]
+struct ShareArg {
+    instance: String,
+    /// `kind:project` keys to include; everything from the catalog when absent.
+    #[serde(default)]
+    items: Option<Vec<String>>,
+}
+
+/// Catalog items (deduplicated by project) and the manually added files, `(kind tag, file)`.
+fn share_collect(c: &Core, i: &Instance) -> Result<(Vec<ShareItem>, Vec<(&'static str, String)>), CoreError> {
+    let gd = i.game_dir(&c.instances_root());
+    let (mut items, mut local) = (Vec::new(), Vec::new());
+    let mut seen = std::collections::BTreeSet::new();
+    for (kind, tag) in crate::share::KINDS {
+        let idx = mods::load_index(&gd, kind)?;
+        let mut files: Vec<String> = std::fs::read_dir(gd.join(kind.folder()))
+            .map(|rd| rd.flatten().filter_map(|e| e.file_name().into_string().ok()).collect())
+            .unwrap_or_default();
+        files.sort();
+        let mut part = Vec::new();
+        for f in &files {
+            let base = f.strip_suffix(".disabled").unwrap_or(f);
+            if !base.ends_with(kind.ext()) {
+                continue;
+            }
+            match idx.get(base) {
+                Some(s) if !s.project_id.is_empty() && !s.version_id.is_empty() => {
+                    if !seen.insert((tag, s.project_id.clone())) {
+                        continue;
+                    }
+                    part.push(ShareItem {
+                        tag,
+                        project: s.project_id.clone(),
+                        version: s.version_id.clone(),
+                        title: if s.title.is_empty() { base.to_owned() } else { s.title.clone() },
+                        number: s.version_number.clone(),
+                        icon: s.icon_url.clone().unwrap_or_default(),
+                        enabled: base.len() == f.len(),
+                    })
+                }
+                _ => local.push((tag, base.to_owned())),
+            }
+        }
+        part.sort_by_key(|x| x.title.to_lowercase());
+        items.extend(part);
+    }
+    Ok((items, local))
+}
+
+/// The recipe for the picked items; returns it with the item count and the manual-file count.
+fn share_recipe(c: &Core, i: &Instance, pick: Option<&[String]>) -> Result<(crate::share::Recipe, usize, usize), CoreError> {
+    let (items, local) = share_collect(c, i)?;
+    let pick: Option<std::collections::BTreeSet<&str>> = pick.map(|p| p.iter().map(String::as_str).collect());
+    let mut m: Vec<(String, String, String)> = items
+        .iter()
+        .filter(|x| pick.as_ref().is_none_or(|p| p.contains(x.key().as_str())))
+        .map(|x| (x.tag.to_owned(), x.project.clone(), x.version.clone()))
+        .collect();
+    m.sort();
+    m.truncate(crate::share::MAX_ITEMS);
+    let n = m.len();
+    let rec = crate::share::Recipe {
+        n: i.name.clone(),
+        mc: i.version.clone(),
+        l: i.loader.clone(),
+        lv: i.loader_version.clone(),
+        m,
+    };
+    Ok((rec, n, local.len()))
+}
+
 fn register_extras(r: &mut ActionRegistry) {
     r.register("options.template", P::Internal, false, |c, _| async move {
         Ok(opt_tpl_info(&c))
@@ -2629,42 +2717,40 @@ fn register_extras(r: &mut ActionRegistry) {
         }))
     });
     // Share-by-code: the instance's recipe without files; see `share`.
-    r.register("instances.share_code", P::InstancesRead, false, |c, a| async move {
+    r.register("instances.share_items", P::InstancesRead, false, |c, a| async move {
         let InstanceArg { instance } = args(a)?;
         let i = instance_by_id(&c, &instance)?;
-        let gd = i.game_dir(&c.instances_root());
-        let (mut m, mut local) = (Vec::new(), 0usize);
-        for (kind, tag) in crate::share::KINDS {
-            let idx = mods::load_index(&gd, kind)?;
-            let folder = gd.join(kind.folder());
-            let files: Vec<String> = std::fs::read_dir(&folder)
-                .map(|rd| rd.flatten().filter_map(|e| e.file_name().into_string().ok()).collect())
-                .unwrap_or_default();
-            for f in &files {
-                let base = f.strip_suffix(".disabled").unwrap_or(f);
-                if !base.ends_with(kind.ext()) {
-                    continue;
-                }
-                match idx.get(base) {
-                    Some(s) if !s.project_id.is_empty() && !s.version_id.is_empty() => {
-                        m.push((tag.to_owned(), s.project_id.clone(), s.version_id.clone()))
-                    }
-                    _ => local += 1,
-                }
-            }
-        }
-        m.sort();
-        m.dedup();
-        m.truncate(crate::share::MAX_ITEMS);
-        let items = m.len();
-        let code = crate::share::encode(&crate::share::Recipe {
-            n: i.name.clone(),
-            mc: i.version.clone(),
-            l: i.loader.clone(),
-            lv: i.loader_version.clone(),
-            m,
-        });
+        let (items, local) = share_collect(&c, &i)?;
+        let items: Vec<Value> = items
+            .iter()
+            .map(|x| {
+                json!({
+                    "key": x.key(), "kind": x.tag, "title": x.title, "version": x.number,
+                    "icon": x.icon, "enabled": x.enabled,
+                })
+            })
+            .collect();
+        let local_list: Vec<Value> = local.iter().take(50).map(|(k, f)| json!({ "kind": k, "file": f })).collect();
+        Ok(json!({ "name": i.name, "items": items, "local": local_list, "local_count": local.len() }))
+    });
+    r.register("instances.share_code", P::InstancesRead, false, |c, a| async move {
+        let a: ShareArg = args(a)?;
+        let i = instance_by_id(&c, &a.instance)?;
+        let (rec, items, local) = share_recipe(&c, &i, a.items.as_deref())?;
+        let code = crate::share::encode(&rec);
         Ok(json!({ "code": code, "items": items, "local": local }))
+    });
+    r.register("instances.share_link", P::InstancesRead, false, |c, a| async move {
+        let a: ShareArg = args(a)?;
+        let i = instance_by_id(&c, &a.instance)?;
+        let (rec, items, local) = share_recipe(&c, &i, a.items.as_deref())?;
+        let code = crate::share::encode(&rec);
+        let key = crate::share::upload(&c, &code).await?;
+        Ok(json!({
+            "code": format!("{}{key}", crate::share::LINK_PREFIX),
+            "url": crate::share::view_url(&key),
+            "items": items, "local": local, "chars": code.len(),
+        }))
     });
     r.register("instances.from_code", P::InstancesManage, false, |c, a| async move {
         #[derive(Deserialize)]
@@ -2676,7 +2762,7 @@ fn register_extras(r: &mut ActionRegistry) {
             token: Option<String>,
         }
         let a: A = args(a)?;
-        let rec = crate::share::decode(&a.code)?;
+        let rec = crate::share::resolve(&c, &a.code).await?;
         let name = a
             .name
             .map(|n| n.trim().to_owned())
