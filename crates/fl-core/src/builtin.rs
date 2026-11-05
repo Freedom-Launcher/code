@@ -80,6 +80,11 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         true,
         |c, _| async move { update_settings(&c, |s| *s = Settings::default()).await },
     );
+    // Safe mode may only make things stricter: it turns the theme confirmations back on.
+    // Turning them off is `settings.set`, which safe mode does not have.
+    r.register("safe.confirm_on", P::Internal, false, |c, _| async move {
+        update_settings(&c, |s| s.theme_confirm = true).await
+    });
     if safe_mode {
         return;
     }
@@ -92,6 +97,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             look: Option<Value>,
             reduce_motion: Option<bool>,
             onboarded: Option<bool>,
+            theme_confirm: Option<bool>,
             loader_priority: Option<Vec<String>>,
             ui: Option<Value>,
             game: Option<instances::InstanceSettings>,
@@ -104,6 +110,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             look,
             reduce_motion,
             onboarded,
+            theme_confirm,
             loader_priority,
             ui,
             game,
@@ -130,6 +137,9 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         }
         if let Some(o) = onboarded {
             s.onboarded = o;
+        }
+        if let Some(t) = theme_confirm {
+            s.theme_confirm = t;
         }
         if let Some(p) = loader_priority {
             if p.len() > 8 {

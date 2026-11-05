@@ -644,6 +644,11 @@
             <div class="r"><div class="grow"><div class="t">Плагины на своей странице</div></div>
               <button class="btn btn-primary" id="set-plugins-open" data-view="plugins" data-id="settings.addons.goto"><span class="lbl">Открыть</span></button></div>
           </div>
+          <div class="set-label">Подтверждения</div>
+          <div class="rows set-card" data-id="settings.security.confirm">
+            <div class="r"><div class="grow"><div class="t">Спрашивать у тем разрешение</div><div class="s">Когда тема сама запускает игру или открывает вход в аккаунт, лаунчер спрашивает в отдельном окне. Отключайте, только если доверяете авторам своих тем. Включить обратно можно и в безопасном режиме.</div></div>
+              <label class="switch"><input type="checkbox" id="sec-confirm" checked data-id="settings.security.confirm.switch"><i></i></label></div>
+          </div>
         </div>
         <div class="set-pane" data-pane="keys" data-id="settings.pane.keys" hidden>
           <h2 class="set-h">Клавиши</h2>
@@ -1184,6 +1189,7 @@
       <div class="stack">
         <button class="btn" data-action="safe.restore_theme"><span class="lbl">Вернуть стандартную тему</span></button>
         <button class="btn" data-action="safe.disable_addons"><span class="lbl">Отключить все плагины</span></button>
+        <button class="btn" data-action="safe.confirm_on"><span class="lbl">Включить подтверждения для тем</span></button>
         <button class="btn btn-danger" data-action="safe.reset_settings"><span class="lbl">Сбросить настройки</span></button>
       </div>
       <p class="hint" id="safe-msg"></p>

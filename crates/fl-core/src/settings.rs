@@ -10,6 +10,10 @@ pub struct Settings {
     pub reduce_motion: bool,
     /// The first-run guide was finished or skipped.
     pub onboarded: bool,
+    /// Ask in a native dialog before a theme starts the game or opens a sign-in
+    /// (`actions::THEME_CONFIRM`). On by default. Turned off only in settings, and
+    /// only by the user (`settings.set` is `Internal`); safe mode can turn it back on.
+    pub theme_confirm: bool,
     /// Look of the built-in shell. `None` until the UI saves it once, so the UI
     /// knows to migrate the values it used to keep in localStorage.
     pub look: Option<Look>,
@@ -142,6 +146,7 @@ impl Default for Settings {
             addons_enabled: true,
             reduce_motion: false,
             onboarded: false,
+            theme_confirm: true,
             look: None,
             loader_priority: LOADER_ORDER.iter().map(|s| s.to_string()).collect(),
             ui: UiCustom::default(),

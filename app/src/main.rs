@@ -77,7 +77,7 @@ async fn confirm_action(
 /// A `data-action` click inside markup written by a theme. Runs with theme rights:
 /// only `bindable` actions, attributed to the active theme. Actions in
 /// `fl_core::actions::THEME_CONFIRM` additionally need the user's OK in a native
-/// dialog every time: a theme's CSS can make any of its elements cover the window,
+/// dialog every time (unless the user turned `theme_confirm` off in Settings): a theme's CSS can make any of its elements cover the window,
 /// so one stray click on it proves nothing.
 #[tauri::command]
 async fn theme_action(
@@ -93,7 +93,13 @@ async fn theme_action(
         .map_err(|e| e.to_string())?;
     let id = cur["id"].as_str().unwrap_or("default").to_owned();
     let args = args.unwrap_or(Value::Null);
-    if fl_core::actions::theme_needs_confirm(&name) {
+    // The user's switch (Settings); anything unreadable counts as "ask".
+    let ask = core
+        .dispatch(&Caller::BuiltinUi, "settings.get", Value::Null)
+        .await
+        .map(|s| s["theme_confirm"].as_bool().unwrap_or(true))
+        .unwrap_or(true);
+    if ask && fl_core::actions::theme_needs_confirm(&name) {
         // Only the theme's id is shown (a-z, 0-9, '-'): its display name is author text.
         let what = match name.as_str() {
             "game.launch" => {

@@ -1,5 +1,11 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Подтверждения": "Confirmations",
+"Спрашивать у тем разрешение": "Ask before themes act",
+"Когда тема сама запускает игру или открывает вход в аккаунт, лаунчер спрашивает в отдельном окне. Отключайте, только если доверяете авторам своих тем. Включить обратно можно и в безопасном режиме.": "When a theme starts the game or opens a sign-in by itself, the launcher asks in a separate window. Turn this off only if you trust the authors of your themes. You can turn it back on in safe mode too.",
+"Отключить подтверждения?": "Turn confirmations off?",
+"Темы смогут запускать игру и открывать вход в аккаунт без вопросов. Отключайте, только если доверяете авторам установленных тем.": "Themes will be able to start the game and open a sign-in without asking. Turn this off only if you trust the authors of your installed themes.",
+"Включить подтверждения для тем": "Turn theme confirmations on",
 "Плагин не проверен командой Freedom Launcher и просит вход через сторонний сервис: он сможет сохранять аккаунты этого сервиса и запускать от них игру. Разрешайте, только если доверяете автору.": "This plugin has not been checked by the Freedom Launcher team and asks to sign you in through a third-party service: it will be able to save that service's accounts and start the game as them. Allow it only if you trust the author.",
 "Включить тему?": "Switch on the theme?",
 "Тема «{0}» установлена. Включить её сейчас? Тема может менять вид и расположение элементов лаунчера. Вернуть стандартную тему можно в безопасных настройках (Shift при запуске).": "Theme “{0}” is installed. Switch it on now? A theme can change how the launcher looks and where things are. You can return to the default theme in safe settings (hold Shift at start).",

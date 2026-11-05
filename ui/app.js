@@ -987,6 +987,7 @@ async function syncLook() {
   try {
     const st = await call('settings.get');
     S.onboarded = !!st?.onboarded;
+    S.themeConfirm = st?.theme_confirm !== false;
     if (st?.look) {
       S.look = { ...LOOK_DEF, ...st.look }; mirrorLook(S.look);
       localStorage.setItem('fl.motion', st.reduce_motion ? 'off' : 'on');
@@ -1141,6 +1142,7 @@ function applyLook() {
   applyFont();
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
+  $('#sec-confirm').checked = S.themeConfirm !== false;
   document.documentElement.dataset.fx = fxLite() ? 'lite' : 'full';
   $('#fx-lite').checked = fxLite();
   document.documentElement.dataset.cover = S.look.cover;
@@ -1175,6 +1177,23 @@ document.addEventListener('look:change', () => {
   $('#browse-seg')._place?.(false);
 });
 $('#fx-motion').addEventListener('change', (e) => { setMotion(e.target.checked); applyLook(); });
+// Turning the theme confirmations off is the one place that weakens a safeguard, so it asks in a
+// native dialog (a theme's CSS can cover this switch, but not that dialog). Turning on needs no ask.
+$('#sec-confirm').addEventListener('change', async (e) => {
+  const box = e.target, on = box.checked;
+  if (!on) {
+    const ok = await invoke('confirm_action', {
+      title: _t("Отключить подтверждения?"),
+      text: _t("Темы смогут запускать игру и открывать вход в аккаунт без вопросов. Отключайте, только если доверяете авторам установленных тем."),
+      ok: _t("Отключить"),
+    }).catch(() => false);
+    if (!ok) { box.checked = true; return; }
+  }
+  try {
+    await call('settings.set', { theme_confirm: on });
+    S.themeConfirm = on;
+  } catch (err) { box.checked = !on; toast(String(err), { error: true }); }
+});
 $('#fx-lite').addEventListener('change', (e) => { localStorage.setItem('fl.fx', e.target.checked ? 'lite' : 'full'); applyLook(); });
 $('#fx-wide').addEventListener('change', (e) => { setLook({ full_width: e.target.checked }); applyLook(); document.dispatchEvent(new Event('look:change')); });
 $('#fx-peek')?.addEventListener('change', (e) => { setLook({ peek: e.target.checked }); applyLook(); });
