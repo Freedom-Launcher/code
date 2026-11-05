@@ -11,6 +11,11 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Confirmation switch (unreleased)
+
+- `theme_confirm` setting (default on): the native confirmation for theme-triggered `game.launch` / `accounts.microsoft.authorize` can be turned off in Settings by people who trust their theme authors. Weakening is possible only from Settings (native "are you sure"); safe mode gets `safe.confirm_on` and no way to turn it off; a missing field in an old `settings.json` means "ask". Tests: `theme_confirm_switch_only_weakens_in_settings`, `safe_mode_can_enable_but_not_disable_theme_confirm`, `old_settings_files_default_to_asking`.
+- Not yet: per-theme/per-author trust («Доверять этому автору») and the same switch for plugin actions.
+
 ## Account providers without Microsoft (unreleased)
 
 - Signing in through an account-provider plugin no longer requires a Microsoft account with the game: Microsoft stays the built-in default, a provider is an alternative (Ely.by or any Yggdrasil service). The check is removed from `accounts.provider.save` and from launch (`launch_auth`); `offline_available` is no longer returned to providers. Local profiles keep their rule. Tests: `provider_account_launches_without_microsoft`, `expired_provider_session_asks_to_sign_in_again`, `local_profile_still_needs_microsoft`.

@@ -257,6 +257,78 @@ async fn theme_cannot_reach_destructive_actions() {
     }
 }
 
+/// The confirmation switch: on by default, turned off only by the user in settings,
+/// and safe mode can only turn it back on.
+#[tokio::test]
+async fn theme_confirm_switch_only_weakens_in_settings() {
+    let c = temp_core(false);
+    async fn get(c: &std::sync::Arc<Core>) -> serde_json::Value {
+        c.dispatch(&Caller::BuiltinUi, "settings.get", json!({})).await.unwrap()
+    }
+    assert_eq!(get(&c).await["theme_confirm"], true, "default must ask");
+
+    // Neither a theme nor a plugin may turn it off.
+    let theme = Caller::Theme { id: "t".into() };
+    let addon = Caller::Addon {
+        id: "x".into(),
+        granted: HashSet::new(),
+    };
+    for caller in [&theme, &addon] {
+        let e = c
+            .dispatch(caller, "settings.set", json!({ "theme_confirm": false }))
+            .await
+            .unwrap_err();
+        assert!(e.to_string().contains("permission denied"), "{e}");
+        for name in ["safe.confirm_on"] {
+            assert!(c.dispatch(caller, name, json!({})).await.is_err(), "{name}");
+        }
+    }
+    assert_eq!(get(&c).await["theme_confirm"], true);
+
+    // The user (built-in UI) can.
+    c.dispatch(&Caller::BuiltinUi, "settings.set", json!({ "theme_confirm": false }))
+        .await
+        .unwrap();
+    assert_eq!(get(&c).await["theme_confirm"], false);
+
+    // Reset to defaults turns it back on.
+    c.dispatch(&Caller::BuiltinUi, "safe.reset_settings", json!({}))
+        .await
+        .unwrap();
+    assert_eq!(get(&c).await["theme_confirm"], true);
+}
+
+#[tokio::test]
+async fn safe_mode_can_enable_but_not_disable_theme_confirm() {
+    let dir = std::env::temp_dir().join(format!("fl-test-{}", uuid::Uuid::new_v4()));
+    // Start with it off, as the user would have left it.
+    {
+        let c = Core::new(dir.clone(), Instant::now(), false).unwrap();
+        c.dispatch(&Caller::BuiltinUi, "settings.set", json!({ "theme_confirm": false }))
+            .await
+            .unwrap();
+    }
+    let c = Core::new(dir, Instant::now(), true).unwrap();
+    let v = c.dispatch(&Caller::BuiltinUi, "settings.get", json!({})).await.unwrap();
+    assert_eq!(v["theme_confirm"], false);
+    // No way to weaken from safe mode...
+    assert!(c
+        .dispatch(&Caller::BuiltinUi, "settings.set", json!({ "theme_confirm": false }))
+        .await
+        .is_err());
+    // ...and one way to strengthen.
+    c.dispatch(&Caller::BuiltinUi, "safe.confirm_on", json!({})).await.unwrap();
+    let v = c.dispatch(&Caller::BuiltinUi, "settings.get", json!({})).await.unwrap();
+    assert_eq!(v["theme_confirm"], true);
+}
+
+#[test]
+fn old_settings_files_default_to_asking() {
+    let s: fl_core::settings::Settings =
+        serde_json::from_str(r#"{"theme":"default","onboarded":true}"#).unwrap();
+    assert!(s.theme_confirm, "a settings.json from before the switch must keep asking");
+}
+
 #[tokio::test]
 async fn offline_profile_requires_microsoft_account() {
     let c = temp_core(false);

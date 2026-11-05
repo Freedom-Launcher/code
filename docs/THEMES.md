@@ -51,6 +51,10 @@ harmless actions: lists and info (`app.info`, `versions.list`, `accounts.list`, 
 - `game.launch` and `accounts.microsoft.authorize` ask the user in a **native dialog every time**
   («Тема … просит действие»). The dialog names the theme by its id and the instance by its name; a theme
   cannot restyle or cover it.
+- The user can turn these dialogs off in Settings → Плагины → «Подтверждения» (`theme_confirm`, on by
+  default) — for people who trust the authors of their themes. Turning it off asks once, in a native
+  dialog; only the user can do it (`settings.set` is `Internal`, so no theme or plugin can). Safe mode
+  can only turn it back on (`safe.confirm_on`, «Включить подтверждения для тем»), never off.
 - Everything that changes or deletes data or installs content (`accounts.remove`, `instances.update`,
   `instances.duplicate`, `game.install`, all `mods.*`, `doctor.fix`, …) is **not** bindable. To show
   those controls, embed the built-in piece with `data-use` — it keeps its own behaviour and confirmations.
