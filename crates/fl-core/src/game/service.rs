@@ -192,11 +192,6 @@ async fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
             })
         }
         AccountKind::Provider { provider } => {
-            if !s.offline_available() {
-                return Err(CoreError::msg(
-                    "service accounts need a Microsoft account with the game",
-                ));
-            }
             if crate::providers::active(core, provider).is_none() {
                 return Err(CoreError::msg(format!(
                     "the {provider} addon is off or can no longer provide accounts"
@@ -432,4 +427,95 @@ pub async fn stop(core: &Core, instance: &str) -> Value {
     let stopped = core.game_running.stop(instance);
     let _ = record_playtime(core).await;
     json!({ "instance": instance, "stopped": stopped })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        accounts::{Account, Secrets},
+        signing, unix_now, Trust,
+    };
+    use serde_json::json;
+    use std::{fs, time::Instant};
+
+    fn store_with(acc: Account) -> AccountStore {
+        let mut s = AccountStore::default();
+        let id = acc.id.clone();
+        s.upsert(acc);
+        s.selected = Some(id);
+        s
+    }
+
+    /// A signed provider plugin on disk and enabled, in a fresh data dir.
+    fn core_with_provider() -> Arc<Core> {
+        let dir = std::env::temp_dir().join(format!("fl-auth-{}", uuid::Uuid::new_v4()));
+        let c = Core::new(dir, Instant::now(), false).unwrap();
+        let d = c.data_dir.join("addons").join("auth");
+        fs::create_dir_all(&d).unwrap();
+        fs::write(d.join("index.html"), "<p>x</p>").unwrap();
+        let m = json!({"id": "auth", "name": "Auth", "permissions": ["accounts_provide"],
+            "account_provider": {"label": "X"}});
+        fs::write(d.join("addon.json"), m.to_string()).unwrap();
+        let st = json!({"addons": {"auth": {"enabled": true, "granted": ["accounts_provide"]}}});
+        fs::write(c.path(crate::addons::STATE), st.to_string()).unwrap();
+        let sig = signing::sign(&d, "auth", Trust::Verified, "test", &signing::TEST_SEED).unwrap();
+        fs::write(d.join("signature.json"), serde_json::to_vec(&sig).unwrap()).unwrap();
+        c
+    }
+
+    fn provider_account(expires_in: i64) -> Account {
+        Account {
+            id: "p1".into(),
+            kind: AccountKind::Provider { provider: "auth".into() },
+            name: "Steve_2".into(),
+            uuid: "0f1e2d3c-4b5a-4978-8a69-5a4b3c2d1e0f".into(),
+            owns_game: false,
+            secrets: Some(Secrets {
+                refresh_token: String::new(),
+                mc_access_token: "tok".into(),
+                mc_expires_at: (unix_now() as i64 + expires_in) as _,
+            }),
+        }
+    }
+
+    /// Microsoft is the default, not a precondition: a provider account launches
+    /// with no Microsoft account in the store at all.
+    #[tokio::test]
+    async fn provider_account_launches_without_microsoft() {
+        let c = core_with_provider();
+        crate::accounts::save_store(&c.path(ACCOUNTS), &store_with(provider_account(3600))).unwrap();
+        let a = launch_auth(&c).await.unwrap();
+        assert_eq!(a.name, "Steve_2");
+        assert_eq!(a.user_type, "mojang");
+        assert_eq!(a.access_token, "tok");
+        let _ = fs::remove_dir_all(&c.data_dir);
+    }
+
+    #[tokio::test]
+    async fn expired_provider_session_asks_to_sign_in_again() {
+        let c = core_with_provider();
+        crate::accounts::save_store(&c.path(ACCOUNTS), &store_with(provider_account(-10))).unwrap();
+        let e = launch_auth(&c).await.unwrap_err().to_string();
+        assert!(e.contains("sign in through the addon again"), "{e}");
+        let _ = fs::remove_dir_all(&c.data_dir);
+    }
+
+    /// Local profiles keep their rule: they still need a Microsoft account with the game.
+    #[tokio::test]
+    async fn local_profile_still_needs_microsoft() {
+        let c = core_with_provider();
+        let offline = Account {
+            id: "o1".into(),
+            kind: AccountKind::Offline,
+            name: "Local".into(),
+            uuid: "11111111-2222-4333-8444-555555555555".into(),
+            owns_game: false,
+            secrets: None,
+        };
+        crate::accounts::save_store(&c.path(ACCOUNTS), &store_with(offline)).unwrap();
+        let e = launch_auth(&c).await.unwrap_err().to_string();
+        assert!(e.contains("local profiles need a Microsoft account"), "{e}");
+        let _ = fs::remove_dir_all(&c.data_dir);
+    }
 }

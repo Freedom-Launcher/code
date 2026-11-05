@@ -333,9 +333,12 @@
     document.getElementById('ap-title').textContent = _t("Права плагина «{0}»", [a.name]);
     const warn = document.getElementById('ap-warn');
     warn.hidden = a.trust !== 'community' && !a.signature_error;
+    const wantsLogin = (a.permissions || []).some((p) => p.id === 'accounts_provide');
     warn.textContent = a.signature_error
       ? _t("Подпись нарушена: файлы плагина изменены после проверки.")
-      : _t("Плагин не проверен командой Freedom Launcher. Рискованные права давайте только тем, кому доверяете.");
+      : wantsLogin
+        ? _t("Плагин не проверен командой Freedom Launcher и просит вход через сторонний сервис: он сможет сохранять аккаунты этого сервиса и запускать от них игру. Разрешайте, только если доверяете автору.")
+        : _t("Плагин не проверен командой Freedom Launcher. Рискованные права давайте только тем, кому доверяете.");
     const box = document.getElementById('ap-list');
     const rows = (a.permissions || []).map((p) => {
       const [label, desc, risky] = PERM[p.id] || [p.id, ''];

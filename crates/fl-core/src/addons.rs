@@ -234,18 +234,16 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
     if !safe_rel(&m.entry, &["html"]) || file(data_dir, id, &m.entry).is_none() {
         return Err(format!("entry: {} — нужен .html внутри папки", m.entry));
     }
-    let max = trust(data_dir, id).max_tier();
+    // Any package may ask for any right that exists; the badge changes how much it is
+    // trusted (consent dialog, catalog), not what it may ask for.
     for p in &m.permissions {
-        if *p == Permission::Internal {
-            return Err("право internal недоступно плагинам".into());
-        }
-        if *p == Permission::Servers {
-            return Err("право servers больше не существует".into());
-        }
-        if p.tier() > max {
-            return Err(format!(
-                "право {p:?} доступно только пакетам «Официальный» и «Проверено»"
-            ));
+        match p {
+            Permission::Internal => return Err("право internal недоступно плагинам".into()),
+            Permission::Servers => return Err("право servers больше не существует".into()),
+            p if p.reserved() => {
+                return Err(format!("право {p:?} зарезервировано и недоступно плагинам"))
+            }
+            _ => {}
         }
     }
     if m.slots.len() > 8 || m.slots.iter().any(|s| !SLOTS.contains(&s.as_str())) {

@@ -24,6 +24,7 @@ async fn main() {
         id: "smoke".into(),
         name: "smoke".into(),
         dir: String::new(),
+        path: String::new(),
         version: game,
         loader: kind.clone(),
         loader_version: lv,
@@ -32,6 +33,7 @@ async fn main() {
         playtime_secs: 0,
         settings: Default::default(),
         pack: None,
+        group: String::new(),
     };
     let t = Instant::now();
     let v = loader::resolve(&core, &layout, &inst)

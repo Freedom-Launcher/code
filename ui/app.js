@@ -901,11 +901,23 @@ document.addEventListener('fl:theme', async (e) => {
   requestAnimationFrame(() => $('#theme-seg')._place?.(false));
 });
 $('#theme-reload').addEventListener('click', () => { location.hash = 'settings'; location.reload(); });
-// A theme from one .fltheme file (button or drag-and-drop): install, switch to it, say so.
+// A theme from one .fltheme file (button or drag-and-drop): installed, then switched on
+// only if the user agrees in a native dialog (a theme can restyle and rearrange every
+// screen, so a file dropped on the window must not take over the launcher by itself).
 const isBuiltinTheme = (id) => !id || id === 'default' || id === 'light';
 async function useInstalledTheme(res) {
   if (!res?.id) return;
   const prev = S.theme;
+  const allow = await invoke('confirm_action', {
+    title: _t("Включить тему?"),
+    text: _t("Тема «{0}» установлена. Включить её сейчас? Тема может менять вид и расположение элементов лаунчера. Вернуть стандартную тему можно в безопасных настройках (Shift при запуске).", [res.id]),
+    ok: _t("Включить"),
+  }).catch(() => false);
+  if (!allow) {
+    renderThemes(res.list || await call('themes.list').catch(() => []), prev || {});
+    toast(_t("Тема «{0}» установлена, но не включена", [res.id]));
+    return;
+  }
   const cur = await call('themes.set', { theme: res.id }).catch((err) => { toast(String(err), { error: true }); return null; });
   if (!cur) return;
   const msg = _t("Тема «{0}» установлена", [cur.name || res.id]);

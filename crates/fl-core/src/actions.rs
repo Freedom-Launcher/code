@@ -65,6 +65,16 @@ pub fn valid_name(name: &str) -> bool {
         })
 }
 
+/// Actions a theme may bind (`bindable`) but only with the user's explicit OK in a
+/// native dialog each time. The shell asks (`theme_action` in `app/`); native dialogs
+/// cannot be styled or covered by a theme's CSS, so a transparent full-window button
+/// cannot turn one stray click into a launch or a sign-in prompt.
+pub const THEME_CONFIRM: &[&str] = &["game.launch", "accounts.microsoft.authorize"];
+
+pub fn theme_needs_confirm(action: &str) -> bool {
+    THEME_CONFIRM.contains(&action)
+}
+
 /// An addon may only register actions inside its own namespace: `<addon id>.*`.
 pub fn addon_may_register(addon_id: &str, action: &str) -> bool {
     valid_name(action)

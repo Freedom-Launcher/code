@@ -37,6 +37,12 @@ fn manifest_checks() {
         ),
         ("ext/index.html", ""),
         (
+            "prov/addon.json",
+            r#"{"id":"prov","name":"x","permissions":["accounts_provide","network"],
+              "hosts":["auth.example.org"],"account_provider":{"label":"X"}}"#,
+        ),
+        ("prov/index.html", ""),
+        (
             "int/addon.json",
             r#"{"id":"int","name":"x","permissions":["internal"]}"#,
         ),
@@ -54,6 +60,8 @@ fn manifest_checks() {
         ("noentry/addon.json", r#"{"id":"noentry","name":"x"}"#),
     ]);
     assert!(addons::load(&d, "stats").is_ok());
+    // No badge needed to ask for any right that exists (trust is not permission).
+    assert!(addons::load(&d, "prov").is_ok(), "an unsigned provider may be installed");
     for bad in ["game", "ext", "int", "net", "slot", "noentry", "../x"] {
         assert!(addons::load(&d, bad).is_err(), "{bad} must be rejected");
     }

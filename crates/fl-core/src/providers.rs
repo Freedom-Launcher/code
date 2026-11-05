@@ -1,11 +1,13 @@
-//! Account providers: signed addons (tier «Расширенный») that add sign-in
-//! through another service. The contract is deliberately narrow:
+//! Account providers: addons that add sign-in through another service. Any
+//! package may be one (the badge says how far to trust it, not whether it may);
+//! the contract is deliberately narrow:
 //!
-//! - only an enabled addon with an approved `accounts_provide` grant, a
-//!   «Проверено»/«Официальный» signature and an `account_provider` block in
-//!   its manifest is a provider;
-//! - a provider can save, list and remove only its own accounts, and only
-//!   after a Microsoft account with Minecraft: Java Edition is signed in;
+//! - only an enabled addon with an approved `accounts_provide` grant and an
+//!   `account_provider` block in its manifest is a provider; a package whose
+//!   signature is broken (files changed after it was signed) is not, because a
+//!   provider handles credentials;
+//! - a provider can save, list and remove only its own accounts; signing in
+//!   through it needs no Microsoft account (Microsoft stays the built-in default);
 //! - its accounts launch only while all of the above still hold.
 
 use serde::Deserialize;
@@ -14,7 +16,7 @@ use serde_json::{json, Value};
 use crate::{
     accounts::{self, Account, AccountKind, AccountStore, Secrets},
     actions::ActionRegistry,
-    addons, net, unix_now, Caller, Core, CoreError, Permission as P, Trust,
+    addons, net, unix_now, Caller, Core, CoreError, Permission as P,
 };
 
 const ACCOUNTS: &str = "accounts.json";
@@ -27,9 +29,12 @@ pub fn active(core: &Core, id: &str) -> Option<String> {
     let Some(Caller::Addon { granted, .. }) = core.addon_caller(id) else {
         return None;
     };
-    if !granted.contains(&P::AccountsProvide)
-        || addons::trust(&core.data_dir, id) == Trust::Community
-    {
+    if !granted.contains(&P::AccountsProvide) {
+        return None;
+    }
+    // Unsigned is fine (the user approved it knowing it is «Сообщество»); a signature
+    // that no longer matches the files is not.
+    if crate::signing::check(&addons::dir(&core.data_dir).join(id), id).is_err() {
         return None;
     }
     addons::load(&core.data_dir, id)
@@ -74,7 +79,7 @@ fn own(s: &AccountStore, id: &str) -> Value {
         .filter(|a| a["kind"]["provider"] == id)
         .cloned()
         .collect();
-    json!({ "accounts": mine, "offline_available": s.offline_available() })
+    json!({ "accounts": mine })
 }
 
 fn is_mine(a: &Account, id: &str) -> bool {
@@ -107,11 +112,6 @@ pub(crate) fn register(r: &mut ActionRegistry) {
         let _g = c.state_lock.lock().await;
         let path = c.path(ACCOUNTS);
         let mut s = accounts::load_store(&path)?;
-        if !s.offline_available() {
-            return Err(CoreError::Denied(
-                "сторонние аккаунты доступны после входа через Microsoft-аккаунт с Minecraft: Java Edition".into(),
-            ));
-        }
         let uuid = uuid.hyphenated().to_string();
         let exists = s.accounts.iter().any(|x| is_mine(x, &id) && x.uuid == uuid);
         if !exists && s.accounts.iter().filter(|x| is_mine(x, &id)).count() >= MAX_PER_PROVIDER {
@@ -170,6 +170,7 @@ pub(crate) fn register(r: &mut ActionRegistry) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Trust;
     use std::{fs, time::Instant};
 
     #[tokio::test]
@@ -194,8 +195,9 @@ mod tests {
         let save = || c.dispatch(&addon, "accounts.provider.save", acc.clone());
         let err = |r: Result<Value, CoreError>| r.unwrap_err().to_string();
 
-        // Unsigned: the manifest itself is refused, so it is no provider.
-        assert!(err(save().await).contains("не является провайдером"));
+        // Unsigned is fine: the badge is trust, not permission.
+        assert!(active(&c, "auth").is_some());
+        assert_eq!(addons::trust(&c.data_dir, "auth"), Trust::Community);
         let sig = crate::signing::sign(
             &d,
             "auth",
@@ -207,9 +209,20 @@ mod tests {
         fs::write(d.join("signature.json"), serde_json::to_vec(&sig).unwrap()).unwrap();
         assert!(active(&c, "auth").is_some());
 
-        // Signed, but no Microsoft account with the game yet.
-        assert!(err(save().await).contains("Microsoft"));
-        let mut s = AccountStore::default();
+        // Signed: signing in through the provider needs no Microsoft account.
+        assert!(!accounts::load_store(&c.path(ACCOUNTS))
+            .map(|s| s.offline_available())
+            .unwrap_or(false));
+        let v = save().await.unwrap();
+        assert_eq!(v["accounts"].as_array().unwrap().len(), 1);
+        assert!(!v.to_string().contains("abc.def"), "token leaked: {v}");
+        // Saving the same profile again updates it in place.
+        assert_eq!(
+            save().await.unwrap()["accounts"].as_array().unwrap().len(),
+            1
+        );
+        // A Microsoft account added later is not the provider's to see or remove.
+        let mut s = accounts::load_store(&c.path(ACCOUNTS)).unwrap();
         s.upsert(Account {
             id: "ms".into(),
             kind: AccountKind::Microsoft,
@@ -219,12 +232,13 @@ mod tests {
             secrets: None,
         });
         accounts::save_store(&c.path(ACCOUNTS), &s).unwrap();
-        let v = save().await.unwrap();
-        assert_eq!(v["accounts"].as_array().unwrap().len(), 1);
-        assert!(!v.to_string().contains("abc.def"), "token leaked: {v}");
-        // Saving the same profile again updates it in place.
         assert_eq!(
-            save().await.unwrap()["accounts"].as_array().unwrap().len(),
+            c.dispatch(&addon, "accounts.provider.list", json!({}))
+                .await
+                .unwrap()["accounts"]
+                .as_array()
+                .unwrap()
+                .len(),
             1
         );
 
