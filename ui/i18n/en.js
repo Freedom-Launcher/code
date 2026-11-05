@@ -1,5 +1,14 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Включить тему?": "Switch on the theme?",
+"Тема «{0}» установлена. Включить её сейчас? Тема может менять вид и расположение элементов лаунчера. Вернуть стандартную тему можно в безопасных настройках (Shift при запуске).": "Theme “{0}” is installed. Switch it on now? A theme can change how the launcher looks and where things are. You can return to the default theme in safe settings (hold Shift at start).",
+"Тема «{0}» установлена, но не включена": "Theme “{0}” is installed but not switched on",
+"Тема просит действие": "A theme is asking for an action",
+"Разрешить": "Allow",
+"Отменено": "Cancelled",
+"запустить игру": "start the game",
+"открыть окно входа в аккаунт Microsoft": "open the Microsoft sign-in window",
+"Если вы этого не просили, нажмите «Отмена».": "If you did not ask for this, press “Cancel”.",
 "Тема из файла": "Theme from a file",
 "Файл .fltheme можно просто перетащить в окно": "You can also drop a .fltheme file onto the window",
 "Установить…": "Install…",

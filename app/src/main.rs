@@ -5,7 +5,7 @@ use std::{sync::Arc, time::Instant};
 use fl_core::{Caller, Core};
 use serde_json::Value;
 use tauri::Manager;
-use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_opener::OpenerExt;
 
 mod updater;
@@ -30,10 +30,58 @@ async fn action(
     out
 }
 
+/// Strips control characters and cuts long text, for text shown in native dialogs.
+fn clean_for_dialog(s: &str, max: usize) -> String {
+    let t: String = s.chars().filter(|c| !c.is_control()).take(max).collect();
+    t.trim().to_owned()
+}
+
+/// A native yes/no box. Native, so no theme CSS can restyle it or lay a transparent
+/// button over it. `blocking_show` must not run on the async runtime's own threads.
+async fn confirm_native(
+    app: tauri::AppHandle,
+    title: String,
+    text: String,
+    ok: String,
+) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .message(text)
+            .title(title)
+            .kind(MessageDialogKind::Warning)
+            .buttons(MessageDialogButtons::OkCancelCustom(ok, tr("Отмена")))
+            .blocking_show()
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+/// UI → native confirmation for things the UI itself must not decide alone
+/// (e.g. switching on a theme that has just been installed from a file).
+#[tauri::command]
+async fn confirm_action(
+    app: tauri::AppHandle,
+    title: String,
+    text: String,
+    ok: String,
+) -> Result<bool, String> {
+    confirm_native(
+        app,
+        clean_for_dialog(&title, 80),
+        clean_for_dialog(&text, 400),
+        clean_for_dialog(&ok, 30),
+    )
+    .await
+}
+
 /// A `data-action` click inside markup written by a theme. Runs with theme rights:
-/// only `bindable` actions, attributed to the active theme.
+/// only `bindable` actions, attributed to the active theme. Actions in
+/// `fl_core::actions::THEME_CONFIRM` additionally need the user's OK in a native
+/// dialog every time: a theme's CSS can make any of its elements cover the window,
+/// so one stray click on it proves nothing.
 #[tauri::command]
 async fn theme_action(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppCore>,
     name: String,
     args: Option<Value>,
@@ -44,7 +92,40 @@ async fn theme_action(
         .await
         .map_err(|e| e.to_string())?;
     let id = cur["id"].as_str().unwrap_or("default").to_owned();
-    core.dispatch(&Caller::Theme { id }, &name, args.unwrap_or(Value::Null))
+    let args = args.unwrap_or(Value::Null);
+    if fl_core::actions::theme_needs_confirm(&name) {
+        // Only the theme's id is shown (a-z, 0-9, '-'): its display name is author text.
+        let what = match name.as_str() {
+            "game.launch" => {
+                let want = args["instance"].as_str().unwrap_or_default();
+                let list = core
+                    .dispatch(&Caller::BuiltinUi, "instances.list", Value::Null)
+                    .await
+                    .unwrap_or(Value::Null);
+                let found = list
+                    .as_array()
+                    .and_then(|a| a.iter().find(|i| i["id"].as_str() == Some(want)))
+                    .and_then(|i| i["name"].as_str())
+                    .map(|n| clean_for_dialog(n, 60));
+                match found {
+                    Some(n) => format!("{} «{n}»", tr("запустить игру")),
+                    None => tr("запустить игру"),
+                }
+            }
+            _ => tr("открыть окно входа в аккаунт Microsoft"),
+        };
+        let text = format!(
+            "{} «{}» {what}.\n\n{}",
+            tr("Тема"),
+            clean_for_dialog(&id, 40),
+            tr("Если вы этого не просили, нажмите «Отмена»."),
+        );
+        let ok = confirm_native(app, tr("Тема просит действие"), text, tr("Разрешить")).await?;
+        if !ok {
+            return Err(tr("Отменено"));
+        }
+    }
+    core.dispatch(&Caller::Theme { id }, &name, args)
         .await
         .map_err(|e| e.to_string())
 }
@@ -1087,6 +1168,7 @@ fn main() {
             set_app_icon,
             set_ui_strings,
             theme_action,
+            confirm_action,
             open_login_page,
             ms_window_login,
             open_link,

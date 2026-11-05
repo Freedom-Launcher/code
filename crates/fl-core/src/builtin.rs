@@ -477,7 +477,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     r.register(
         "accounts.remove",
         P::AccountsManage,
-        true,
+        false,
         |c, a| async move {
             #[derive(Deserialize)]
             struct A {
@@ -536,7 +536,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             Ok(s.public_view())
         },
     );
-    r.register("accounts.offline.create", P::AccountsManage, true, |c, a| async move {
+    r.register("accounts.offline.create", P::AccountsManage, false, |c, a| async move {
         #[derive(Deserialize)]
         struct A {
             name: String,
@@ -1606,7 +1606,7 @@ fn register_instance_manage(r: &mut ActionRegistry) {
         Ok(json!({ "path": new, "moved": moved }))
     });
     // Rename and/or replace per-instance settings.
-    r.register("instances.update", P::InstancesManage, true, |c, a| {
+    r.register("instances.update", P::InstancesManage, false, |c, a| {
         update_instance(c, a, false)
     });
     // Same, but may also change Java, JVM arguments, variables and hooks.
@@ -1658,7 +1658,7 @@ fn register_instance_manage(r: &mut ActionRegistry) {
     r.register(
         "instances.duplicate",
         P::InstancesManage,
-        true,
+        false,
         |c, a| async move {
             #[derive(Deserialize)]
             struct A {
@@ -1874,7 +1874,7 @@ fn register_game(r: &mut ActionRegistry) {
         store::save(&c.path(INSTANCES), &s, false)?;
         Ok(out)
     });
-    r.register("game.install", P::GameLaunch, true, |c, a| async move {
+    r.register("game.install", P::GameLaunch, false, |c, a| async move {
         let InstallArg { instance, verify } = args(a)?;
         service::install_instance(&c, &instance, verify).await
     });
@@ -2265,7 +2265,7 @@ fn register_mods(r: &mut ActionRegistry) {
     r.register(
         "mods.install",
         P::InstancesManage,
-        true,
+        false,
         |c, a| async move {
             #[derive(Deserialize)]
             struct A {
@@ -2292,7 +2292,7 @@ fn register_mods(r: &mut ActionRegistry) {
             Ok(json!({ "added": added }))
         },
     );
-    r.register("mods.toggle", P::InstancesManage, true, |c, a| async move {
+    r.register("mods.toggle", P::InstancesManage, false, |c, a| async move {
         let ModArg {
             instance,
             file,
@@ -2306,7 +2306,7 @@ fn register_mods(r: &mut ActionRegistry) {
         mods::set_enabled(&root, kind, &file, enabled)?;
         Ok(json!({ "file": file, "enabled": enabled }))
     });
-    r.register("mods.remove", P::InstancesManage, true, |c, a| async move {
+    r.register("mods.remove", P::InstancesManage, false, |c, a| async move {
         let ModArg {
             instance,
             file,
@@ -2352,7 +2352,7 @@ fn register_mods(r: &mut ActionRegistry) {
         Ok(serde_json::to_value(mods::versions_for(&c, t, &file).await?)?)
     });
     // Switches a file to another version of its project (update or downgrade).
-    r.register("mods.switch", P::InstancesManage, true, |c, a| async move {
+    r.register("mods.switch", P::InstancesManage, false, |c, a| async move {
         #[derive(Deserialize)]
         struct A {
             instance: String,
@@ -2378,7 +2378,7 @@ fn register_mods(r: &mut ActionRegistry) {
         Ok(json!({ "title": title }))
     });
     // «Заморозить версию»: updates skip a frozen file.
-    r.register("mods.lock", P::InstancesManage, true, |c, a| async move {
+    r.register("mods.lock", P::InstancesManage, false, |c, a| async move {
         #[derive(Deserialize)]
         struct A {
             instance: String,
@@ -2448,7 +2448,7 @@ fn register_mods(r: &mut ActionRegistry) {
         Ok(serde_json::to_value(mods::updates(&c, t).await?)?)
     });
     // Updates one file or, without it, everything of that kind with an update.
-    r.register("mods.update", P::InstancesManage, true, |c, a| async move {
+    r.register("mods.update", P::InstancesManage, false, |c, a| async move {
         #[derive(Deserialize)]
         struct A {
             instance: String,
@@ -2574,7 +2574,7 @@ fn register_doctor(r: &mut ActionRegistry) {
         }
         Ok(serde_json::to_value(doctor::finish(scan, &titles))?)
     });
-    r.register("doctor.fix", P::InstancesManage, true, |c, a| async move {
+    r.register("doctor.fix", P::InstancesManage, false, |c, a| async move {
         #[derive(Deserialize)]
         struct A {
             instance: String,

@@ -3,8 +3,7 @@
 A fast, minimal, deeply customizable Minecraft: Java Edition launcher.
 Rust core, Tauri 2 shell, plain HTML/CSS/JS interface. Windows, macOS and Linux.
 
-> Status: **0.1 — minimal working skeleton.** Microsoft sign-in, local profiles, version list, instances, safe settings.
-> Game launch, themes and addons are the next milestones (see `docs/ROADMAP.md`).
+> Status: **0.3 — playable.** Microsoft sign-in, local profiles, versions and instances, game launch (Fabric, Quilt, Forge, NeoForge), mods and modpacks from Modrinth and CurseForge, skins, import from other launchers, themes and sandboxed addons. See `docs/ROADMAP.md` for what is done and what is next.
 
 ## Principles
 

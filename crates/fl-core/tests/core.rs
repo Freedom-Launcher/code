@@ -174,6 +174,89 @@ async fn theme_only_bindable() {
     assert!(c.dispatch(&theme, "app.info", json!(null)).await.is_ok());
 }
 
+/// What a theme may bind with `data-action`. A theme is markup + CSS from anyone, and
+/// its CSS can make any element cover the window, so a click on it is not proof of
+/// intent. This list is deliberately exact: adding an action here must be a conscious
+/// decision, and anything that changes or deletes data, installs content or runs code
+/// stays out (a theme embeds the built-in pieces with `data-use` instead).
+#[test]
+fn bindable_actions_are_exactly_the_safe_set() {
+    let c = temp_core(false);
+    let mut got: Vec<String> = c
+        .action_list()
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|a| a["bindable"] == true)
+        .map(|a| a["name"].as_str().unwrap().to_owned())
+        .collect();
+    got.sort();
+    let mut want: Vec<&str> = vec![
+        "accounts.list",
+        "accounts.microsoft.authorize",
+        "accounts.microsoft.begin",
+        "accounts.providers.list",
+        "accounts.select",
+        "app.info",
+        "game.launch",
+        "game.stop",
+        "instances.create",
+        "instances.folder",
+        "instances.list",
+        "logs.folder",
+        "safe.disable_addons",
+        "safe.reset_settings",
+        "safe.restore_theme",
+        "screenshots.folder",
+        "versions.list",
+        "worlds.backups_folder",
+        "worlds.folder",
+    ];
+    want.sort();
+    assert_eq!(got, want, "the set of theme-bindable actions changed");
+}
+
+#[test]
+fn confirm_list_only_names_bindable_actions() {
+    let c = temp_core(false);
+    let list = c.action_list();
+    for name in fl_core::actions::THEME_CONFIRM {
+        let a = list
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|a| a["name"] == *name)
+            .unwrap_or_else(|| panic!("{name} is not a registered action"));
+        assert_eq!(a["bindable"], true, "{name} needs no confirm if a theme cannot call it");
+        assert!(fl_core::actions::theme_needs_confirm(name));
+    }
+    assert!(!fl_core::actions::theme_needs_confirm("app.info"));
+}
+
+#[tokio::test]
+async fn theme_cannot_reach_destructive_actions() {
+    let c = temp_core(false);
+    let theme = Caller::Theme { id: "t".into() };
+    for name in [
+        "accounts.remove",
+        "accounts.offline.create",
+        "instances.update",
+        "instances.duplicate",
+        "instances.delete",
+        "game.install",
+        "mods.install",
+        "mods.toggle",
+        "mods.remove",
+        "mods.switch",
+        "mods.lock",
+        "mods.update",
+        "doctor.fix",
+    ] {
+        let err = c.dispatch(&theme, name, json!({})).await.unwrap_err();
+        assert!(err.to_string().contains("permission denied"), "{name}: {err}");
+    }
+}
+
 #[tokio::test]
 async fn offline_profile_requires_microsoft_account() {
     let c = temp_core(false);
