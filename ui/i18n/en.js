@@ -1,5 +1,6 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Плагин не проверен командой Freedom Launcher и просит вход через сторонний сервис: он сможет сохранять аккаунты этого сервиса и запускать от них игру. Разрешайте, только если доверяете автору.": "This plugin has not been checked by the Freedom Launcher team and asks to sign you in through a third-party service: it will be able to save that service's accounts and start the game as them. Allow it only if you trust the author.",
 "Включить тему?": "Switch on the theme?",
 "Тема «{0}» установлена. Включить её сейчас? Тема может менять вид и расположение элементов лаунчера. Вернуть стандартную тему можно в безопасных настройках (Shift при запуске).": "Theme “{0}” is installed. Switch it on now? A theme can change how the launcher looks and where things are. You can return to the default theme in safe settings (hold Shift at start).",
 "Тема «{0}» установлена, но не включена": "Theme “{0}” is installed but not switched on",

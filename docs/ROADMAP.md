@@ -14,7 +14,7 @@
 ## Account providers without Microsoft (unreleased)
 
 - Signing in through an account-provider plugin no longer requires a Microsoft account with the game: Microsoft stays the built-in default, a provider is an alternative (Ely.by or any Yggdrasil service). The check is removed from `accounts.provider.save` and from launch (`launch_auth`); `offline_available` is no longer returned to providers. Local profiles keep their rule. Tests: `provider_account_launches_without_microsoft`, `expired_provider_session_asks_to_sign_in_again`, `local_profile_still_needs_microsoft`.
-- Still true: a provider must be signed («Проверено» / «Официальный»); opening it to community plugins is a separate decision.
+- Trust is not permission: any package, signed or not, may ask for any right that exists (the tier cap on «Сообщество» is gone). The badge only changes how loudly the consent dialog warns; `internal`, `process` and `servers` are reserved for nobody. A signed package whose files were changed afterwards is not an account provider.
 
 ## Theme actions locked down (unreleased)
 

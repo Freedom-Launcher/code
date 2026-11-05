@@ -1,9 +1,11 @@
-//! Account providers: signed addons (tier «Расширенный») that add sign-in
-//! through another service. The contract is deliberately narrow:
+//! Account providers: addons that add sign-in through another service. Any
+//! package may be one (the badge says how far to trust it, not whether it may);
+//! the contract is deliberately narrow:
 //!
-//! - only an enabled addon with an approved `accounts_provide` grant, a
-//!   «Проверено»/«Официальный» signature and an `account_provider` block in
-//!   its manifest is a provider;
+//! - only an enabled addon with an approved `accounts_provide` grant and an
+//!   `account_provider` block in its manifest is a provider; a package whose
+//!   signature is broken (files changed after it was signed) is not, because a
+//!   provider handles credentials;
 //! - a provider can save, list and remove only its own accounts; signing in
 //!   through it needs no Microsoft account (Microsoft stays the built-in default);
 //! - its accounts launch only while all of the above still hold.
@@ -14,7 +16,7 @@ use serde_json::{json, Value};
 use crate::{
     accounts::{self, Account, AccountKind, AccountStore, Secrets},
     actions::ActionRegistry,
-    addons, net, unix_now, Caller, Core, CoreError, Permission as P, Trust,
+    addons, net, unix_now, Caller, Core, CoreError, Permission as P,
 };
 
 const ACCOUNTS: &str = "accounts.json";
@@ -27,9 +29,12 @@ pub fn active(core: &Core, id: &str) -> Option<String> {
     let Some(Caller::Addon { granted, .. }) = core.addon_caller(id) else {
         return None;
     };
-    if !granted.contains(&P::AccountsProvide)
-        || addons::trust(&core.data_dir, id) == Trust::Community
-    {
+    if !granted.contains(&P::AccountsProvide) {
+        return None;
+    }
+    // Unsigned is fine (the user approved it knowing it is «Сообщество»); a signature
+    // that no longer matches the files is not.
+    if crate::signing::check(&addons::dir(&core.data_dir).join(id), id).is_err() {
         return None;
     }
     addons::load(&core.data_dir, id)
@@ -165,6 +170,7 @@ pub(crate) fn register(r: &mut ActionRegistry) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Trust;
     use std::{fs, time::Instant};
 
     #[tokio::test]
@@ -189,8 +195,9 @@ mod tests {
         let save = || c.dispatch(&addon, "accounts.provider.save", acc.clone());
         let err = |r: Result<Value, CoreError>| r.unwrap_err().to_string();
 
-        // Unsigned: the manifest itself is refused, so it is no provider.
-        assert!(err(save().await).contains("не является провайдером"));
+        // Unsigned is fine: the badge is trust, not permission.
+        assert!(active(&c, "auth").is_some());
+        assert_eq!(addons::trust(&c.data_dir, "auth"), Trust::Community);
         let sig = crate::signing::sign(
             &d,
             "auth",

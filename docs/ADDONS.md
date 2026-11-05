@@ -85,7 +85,15 @@ actions; the user's `servers.json`, server folders and backups are left on disk)
 |------|-------------|
 | Интерфейс | `instances_read`, `accounts_read`, `ui_pages`, `ui_overlay`, `storage` |
 | Функция | `instances_manage`, `instance_files`, `accounts_manage`, `network`, `game_launch` |
-| Расширенный | `accounts_provide`, `process` — «Официальный» and «Проверено» packages only |
+| Расширенный | `accounts_provide` (sign-in through another service) |
+
+Any package may ask for any of these, signed or not. The badge is **trust, not
+permission**: «Официальный» / «Проверено» mean the launcher team looked at the
+code, so the consent dialog stays calm; an unsigned «Сообщество» package gets a
+warning banner (and a stronger one when it asks for `accounts_provide`) and the
+risky rows stay highlighted. Three rights exist for nobody, whatever the badge:
+`internal` (launcher self-management), `process` (raw processes and filesystem:
+no action needs it) and the retired `servers`.
 
 Nothing runs until the user approves. Approval is per permission: the
 consent dialog lists every requested permission in plain words, highlights
@@ -107,8 +115,8 @@ A package earns «Проверено» or «Официальный» only throug
 its folder: an Ed25519 signature by a project key over the badge, the addon id
 and the SHA-256 of every other file. Without it the package is «Сообщество».
 Any changed, added or removed file breaks the signature: the launcher shows
-«Подпись нарушена» and treats the package as «Сообщество», so «Расширенный»
-permissions stop loading.
+«Подпись нарушена» and treats the package as «Сообщество», so the consent
+dialog warns about it and an account provider stops working.
 
 ```json
 { "v": 1, "key": "fl-2026", "badge": "verified", "sig": "<128 hex>" }
@@ -252,8 +260,8 @@ if (r.ok) console.log(r.json());
 ## Account providers
 
 An account provider adds sign-in through another service. It is an addon with
-the `accounts_provide` permission (tier «Расширенный», so only signed
-«Проверено» / «Официальный» packages) and an `account_provider` block:
+the `accounts_provide` permission (tier «Расширенный»; any package may ask, the
+user decides in the consent dialog) and an `account_provider` block:
 
 ```json
 { "id": "example-auth", "name": "Example", "permissions": ["accounts_provide", "network"],
@@ -280,7 +288,9 @@ Rules the core enforces:
   `token` is up to 8192 printable ASCII characters, `expires_at` is a Unix time
   in the future.
 - At launch the core checks again: the addon is enabled, the grant is
-  approved, the signature is intact and the token has not expired. If any of
+  approved, the signature (if it has one) still matches the files and the token
+  has not expired. A package that was signed and then changed is not a provider:
+  providers handle credentials. If any of
   that fails, the account cannot start the game until the addon signs in again.
 
 ```js

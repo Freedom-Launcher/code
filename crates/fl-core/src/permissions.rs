@@ -70,12 +70,13 @@ impl Permission {
     }
 }
 
-impl Trust {
-    /// Highest tier a package with this badge may request.
-    pub fn max_tier(self) -> Tier {
-        match self {
-            Trust::Official | Trust::Verified => Tier::Extended,
-            Trust::Community => Tier::Function,
-        }
+impl Permission {
+    /// Rights no package may ask for, whatever its badge: launcher self-management,
+    /// raw processes and filesystem (no action uses it, addons never get them) and a
+    /// retired one. Every other right can be requested by any package; the badge only
+    /// changes how much the launcher trusts it (what the consent dialog says, what the
+    /// catalog shows), never which rights exist for it.
+    pub fn reserved(self) -> bool {
+        matches!(self, Permission::Internal | Permission::Process | Permission::Servers)
     }
 }

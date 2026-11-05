@@ -562,7 +562,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         crate::accounts::save_store(&c.path(ACCOUNTS), &s)?;
         Ok(s.public_view())
     });
-    // Account providers are signed addons (Extended tier), see `providers`.
+    // Account providers are addons with the `accounts_provide` grant, see `providers`.
     r.register("accounts.providers.list", P::AccountsRead, true, |c, _| async move {
         Ok(json!({ "providers": crate::providers::list(&c), "catalog_category": "account-providers" }))
     });
