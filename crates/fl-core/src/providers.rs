@@ -4,8 +4,8 @@
 //! - only an enabled addon with an approved `accounts_provide` grant, a
 //!   «Проверено»/«Официальный» signature and an `account_provider` block in
 //!   its manifest is a provider;
-//! - a provider can save, list and remove only its own accounts, and only
-//!   after a Microsoft account with Minecraft: Java Edition is signed in;
+//! - a provider can save, list and remove only its own accounts; signing in
+//!   through it needs no Microsoft account (Microsoft stays the built-in default);
 //! - its accounts launch only while all of the above still hold.
 
 use serde::Deserialize;
@@ -74,7 +74,7 @@ fn own(s: &AccountStore, id: &str) -> Value {
         .filter(|a| a["kind"]["provider"] == id)
         .cloned()
         .collect();
-    json!({ "accounts": mine, "offline_available": s.offline_available() })
+    json!({ "accounts": mine })
 }
 
 fn is_mine(a: &Account, id: &str) -> bool {
@@ -107,11 +107,6 @@ pub(crate) fn register(r: &mut ActionRegistry) {
         let _g = c.state_lock.lock().await;
         let path = c.path(ACCOUNTS);
         let mut s = accounts::load_store(&path)?;
-        if !s.offline_available() {
-            return Err(CoreError::Denied(
-                "сторонние аккаунты доступны после входа через Microsoft-аккаунт с Minecraft: Java Edition".into(),
-            ));
-        }
         let uuid = uuid.hyphenated().to_string();
         let exists = s.accounts.iter().any(|x| is_mine(x, &id) && x.uuid == uuid);
         if !exists && s.accounts.iter().filter(|x| is_mine(x, &id)).count() >= MAX_PER_PROVIDER {
@@ -207,9 +202,20 @@ mod tests {
         fs::write(d.join("signature.json"), serde_json::to_vec(&sig).unwrap()).unwrap();
         assert!(active(&c, "auth").is_some());
 
-        // Signed, but no Microsoft account with the game yet.
-        assert!(err(save().await).contains("Microsoft"));
-        let mut s = AccountStore::default();
+        // Signed: signing in through the provider needs no Microsoft account.
+        assert!(!accounts::load_store(&c.path(ACCOUNTS))
+            .map(|s| s.offline_available())
+            .unwrap_or(false));
+        let v = save().await.unwrap();
+        assert_eq!(v["accounts"].as_array().unwrap().len(), 1);
+        assert!(!v.to_string().contains("abc.def"), "token leaked: {v}");
+        // Saving the same profile again updates it in place.
+        assert_eq!(
+            save().await.unwrap()["accounts"].as_array().unwrap().len(),
+            1
+        );
+        // A Microsoft account added later is not the provider's to see or remove.
+        let mut s = accounts::load_store(&c.path(ACCOUNTS)).unwrap();
         s.upsert(Account {
             id: "ms".into(),
             kind: AccountKind::Microsoft,
@@ -219,12 +225,13 @@ mod tests {
             secrets: None,
         });
         accounts::save_store(&c.path(ACCOUNTS), &s).unwrap();
-        let v = save().await.unwrap();
-        assert_eq!(v["accounts"].as_array().unwrap().len(), 1);
-        assert!(!v.to_string().contains("abc.def"), "token leaked: {v}");
-        // Saving the same profile again updates it in place.
         assert_eq!(
-            save().await.unwrap()["accounts"].as_array().unwrap().len(),
+            c.dispatch(&addon, "accounts.provider.list", json!({}))
+                .await
+                .unwrap()["accounts"]
+                .as_array()
+                .unwrap()
+                .len(),
             1
         );
 

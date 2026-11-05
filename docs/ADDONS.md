@@ -271,8 +271,9 @@ result to the core:
 
 Rules the core enforces:
 
-- Service accounts are available only after a Microsoft account with
-  Minecraft: Java Edition is signed in, the same rule as local profiles.
+- Microsoft is the built-in default sign-in; a provider is an alternative, not
+  an add-on to it. Signing in through a provider needs **no** Microsoft account
+  (local profiles still do). `accounts.provider.*` results carry only `accounts`.
 - A provider sees and removes only accounts it saved; tokens never come back
   to any addon or to the UI. At most 16 accounts per provider.
 - `name` is 3–16 characters `A-Z a-z 0-9 _`, `uuid` is the profile UUID,
