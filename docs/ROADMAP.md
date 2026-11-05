@@ -11,17 +11,17 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
-## Confirmation switch (unreleased)
+## Confirmation switch (0.3.50)
 
 - `theme_confirm` setting (default on): the native confirmation for theme-triggered `game.launch` / `accounts.microsoft.authorize` can be turned off in Settings by people who trust their theme authors. Weakening is possible only from Settings (native "are you sure"); safe mode gets `safe.confirm_on` and no way to turn it off; a missing field in an old `settings.json` means "ask". Tests: `theme_confirm_switch_only_weakens_in_settings`, `safe_mode_can_enable_but_not_disable_theme_confirm`, `old_settings_files_default_to_asking`.
 - Not yet: per-theme/per-author trust («Доверять этому автору») and the same switch for plugin actions.
 
-## Account providers without Microsoft (unreleased)
+## Account providers without Microsoft (0.3.50)
 
 - Signing in through an account-provider plugin no longer requires a Microsoft account with the game: Microsoft stays the built-in default, a provider is an alternative (Ely.by or any Yggdrasil service). The check is removed from `accounts.provider.save` and from launch (`launch_auth`); `offline_available` is no longer returned to providers. Local profiles keep their rule. Tests: `provider_account_launches_without_microsoft`, `expired_provider_session_asks_to_sign_in_again`, `local_profile_still_needs_microsoft`.
 - Trust is not permission: any package, signed or not, may ask for any right that exists (the tier cap on «Сообщество» is gone). The badge only changes how loudly the consent dialog warns; `internal`, `process` and `servers` are reserved for nobody. A signed package whose files were changed afterwards is not an account provider.
 
-## Theme actions locked down (unreleased)
+## Theme actions locked down (0.3.50)
 
 - A theme can bind only harmless actions; `accounts.remove`, `accounts.offline.create`, `instances.update`, `instances.duplicate`, `game.install`, every `mods.*` and `doctor.fix` are no longer `bindable` (built-in screens are unaffected, they call as `BuiltinUi`). Locked by `tests/core.rs` (`bindable_actions_are_exactly_the_safe_set`, `theme_cannot_reach_destructive_actions`).
 - `game.launch` and `accounts.microsoft.authorize` called from a theme need a native OK every time (`fl_core::actions::THEME_CONFIRM`, asked in `theme_action`); a theme cannot style or cover a native dialog.
