@@ -11,6 +11,12 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## The whole app is themeable (unreleased)
+
+- Templates for every screen (`view.home`, `skins`, `project`, `author`, `plugins`, `settings`, besides the old five) and for the shell (`shell`: rail, top bar, `main`; `main` required). Settings pieces got handles (`settings.sections`, `settings.search`, `settings.main`, `settings.none`, each pane and card). Plugin host page and safe-mode screen stay unthemeable.
+- Recovery no longer relies on Settings being unthemed: Ctrl+Alt+Shift+T (native confirm) restores the default theme from anywhere; safe mode and the tray stay.
+- Tests: `every_screen_and_the_shell_can_be_themed`, `a_shell_without_main_is_refused`, `the_plugin_host_page_cannot_be_themed`.
+
 ## Provider sessions stay alive (unreleased)
 
 - `accounts.provider.save` takes an optional `client_token`; with it the core validates and refreshes a Yggdrasil token itself before each launch (`ygg.rs`), so signing in through Ely.by-like services is not repeated when the token ages. Tested against a scripted transport: valid / swapped / refused / unreachable / garbage token / undeclared host.

@@ -1,5 +1,7 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Вернуть стандартную тему?": "Go back to the default theme?",
+"Лаунчер перезапустит окно со стандартной темой. Установленные темы не удаляются.": "The launcher will reload the window with the default theme. Installed themes are not deleted.",
 "Подтверждения": "Confirmations",
 "Спрашивать у тем разрешение": "Ask before themes act",
 "Когда тема сама запускает игру или открывает вход в аккаунт, лаунчер спрашивает в отдельном окне. Отключайте, только если доверяете авторам своих тем. Включить обратно можно и в безопасном режиме.": "When a theme starts the game or opens a sign-in by itself, the launcher asks in a separate window. Turn this off only if you trust the authors of your themes. You can turn it back on in safe mode too.",

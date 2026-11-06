@@ -150,3 +150,48 @@ fn shipped_themes_load_and_pack() {
         let _ = fs::remove_dir_all(&d);
     }
 }
+
+fn theme_with(templates: &str, files: &[(&str, &str)]) -> std::path::PathBuf {
+    let manifest = format!(
+        r##"{{"id":"full","name":"Полная","base":"dark","tokens":{{}},"css":[],"templates":{templates}}}"##
+    );
+    let mut all: Vec<(&str, &str)> = vec![("full/theme.json", manifest.leak())];
+    all.extend_from_slice(files);
+    tmp(&all)
+}
+
+/// A theme may rebuild the whole app: every screen, Settings included, and the shell.
+#[test]
+fn every_screen_and_the_shell_can_be_themed() {
+    let d = theme_with(
+        r#"{"shell":"s.html","view.settings":"set.html","view.home":"home.html","view.plugins":"pl.html","view.skins":"sk.html","view.project":"pr.html","view.author":"au.html"}"#,
+        &[
+            ("full/s.html", r##"<div data-use="topbar"></div><div data-use="main"></div>"##),
+            ("full/set.html", r##"<div data-use="settings.sections"></div><div data-use="settings.main"></div>"##),
+            ("full/home.html", "<p>h</p>"),
+            ("full/pl.html", "<p>p</p>"),
+            ("full/sk.html", "<p>s</p>"),
+            ("full/pr.html", "<p>r</p>"),
+            ("full/au.html", "<p>a</p>"),
+        ],
+    );
+    let m = themes::load(&d, "full").unwrap();
+    assert_eq!(m.templates.len(), 7);
+    assert!(themes::template(&d, "full", "view.settings").unwrap().is_some());
+    assert!(themes::template(&d, "full", "shell").unwrap().is_some());
+}
+
+/// All screens live in `main`; a shell without it would be a blank window.
+#[test]
+fn a_shell_without_main_is_refused() {
+    let d = theme_with(r#"{"shell":"s.html"}"#, &[("full/s.html", r##"<div data-use="rail"></div>"##)]);
+    let e = themes::load(&d, "full").unwrap_err();
+    assert!(e.contains("main"), "{e}");
+}
+
+/// Plugin pages stay out of reach: the host of a sandboxed plugin is not a theme's to rebuild.
+#[test]
+fn the_plugin_host_page_cannot_be_themed() {
+    let d = theme_with(r#"{"view.addon":"a.html"}"#, &[("full/a.html", "<p>x</p>")]);
+    assert!(themes::load(&d, "full").is_err());
+}

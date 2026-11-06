@@ -34,9 +34,11 @@
   // does not use stay in a hidden spare box. Everything the theme itself wrote is marked
   // data-from-theme, and its data-action clicks run with theme rights (bindable actions only).
   function mount(id, screen, html) {
-    const sec = document.querySelector(`.view[data-id="${CSS.escape(screen)}"]`);
+    const sec = screen === 'shell' ? document.getElementById('app') : document.querySelector(`.view[data-id="${CSS.escape(screen)}"]`);
     if (!sec || html == null) return false;
     const doc = new DOMParser().parseFromString(`<!doctype html><body>${html}`, 'text/html');
+    // The shell holds every screen inside `main`; without it the window would be empty.
+    if (screen === 'shell' && !doc.body.querySelector('[data-use="main"]')) return false;
     doc.body.querySelectorAll(BAD_TAGS).forEach((n) => n.remove());
     for (const n of doc.body.querySelectorAll('*')) {
       for (const a of [...n.attributes]) {
@@ -56,7 +58,10 @@
     spare.hidden = true;
     spare.append(...sec.childNodes);
     for (const ph of doc.body.querySelectorAll('[data-use]')) {
-      const orig = spare.querySelector(`[data-id="${CSS.escape(ph.getAttribute('data-use'))}"]`);
+      // A piece sits in the spare box, or inside a bigger piece that was already placed (a single
+      // setting taken out of `settings.main`). Never a node the theme itself wrote.
+      const sel = `[data-id="${CSS.escape(ph.getAttribute('data-use'))}"]:not([data-from-theme])`;
+      const orig = spare.querySelector(sel) || doc.body.querySelector(sel);
       if (orig) ph.replaceWith(orig);
       else ph.remove();
     }

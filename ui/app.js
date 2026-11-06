@@ -847,6 +847,21 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && S.view === 'instance' && !document.querySelector('.dialog[data-open]')) play(S.current, true);
 });
 
+// Ctrl+Alt+Shift+T: back to the default theme, from anywhere. A theme can hide every button, so this
+// is the way out that does not depend on the themed UI (the tray and safe mode are the others).
+document.addEventListener('keydown', async (e) => {
+  if (!(e.ctrlKey && e.altKey && e.shiftKey && e.code === 'KeyT')) return;
+  e.preventDefault();
+  const ok = await invoke('confirm_action', {
+    title: _t("Вернуть стандартную тему?"),
+    text: _t("Лаунчер перезапустит окно со стандартной темой. Установленные темы не удаляются."),
+    ok: _t("Вернуть"),
+  }).catch(() => false);
+  if (!ok) return;
+  await call('themes.set', { theme: 'default' }).catch((err) => toast(String(err), { error: true }));
+  location.hash = ''; location.reload();
+});
+
 // Ctrl + / Ctrl − / Ctrl 0: interface scale, as in a browser.
 document.addEventListener('keydown', (e) => {
   if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey && e.key !== '+') return;

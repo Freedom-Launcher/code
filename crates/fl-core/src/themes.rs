@@ -29,13 +29,24 @@ pub const BUILTIN: [(&str, &str, Base); 2] = [
     ("light", "Светлая", Base::Light),
 ];
 
-/// Screens a theme may replace. Settings are never themeable, so recovery always works.
-pub const SCREENS: [&str; 5] = [
+/// Screens a theme may replace: every screen of the app and the shell around them (rail,
+/// top bar, `main`). Not the plugin host page (`view.addon`) and not the safe-mode screen,
+/// which no theme ever loads. A theme can therefore hide anything, including the way to
+/// Settings, so recovery does not depend on the themed UI: safe mode (`--safe`, Shift at
+/// start, tray) and the Ctrl+Alt+Shift+T shortcut always bring the default theme back.
+pub const SCREENS: [&str; 12] = [
+    "shell",
+    "view.home",
     "view.instance",
     "view.empty",
     "view.create",
     "view.accounts",
+    "view.skins",
     "view.discover",
+    "view.project",
+    "view.author",
+    "view.plugins",
+    "view.settings",
 ];
 
 /// Files a theme may ship next to its CSS.
@@ -362,7 +373,12 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
         if !safe_rel(t, &["html"]) {
             return Err(format!("templates: {t} — нужен относительный путь к .html"));
         }
-        check_template(&read_text(data_dir, id, t, 128 * 1024)?)?;
+        let html = read_text(data_dir, id, t, 128 * 1024)?;
+        check_template(&html)?;
+        // All screens live inside `main`: a shell without it would be an empty window.
+        if screen == "shell" && !html.contains("data-use=\"main\"") && !html.contains("data-use='main'") {
+            return Err("templates: в shell нужен <div data-use=\"main\"></div>, иначе экранов не будет".into());
+        }
     }
     Ok(m)
 }

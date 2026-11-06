@@ -26,9 +26,32 @@ themes/<id>/
 | `base` | `dark` or `light`: the built-in palette the theme starts from |
 | `tokens` | CSS variables from `ui/tokens.css`, e.g. `"--accent": "#ffb86b"` |
 | `css` | up to 8 CSS files, applied after the built-in CSS |
-| `templates` | screen → HTML file; screens: `view.instance`, `view.empty`, `view.create`, `view.accounts`, `view.discover` |
+| `templates` | screen → HTML file; screens: `shell` (rail, top bar and `main`), `view.home`, `view.instance`, `view.empty`, `view.create`, `view.accounts`, `view.skins`, `view.discover`, `view.project`, `view.author`, `view.plugins`, `view.settings` |
 
-Settings are not themeable, so you can always switch back.
+Every screen can be rebuilt, Settings and the shell around the screens included, so a theme can change
+the whole app. Because a theme can therefore hide anything, the way back never depends on the themed UI
+(see «Getting back» below).
+
+## Rebuilding the shell and Settings
+
+- `shell` replaces the frame: `<div data-use="rail"></div>`, `<div data-use="topbar"></div>` and
+  `<div data-use="main"></div>` are the three built-in blocks, in any order, any wrapper. **`main` is required**
+  (all screens live in it); a shell without it is refused. Pieces you leave out are hidden, not deleted.
+- `view.settings` can be rebuilt with the built-in settings pieces, which keep their behaviour:
+  `settings.sections` (the side navigation), `settings.search`, `settings.main` (all panes, search results and the
+  «nothing found» line), and each pane or single setting by its own id (`settings.pane.look`, `settings.pane.wall`,
+  `settings.pane.ui`, `settings.pane.game`, `settings.pane.stats`, `settings.pane.addons`, `settings.pane.keys`,
+  `settings.pane.about`, and cards such as `settings.look.motion`, `settings.look.window`, `settings.security.confirm`).
+  Run with `?dev` to list every `data-id`. Use `sections` + `main` together to keep tabs and search working; embed
+  single cards for a flat, one-page layout (their panes then stay as you place them).
+- A theme controls **how** settings look and where they sit, never **what** they may do: a piece keeps its own
+  handler and confirmations, and a theme still cannot change a setting itself (`settings.set` is `Internal`).
+
+## Getting back
+
+A theme may hide the way to Settings, so these never depend on the themed UI: **Ctrl+Alt+Shift+T** (asks, then
+restores the default theme), safe settings (`--safe`, Shift at start, the tray), and the fact that the safe-mode screen
+is never themed.
 
 ## Templates
 
