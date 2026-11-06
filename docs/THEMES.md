@@ -78,6 +78,12 @@ harmless actions: lists and info (`app.info`, `versions.list`, `accounts.list`, 
   default) — for people who trust the authors of their themes. Turning it off asks once, in a native
   dialog; only the user can do it (`settings.set` is `Internal`, so no theme or plugin can). Safe mode
   can only turn it back on (`safe.confirm_on`, «Включить подтверждения для тем»), never off.
+- **Trusting a theme.** Instead of turning everything off, the user can trust one theme: Settings → Вид →
+  «Доверять этой теме», or the third button «Всегда для этой темы» in the confirmation box itself. A trusted theme
+  is not asked about `game.launch` / sign-in. Trust is bound to the theme's **files** (a hash of all of them), not
+  to the author name in `theme.json` (which anyone can write): when the theme is updated or edited, the question
+  comes back. Trusting asks once in a native dialog; only the user can do it (`themes.trust` is `Internal`);
+  safe mode can only take trust away (`safe.confirm_on` clears every trust and turns the dialogs on).
 - Everything that changes or deletes data or installs content (`accounts.remove`, `instances.update`,
   `instances.duplicate`, `game.install`, all `mods.*`, `doctor.fix`, …) is **not** bindable. To show
   those controls, embed the built-in piece with `data-use` — it keeps its own behaviour and confirmations.

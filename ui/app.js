@@ -890,8 +890,32 @@ async function applyTheme(cur, first = false) {
     if (t?.html) FTheme.mount(cur.id, screen, t.html);
   }
 }
+// "Trust this theme": only for installed themes, and bound to their current files (the core checks).
+async function syncThemeTrust() {
+  const row = $('#theme-trust-row'), box = $('#theme-trust');
+  const cur = S.theme;
+  row.hidden = !cur || cur.builtin !== false;
+  if (row.hidden) return;
+  const r = await call('themes.trusted').catch(() => null);
+  box.checked = !!r?.trusted?.includes(cur.id);
+}
+$('#theme-trust').addEventListener('change', async (e) => {
+  const box = e.target, on = box.checked, id = S.theme?.id;
+  if (!id) return;
+  if (on) { // trusting is the weakening direction: ask in a native dialog the theme cannot restyle
+    const ok = await invoke('confirm_action', {
+      title: _t("Доверять теме?"),
+      text: _t("Тема «{0}» перестанет спрашивать разрешение на запуск игры и вход. Доверяйте, только если уверены в авторе. После обновления темы вопрос вернётся.", [id]),
+      ok: _t("Доверять"),
+    }).catch(() => false);
+    if (!ok) { box.checked = false; return; }
+  }
+  try { await call(on ? 'themes.trust' : 'themes.untrust', { theme: id }); }
+  catch (err) { box.checked = !on; toast(String(err), { error: true }); }
+});
 function renderThemes(list, cur) {
   S.theme = cur;
+  syncThemeTrust();
   $('#theme-seg').replaceChildren(...list.map((t) => {
     const b = el('button', { 'data-theme-set': t.id, 'aria-selected': String(t.id === cur.id) }, t.name);
     if (t.error) { b.disabled = true; b.dataset.tip = t.error; }

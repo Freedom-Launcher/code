@@ -87,6 +87,22 @@ fn files(root: &Path) -> Option<Listing> {
     Some(out)
 }
 
+/// SHA-256 over the names and contents of every file under `root`. Anything added,
+/// removed or changed gives another value. Used to remember "the user trusts exactly
+/// this version of this package" (not a signature: it says nothing about who wrote it).
+pub fn tree_hash(root: &Path) -> Option<String> {
+    let list = files(root)?;
+    if list.iter().map(|f| f.1).sum::<u64>() > MAX_BYTES {
+        return None;
+    }
+    let mut all = Sha256::new();
+    for (rel, _, _) in &list {
+        let d = Sha256::digest(fs::read(root.join(rel)).ok()?);
+        all.update(format!("{}  {rel}\n", hex(&d)).as_bytes());
+    }
+    Some(hex(&all.finalize()))
+}
+
 fn badge_name(b: Trust) -> &'static str {
     match b {
         Trust::Official => "official",

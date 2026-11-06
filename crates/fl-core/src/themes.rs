@@ -388,6 +388,14 @@ fn builtin_json(b: (&str, &str, Base)) -> Value {
             "tokens": {}, "css": [], "templates": [], "ui": null })
 }
 
+/// Hash of the installed theme's files (see `signing::tree_hash`); `None` if it is not installed.
+pub fn tree_hash(data_dir: &Path, id: &str) -> Option<String> {
+    if builtin(id).is_some() || !valid_id(id) {
+        return None;
+    }
+    crate::signing::tree_hash(&dir(data_dir).join(id))
+}
+
 /// The theme the UI should apply now. A broken theme falls back to the default one.
 pub fn current(data_dir: &Path, active: &str) -> Value {
     if let Some(b) = builtin(active) {

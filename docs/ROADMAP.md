@@ -11,6 +11,11 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Trust this theme (unreleased)
+
+- «Доверять этой теме» (Settings → Вид) and the third button «Всегда для этой темы» in the native confirmation: a trusted theme skips the launch / sign-in dialog. Trust is bound to a hash of the theme's files (`signing::tree_hash`), so an updated or edited theme is asked about again; it is not tied to the author name in `theme.json`. Settings keeps `trusted_themes` (id → hash); `themes.trust` / `untrust` / `trusted` are `Internal`; safe mode and «Сбросить настройки» only clear it. Tests: `trust_is_bound_to_the_theme_files`, `built_in_and_missing_themes_cannot_be_trusted`, `nobody_but_the_user_can_trust_a_theme`, `safe_mode_clears_trust_and_reset_does_too`.
+- Not for plugins: a plugin's rights are already approved one by one at install, and there is no per-use dialog to skip.
+
 ## The whole app is themeable (unreleased)
 
 - Templates for every screen (`view.home`, `skins`, `project`, `author`, `plugins`, `settings`, besides the old five) and for the shell (`shell`: rail, top bar, `main`; `main` required). Settings pieces got handles (`settings.sections`, `settings.search`, `settings.main`, `settings.none`, each pane and card). Plugin host page and safe-mode screen stay unthemeable.

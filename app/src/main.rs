@@ -3,9 +3,9 @@
 use std::{sync::Arc, time::Instant};
 
 use fl_core::{Caller, Core};
-use serde_json::Value;
+use serde_json::{json, Value};
 use tauri::Manager;
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult};
 use tauri_plugin_opener::OpenerExt;
 
 mod updater;
@@ -56,6 +56,41 @@ async fn confirm_native(
     .map_err(|e| e.to_string())
 }
 
+enum Choice {
+    Allow,
+    Always,
+    Cancel,
+}
+
+/// Native box with three buttons: allow once, allow and remember, cancel. Closing the box or
+/// anything unexpected is a cancel; only the exact labels count as a yes.
+async fn choose_native(
+    app: tauri::AppHandle,
+    title: String,
+    text: String,
+    allow: String,
+    always: String,
+) -> Result<Choice, String> {
+    let (a, w) = (allow.clone(), always.clone());
+    let r = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .message(text)
+            .title(title)
+            .kind(MessageDialogKind::Warning)
+            .buttons(MessageDialogButtons::YesNoCancelCustom(a, w, tr("Отмена")))
+            .blocking_show_with_result()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(match r {
+        MessageDialogResult::Yes => Choice::Allow,
+        MessageDialogResult::No => Choice::Always,
+        MessageDialogResult::Custom(s) if s == allow => Choice::Allow,
+        MessageDialogResult::Custom(s) if s == always => Choice::Always,
+        _ => Choice::Cancel,
+    })
+}
+
 /// UI → native confirmation for things the UI itself must not decide alone
 /// (e.g. switching on a theme that has just been installed from a file).
 #[tauri::command]
@@ -99,7 +134,14 @@ async fn theme_action(
         .await
         .map(|s| s["theme_confirm"].as_bool().unwrap_or(true))
         .unwrap_or(true);
-    if ask && fl_core::actions::theme_needs_confirm(&name) {
+    // A theme the user trusts (exactly these files) is not asked about.
+    let trusted = core
+        .dispatch(&Caller::BuiltinUi, "themes.trusted", Value::Null)
+        .await
+        .ok()
+        .and_then(|v| v["trusted"].as_array().map(|a| a.iter().any(|x| x.as_str() == Some(id.as_str()))))
+        .unwrap_or(false);
+    if ask && !trusted && fl_core::actions::theme_needs_confirm(&name) {
         // Only the theme's id is shown (a-z, 0-9, '-'): its display name is author text.
         let what = match name.as_str() {
             "game.launch" => {
@@ -126,9 +168,20 @@ async fn theme_action(
             clean_for_dialog(&id, 40),
             tr("Если вы этого не просили, нажмите «Отмена»."),
         );
-        let ok = confirm_native(app, tr("Тема просит действие"), text, tr("Разрешить")).await?;
-        if !ok {
-            return Err(tr("Отменено"));
+        let text = format!(
+            "{text}\n\n{}",
+            tr("«Всегда для этой темы» запомнит эту версию темы: после её обновления вопрос вернётся.")
+        );
+        match choose_native(app, tr("Тема просит действие"), text, tr("Разрешить"), tr("Всегда для этой темы"))
+            .await?
+        {
+            Choice::Allow => {}
+            Choice::Always => {
+                core.dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": id }))
+                    .await
+                    .map_err(|e| e.to_string())?;
+            }
+            Choice::Cancel => return Err(tr("Отменено")),
         }
     }
     core.dispatch(&Caller::Theme { id }, &name, args)

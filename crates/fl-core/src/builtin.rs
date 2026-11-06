@@ -83,7 +83,11 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     // Safe mode may only make things stricter: it turns the theme confirmations back on.
     // Turning them off is `settings.set`, which safe mode does not have.
     r.register("safe.confirm_on", P::Internal, false, |c, _| async move {
-        update_settings(&c, |s| s.theme_confirm = true).await
+        update_settings(&c, |s| {
+            s.theme_confirm = true;
+            s.trusted_themes.clear();
+        })
+        .await
     });
     if safe_mode {
         return;
@@ -181,6 +185,43 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     r.register("themes.current", P::Public, false, |c, _| async move {
         let s: Settings = store::load(&c.path(SETTINGS))?;
         Ok(themes::current(&c.data_dir, &s.theme))
+    });
+    // "Trust this theme": its confirmations are skipped while its files stay exactly as they are.
+    r.register("themes.trust", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            theme: String,
+        }
+        let A { theme } = args(a)?;
+        themes::load(&c.data_dir, &theme).map_err(CoreError::BadArgs)?;
+        let hash = themes::tree_hash(&c.data_dir, &theme)
+            .ok_or_else(|| CoreError::BadArgs("тему нельзя считать: проверьте её файлы".into()))?;
+        update_settings(&c, |s| {
+            s.trusted_themes.insert(theme, hash);
+        })
+        .await
+    });
+    r.register("themes.untrust", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            theme: String,
+        }
+        let A { theme } = args(a)?;
+        update_settings(&c, |s| {
+            s.trusted_themes.remove(&theme);
+        })
+        .await
+    });
+    // Ids of themes that are trusted right now (files unchanged since they were trusted).
+    r.register("themes.trusted", P::Internal, false, |c, _| async move {
+        let s: Settings = store::load(&c.path(SETTINGS))?;
+        let ids: Vec<&String> = s
+            .trusted_themes
+            .iter()
+            .filter(|(id, h)| themes::tree_hash(&c.data_dir, id).as_deref() == Some(h.as_str()))
+            .map(|(id, _)| id)
+            .collect();
+        Ok(json!({ "trusted": ids }))
     });
     r.register("themes.set", P::Internal, false, |c, a| async move {
         #[derive(Deserialize)]

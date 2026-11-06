@@ -329,6 +329,108 @@ fn old_settings_files_default_to_asking() {
     assert!(s.theme_confirm, "a settings.json from before the switch must keep asking");
 }
 
+fn install_theme(c: &Core, id: &str, css: &str) {
+    let d = fl_core::themes::dir(&c.data_dir).join(id);
+    std::fs::create_dir_all(&d).unwrap();
+    std::fs::write(
+        d.join("theme.json"),
+        format!(r#"{{"id":"{id}","name":"T","base":"dark","tokens":{{}},"css":["a.css"],"templates":{{}}}}"#),
+    )
+    .unwrap();
+    std::fs::write(d.join("a.css"), css).unwrap();
+}
+
+async fn trusted(c: &std::sync::Arc<Core>) -> Vec<String> {
+    c.dispatch(&Caller::BuiltinUi, "themes.trusted", json!({}))
+        .await
+        .unwrap()["trusted"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap().to_owned())
+        .collect()
+}
+
+/// "Trust this theme" is about these exact files: change one and the trust is gone.
+#[tokio::test]
+async fn trust_is_bound_to_the_theme_files() {
+    let c = temp_core(false);
+    install_theme(&c, "night", "a{color:red}");
+    assert!(trusted(&c).await.is_empty());
+
+    c.dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": "night" })).await.unwrap();
+    assert_eq!(trusted(&c).await, vec!["night"]);
+
+    // An "update" of the theme: trust does not carry over.
+    install_theme(&c, "night", "a{color:blue}");
+    assert!(trusted(&c).await.is_empty(), "a changed theme must not stay trusted");
+    // Putting the same files back brings the same hash back.
+    install_theme(&c, "night", "a{color:red}");
+    assert_eq!(trusted(&c).await, vec!["night"]);
+
+    c.dispatch(&Caller::BuiltinUi, "themes.untrust", json!({ "theme": "night" })).await.unwrap();
+    assert!(trusted(&c).await.is_empty());
+}
+
+#[tokio::test]
+async fn built_in_and_missing_themes_cannot_be_trusted() {
+    let c = temp_core(false);
+    for id in ["default", "light", "nope", "../x"] {
+        assert!(
+            c.dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": id })).await.is_err(),
+            "{id}"
+        );
+    }
+}
+
+/// Only the user (built-in UI) can hand out trust. A theme or plugin cannot trust itself,
+/// and safe mode has no way to trust, only to clear.
+#[tokio::test]
+async fn nobody_but_the_user_can_trust_a_theme() {
+    let c = temp_core(false);
+    install_theme(&c, "night", "a{color:red}");
+    let theme = Caller::Theme { id: "night".into() };
+    let addon = Caller::Addon { id: "x".into(), granted: HashSet::new() };
+    for caller in [&theme, &addon] {
+        for name in ["themes.trust", "themes.untrust", "themes.trusted"] {
+            let e = c.dispatch(caller, name, json!({ "theme": "night" })).await.unwrap_err();
+            assert!(e.to_string().contains("permission denied"), "{name}: {e}");
+        }
+    }
+    assert!(trusted(&c).await.is_empty());
+
+    let safe_dir = c.data_dir.clone();
+    let safe = Core::new(safe_dir, Instant::now(), true).unwrap();
+    assert!(safe
+        .dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": "night" }))
+        .await
+        .is_err());
+}
+
+#[tokio::test]
+async fn safe_mode_clears_trust_and_reset_does_too() {
+    let dir = std::env::temp_dir().join(format!("fl-test-{}", uuid::Uuid::new_v4()));
+    {
+        let c = Core::new(dir.clone(), Instant::now(), false).unwrap();
+        install_theme(&c, "night", "a{color:red}");
+        c.dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": "night" })).await.unwrap();
+        assert_eq!(trusted(&c).await, vec!["night"]);
+    }
+    // Safe mode: the one thing it can do about trust is take it away.
+    let safe = Core::new(dir.clone(), Instant::now(), true).unwrap();
+    safe.dispatch(&Caller::BuiltinUi, "safe.confirm_on", json!({})).await.unwrap();
+    let s = safe.dispatch(&Caller::BuiltinUi, "settings.get", json!({})).await.unwrap();
+    assert!(s["trusted_themes"].as_object().unwrap().is_empty());
+
+    // And a full reset does as well.
+    {
+        let c = Core::new(dir.clone(), Instant::now(), false).unwrap();
+        c.dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": "night" })).await.unwrap();
+        c.dispatch(&Caller::BuiltinUi, "safe.reset_settings", json!({})).await.unwrap();
+        assert!(trusted(&c).await.is_empty());
+    }
+}
+
 #[tokio::test]
 async fn offline_profile_requires_microsoft_account() {
     let c = temp_core(false);

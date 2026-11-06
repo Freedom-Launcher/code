@@ -1,5 +1,12 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Доверять этой теме": "Trust this theme",
+"Тема не будет спрашивать разрешение на запуск игры и вход. Доверие относится к текущим файлам темы: после её обновления вопрос вернётся.": "The theme will not ask before starting the game or signing in. Trust applies to the theme's current files: after it is updated, the question comes back.",
+"Доверять теме?": "Trust this theme?",
+"Тема «{0}» перестанет спрашивать разрешение на запуск игры и вход. Доверяйте, только если уверены в авторе. После обновления темы вопрос вернётся.": "Theme “{0}” will stop asking before starting the game or signing in. Trust it only if you are sure of its author. After the theme is updated, the question comes back.",
+"Доверять": "Trust",
+"«Всегда для этой темы» запомнит эту версию темы: после её обновления вопрос вернётся.": "“Always for this theme” remembers this version of the theme: after it is updated, the question comes back.",
+"Всегда для этой темы": "Always for this theme",
 "Вернуть стандартную тему?": "Go back to the default theme?",
 "Лаунчер перезапустит окно со стандартной темой. Установленные темы не удаляются.": "The launcher will reload the window with the default theme. Installed themes are not deleted.",
 "Подтверждения": "Confirmations",

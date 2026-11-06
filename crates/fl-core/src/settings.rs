@@ -14,6 +14,10 @@ pub struct Settings {
     /// (`actions::THEME_CONFIRM`). On by default. Turned off only in settings, and
     /// only by the user (`settings.set` is `Internal`); safe mode can turn it back on.
     pub theme_confirm: bool,
+    /// Themes the user said to trust: id -> hash of its files when they said it. A theme
+    /// whose files changed since is no longer trusted. Trusted themes skip the native
+    /// confirmation (`theme_confirm`). Changed only by the user; safe mode only clears it.
+    pub trusted_themes: BTreeMap<String, String>,
     /// Look of the built-in shell. `None` until the UI saves it once, so the UI
     /// knows to migrate the values it used to keep in localStorage.
     pub look: Option<Look>,
@@ -147,6 +151,7 @@ impl Default for Settings {
             reduce_motion: false,
             onboarded: false,
             theme_confirm: true,
+            trusted_themes: BTreeMap::new(),
             look: None,
             loader_priority: LOADER_ORDER.iter().map(|s| s.to_string()).collect(),
             ui: UiCustom::default(),
