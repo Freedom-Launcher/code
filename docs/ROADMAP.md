@@ -11,6 +11,10 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Provider sessions stay alive (unreleased)
+
+- `accounts.provider.save` takes an optional `client_token`; with it the core validates and refreshes a Yggdrasil token itself before each launch (`ygg.rs`), so signing in through Ely.by-like services is not repeated when the token ages. Tested against a scripted transport: valid / swapped / refused / unreachable / garbage token / undeclared host.
+
 ## Confirmation switch (0.3.50)
 
 - `theme_confirm` setting (default on): the native confirmation for theme-triggered `game.launch` / `accounts.microsoft.authorize` can be turned off in Settings by people who trust their theme authors. Weakening is possible only from Settings (native "are you sure"); safe mode gets `safe.confirm_on` and no way to turn it off; a missing field in an old `settings.json` means "ask". Tests: `theme_confirm_switch_only_weakens_in_settings`, `safe_mode_can_enable_but_not_disable_theme_confirm`, `old_settings_files_default_to_asking`.

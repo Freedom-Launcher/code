@@ -149,6 +149,24 @@ fn client() -> &'static reqwest::Client {
     })
 }
 
+/// One JSON POST from the core itself (not on behalf of a plugin) through the same
+/// locked-down client: https only, no redirects, public addresses only. `(status, body)`;
+/// a body that is not JSON comes back as `null`.
+pub(crate) async fn post_json(url: &Url, body: &Value) -> Result<(u16, Value), String> {
+    let r = client()
+        .post(url.clone())
+        .json(body)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let status = r.status().as_u16();
+    let bytes = r.bytes().await.map_err(|e| e.to_string())?;
+    if bytes.len() > MAX_RESPONSE {
+        return Err("ответ слишком большой".into());
+    }
+    Ok((status, serde_json::from_slice(&bytes).unwrap_or(Value::Null)))
+}
+
 /// https, default port, no credentials, host exactly one of `hosts`.
 pub fn check_url(url: &str, hosts: &[String]) -> Result<Url, String> {
     let mut u = Url::parse(url).map_err(|_| "url: неверный адрес".to_string())?;

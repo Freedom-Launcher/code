@@ -273,7 +273,7 @@ result to the core:
 
 | Action | Args | Result |
 |--------|------|--------|
-| `accounts.provider.save` | `{ name, uuid, token, expires_at }` | the provider's own accounts |
+| `accounts.provider.save` | `{ name, uuid, token, expires_at, client_token? }` | the provider's own accounts |
 | `accounts.provider.list` | — | the provider's own accounts |
 | `accounts.provider.remove` | `{ id }` | the provider's own accounts |
 
@@ -294,8 +294,16 @@ Rules the core enforces:
   that fails, the account cannot start the game until the addon signs in again.
 
 ```js
-await fl.call('accounts.provider.save', { name, uuid, token, expires_at });
+await fl.call('accounts.provider.save', { name, uuid, token, expires_at, client_token });
 ```
+
+**Keeping the session alive.** Pass the service's `clientToken` as `client_token` (Yggdrasil services
+such as Ely.by give one at sign-in) and the core keeps the token fresh itself: before each launch it asks
+`<yggdrasil>/authserver/validate`, swaps a rejected token through `/authserver/refresh`, and stores the new
+one. The player is sent back to your sign-in only when the service refuses the refresh. Without `client_token`
+the saved `expires_at` decides, as before. Requests go only to the `yggdrasil` API root from your manifest
+(its host must be in `hosts`), https only; neither token ever reaches your page. If the service cannot be
+reached, the saved token is used while `expires_at` is still in the future.
 
 ### In-game sign-in, skins and capes (`yggdrasil`)
 

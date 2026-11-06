@@ -95,8 +95,12 @@ pub(crate) fn register(r: &mut ActionRegistry) {
             uuid: String,
             token: String,
             expires_at: u64,
+            /// The service's `clientToken`. With it the core validates and refreshes the
+            /// token itself before each launch (`ygg`); without it the date rules.
+            #[serde(default)]
+            client_token: String,
         }
-        let A { name, uuid, token, expires_at } =
+        let A { name, uuid, token, expires_at, client_token } =
             serde_json::from_value(a).map_err(|e| CoreError::BadArgs(e.to_string()))?;
         accounts::validate_profile_name(&name)?;
         let uuid = uuid::Uuid::parse_str(&uuid)
@@ -105,6 +109,9 @@ pub(crate) fn register(r: &mut ActionRegistry) {
             .ok_or_else(|| CoreError::BadArgs("uuid: нужен UUID профиля".into()))?;
         if token.is_empty() || token.len() > MAX_TOKEN || !token.bytes().all(|b| b.is_ascii_graphic()) {
             return Err(CoreError::BadArgs("token: от 1 до 8192 печатных ASCII-символов".into()));
+        }
+        if client_token.len() > 256 || !client_token.bytes().all(|b| b.is_ascii_graphic()) {
+            return Err(CoreError::BadArgs("client_token: до 256 печатных ASCII-символов".into()));
         }
         if expires_at <= unix_now() + 60 {
             return Err(CoreError::BadArgs("expires_at: токен уже истёк".into()));
@@ -124,7 +131,7 @@ pub(crate) fn register(r: &mut ActionRegistry) {
             uuid,
             owns_game: false,
             secrets: Some(Secrets {
-                refresh_token: String::new(),
+                refresh_token: client_token,
                 mc_access_token: token,
                 mc_expires_at: expires_at,
             }),
@@ -221,6 +228,16 @@ mod tests {
             save().await.unwrap()["accounts"].as_array().unwrap().len(),
             1
         );
+        // The service's client token is stored for the core's own refresh and never comes back.
+        let mut with_client = acc.clone();
+        with_client["client_token"] = json!("client-123");
+        let v = c.dispatch(&addon, "accounts.provider.save", with_client).await.unwrap();
+        assert!(!v.to_string().contains("client-123"), "client token leaked: {v}");
+        let st = accounts::load_store(&c.path(ACCOUNTS)).unwrap();
+        assert_eq!(st.accounts[0].secrets.as_ref().unwrap().refresh_token, "client-123");
+        let mut bad = acc.clone();
+        bad["client_token"] = json!("has space");
+        assert!(c.dispatch(&addon, "accounts.provider.save", bad).await.is_err());
         // A Microsoft account added later is not the provider's to see or remove.
         let mut s = accounts::load_store(&c.path(ACCOUNTS)).unwrap();
         s.upsert(Account {

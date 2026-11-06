@@ -197,17 +197,11 @@ async fn launch_auth(core: &Core) -> Result<LaunchAuth, CoreError> {
                     "the {provider} addon is off or can no longer provide accounts"
                 )));
             }
-            let sec = acc
-                .secrets
-                .as_ref()
-                .filter(|sec| sec.mc_expires_at > unix_now() + 60)
-                .ok_or_else(|| {
-                    CoreError::msg("session expired, sign in through the addon again")
-                })?;
+            let access_token = crate::ygg::session(core, &crate::ygg::Http, provider, acc).await?;
             Ok(LaunchAuth {
                 name: acc.name.clone(),
                 uuid: acc.uuid.replace('-', ""),
-                access_token: sec.mc_access_token.clone(),
+                access_token,
                 xuid: String::new(),
                 user_type: "mojang".into(),
                 yggdrasil: crate::providers::yggdrasil(core, provider),
