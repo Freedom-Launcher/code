@@ -10,7 +10,9 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{catalog, curseforge, game::download, modrinth, modrinth::Kind, store, Core, CoreError};
+use crate::{
+    catalog, curseforge, game::download, modrinth, modrinth::Kind, store, Core, CoreError,
+};
 
 const OFF: &str = ".disabled";
 /// Guards against dependency cycles and runaway chains.
@@ -272,7 +274,9 @@ pub async fn install(
         // A dependency already present from the other catalog (same title or file) is not doubled.
         if id != project_id {
             let dup = idx.contains_key(&f.filename)
-                || idx.values().any(|s| s.title.eq_ignore_ascii_case(&project.title));
+                || idx
+                    .values()
+                    .any(|s| s.title.eq_ignore_ascii_case(&project.title));
             if dup {
                 have.push(project.id.clone());
                 have.push(id);
@@ -485,13 +489,18 @@ async fn cf_latest(
     };
     for chunk in ids.chunks(8) {
         let got = futures_util::future::join_all(
-            chunk.iter().map(|id| catalog::versions(core, id, t.mc, t.loaders)),
+            chunk
+                .iter()
+                .map(|id| catalog::versions(core, id, t.mc, t.loaders)),
         )
         .await;
         for (id, r) in chunk.iter().zip(got) {
             let Ok(vs) = r else { continue };
             let any = vs.iter().find(|v| fits(v)).cloned();
-            let rel = vs.iter().find(|v| v.version_type == "release" && fits(v)).cloned();
+            let rel = vs
+                .iter()
+                .find(|v| v.version_type == "release" && fits(v))
+                .cloned();
             out.insert(id.clone(), (any, rel));
         }
     }
@@ -550,7 +559,11 @@ pub struct Choice {
 }
 
 /// Every version of the project behind `file`, newest first.
-pub async fn versions_for(core: &Core, t: Target<'_>, file: &str) -> Result<Vec<Choice>, CoreError> {
+pub async fn versions_for(
+    core: &Core,
+    t: Target<'_>,
+    file: &str,
+) -> Result<Vec<Choice>, CoreError> {
     check_file(t.kind, file)?;
     let idx = load_index(t.game_dir, t.kind)?;
     let src = idx
@@ -563,13 +576,21 @@ pub async fn versions_for(core: &Core, t: Target<'_>, file: &str) -> Result<Vec<
         .map(|v| {
             let compatible = v.game_versions.iter().any(|g| g == t.mc)
                 && v.loaders.iter().any(|l| t.loaders.contains(&l.as_str()));
-            Choice { version: v, compatible }
+            Choice {
+                version: v,
+                compatible,
+            }
         })
         .collect())
 }
 
 /// Switches `file` to another version of the same project (up or down).
-pub async fn switch(core: &Core, t: Target<'_>, file: &str, version_id: &str) -> Result<String, CoreError> {
+pub async fn switch(
+    core: &Core,
+    t: Target<'_>,
+    file: &str,
+    version_id: &str,
+) -> Result<String, CoreError> {
     check_file(t.kind, file)?;
     let mut idx = load_index(t.game_dir, t.kind)?;
     let project = idx
@@ -608,7 +629,11 @@ pub fn add_files(game_dir: &Path, kind: Kind, paths: &[PathBuf]) -> Result<Vec<S
 /// Fills what the content list shows: files that arrived another way are
 /// identified on Modrinth by hash; slug, author, license, sides, required
 /// projects and the publish date are added where missing. Returns the list.
-pub async fn refresh_meta(core: &Core, game_dir: &Path, kind: Kind) -> Result<Vec<ModEntry>, CoreError> {
+pub async fn refresh_meta(
+    core: &Core,
+    game_dir: &Path,
+    kind: Kind,
+) -> Result<Vec<ModEntry>, CoreError> {
     let entries = list(game_dir, kind)?;
     let mut idx = load_index(game_dir, kind)?;
     let d = dir(game_dir, kind);
@@ -616,7 +641,11 @@ pub async fn refresh_meta(core: &Core, game_dir: &Path, kind: Kind) -> Result<Ve
         .iter()
         .filter(|m| m.source.is_none())
         .map(|m| {
-            let n = if m.enabled { m.file.clone() } else { format!("{}{OFF}", m.file) };
+            let n = if m.enabled {
+                m.file.clone()
+            } else {
+                format!("{}{OFF}", m.file)
+            };
             (m.file.clone(), d.join(n))
         })
         .collect();
@@ -649,7 +678,9 @@ pub async fn refresh_meta(core: &Core, game_dir: &Path, kind: Kind) -> Result<Ve
     fill_projects(core, &mut idx).await?;
     let vids: Vec<String> = idx
         .values()
-        .filter(|s| s.published.is_empty() && !s.version_id.is_empty() && !curseforge::is_cf(&s.version_id))
+        .filter(|s| {
+            s.published.is_empty() && !s.version_id.is_empty() && !curseforge::is_cf(&s.version_id)
+        })
         .map(|s| s.version_id.clone())
         .collect();
     if !vids.is_empty() {
@@ -686,10 +717,15 @@ async fn fill_projects(core: &Core, idx: &mut Index) -> Result<(), CoreError> {
         .filter(|p| p.organization.is_none() && !p.team.is_empty())
         .map(|p| p.team.clone())
         .collect();
-    let org_ids: Vec<String> = projects.iter().filter_map(|p| p.organization.clone()).collect();
+    let org_ids: Vec<String> = projects
+        .iter()
+        .filter_map(|p| p.organization.clone())
+        .collect();
     // Authors are a nicety: the list still works when these fail.
     let teams = modrinth::teams(core, &team_ids).await.unwrap_or_default();
-    let orgs = modrinth::organizations(core, &org_ids).await.unwrap_or_default();
+    let orgs = modrinth::organizations(core, &org_ids)
+        .await
+        .unwrap_or_default();
     for p in &projects {
         let author = match &p.organization {
             Some(o) => orgs.iter().find(|x| &x.id == o).map(|x| Author {

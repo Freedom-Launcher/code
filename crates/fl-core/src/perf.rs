@@ -40,7 +40,8 @@ pub fn has_flags(cur: &str) -> bool {
 
 /// Heap sizes belong to the memory setting; in the arguments they fight with it.
 pub fn heap_conflict(cur: &str) -> bool {
-    cur.split_whitespace().any(|t| t.starts_with("-Xmx") || t.starts_with("-Xms"))
+    cur.split_whitespace()
+        .any(|t| t.starts_with("-Xmx") || t.starts_with("-Xms"))
 }
 
 /// Keeps the user's own arguments (system properties, agents…) and replaces GC tuning with ours.
@@ -76,13 +77,55 @@ struct Cand {
     render: bool,
 }
 
-const SODIUM: Cand = Cand { id: "AANobbMI", slug: "sodium", title: "Sodium", alias: &["sodium", "embeddium", "rubidium", "magnesium"], render: true };
-const EMBEDDIUM: Cand = Cand { id: "sk9rgfiA", slug: "embeddium", title: "Embeddium", alias: &["embeddium", "rubidium", "sodium"], render: true };
-const LITHIUM: Cand = Cand { id: "gvQqBUqZ", slug: "lithium", title: "Lithium", alias: &["lithium", "canary", "radium"], render: false };
-const FERRITE: Cand = Cand { id: "uXXizFIs", slug: "ferrite-core", title: "FerriteCore", alias: &["ferritecore", "ferrite-core"], render: false };
-const CULLING: Cand = Cand { id: "NNAgCjsB", slug: "entityculling", title: "Entity Culling", alias: &["entityculling"], render: false };
-const FAST: Cand = Cand { id: "5ZwdcRci", slug: "immediatelyfast", title: "ImmediatelyFast", alias: &["immediatelyfast"], render: false };
-const MODERNFIX: Cand = Cand { id: "nmDcB62a", slug: "modernfix", title: "ModernFix", alias: &["modernfix"], render: false };
+const SODIUM: Cand = Cand {
+    id: "AANobbMI",
+    slug: "sodium",
+    title: "Sodium",
+    alias: &["sodium", "embeddium", "rubidium", "magnesium"],
+    render: true,
+};
+const EMBEDDIUM: Cand = Cand {
+    id: "sk9rgfiA",
+    slug: "embeddium",
+    title: "Embeddium",
+    alias: &["embeddium", "rubidium", "sodium"],
+    render: true,
+};
+const LITHIUM: Cand = Cand {
+    id: "gvQqBUqZ",
+    slug: "lithium",
+    title: "Lithium",
+    alias: &["lithium", "canary", "radium"],
+    render: false,
+};
+const FERRITE: Cand = Cand {
+    id: "uXXizFIs",
+    slug: "ferrite-core",
+    title: "FerriteCore",
+    alias: &["ferritecore", "ferrite-core"],
+    render: false,
+};
+const CULLING: Cand = Cand {
+    id: "NNAgCjsB",
+    slug: "entityculling",
+    title: "Entity Culling",
+    alias: &["entityculling"],
+    render: false,
+};
+const FAST: Cand = Cand {
+    id: "5ZwdcRci",
+    slug: "immediatelyfast",
+    title: "ImmediatelyFast",
+    alias: &["immediatelyfast"],
+    render: false,
+};
+const MODERNFIX: Cand = Cand {
+    id: "nmDcB62a",
+    slug: "modernfix",
+    title: "ModernFix",
+    alias: &["modernfix"],
+    render: false,
+};
 
 fn candidates(loader: &str) -> &'static [Cand] {
     match loader {
@@ -120,24 +163,35 @@ pub async fn analyze(core: &Core, inst: &Instance) -> Result<Value, CoreError> {
     let jvm = merged.jvm_args.clone().unwrap_or_default();
     let flags_ok = has_flags(&jvm) && !heap_conflict(&jvm);
     let cands = candidates(&inst.loader);
-    let optifine = files.iter().any(|f| f.contains("optifine") || f.contains("optifabric"));
+    let optifine = files
+        .iter()
+        .any(|f| f.contains("optifine") || f.contains("optifabric"));
     let loaders = Kind::Mod.supports(&inst.loader, &inst.version);
     let avail: Vec<bool> = match &loaders {
-        Some(l) => futures_util::future::join_all(cands.iter().map(|c| modrinth::versions(core, c.id, &inst.version, l)))
-            .await
-            .into_iter()
-            .map(|r| r.map(|v| !v.is_empty()).unwrap_or(false))
-            .collect(),
+        Some(l) => futures_util::future::join_all(
+            cands
+                .iter()
+                .map(|c| modrinth::versions(core, c.id, &inst.version, l)),
+        )
+        .await
+        .into_iter()
+        .map(|r| r.map(|v| !v.is_empty()).unwrap_or(false))
+        .collect(),
         None => vec![false; cands.len()],
     };
     let pid: Vec<String> = cands.iter().map(|c| c.id.to_owned()).collect();
-    let meta = if cands.is_empty() { vec![] } else { modrinth::projects(core, &pid).await.unwrap_or_default() };
+    let meta = if cands.is_empty() {
+        vec![]
+    } else {
+        modrinth::projects(core, &pid).await.unwrap_or_default()
+    };
     let (mut eligible, mut have) = (0usize, 0usize);
     let list: Vec<Value> = cands
         .iter()
         .zip(avail)
         .map(|(c, available)| {
-            let present = ids.iter().any(|i| i == c.id) || files.iter().any(|f| c.alias.iter().any(|a| f.contains(a)));
+            let present = ids.iter().any(|i| i == c.id)
+                || files.iter().any(|f| c.alias.iter().any(|a| f.contains(a)));
             let blocked = c.render && optifine && !present;
             if (available || present) && !blocked {
                 eligible += 1;
@@ -156,10 +210,9 @@ pub async fn analyze(core: &Core, inst: &Instance) -> Result<Value, CoreError> {
         })
         .collect();
     let mem_ok = memory_mb + 256 >= rec;
-    let score = if eligible == 0 {
-        (if mem_ok { 50 } else { 0 }) + if flags_ok { 50 } else { 0 }
-    } else {
-        (if mem_ok { 30 } else { 0 }) + (if flags_ok { 20 } else { 0 }) + 50 * have / eligible
+    let score = match (50 * have).checked_div(eligible) {
+        Some(share) => (if mem_ok { 30 } else { 0 }) + (if flags_ok { 20 } else { 0 }) + share,
+        None => (if mem_ok { 50 } else { 0 }) + if flags_ok { 50 } else { 0 },
     };
     Ok(json!({
         "instance": inst.id,
@@ -180,7 +233,13 @@ pub async fn analyze(core: &Core, inst: &Instance) -> Result<Value, CoreError> {
     }))
 }
 
-pub async fn apply(core: &Core, instance: &str, memory: bool, flags: bool, want: &[String]) -> Result<Value, CoreError> {
+pub async fn apply(
+    core: &Core,
+    instance: &str,
+    memory: bool,
+    flags: bool,
+    want: &[String],
+) -> Result<Value, CoreError> {
     if core.game_running.is_busy(instance) {
         return Err(CoreError::msg("Сначала закройте игру"));
     }
@@ -222,10 +281,17 @@ pub async fn apply(core: &Core, instance: &str, memory: bool, flags: bool, want:
             let Some(c) = cands.iter().find(|c| c.id == id) else {
                 return Err(CoreError::BadArgs(format!("unknown mod: {id}")));
             };
-            let t = mods::Target { game_dir: &gd, kind: Kind::Mod, mc: &inst.version, loaders: &loaders };
+            let t = mods::Target {
+                game_dir: &gd,
+                kind: Kind::Mod,
+                mc: &inst.version,
+                loaders: &loaders,
+            };
             match mods::install(core, t, c.id, None).await {
                 Ok(a) => installed.extend(a),
-                Err(e) => failed.push(json!({ "id": c.id, "title": c.title, "error": e.to_string() })),
+                Err(e) => {
+                    failed.push(json!({ "id": c.id, "title": c.title, "error": e.to_string() }))
+                }
             }
         }
     }

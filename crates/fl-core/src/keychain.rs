@@ -36,10 +36,10 @@ mod imp {
                     return false;
                 }
                 // A missing entry is a good answer: the service is there and just has nothing.
-                match entry("probe", "probe").map(|e| e.get_password()) {
-                    Some(Ok(_)) | Some(Err(keyring::Error::NoEntry)) => true,
-                    _ => false,
-                }
+                matches!(
+                    entry("probe", "probe").map(|e| e.get_password()),
+                    Some(Ok(_)) | Some(Err(keyring::Error::NoEntry))
+                )
             })
         }
         #[cfg(not(target_os = "linux"))]

@@ -133,11 +133,7 @@ fn client() -> &'static reqwest::Client {
     static C: OnceLock<reqwest::Client> = OnceLock::new();
     C.get_or_init(|| {
         reqwest::Client::builder()
-            .user_agent(concat!(
-                "FreedomLauncher/",
-                env!("FL_VERSION"),
-                " (addon)"
-            ))
+            .user_agent(concat!("FreedomLauncher/", env!("FL_VERSION"), " (addon)"))
             .redirect(Policy::none())
             .no_proxy()
             .https_only(true)
@@ -164,7 +160,10 @@ pub(crate) async fn post_json(url: &Url, body: &Value) -> Result<(u16, Value), S
     if bytes.len() > MAX_RESPONSE {
         return Err("ответ слишком большой".into());
     }
-    Ok((status, serde_json::from_slice(&bytes).unwrap_or(Value::Null)))
+    Ok((
+        status,
+        serde_json::from_slice(&bytes).unwrap_or(Value::Null),
+    ))
 }
 
 /// https, default port, no credentials, host exactly one of `hosts`.

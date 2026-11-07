@@ -10,8 +10,8 @@
 
 use std::future::Future;
 
-use serde_json::{json, Value};
 use reqwest::Url;
+use serde_json::{json, Value};
 
 use crate::{accounts::Account, addons, net, unix_now, Core, CoreError};
 
@@ -20,7 +20,11 @@ use crate::{accounts::Account, addons, net, unix_now, Core, CoreError};
 const REFRESHED_FOR: u64 = 24 * 3600;
 
 pub(crate) trait Transport {
-    fn post(&self, url: &Url, body: &Value) -> impl Future<Output = Result<(u16, Value), String>> + Send;
+    fn post(
+        &self,
+        url: &Url,
+        body: &Value,
+    ) -> impl Future<Output = Result<(u16, Value), String>> + Send;
 }
 
 pub(crate) struct Http;
@@ -44,7 +48,11 @@ pub(crate) enum Check {
 }
 
 fn endpoint(root: &str, op: &str, hosts: &[String]) -> Option<Url> {
-    net::check_url(&format!("{}/authserver/{op}", root.trim_end_matches('/')), hosts).ok()
+    net::check_url(
+        &format!("{}/authserver/{op}", root.trim_end_matches('/')),
+        hosts,
+    )
+    .ok()
 }
 
 pub(crate) async fn check<T: Transport>(
@@ -70,7 +78,9 @@ pub(crate) async fn check<T: Transport>(
     let ask = json!({ "accessToken": access, "clientToken": client_token, "requestUser": false });
     match t.post(&refresh, &ask).await {
         Ok((200, body)) => match body["accessToken"].as_str() {
-            Some(n) if !n.is_empty() && n.len() <= 8192 && n.bytes().all(|b| b.is_ascii_graphic()) => {
+            Some(n)
+                if !n.is_empty() && n.len() <= 8192 && n.bytes().all(|b| b.is_ascii_graphic()) =>
+            {
                 Check::Refreshed(n.to_owned())
             }
             _ => Check::SignInAgain,
@@ -99,10 +109,14 @@ pub(crate) async fn session<T: Transport>(
         return if in_date {
             Ok(sec.mc_access_token.clone())
         } else {
-            Err(CoreError::msg("session expired, sign in through the addon again"))
+            Err(CoreError::msg(
+                "session expired, sign in through the addon again",
+            ))
         };
     };
-    let hosts = addons::load(&core.data_dir, provider).map(|m| m.hosts).unwrap_or_default();
+    let hosts = addons::load(&core.data_dir, provider)
+        .map(|m| m.hosts)
+        .unwrap_or_default();
     match check(t, &root, &hosts, &sec.refresh_token, &sec.mc_access_token).await {
         Check::Valid => Ok(sec.mc_access_token.clone()),
         Check::Refreshed(new) => {
@@ -122,7 +136,9 @@ pub(crate) async fn session<T: Transport>(
         Check::Unreachable => Err(CoreError::msg(
             "cannot reach the sign-in service and the saved session has expired",
         )),
-        Check::SignInAgain => Err(CoreError::msg("session expired, sign in through the addon again")),
+        Check::SignInAgain => Err(CoreError::msg(
+            "session expired, sign in through the addon again",
+        )),
     }
 }
 
@@ -140,7 +156,10 @@ mod tests {
     }
     impl Fake {
         fn new(s: Vec<Result<(u16, Value), String>>) -> Self {
-            Fake { script: Mutex::new(s.into()), seen: Mutex::new(vec![]) }
+            Fake {
+                script: Mutex::new(s.into()),
+                seen: Mutex::new(vec![]),
+            }
         }
         fn seen(&self) -> Vec<String> {
             self.seen.lock().unwrap().clone()
@@ -149,7 +168,11 @@ mod tests {
     impl Transport for Fake {
         async fn post(&self, url: &Url, _b: &Value) -> Result<(u16, Value), String> {
             self.seen.lock().unwrap().push(url.path().to_owned());
-            self.script.lock().unwrap().pop_front().unwrap_or(Err("script ended".into()))
+            self.script
+                .lock()
+                .unwrap()
+                .pop_front()
+                .unwrap_or(Err("script ended".into()))
         }
     }
 
@@ -170,33 +193,62 @@ mod tests {
 
     #[tokio::test]
     async fn rejected_token_is_swapped_for_a_fresh_one() {
-        let t = Fake::new(vec![Ok((403, Value::Null)), ok(json!({"accessToken": "NEW", "clientToken": "c"}))]);
-        assert_eq!(check(&t, ROOT, &hosts(), "c", "a").await, Check::Refreshed("NEW".into()));
+        let t = Fake::new(vec![
+            Ok((403, Value::Null)),
+            ok(json!({"accessToken": "NEW", "clientToken": "c"})),
+        ]);
+        assert_eq!(
+            check(&t, ROOT, &hosts(), "c", "a").await,
+            Check::Refreshed("NEW".into())
+        );
         assert_eq!(t.seen().len(), 2);
         assert!(t.seen()[1].ends_with("/authserver/refresh"));
     }
 
     #[tokio::test]
     async fn refused_refresh_means_sign_in_again() {
-        let t = Fake::new(vec![Ok((403, Value::Null)), Ok((403, json!({"error": "ForbiddenOperationException"})))]);
-        assert_eq!(check(&t, ROOT, &hosts(), "c", "a").await, Check::SignInAgain);
+        let t = Fake::new(vec![
+            Ok((403, Value::Null)),
+            Ok((403, json!({"error": "ForbiddenOperationException"}))),
+        ]);
+        assert_eq!(
+            check(&t, ROOT, &hosts(), "c", "a").await,
+            Check::SignInAgain
+        );
     }
 
     #[tokio::test]
     async fn unreachable_service_is_not_a_refusal() {
         let down = Fake::new(vec![Err("dns".into())]);
-        assert_eq!(check(&down, ROOT, &hosts(), "c", "a").await, Check::Unreachable);
+        assert_eq!(
+            check(&down, ROOT, &hosts(), "c", "a").await,
+            Check::Unreachable
+        );
         let five = Fake::new(vec![Ok((503, Value::Null))]);
-        assert_eq!(check(&five, ROOT, &hosts(), "c", "a").await, Check::Unreachable);
+        assert_eq!(
+            check(&five, ROOT, &hosts(), "c", "a").await,
+            Check::Unreachable
+        );
         let mid = Fake::new(vec![Ok((403, Value::Null)), Ok((502, Value::Null))]);
-        assert_eq!(check(&mid, ROOT, &hosts(), "c", "a").await, Check::Unreachable);
+        assert_eq!(
+            check(&mid, ROOT, &hosts(), "c", "a").await,
+            Check::Unreachable
+        );
     }
 
     #[tokio::test]
     async fn a_garbage_new_token_is_not_accepted() {
-        for bad in [json!({"accessToken": ""}), json!({"accessToken": "a b"}), json!({"nope": 1}), json!({"accessToken": "ü"})] {
+        for bad in [
+            json!({"accessToken": ""}),
+            json!({"accessToken": "a b"}),
+            json!({"nope": 1}),
+            json!({"accessToken": "ü"}),
+        ] {
             let t = Fake::new(vec![Ok((403, Value::Null)), ok(bad)]);
-            assert_eq!(check(&t, ROOT, &hosts(), "c", "a").await, Check::SignInAgain);
+            assert_eq!(
+                check(&t, ROOT, &hosts(), "c", "a").await,
+                Check::SignInAgain
+            );
         }
     }
 
@@ -205,9 +257,15 @@ mod tests {
         let t = Fake::new(vec![Ok((204, Value::Null))]);
         let other = vec!["elsewhere.example.org".to_string()];
         assert_eq!(check(&t, ROOT, &other, "c", "a").await, Check::Unreachable);
-        assert!(t.seen().is_empty(), "the token must not leave for an undeclared host");
+        assert!(
+            t.seen().is_empty(),
+            "the token must not leave for an undeclared host"
+        );
         // And never over plain http.
-        assert_eq!(check(&t, "http://auth.example.org/x", &hosts(), "c", "a").await, Check::Unreachable);
+        assert_eq!(
+            check(&t, "http://auth.example.org/x", &hosts(), "c", "a").await,
+            Check::Unreachable
+        );
         assert!(t.seen().is_empty());
     }
 
@@ -233,7 +291,9 @@ mod tests {
     fn account(client_token: &str, expires_in: i64) -> Account {
         Account {
             id: "a1".into(),
-            kind: AccountKind::Provider { provider: "ely".into() },
+            kind: AccountKind::Provider {
+                provider: "ely".into(),
+            },
             name: "Steve".into(),
             uuid: "0f1e2d3c-4b5a-4978-8a69-5a4b3c2d1e0f".into(),
             owns_game: false,
@@ -256,7 +316,10 @@ mod tests {
         let c = core_with_ygg_provider();
         let a = account("client", -3600);
         store(&c, &a);
-        let t = Fake::new(vec![Ok((403, Value::Null)), ok(json!({"accessToken": "NEW"}))]);
+        let t = Fake::new(vec![
+            Ok((403, Value::Null)),
+            ok(json!({"accessToken": "NEW"})),
+        ]);
         assert_eq!(session(&c, &t, "ely", &a).await.unwrap(), "NEW");
         // The fresh token is what is stored now, with a new date.
         let s = crate::accounts::load_store(&c.path("accounts.json")).unwrap();
@@ -303,7 +366,10 @@ mod tests {
         let t = Fake::new(vec![Ok((403, Value::Null)), Ok((403, Value::Null))]);
         assert!(session(&c, &t, "ely", &a).await.is_err());
         let s = crate::accounts::load_store(&c.path("accounts.json")).unwrap();
-        assert_eq!(s.accounts[0].secrets.as_ref().unwrap().mc_access_token, "OLD");
+        assert_eq!(
+            s.accounts[0].secrets.as_ref().unwrap().mc_access_token,
+            "OLD"
+        );
         let _ = fs::remove_dir_all(&c.data_dir);
     }
 }

@@ -29,7 +29,9 @@ pub fn check_target(
         return Err(bad("Эта папка внутри текущей папки сборок"));
     }
     if data_dir.starts_with(new) {
-        return Err(bad("В этой папке лежат данные лаунчера — выберите отдельную"));
+        return Err(bad(
+            "В этой папке лежат данные лаунчера — выберите отдельную",
+        ));
     }
     if new.exists() && !new.is_dir() {
         return Err(bad("По этому пути находится файл, а не папка"));
@@ -37,7 +39,8 @@ pub fn check_target(
     if let Some(d) = dirs.iter().find(|d| new.join(d).exists()) {
         return Err(CoreError::msg(format!("В новой папке уже есть «{d}»")));
     }
-    std::fs::create_dir_all(new).map_err(|e| CoreError::msg(format!("Не удалось создать папку: {e}")))?;
+    std::fs::create_dir_all(new)
+        .map_err(|e| CoreError::msg(format!("Не удалось создать папку: {e}")))?;
     let probe = new.join(".freedom-write-test");
     std::fs::write(&probe, b"ok").map_err(|_| bad("В эту папку нельзя записывать"))?;
     let _ = std::fs::remove_file(probe);
@@ -45,7 +48,9 @@ pub fn check_target(
 }
 
 fn size_of(p: &Path) -> u64 {
-    let Ok(m) = std::fs::symlink_metadata(p) else { return 0 };
+    let Ok(m) = std::fs::symlink_metadata(p) else {
+        return 0;
+    };
     if !m.is_dir() {
         return m.len();
     }
@@ -58,7 +63,13 @@ fn count_files(p: &Path) -> u64 {
     match std::fs::read_dir(p) {
         Ok(rd) => rd
             .flatten()
-            .map(|e| if e.path().is_dir() { count_files(&e.path()) } else { 1 })
+            .map(|e| {
+                if e.path().is_dir() {
+                    count_files(&e.path())
+                } else {
+                    1
+                }
+            })
             .sum(),
         Err(_) => 1,
     }

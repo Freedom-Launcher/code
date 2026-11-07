@@ -11,7 +11,10 @@ use fl_core::accounts::{self, Account, AccountKind, AccountStore, Secrets};
 #[test]
 #[ignore]
 fn secrets_leave_the_file_and_come_back() {
-    assert!(fl_core::keychain::available(), "no Secret Service on this session bus");
+    assert!(
+        fl_core::keychain::available(),
+        "no Secret Service on this session bus"
+    );
     let dir = std::env::temp_dir().join(format!("fl-kc-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("accounts.json");
@@ -33,10 +36,16 @@ fn secrets_leave_the_file_and_come_back() {
 
     // Nothing secret is left on disk...
     let on_disk = std::fs::read_to_string(&path).unwrap();
-    assert!(!on_disk.contains("SECRET-VALUE"), "secrets leaked into accounts.json: {on_disk}");
+    assert!(
+        !on_disk.contains("SECRET-VALUE"),
+        "secrets leaked into accounts.json: {on_disk}"
+    );
     // ...and they come back from the keychain.
     let back = accounts::load_store(&path).unwrap();
-    let sec = back.accounts[0].secrets.as_ref().expect("secrets read back");
+    let sec = back.accounts[0]
+        .secrets
+        .as_ref()
+        .expect("secrets read back");
     assert_eq!(sec.refresh_token, "REFRESH-SECRET-VALUE");
     assert_eq!(sec.mc_access_token, "ACCESS-SECRET-VALUE");
     assert_eq!(sec.mc_expires_at, 4_000_000_000);
@@ -45,7 +54,10 @@ fn secrets_leave_the_file_and_come_back() {
     let mut s = back;
     s.remove(&id);
     accounts::save_store(&path, &s).unwrap();
-    assert!(fl_core::keychain::get(&id).is_none(), "secrets must be deleted with the account");
+    assert!(
+        fl_core::keychain::get(&id).is_none(),
+        "secrets must be deleted with the account"
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -64,10 +76,17 @@ fn without_a_keychain_the_file_keeps_the_secrets() {
         name: "Steve".into(),
         uuid: "0f1e2d3c-4b5a-4978-8a69-5a4b3c2d1e0f".into(),
         owns_game: true,
-        secrets: Some(Secrets { refresh_token: "R".into(), mc_access_token: "A".into(), mc_expires_at: 4_000_000_000 }),
+        secrets: Some(Secrets {
+            refresh_token: "R".into(),
+            mc_access_token: "A".into(),
+            mc_expires_at: 4_000_000_000,
+        }),
     });
     accounts::save_store(&path, &s).unwrap();
     let back = accounts::load_store(&path).unwrap();
-    assert_eq!(back.accounts[0].secrets.as_ref().unwrap().mc_access_token, "A");
+    assert_eq!(
+        back.accounts[0].secrets.as_ref().unwrap().mc_access_token,
+        "A"
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }

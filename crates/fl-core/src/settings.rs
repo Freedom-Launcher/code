@@ -43,8 +43,19 @@ pub struct Settings {
 
 /// Tokens the color editor may set. Shades (hover, press, soft, on-accent) are derived by the UI.
 pub const COLOR_TOKENS: [&str; 13] = [
-    "accent", "bg", "surface-1", "surface-2", "surface-3", "text", "text-2", "text-3",
-    "line", "line-strong", "danger", "warn", "glass",
+    "accent",
+    "bg",
+    "surface-1",
+    "surface-2",
+    "surface-3",
+    "text",
+    "text-2",
+    "text-3",
+    "line",
+    "line-strong",
+    "danger",
+    "warn",
+    "glass",
 ];
 
 fn is_hex_color(v: &str) -> bool {
@@ -63,7 +74,9 @@ pub fn check_colors(m: &BTreeMap<String, BTreeMap<String, String>>) -> Result<()
                 return Err(format!("colors.{base}: неизвестный цвет «{k}»"));
             }
             if !is_hex_color(v) {
-                return Err(format!("colors.{base}.{k}: «{v}» — ожидается #rrggbb или #rrggbbaa"));
+                return Err(format!(
+                    "colors.{base}.{k}: «{v}» — ожидается #rrggbb или #rrggbbaa"
+                ));
             }
         }
     }
@@ -296,7 +309,10 @@ impl Look {
         one_of("density", &l.density, &["compact", "normal", "comfy"])?;
         l.ui_scale = ((l.ui_scale.clamp(80, 150) + 2) / 5 * 5).min(150);
         if ![10, 20, 50].contains(&l.per_page) {
-            return Err(format!("per_page: «{}» — ожидается 10, 20 или 50", l.per_page));
+            return Err(format!(
+                "per_page: «{}» — ожидается 10, 20 или 50",
+                l.per_page
+            ));
         }
         l.wall_blur = l.wall_blur.min(40);
         l.wall_zoom = l.wall_zoom.clamp(100, 300);
@@ -304,13 +320,26 @@ impl Look {
         l.wall_y = l.wall_y.min(100);
         l.glass_blur = l.glass_blur.min(60);
         l.glass_density = l.glass_density.min(100);
-        one_of("plate_font", &l.plate_font, &["ui", "system", "mono", "serif"])?;
+        one_of(
+            "plate_font",
+            &l.plate_font,
+            &["ui", "system", "mono", "serif"],
+        )?;
         l.menu_density = l.menu_density.min(100);
         l.menu_blur = l.menu_blur.min(60);
         l.plate_size = l.plate_size.clamp(80, 160);
         l.plate_weight = (l.plate_weight.clamp(400, 800) / 100) * 100;
-        one_of("ui_font", &l.ui_font, &["inter", "system", "serif", "mono", "custom"])?;
-        l.font_name = l.font_name.chars().filter(|c| !c.is_control()).take(64).collect();
+        one_of(
+            "ui_font",
+            &l.ui_font,
+            &["inter", "system", "serif", "mono", "custom"],
+        )?;
+        l.font_name = l
+            .font_name
+            .chars()
+            .filter(|c| !c.is_control())
+            .take(64)
+            .collect();
         Ok(l)
     }
 }
@@ -535,10 +564,14 @@ mod ui_more_tests {
 
     #[test]
     fn card_size_and_unhide() {
-        let u: UiCustom = serde_json::from_value(json!({ "size": { "card": 500 }, "els": { "home.recent": { "hide": false } } })).unwrap();
+        let u: UiCustom = serde_json::from_value(
+            json!({ "size": { "card": 500 }, "els": { "home.recent": { "hide": false } } }),
+        )
+        .unwrap();
         let u = u.checked().unwrap();
         assert_eq!(u.size["card"], 200);
-        let theme: UiCustom = serde_json::from_value(json!({ "els": { "home.recent": { "hide": true } } })).unwrap();
+        let theme: UiCustom =
+            serde_json::from_value(json!({ "els": { "home.recent": { "hide": true } } })).unwrap();
         assert_eq!(theme.layered(&u).els["home.recent"].hide, Some(false));
     }
 }
@@ -563,7 +596,12 @@ mod tests {
             |v: Value| serde_json::from_value::<UiCustom>(v).map_or(true, |u| u.checked().is_err());
         assert!(bad(json!({ "radius": { "x": 1 } })));
         assert!(bad(json!({ "layout": { "rail": "top" } })));
-        let ok = |v: Value| serde_json::from_value::<UiCustom>(v).unwrap().checked().unwrap();
+        let ok = |v: Value| {
+            serde_json::from_value::<UiCustom>(v)
+                .unwrap()
+                .checked()
+                .unwrap()
+        };
         let u = ok(json!({
             "size": { "btn": 120 },
             "els": { "a\"]{": { "radius": 4 }, "content.mods.Big Mod+1.jar": { "radius": 4 }, "home.recent": { "radius": 4 } },
@@ -574,7 +612,10 @@ mod tests {
         assert_eq!(u.order.keys().collect::<Vec<_>>(), ["nav"]);
         let u = ok(json!({ "els": { "home.recent": { "w": 10, "h": 9000, "x": -5000, "y": 0 } } }));
         let e = &u.els["home.recent"];
-        assert_eq!((e.w, e.h, e.x, e.y), (Some(24), Some(4000), Some(-4000), None));
+        assert_eq!(
+            (e.w, e.h, e.x, e.y),
+            (Some(24), Some(4000), Some(-4000), None)
+        );
         assert!(bad(json!({ "css": "x" })));
         assert!(bad(json!({ "els": { "x": { "bg": "red; x" } } })));
         assert!(bad(json!({ "els": { "x": { "border_color": "url(a)" } } })));
@@ -586,11 +627,18 @@ mod tests {
         let e = e.checked().unwrap();
         let a = &e.els["a"];
         assert_eq!(a.bg.as_deref(), Some("#ff0000aa"));
-        assert_eq!((a.opacity, a.bright, a.blur, a.shadow), (Some(10), Some(200), Some(12), Some(4)));
+        assert_eq!(
+            (a.opacity, a.bright, a.blur, a.shadow),
+            (Some(10), Some(200), Some(12), Some(4))
+        );
         assert!(!e.els.contains_key("b"), "neutral values are dropped");
-        let top: UiCustom = serde_json::from_value(json!({ "els": { "a": { "blur": 4 } } })).unwrap();
+        let top: UiCustom =
+            serde_json::from_value(json!({ "els": { "a": { "blur": 4 } } })).unwrap();
         let l = e.layered(&top);
-        assert_eq!((l.els["a"].blur, l.els["a"].bg.as_deref()), (Some(4), Some("#ff0000aa")));
+        assert_eq!(
+            (l.els["a"].blur, l.els["a"].bg.as_deref()),
+            (Some(4), Some("#ff0000aa"))
+        );
     }
 
     use super::*;
@@ -629,7 +677,9 @@ mod tests {
         let l = Look::default();
         assert_eq!(l.density, "normal");
         assert_eq!(l.ui_scale, 100);
-        let p = l.patch(&json!({"density": "compact", "ui_scale": 133})).unwrap();
+        let p = l
+            .patch(&json!({"density": "compact", "ui_scale": 133}))
+            .unwrap();
         assert_eq!(p.density, "compact");
         assert_eq!(p.ui_scale, 135);
         assert_eq!(l.patch(&json!({"ui_scale": 10})).unwrap().ui_scale, 80);
@@ -681,14 +731,32 @@ mod tests {
         let m = Look::default()
             .patch(&json!({"menu_density": 300, "menu_blur": 99, "plate_size": 10, "plate_weight": 950}))
             .unwrap();
-        assert_eq!((m.menu_density, m.menu_blur, m.plate_size, m.plate_weight), (100, 60, 80, 800));
-        assert!(Look::default().patch(&json!({"plate_font": "comic"})).is_err());
+        assert_eq!(
+            (m.menu_density, m.menu_blur, m.plate_size, m.plate_weight),
+            (100, 60, 80, 800)
+        );
+        assert!(Look::default()
+            .patch(&json!({"plate_font": "comic"}))
+            .is_err());
         let w = Look::default()
             .patch(&json!({"wall_zoom": 20, "wall_x": 140, "wall_y": 30}))
             .unwrap();
         assert_eq!((w.wall_zoom, w.wall_x, w.wall_y), (100, 100, 30));
-        assert_eq!(Look::default().patch(&json!({"wall_zoom": 999})).unwrap().wall_zoom, 300);
-        assert_eq!((Look::default().wall_zoom, Look::default().wall_x, Look::default().wall_y), (100, 50, 50));
+        assert_eq!(
+            Look::default()
+                .patch(&json!({"wall_zoom": 999}))
+                .unwrap()
+                .wall_zoom,
+            300
+        );
+        assert_eq!(
+            (
+                Look::default().wall_zoom,
+                Look::default().wall_x,
+                Look::default().wall_y
+            ),
+            (100, 50, 50)
+        );
     }
 
     #[test]

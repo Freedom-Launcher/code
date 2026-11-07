@@ -114,7 +114,11 @@ pub(crate) fn install_with(
         let dst = root.join(b.id);
         if dst.exists() && !mark.contains_key(b.id) {
             // Not ours. The same version copied by hand is adopted, anything else is the user's.
-            if fs::read(dst.join("addon.json")).ok().and_then(|j| version_of(&j)) == Some(v.clone()) {
+            if fs::read(dst.join("addon.json"))
+                .ok()
+                .and_then(|j| version_of(&j))
+                == Some(v.clone())
+            {
                 mark.insert(b.id.into(), v);
             }
             continue;
@@ -192,16 +196,26 @@ mod tests {
     fn leaves_a_foreign_folder_alone() {
         let d = tmp();
         fs::create_dir_all(d.join("addons/demo")).unwrap();
-        fs::write(d.join("addons/demo/addon.json"), r#"{"id":"demo","name":"Мой","version":"9.9"}"#).unwrap();
+        fs::write(
+            d.join("addons/demo/addon.json"),
+            r#"{"id":"demo","name":"Мой","version":"9.9"}"#,
+        )
+        .unwrap();
         assert!(install_with(&d, DEMO, &[]).unwrap().is_empty());
-        assert!(fs::read_to_string(d.join("addons/demo/addon.json")).unwrap().contains("9.9"));
+        assert!(fs::read_to_string(d.join("addons/demo/addon.json"))
+            .unwrap()
+            .contains("9.9"));
     }
 
     /// An Official-signed copy of a plugin as the launcher would have installed it.
     fn shipped(d: &Path) -> String {
         let root = d.join("addons/old");
         fs::create_dir_all(&root).unwrap();
-        fs::write(root.join("addon.json"), r#"{"id":"old","name":"Old","version":"1.0.0"}"#).unwrap();
+        fs::write(
+            root.join("addon.json"),
+            r#"{"id":"old","name":"Old","version":"1.0.0"}"#,
+        )
+        .unwrap();
         fs::write(root.join("index.html"), "<p>old</p>").unwrap();
         let s = signing::sign(&root, "old", Trust::Official, "test", &signing::TEST_SEED).unwrap();
         fs::write(root.join(signing::FILE), serde_json::to_string(&s).unwrap()).unwrap();
@@ -217,7 +231,11 @@ mod tests {
         fs::write(d.join(MARK), r#"{"old":"1.0.0"}"#).unwrap();
         fs::create_dir_all(d.join("addon-data/old")).unwrap();
         fs::write(d.join("addon-data/old/storage.json"), "{}").unwrap();
-        fs::write(d.join(addons::STATE), r#"{"addons":{"old":{"enabled":true},"keep":{"enabled":true}}}"#).unwrap();
+        fs::write(
+            d.join(addons::STATE),
+            r#"{"addons":{"old":{"enabled":true},"keep":{"enabled":true}}}"#,
+        )
+        .unwrap();
         install_with(&d, &[], &[("old", &sigs)]).unwrap();
         assert!(!d.join("addons/old").exists());
         assert!(!d.join("addon-data/old").exists());

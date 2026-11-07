@@ -223,8 +223,7 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
     if bytes.len() > 64 * 1024 {
         return Err("addon.json: слишком большой файл".into());
     }
-    let mut m: Manifest =
-        serde_json::from_slice(&bytes).map_err(|e| format!("addon.json: {e}"))?;
+    let mut m: Manifest = serde_json::from_slice(&bytes).map_err(|e| format!("addon.json: {e}"))?;
     if m.id != id {
         return Err("id в addon.json не совпадает с именем папки".into());
     }
@@ -285,7 +284,10 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
             p.entry = format!("{}.html", p.id);
         }
         if !safe_rel(&p.entry, &["html"]) || file(data_dir, id, &p.entry).is_none() {
-            return Err(format!("pages.entry: {} — нужен .html внутри папки", p.entry));
+            return Err(format!(
+                "pages.entry: {} — нужен .html внутри папки",
+                p.entry
+            ));
         }
     }
     if (!m.actions.is_empty() || !m.panels.is_empty())
@@ -312,7 +314,9 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
         }
         if a.places.is_empty()
             || a.places.len() > ACTION_PLACES.len()
-            || a.places.iter().any(|x| !ACTION_PLACES.contains(&x.as_str()))
+            || a.places
+                .iter()
+                .any(|x| !ACTION_PLACES.contains(&x.as_str()))
         {
             return Err(format!("actions.places: неизвестное место у {}", a.id));
         }
@@ -332,7 +336,10 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
             p.entry = format!("{}.html", p.id);
         }
         if !safe_rel(&p.entry, &["html"]) || file(data_dir, id, &p.entry).is_none() {
-            return Err(format!("panels.entry: {} — нужен .html внутри папки", p.entry));
+            return Err(format!(
+                "panels.entry: {} — нужен .html внутри папки",
+                p.entry
+            ));
         }
     }
     if let Some(o) = &m.launch_overlay {
@@ -434,7 +441,10 @@ pub fn install_zip(data_dir: &Path, zip_path: &Path) -> R<String> {
     let prefix = if names.iter().any(|n| n == "addon.json") {
         String::new()
     } else {
-        let top = names.first().and_then(|n| n.split('/').next()).unwrap_or_default();
+        let top = names
+            .first()
+            .and_then(|n| n.split('/').next())
+            .unwrap_or_default();
         let p = format!("{top}/");
         if top.is_empty()
             || !names.iter().all(|n| n.starts_with(&p))
@@ -552,22 +562,54 @@ mod install_tests {
         fs::create_dir_all(&d).unwrap();
         let z = d.join("p.zip");
         let m = r#"{"id":"ely-by","name":"Ely.by","permissions":["network"],"hosts":["authserver.ely.by"]}"#;
-        zip_of(&z, &[("plugin-elyby/addon.json", m), ("plugin-elyby/index.html", "<p>x</p>")]);
+        zip_of(
+            &z,
+            &[
+                ("plugin-elyby/addon.json", m),
+                ("plugin-elyby/index.html", "<p>x</p>"),
+            ],
+        );
         assert_eq!(install_zip(&d, &z).unwrap(), "ely-by");
         assert!(dir(&d).join("ely-by/index.html").is_file());
         // Reinstall replaces in place.
         zip_of(&z, &[("addon.json", m), ("index.html", "<p>y</p>")]);
         assert_eq!(install_zip(&d, &z).unwrap(), "ely-by");
-        assert_eq!(fs::read_to_string(dir(&d).join("ely-by/index.html")).unwrap(), "<p>y</p>");
+        assert_eq!(
+            fs::read_to_string(dir(&d).join("ely-by/index.html")).unwrap(),
+            "<p>y</p>"
+        );
         // Escaping paths and code files are refused; the installed copy stays.
-        zip_of(&z, &[("addon.json", m), ("index.html", "<p>z</p>"), ("../evil.html", "x")]);
+        zip_of(
+            &z,
+            &[
+                ("addon.json", m),
+                ("index.html", "<p>z</p>"),
+                ("../evil.html", "x"),
+            ],
+        );
         assert!(install_zip(&d, &z).is_err());
-        zip_of(&z, &[("addon.json", m), ("index.html", "<p>z</p>"), ("run.exe", "x")]);
+        zip_of(
+            &z,
+            &[
+                ("addon.json", m),
+                ("index.html", "<p>z</p>"),
+                ("run.exe", "x"),
+            ],
+        );
         assert!(install_zip(&d, &z).is_err());
         // A manifest that does not load is rolled back.
-        zip_of(&z, &[("addon.json", r#"{"id":"ely-by","name":""}"#), ("index.html", "<p>z</p>")]);
+        zip_of(
+            &z,
+            &[
+                ("addon.json", r#"{"id":"ely-by","name":""}"#),
+                ("index.html", "<p>z</p>"),
+            ],
+        );
         assert!(install_zip(&d, &z).is_err());
-        assert_eq!(fs::read_to_string(dir(&d).join("ely-by/index.html")).unwrap(), "<p>y</p>");
+        assert_eq!(
+            fs::read_to_string(dir(&d).join("ely-by/index.html")).unwrap(),
+            "<p>y</p>"
+        );
         // yggdrasil must be https on a listed host.
         let bad = r#"{"id":"ely-by","name":"E","permissions":["network"],"hosts":["authserver.ely.by"],
             "account_provider":{"label":"Ely.by","yggdrasil":"https://evil.example/api"}}"#;
@@ -610,7 +652,14 @@ mod install_tests {
         // Panel entry defaults to <id>.html.
         let def = r#"{"id":"demo-x","name":"Demo","permissions":["ui_pages"],
             "panels":[{"id":"note","place":"instance.overview"}]}"#;
-        zip_of(&z, &[("addon.json", def), ("index.html", "<p>x</p>"), ("note.html", "<p>n</p>")]);
+        zip_of(
+            &z,
+            &[
+                ("addon.json", def),
+                ("index.html", "<p>x</p>"),
+                ("note.html", "<p>n</p>"),
+            ],
+        );
         assert_eq!(install_zip(&d, &z).unwrap(), "demo-x");
         let _ = fs::remove_dir_all(&d);
     }

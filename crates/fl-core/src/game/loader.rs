@@ -70,7 +70,9 @@ pub async fn quilt_latest(core: &Core, game: &str) -> Result<String, CoreError> 
 
 /// Numeric sort key of a loader version ("0.16.10" → [0, 16, 10]).
 pub(super) fn ver_key(v: &str) -> Vec<u64> {
-    v.split(['.', '-', '+']).map(|p| p.parse().unwrap_or(0)).collect()
+    v.split(['.', '-', '+'])
+        .map(|p| p.parse().unwrap_or(0))
+        .collect()
 }
 
 /// Every loader build for a game version, newest first: `[{version, stable}]`.
@@ -84,7 +86,9 @@ pub async fn versions(core: &Core, loader: &str, game: &str) -> Result<Vec<Value
                 a.iter()
                     .filter_map(|e| {
                         let v = e["loader"]["version"].as_str()?;
-                        let st = e["loader"]["stable"].as_bool().unwrap_or_else(|| stable_guess(v));
+                        let st = e["loader"]["stable"]
+                            .as_bool()
+                            .unwrap_or_else(|| stable_guess(v));
                         Some((v.to_owned(), st))
                     })
                     .collect()
@@ -100,10 +104,13 @@ pub async fn versions(core: &Core, loader: &str, game: &str) -> Result<Vec<Value
             })
             .collect()
     };
-    out.sort_by(|a, b| ver_key(&b.0).cmp(&ver_key(&a.0)));
+    out.sort_by_key(|a| std::cmp::Reverse(ver_key(&a.0)));
     out.dedup_by(|a, b| a.0 == b.0);
     out.truncate(300);
-    Ok(out.into_iter().map(|(v, s)| json!({ "version": v, "stable": s })).collect())
+    Ok(out
+        .into_iter()
+        .map(|(v, s)| json!({ "version": v, "stable": s }))
+        .collect())
 }
 
 fn pick_quilt(list: &Value) -> Option<String> {

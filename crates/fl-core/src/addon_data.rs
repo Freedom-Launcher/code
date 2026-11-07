@@ -90,7 +90,9 @@ pub fn rel_ok(p: &str) -> bool {
                 && s.len() <= 120
                 && !s.ends_with('.')
                 && !s.ends_with(' ')
-                && !s.chars().any(|c| c.is_control() || "\\:<>\"|?*".contains(c))
+                && !s
+                    .chars()
+                    .any(|c| c.is_control() || "\\:<>\"|?*".contains(c))
         })
 }
 
@@ -237,7 +239,11 @@ pub(crate) fn register(r: &mut ActionRegistry) {
             path: String,
             text: String,
         }
-        let A { instance, path, text } = args(a)?;
+        let A {
+            instance,
+            path,
+            text,
+        } = args(a)?;
         if !writable(&path) {
             return Err(denied(format!("{path}: этот файл плагинам менять нельзя")));
         }
@@ -278,14 +284,36 @@ mod tests {
 
     #[test]
     fn paths() {
-        for ok in ["options.txt", "config/sodium.json", "saves/World 1/data/x.dat"] {
+        for ok in [
+            "options.txt",
+            "config/sodium.json",
+            "saves/World 1/data/x.dat",
+        ] {
             assert!(rel_ok(ok), "{ok}");
         }
-        for no in ["", "/etc/passwd", "../x", "a/../b", "a//b", "C:/x", "a\\b", "x.", "./a"] {
+        for no in [
+            "",
+            "/etc/passwd",
+            "../x",
+            "a/../b",
+            "a//b",
+            "C:/x",
+            "a\\b",
+            "x.",
+            "./a",
+        ] {
             assert!(!rel_ok(no), "{no}");
         }
         assert!(writable("config/sodium.json"));
-        for no in ["mods/a.txt", "Mods/x.json", "a.jar", "x/y.EXE", "kubejs/s.txt", "freedom-blocked.json", "s.js"] {
+        for no in [
+            "mods/a.txt",
+            "Mods/x.json",
+            "a.jar",
+            "x/y.EXE",
+            "kubejs/s.txt",
+            "freedom-blocked.json",
+            "s.js",
+        ] {
             assert!(!writable(no), "{no}");
         }
     }

@@ -54,7 +54,12 @@ async fn sweep() {
             total += 1;
             let gd = std::env::temp_dir().join(format!("fl-cfs-gd-{}", uuid::Uuid::new_v4()));
             std::fs::create_dir_all(&gd).unwrap();
-            let t = fl_core::mods::Target { game_dir: &gd, kind: *kind, mc, loaders };
+            let t = fl_core::mods::Target {
+                game_dir: &gd,
+                kind: *kind,
+                mc,
+                loaders,
+            };
             match fl_core::mods::install(&c, t, &h.project_id, None).await {
                 Ok(a) => println!("  ok   {} ({}) +{}", h.title, h.project_id, a.len()),
                 Err(e) => {
@@ -75,9 +80,18 @@ async fn sweep() {
                 let order = ["neoforge", "forge", "fabric", "quilt"];
                 match modrinth::pick_pack(&vs, &order) {
                     Some(v) => {
-                        let f = v.files.iter().find(|f| f.filename.ends_with(".zip") && curseforge::download_ok(&f.url));
+                        let f = v.files.iter().find(|f| {
+                            f.filename.ends_with(".zip") && curseforge::download_ok(&f.url)
+                        });
                         match f {
-                            Some(f) => println!("  ok   {} {} loaders={:?} {} {}MB", h.title, v.id, v.loaders, f.filename, f.size / 1_000_000),
+                            Some(f) => println!(
+                                "  ok   {} {} loaders={:?} {} {}MB",
+                                h.title,
+                                v.id,
+                                v.loaders,
+                                f.filename,
+                                f.size / 1_000_000
+                            ),
                             None => {
                                 fails += 1;
                                 println!("  FAIL {} {}: no pack zip; loaders={:?} files={:?} versions={}", h.title, v.id, v.loaders, v.files.iter().map(|f| &f.filename).collect::<Vec<_>>(), vs.len());

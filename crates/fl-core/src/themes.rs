@@ -376,8 +376,14 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
         let html = read_text(data_dir, id, t, 128 * 1024)?;
         check_template(&html)?;
         // All screens live inside `main`: a shell without it would be an empty window.
-        if screen == "shell" && !html.contains("data-use=\"main\"") && !html.contains("data-use='main'") {
-            return Err("templates: в shell нужен <div data-use=\"main\"></div>, иначе экранов не будет".into());
+        if screen == "shell"
+            && !html.contains("data-use=\"main\"")
+            && !html.contains("data-use='main'")
+        {
+            return Err(
+                "templates: в shell нужен <div data-use=\"main\"></div>, иначе экранов не будет"
+                    .into(),
+            );
         }
     }
     Ok(m)
@@ -759,7 +765,11 @@ fn collect(d: &Path, pre: &str, depth: u8, out: &mut Vec<String>) -> std::io::Re
     es.sort_by_key(|e| e.file_name());
     for e in es {
         let name = e.file_name().to_string_lossy().into_owned();
-        let rel = if pre.is_empty() { name } else { format!("{pre}/{name}") };
+        let rel = if pre.is_empty() {
+            name
+        } else {
+            format!("{pre}/{name}")
+        };
         let t = e.file_type()?;
         if t.is_symlink() {
             continue;
@@ -802,11 +812,22 @@ mod install_tests {
         // One top folder, with macOS litter around it.
         zip_of(
             &z,
-            &[("neon/theme.json", M), ("neon/theme.css", "a{color:red}"), ("__MACOSX/neon/._theme.css", "x")],
+            &[
+                ("neon/theme.json", M),
+                ("neon/theme.css", "a{color:red}"),
+                ("__MACOSX/neon/._theme.css", "x"),
+            ],
         );
         assert_eq!(install_zip(&d, &z).unwrap(), "neon");
         // Flat layout replaces in place.
-        zip_of(&z, &[("theme.json", M), ("theme.css", "a{color:blue}"), ("README.md", "hi")]);
+        zip_of(
+            &z,
+            &[
+                ("theme.json", M),
+                ("theme.css", "a{color:blue}"),
+                ("README.md", "hi"),
+            ],
+        );
         assert_eq!(install_zip(&d, &z).unwrap(), "neon");
         assert!(css(&d).contains("blue"));
         // A broken update keeps the working theme.
@@ -816,9 +837,23 @@ mod install_tests {
         // Built-in ids, escaping paths, scripts and non-archives are refused.
         zip_of(&z, &[("theme.json", r#"{"id":"default","name":"x"}"#)]);
         assert!(install_zip(&d, &z).is_err());
-        zip_of(&z, &[("theme.json", M), ("theme.css", "a{}"), ("../evil.css", "a{}")]);
+        zip_of(
+            &z,
+            &[
+                ("theme.json", M),
+                ("theme.css", "a{}"),
+                ("../evil.css", "a{}"),
+            ],
+        );
         assert!(install_zip(&d, &z).is_err());
-        zip_of(&z, &[("theme.json", M), ("theme.css", "a{}"), ("x.js", "alert(1)")]);
+        zip_of(
+            &z,
+            &[
+                ("theme.json", M),
+                ("theme.css", "a{}"),
+                ("x.js", "alert(1)"),
+            ],
+        );
         assert!(install_zip(&d, &z).is_err());
         zip_of(&z, &[("readme.txt", "no manifest")]);
         assert!(install_zip(&d, &z).is_err());
@@ -865,15 +900,17 @@ mod save_tests {
         assert!(save(&d, "default", "  ", UiCustom::default(), BTreeMap::new()).is_err());
         let t: BTreeMap<String, String> = [
             ("--accent".to_string(), "#ff8800".to_string()),
-            ("--glass".to_string(), "rgba(14, 16, 22, var(--glass-a))".to_string()),
+            (
+                "--glass".to_string(),
+                "rgba(14, 16, 22, var(--glass-a))".to_string(),
+            ),
         ]
         .into();
         let id3 = save(&d, "default", "Цвета", UiCustom::default(), t).unwrap();
         let m3 = load(&d, &id3).unwrap();
         assert_eq!(m3.tokens["--accent"], "#ff8800");
         assert!(m3.tokens["--glass"].contains("var(--glass-a)"));
-        let bad: BTreeMap<String, String> =
-            [("--accent".to_string(), "url(x)".to_string())].into();
+        let bad: BTreeMap<String, String> = [("--accent".to_string(), "url(x)".to_string())].into();
         assert!(save(&d, "default", "Плохо", UiCustom::default(), bad).is_err());
         let _ = fs::remove_dir_all(&d);
     }

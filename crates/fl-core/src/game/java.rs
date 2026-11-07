@@ -297,18 +297,28 @@ fn pick_package(v: &serde_json::Value) -> Result<Package, CoreError> {
         return Err(CoreError::msg("Adoptium: no https download link for Java"));
     }
     if sha.len() != 64 || !sha.bytes().all(|b| b.is_ascii_hexdigit()) {
-        return Err(CoreError::msg("Adoptium: no SHA-256 for the Java archive, refusing to unpack it"));
+        return Err(CoreError::msg(
+            "Adoptium: no SHA-256 for the Java archive, refusing to unpack it",
+        ));
     }
-    Ok(Package { link: link.to_owned(), sha256: sha.to_ascii_lowercase(), size: p["size"].as_u64() })
+    Ok(Package {
+        link: link.to_owned(),
+        sha256: sha.to_ascii_lowercase(),
+        size: p["size"].as_u64(),
+    })
 }
 
 fn verify_package(bytes: &[u8], p: &Package) -> Result<(), CoreError> {
     use sha2::{Digest, Sha256};
     if p.size.is_some_and(|s| s != bytes.len() as u64) {
-        return Err(CoreError::msg("Java archive has the wrong size, download again"));
+        return Err(CoreError::msg(
+            "Java archive has the wrong size, download again",
+        ));
     }
     if crate::signing::hex(&Sha256::digest(bytes)) != p.sha256 {
-        return Err(CoreError::msg("Java archive checksum does not match Adoptium's, refusing to unpack it"));
+        return Err(CoreError::msg(
+            "Java archive checksum does not match Adoptium's, refusing to unpack it",
+        ));
     }
     Ok(())
 }
@@ -420,9 +430,9 @@ mod temurin_tests {
     #[test]
     fn no_proof_no_download() {
         for bad in [
-            answer("http://example.org/x.zip", SUM),   // plain http
-            answer("https://example.org/x.zip", ""),     // no checksum
-            answer("https://example.org/x.zip", "abc"),  // not a SHA-256
+            answer("http://example.org/x.zip", SUM),    // plain http
+            answer("https://example.org/x.zip", ""),    // no checksum
+            answer("https://example.org/x.zip", "abc"), // not a SHA-256
             answer("https://example.org/x.zip", &"z".repeat(64)), // not hex
             json!([]),
             json!({"message": "nope"}),
@@ -435,10 +445,20 @@ mod temurin_tests {
     fn the_archive_must_match_checksum_and_size() {
         let p = pick_package(&answer("https://example.org/x.zip", SUM)).unwrap();
         assert!(verify_package(b"test", &p).is_ok());
-        assert!(verify_package(b"tesx", &p).unwrap_err().to_string().contains("checksum"));
-        assert!(verify_package(b"test!", &p).unwrap_err().to_string().contains("size"));
+        assert!(verify_package(b"tesx", &p)
+            .unwrap_err()
+            .to_string()
+            .contains("checksum"));
+        assert!(verify_package(b"test!", &p)
+            .unwrap_err()
+            .to_string()
+            .contains("size"));
         // Uppercase hex from the server is the same sum.
-        let up = pick_package(&answer("https://example.org/x.zip", &SUM.to_ascii_uppercase())).unwrap();
+        let up = pick_package(&answer(
+            "https://example.org/x.zip",
+            &SUM.to_ascii_uppercase(),
+        ))
+        .unwrap();
         assert!(verify_package(b"test", &up).is_ok());
         assert_eq!(crate::signing::hex(&Sha256::digest(b"test")), SUM);
     }

@@ -162,11 +162,19 @@ impl<'a> Rd<'a> {
             }
             11 => {
                 let n = self.len(4)?;
-                Tag::IntArray((0..n).map(|_| i32::from_be_bytes(self.arr().unwrap())).collect())
+                Tag::IntArray(
+                    (0..n)
+                        .map(|_| i32::from_be_bytes(self.arr().unwrap()))
+                        .collect(),
+                )
             }
             12 => {
                 let n = self.len(8)?;
-                Tag::LongArray((0..n).map(|_| i64::from_be_bytes(self.arr().unwrap())).collect())
+                Tag::LongArray(
+                    (0..n)
+                        .map(|_| i64::from_be_bytes(self.arr().unwrap()))
+                        .collect(),
+                )
             }
             _ => return Err(format!("bad tag {id}")),
         })
@@ -234,8 +242,6 @@ fn put_payload(o: &mut Vec<u8>, t: &Tag) {
     }
 }
 
-
-
 /// Java's "modified UTF-8": NUL as C0 80, characters outside the BMP as two 3-byte surrogates.
 fn mutf8_decode(b: &[u8]) -> String {
     let mut u = Vec::with_capacity(b.len());
@@ -249,7 +255,11 @@ fn mutf8_decode(b: &[u8]) -> String {
             u.push(((c as u16 & 0x1f) << 6) | (b[i + 1] as u16 & 0x3f));
             i += 2;
         } else if c & 0xf0 == 0xe0 && i + 2 < b.len() {
-            u.push(((c as u16 & 0x0f) << 12) | ((b[i + 1] as u16 & 0x3f) << 6) | (b[i + 2] as u16 & 0x3f));
+            u.push(
+                ((c as u16 & 0x0f) << 12)
+                    | ((b[i + 1] as u16 & 0x3f) << 6)
+                    | (b[i + 2] as u16 & 0x3f),
+            );
             i += 3;
         } else {
             u.push(0xfffd);
@@ -372,7 +382,9 @@ pub fn valid_address(a: &str) -> bool {
     !a.is_empty()
         && a.len() <= 255
         && !a.starts_with('-')
-        && !a.chars().any(|c| c.is_whitespace() || c.is_control() || c == '/' || c == '\\')
+        && !a
+            .chars()
+            .any(|c| c.is_whitespace() || c.is_control() || c == '/' || c == '\\')
         && split(a).is_some()
 }
 
@@ -396,7 +408,10 @@ pub fn split(a: &str) -> Option<(String, Option<u16>)> {
             (!h.is_empty()).then_some(())?;
             Some((h.to_owned(), Some(port(p)?)))
         }
-        _ => a.parse::<std::net::Ipv6Addr>().ok().map(|_| (a.to_owned(), None)),
+        _ => a
+            .parse::<std::net::Ipv6Addr>()
+            .ok()
+            .map(|_| (a.to_owned(), None)),
     }
 }
 
@@ -409,7 +424,11 @@ pub fn check(name: &str, ip: &str) -> Result<(String, String), CoreError> {
         return Err(CoreError::msg("Неверный адрес сервера"));
     }
     let name = name.trim();
-    let name: String = if name.is_empty() { "Сервер Minecraft".into() } else { name.chars().take(64).collect() };
+    let name: String = if name.is_empty() {
+        "Сервер Minecraft".into()
+    } else {
+        name.chars().take(64).collect()
+    };
     Ok((name, ip.to_owned()))
 }
 
@@ -418,7 +437,13 @@ fn stale() -> CoreError {
 }
 
 /// Adds a server (`index` None) or edits the one at `index`, which must still have `ip_was`.
-pub fn save(gd: &Path, index: Option<usize>, ip_was: Option<&str>, name: &str, ip: &str) -> Result<Server, CoreError> {
+pub fn save(
+    gd: &Path,
+    index: Option<usize>,
+    ip_was: Option<&str>,
+    name: &str,
+    ip: &str,
+) -> Result<Server, CoreError> {
     let (name, ip) = check(name, ip)?;
     let (root_name, mut root) = read_root(gd)?;
     let list = entries_mut(&mut root);
@@ -538,20 +563,32 @@ impl From<io::Error> for Fail {
 async fn srv(http: &reqwest::Client, host: &str) -> Option<(String, u16)> {
     let url = reqwest::Url::parse_with_params(
         "https://cloudflare-dns.com/dns-query",
-        &[("name", format!("_minecraft._tcp.{host}")), ("type", "SRV".into())],
+        &[
+            ("name", format!("_minecraft._tcp.{host}")),
+            ("type", "SRV".into()),
+        ],
     )
     .ok()?;
-    let req = http.get(url).header("accept", "application/dns-json").send();
-    let v: Value = tokio::time::timeout(Duration::from_secs(3), async { req.await.ok()?.json().await.ok() })
-        .await
-        .ok()??;
+    let req = http
+        .get(url)
+        .header("accept", "application/dns-json")
+        .send();
+    let v: Value = tokio::time::timeout(Duration::from_secs(3), async {
+        req.await.ok()?.json().await.ok()
+    })
+    .await
+    .ok()??;
     v["Answer"]
         .as_array()?
         .iter()
         .filter(|a| a["type"] == 33)
         .filter_map(|a| {
             let d: Vec<&str> = a["data"].as_str()?.split_whitespace().collect();
-            let (prio, port, target) = (d.first()?.parse::<u32>().ok()?, d.get(2)?.parse::<u16>().ok()?, d.get(3)?);
+            let (prio, port, target) = (
+                d.first()?.parse::<u32>().ok()?,
+                d.get(2)?.parse::<u16>().ok()?,
+                d.get(3)?,
+            );
             let target = target.trim_end_matches('.');
             (!target.is_empty() && port != 0).then(|| (prio, target.to_owned(), port))
         })
@@ -560,7 +597,9 @@ async fn srv(http: &reqwest::Client, host: &str) -> Option<(String, u16)> {
 }
 
 async fn status(host: &str, port: u16) -> Result<(Value, u64), Fail> {
-    let mut s = TcpStream::connect((host, port)).await.map_err(|_| Fail::Connect)?;
+    let mut s = TcpStream::connect((host, port))
+        .await
+        .map_err(|_| Fail::Connect)?;
     let _ = s.set_nodelay(true);
     let mut hs = Vec::new();
     varint(-1, &mut hs);
@@ -589,16 +628,28 @@ async fn status(host: &str, port: u16) -> Result<(Value, u64), Fail> {
         let r = read_packet(&mut s).await.ok()?;
         (r.first() == Some(&1)).then(|| t1.elapsed().as_millis() as u64)
     };
-    let ms = tokio::time::timeout(Duration::from_millis(1500), pong).await.ok().flatten().unwrap_or(status_ms);
+    let ms = tokio::time::timeout(Duration::from_millis(1500), pong)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(status_ms);
     Ok((v, ms))
 }
 
 fn shape(v: &Value, ms: u64) -> Value {
     let sample: Vec<Value> = v["players"]["sample"]
         .as_array()
-        .map(|a| a.iter().filter_map(|p| p["name"].as_str()).take(12).map(Value::from).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|p| p["name"].as_str())
+                .take(12)
+                .map(Value::from)
+                .collect()
+        })
         .unwrap_or_default();
-    let fav = v["favicon"].as_str().filter(|f| f.len() < 200_000 && f.starts_with("data:image/"));
+    let fav = v["favicon"]
+        .as_str()
+        .filter(|f| f.len() < 200_000 && f.starts_with("data:image/"));
     json!({
         "online": true,
         "latency_ms": ms,
@@ -628,7 +679,9 @@ pub async fn ping(http: &reqwest::Client, addr: &str) -> Value {
     };
     match tokio::time::timeout(Duration::from_secs(6), work).await {
         Ok(Ok((v, ms))) => shape(&v, ms),
-        Ok(Err(Fail::Connect)) => json!({ "online": false, "error": "Не удалось подключиться к серверу" }),
+        Ok(Err(Fail::Connect)) => {
+            json!({ "online": false, "error": "Не удалось подключиться к серверу" })
+        }
         Ok(Err(Fail::Bad)) => json!({ "online": false, "error": "Сервер ответил непонятно" }),
         Err(_) => json!({ "online": false, "error": "Сервер не отвечает" }),
     }
@@ -647,11 +700,17 @@ mod tests {
     #[test]
     fn nbt_roundtrip() {
         let t = Tag::Compound(vec![
-            ("servers".into(), Tag::List(10, vec![Tag::Compound(vec![
-                ("name".into(), Tag::String("Привет \u{0} 𝄞".into())),
-                ("ip".into(), Tag::String("mc.example.com".into())),
-                ("hidden".into(), Tag::Byte(0)),
-            ])])),
+            (
+                "servers".into(),
+                Tag::List(
+                    10,
+                    vec![Tag::Compound(vec![
+                        ("name".into(), Tag::String("Привет \u{0} 𝄞".into())),
+                        ("ip".into(), Tag::String("mc.example.com".into())),
+                        ("hidden".into(), Tag::Byte(0)),
+                    ])],
+                ),
+            ),
             ("n".into(), Tag::LongArray(vec![1, -2])),
             ("e".into(), Tag::List(0, vec![])),
             ("d".into(), Tag::Double(1.5)),
@@ -694,9 +753,23 @@ mod tests {
         assert_eq!(l[0].name, "Сервер Minecraft");
         assert_eq!(l[0].icon.as_deref(), Some("AAAA"));
         // Renaming keeps the icon, a new address drops it.
-        let s = save(&d, Some(0), Some("play.example.org"), "One", "play.example.org").unwrap();
+        let s = save(
+            &d,
+            Some(0),
+            Some("play.example.org"),
+            "One",
+            "play.example.org",
+        )
+        .unwrap();
         assert_eq!(s.icon.as_deref(), Some("AAAA"));
-        let s = save(&d, Some(0), Some("play.example.org"), "One", "other.example.org").unwrap();
+        let s = save(
+            &d,
+            Some(0),
+            Some("play.example.org"),
+            "One",
+            "other.example.org",
+        )
+        .unwrap();
         assert_eq!(s.icon, None);
         assert!(save(&d, Some(0), Some("play.example.org"), "x", "y.org").is_err());
         assert!(remove(&d, 1, "nope").is_err());
@@ -762,6 +835,9 @@ mod tests {
         drop(closed);
         let v = ping(&reqwest::Client::new(), &format!("127.0.0.1:{cp}")).await;
         assert_eq!(v["online"], false);
-        assert_eq!(ping(&reqwest::Client::new(), "bad addr").await["online"], false);
+        assert_eq!(
+            ping(&reqwest::Client::new(), "bad addr").await["online"],
+            false
+        );
     }
 }

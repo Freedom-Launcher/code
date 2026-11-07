@@ -77,6 +77,9 @@ impl Permission {
     /// changes how much the launcher trusts it (what the consent dialog says, what the
     /// catalog shows), never which rights exist for it.
     pub fn reserved(self) -> bool {
-        matches!(self, Permission::Internal | Permission::Process | Permission::Servers)
+        matches!(
+            self,
+            Permission::Internal | Permission::Process | Permission::Servers
+        )
     }
 }

@@ -65,7 +65,8 @@ async fn main() {
         resolution: None,
     };
     let args = launch::build_args(&v, &env, &layout, &auth, &opts);
-    let mut child = launch::spawn(&exe, &args, &opts.game_dir, None, &Default::default()).expect("spawn");
+    let mut child =
+        launch::spawn(&exe, &args, &opts.game_dir, None, &Default::default()).expect("spawn");
     std::thread::sleep(std::time::Duration::from_secs(25));
     println!(
         "game still running after 25 s: {}",

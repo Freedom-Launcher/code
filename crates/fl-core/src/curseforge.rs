@@ -301,7 +301,9 @@ pub struct CfHash {
 fn sha1_of(hashes: &[CfHash]) -> String {
     hashes
         .iter()
-        .find(|h| h.algo == 1 && h.value.len() == 40 && h.value.bytes().all(|b| b.is_ascii_hexdigit()))
+        .find(|h| {
+            h.algo == 1 && h.value.len() == 40 && h.value.bytes().all(|b| b.is_ascii_hexdigit())
+        })
         .map(|h| h.value.to_ascii_lowercase())
         .unwrap_or_default()
 }
@@ -314,7 +316,10 @@ pub fn to_version(f: CfFile) -> Version {
     let mut games = Vec::new();
     for g in &f.game_versions {
         let l = g.to_ascii_lowercase();
-        if matches!(l.as_str(), "forge" | "fabric" | "quilt" | "neoforge" | "iris" | "optifine") {
+        if matches!(
+            l.as_str(),
+            "forge" | "fabric" | "quilt" | "neoforge" | "iris" | "optifine"
+        ) {
             if !loaders.contains(&l) {
                 loaders.push(l);
             }
@@ -326,7 +331,9 @@ pub fn to_version(f: CfFile) -> Version {
         loaders = if f.file_name.ends_with(".jar") {
             vec!["forge".into()]
         } else {
-            ["minecraft", "datapack", "iris", "optifine"].map(String::from).to_vec()
+            ["minecraft", "datapack", "iris", "optifine"]
+                .map(String::from)
+                .to_vec()
         };
     }
     let version_type = match f.release_type {
@@ -359,7 +366,9 @@ pub fn to_version(f: CfFile) -> Version {
             filename: f.file_name.clone(),
             primary: true,
             size: f.file_length,
-            hashes: Hashes { sha1: sha1_of(&f.hashes) },
+            hashes: Hashes {
+                sha1: sha1_of(&f.hashes),
+            },
         })
         .into_iter()
         .collect();
@@ -368,7 +377,11 @@ pub fn to_version(f: CfFile) -> Version {
         .rsplit_once('.')
         .map_or(f.file_name.as_str(), |(a, _)| a)
         .to_owned();
-    let name = if f.display_name.trim().is_empty() { f.file_name.clone() } else { f.display_name };
+    let name = if f.display_name.trim().is_empty() {
+        f.file_name.clone()
+    } else {
+        f.display_name
+    };
     Version {
         id: cid(f.id),
         project_id: cid(f.mod_id),
@@ -388,17 +401,26 @@ pub fn to_version(f: CfFile) -> Version {
 pub fn icon(m: &CfMod) -> Option<String> {
     m.logo
         .as_ref()
-        .map(|l| if l.thumbnail_url.is_empty() { l.url.clone() } else { l.thumbnail_url.clone() })
+        .map(|l| {
+            if l.thumbnail_url.is_empty() {
+                l.url.clone()
+            } else {
+                l.thumbnail_url.clone()
+            }
+        })
         .filter(|u| u.starts_with("https://"))
 }
 
 pub fn author(m: &CfMod) -> Option<Author> {
-    m.authors.first().filter(|a| !a.name.is_empty()).map(|a| Author {
-        id: cid(a.id),
-        name: a.name.clone(),
-        avatar: None,
-        org: false,
-    })
+    m.authors
+        .first()
+        .filter(|a| !a.name.is_empty())
+        .map(|a| Author {
+            id: cid(a.id),
+            name: a.name.clone(),
+            avatar: None,
+            org: false,
+        })
 }
 
 fn to_hit(m: &CfMod) -> Hit {
@@ -407,8 +429,16 @@ fn to_hit(m: &CfMod) -> Hit {
         slug: m.slug.clone(),
         title: m.name.clone(),
         description: m.summary.clone(),
-        author: m.authors.first().map(|a| a.name.clone()).unwrap_or_default(),
-        author_id: m.authors.first().map(|a| a.id.to_string()).unwrap_or_default(),
+        author: m
+            .authors
+            .first()
+            .map(|a| a.name.clone())
+            .unwrap_or_default(),
+        author_id: m
+            .authors
+            .first()
+            .map(|a| a.id.to_string())
+            .unwrap_or_default(),
         icon_url: icon(m),
         downloads: m.download_count.max(0.0) as u64,
         follows: m.thumbs_up_count,
@@ -492,7 +522,9 @@ fn to_page(m: CfMod, body: String) -> ProjectPage {
 // ---------- Requests ----------
 
 fn need_key() -> Result<String, CoreError> {
-    key().ok_or_else(|| CoreError::msg("CurseForge недоступен: в этой сборке лаунчера нет ключа API"))
+    key().ok_or_else(|| {
+        CoreError::msg("CurseForge недоступен: в этой сборке лаунчера нет ключа API")
+    })
 }
 
 async fn get<T: DeserializeOwned>(core: &Core, url: &str) -> Result<T, CoreError> {
@@ -564,7 +596,10 @@ pub async fn search(core: &Core, q: &modrinth::Query<'_>) -> Result<SearchPage, 
             }
         }
         if !types.is_empty() {
-            url.push_str(&format!("&modLoaderTypes={}", encode(&json!(types).to_string())));
+            url.push_str(&format!(
+                "&modLoaderTypes={}",
+                encode(&json!(types).to_string())
+            ));
         }
     }
     if !q.categories.is_empty() {
@@ -603,8 +638,11 @@ pub async fn categories(core: &Core, kind: Kind) -> Result<Vec<Category>, CoreEr
     if let Some(v) = cached {
         return Ok(v);
     }
-    let r: Resp<Vec<Category>> =
-        get(core, &format!("{API}/categories?gameId={GAME}&classId={class}")).await?;
+    let r: Resp<Vec<Category>> = get(
+        core,
+        &format!("{API}/categories?gameId={GAME}&classId={class}"),
+    )
+    .await?;
     let v: Vec<Category> = r
         .data
         .into_iter()
@@ -621,10 +659,13 @@ pub fn category_rows(kind: Kind, cats: &[Category]) -> Vec<Value> {
     let class = u64::from(class_id(kind));
     let by: HashMap<u64, &Category> = cats.iter().map(|c| (c.id, c)).collect();
     let mut rows: Vec<&Category> = cats.iter().collect();
-    rows.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    rows.sort_by_key(|a| a.name.to_lowercase());
     rows.into_iter()
         .map(|c| {
-            let parent = c.parent_category_id.filter(|p| *p != class).and_then(|p| by.get(&p));
+            let parent = c
+                .parent_category_id
+                .filter(|p| *p != class)
+                .and_then(|p| by.get(&p));
             let (h, hl) = parent.map_or(("categories", ""), |p| (p.slug.as_str(), p.name.as_str()));
             json!({ "name": c.slug, "label": c.name, "header": h, "header_label": hl })
         })
@@ -658,8 +699,11 @@ pub async fn project_versions(core: &Core, id: &str) -> Result<Vec<Version>, Cor
     let mut out = Vec::new();
     let mut index = 0usize;
     loop {
-        let r: Resp<Vec<CfFile>> =
-            get(core, &format!("{API}/mods/{n}/files?index={index}&pageSize=50")).await?;
+        let r: Resp<Vec<CfFile>> = get(
+            core,
+            &format!("{API}/mods/{n}/files?index={index}&pageSize=50"),
+        )
+        .await?;
         let got = r.data.len();
         out.extend(r.data.into_iter().map(to_version));
         index += 50;
@@ -686,7 +730,11 @@ pub async fn versions(
             types.push(t);
         }
     }
-    let gv = if mc.is_empty() { String::new() } else { format!("&gameVersion={}", encode(mc)) };
+    let gv = if mc.is_empty() {
+        String::new()
+    } else {
+        format!("&gameVersion={}", encode(mc))
+    };
     let urls: Vec<String> = if types.is_empty() {
         vec![format!("{API}/mods/{n}/files?pageSize=50{gv}")]
     } else {
@@ -695,10 +743,9 @@ pub async fn versions(
             .map(|t| format!("{API}/mods/{n}/files?pageSize=50{gv}&modLoaderType={t}"))
             .collect()
     };
-    let pages = futures_util::future::try_join_all(
-        urls.iter().map(|u| get::<Resp<Vec<CfFile>>>(core, u)),
-    )
-    .await?;
+    let pages =
+        futures_util::future::try_join_all(urls.iter().map(|u| get::<Resp<Vec<CfFile>>>(core, u)))
+            .await?;
     let mut seen = HashSet::new();
     let mut out: Vec<Version> = pages
         .into_iter()
@@ -741,7 +788,8 @@ pub async fn by_author(core: &Core, author: u64) -> Result<Vec<CfMod>, CoreError
 pub async fn mods(core: &Core, ids: &[u64]) -> Result<Vec<CfMod>, CoreError> {
     let mut out = Vec::new();
     for chunk in ids.chunks(500) {
-        let r: Resp<Vec<CfMod>> = post(core, &format!("{API}/mods"), json!({ "modIds": chunk })).await?;
+        let r: Resp<Vec<CfMod>> =
+            post(core, &format!("{API}/mods"), json!({ "modIds": chunk })).await?;
         out.extend(r.data);
     }
     Ok(out)
@@ -750,8 +798,12 @@ pub async fn mods(core: &Core, ids: &[u64]) -> Result<Vec<CfMod>, CoreError> {
 async fn files(core: &Core, ids: &[u64]) -> Result<Vec<CfFile>, CoreError> {
     let mut out = Vec::new();
     for chunk in ids.chunks(500) {
-        let r: Resp<Vec<CfFile>> =
-            post(core, &format!("{API}/mods/files"), json!({ "fileIds": chunk })).await?;
+        let r: Resp<Vec<CfFile>> = post(
+            core,
+            &format!("{API}/mods/files"),
+            json!({ "fileIds": chunk }),
+        )
+        .await?;
         out.extend(r.data);
     }
     Ok(out)
@@ -813,7 +865,9 @@ pub fn is_pack<R: Read + Seek>(z: &mut zip::ZipArchive<R>) -> bool {
 }
 
 pub fn read_manifest<R: Read + Seek>(z: &mut zip::ZipArchive<R>) -> Result<Manifest, CoreError> {
-    let mut e = z.by_name(MANIFEST).map_err(|_| bad("Это не сборка CurseForge"))?;
+    let mut e = z
+        .by_name(MANIFEST)
+        .map_err(|_| bad("Это не сборка CurseForge"))?;
     let mut s = String::new();
     e.by_ref().take(16 << 20).read_to_string(&mut s)?;
     let m: Manifest =
@@ -826,18 +880,24 @@ pub fn read_manifest<R: Read + Seek>(z: &mut zip::ZipArchive<R>) -> Result<Manif
 
 /// The pack's loader: `forge-47.2.0`, `neoforge-21.1.77`, `fabric-0.16.9`…
 pub fn pack_loader(m: &Manifest) -> Result<(String, String), CoreError> {
-    let l = m.minecraft.mod_loaders.iter().find(|l| l.primary).or(m.minecraft.mod_loaders.first());
+    let l = m
+        .minecraft
+        .mod_loaders
+        .iter()
+        .find(|l| l.primary)
+        .or(m.minecraft.mod_loaders.first());
     let Some(l) = l else {
         return Ok(("vanilla".into(), String::new()));
     };
-    let (name, ver) = l
-        .id
-        .split_once('-')
-        .ok_or_else(|| bad(format!("Неизвестный загрузчик: {}", l.id)))?;
+    let (name, ver) =
+        l.id.split_once('-')
+            .ok_or_else(|| bad(format!("Неизвестный загрузчик: {}", l.id)))?;
     let name = name.to_ascii_lowercase();
     let ok = !ver.is_empty()
         && ver.len() <= 64
-        && ver.bytes().all(|b| b.is_ascii_alphanumeric() || b".-+_".contains(&b));
+        && ver
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b".-+_".contains(&b));
     if loader_type(&name).is_none() || !ok {
         return Err(bad(format!("Неизвестный загрузчик: {}", l.id)));
     }
@@ -910,8 +970,12 @@ pub async fn pack_plan(core: &Core, m: Manifest) -> Result<Plan, CoreError> {
         {
             return Err(bad(format!("Недопустимое имя файла: {name}")));
         }
-        let rel_s = format!("{}/{name}", folder_for(meta.map_or(0, |m| m.class_id), &name));
-        let rel = mrpack::safe_rel(&rel_s).ok_or_else(|| bad(format!("Недопустимый путь: {rel_s}")))?;
+        let rel_s = format!(
+            "{}/{name}",
+            folder_for(meta.map_or(0, |m| m.class_id), &name)
+        );
+        let rel =
+            mrpack::safe_rel(&rel_s).ok_or_else(|| bad(format!("Недопустимый путь: {rel_s}")))?;
         let (fid, mod_id, flen, fsha) = (f.id, f.mod_id, f.file_length, sha1_of(&f.hashes));
         let v = to_version(f);
         let source = Source {
@@ -976,7 +1040,12 @@ pub async fn pack_plan(core: &Core, m: Manifest) -> Result<Plan, CoreError> {
 
 /// The browser page that downloads one file on curseforge.com.
 fn site_download_url(meta: Option<&CfMod>, mod_id: u64, file_id: u64) -> String {
-    match meta.filter(|m| !m.slug.is_empty() && m.slug.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')) {
+    match meta.filter(|m| {
+        !m.slug.is_empty()
+            && m.slug
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'-')
+    }) {
         Some(m) => {
             let section = match m.class_id {
                 12 => "texture-packs",
@@ -985,7 +1054,10 @@ fn site_download_url(meta: Option<&CfMod>, mod_id: u64, file_id: u64) -> String 
                 17 => "worlds",
                 _ => "mc-mods",
             };
-            format!("https://www.curseforge.com/minecraft/{section}/{}/download/{file_id}", m.slug)
+            format!(
+                "https://www.curseforge.com/minecraft/{section}/{}/download/{file_id}",
+                m.slug
+            )
         }
         None => format!("https://www.curseforge.com/projects/{mod_id}"),
     }
@@ -1047,10 +1119,18 @@ mod tests {
 
     #[test]
     fn untagged_files() {
-        let zip: CfFile = serde_json::from_value(json!({ "id": 1, "modId": 2, "fileName": "pack.zip", "gameVersions": ["1.21.1"] })).unwrap();
+        let zip: CfFile = serde_json::from_value(
+            json!({ "id": 1, "modId": 2, "fileName": "pack.zip", "gameVersions": ["1.21.1"] }),
+        )
+        .unwrap();
         let v = to_version(zip);
-        assert!(v.loaders.iter().any(|l| l == "minecraft") && v.loaders.iter().any(|l| l == "iris"));
-        let jar: CfFile = serde_json::from_value(json!({ "id": 1, "modId": 2, "fileName": "old.jar", "gameVersions": ["1.7.10"] })).unwrap();
+        assert!(
+            v.loaders.iter().any(|l| l == "minecraft") && v.loaders.iter().any(|l| l == "iris")
+        );
+        let jar: CfFile = serde_json::from_value(
+            json!({ "id": 1, "modId": 2, "fileName": "old.jar", "gameVersions": ["1.7.10"] }),
+        )
+        .unwrap();
         assert_eq!(to_version(jar).loaders, ["forge"]);
     }
 
@@ -1063,13 +1143,19 @@ mod tests {
             "overrides": "overrides"
         }))
         .unwrap();
-        assert_eq!(pack_loader(&m).unwrap(), (String::from("forge"), String::from("47.2.0")));
+        assert_eq!(
+            pack_loader(&m).unwrap(),
+            (String::from("forge"), String::from("47.2.0"))
+        );
         assert!(m.files[0].required && !m.files[1].required);
         let n: Manifest = serde_json::from_value(json!({
             "minecraft": { "version": "1.20.1", "modLoaders": [{ "id": "neoforge-1.20.1-47.1.84", "primary": true }] }
         }))
         .unwrap();
-        assert_eq!(pack_loader(&n).unwrap(), (String::from("neoforge"), String::from("1.20.1-47.1.84")));
+        assert_eq!(
+            pack_loader(&n).unwrap(),
+            (String::from("neoforge"), String::from("1.20.1-47.1.84"))
+        );
         let bad: Manifest = serde_json::from_value(json!({
             "minecraft": { "version": "1.20.1", "modLoaders": [{ "id": "liteloader-1", "primary": true }] }
         }))

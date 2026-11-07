@@ -15,11 +15,15 @@ const URL: &str = "https://github.com/yushijinhun/authlib-injector/releases/down
 const SHA256: &str = "9c7f4343e6c82034958ffb48c14a2cb0c85928be7283103ce17da00c6d5a7b10";
 
 fn digest(b: &[u8]) -> String {
-    Sha256::digest(b).iter().map(|x| format!("{x:02x}")).collect()
+    Sha256::digest(b)
+        .iter()
+        .map(|x| format!("{x:02x}"))
+        .collect()
 }
 
 pub fn path(core: &Core) -> PathBuf {
-    core.path("agents").join(format!("authlib-injector-{VERSION}.jar"))
+    core.path("agents")
+        .join(format!("authlib-injector-{VERSION}.jar"))
 }
 
 /// The verified jar, downloading it once.
@@ -40,7 +44,9 @@ pub async fn ensure(core: &Core) -> Result<PathBuf, CoreError> {
         .await
         .map_err(err)?;
     if digest(&bytes) != SHA256 {
-        return Err(CoreError::msg("authlib-injector: the download does not match the pinned hash"));
+        return Err(CoreError::msg(
+            "authlib-injector: the download does not match the pinned hash",
+        ));
     }
     crate::game::download::write_atomic(&p, &bytes)?;
     Ok(p)
@@ -58,7 +64,10 @@ pub fn args(jar: &Path, root: &str) -> Vec<String> {
 mod tests {
     #[test]
     fn agent_args() {
-        let a = super::args(std::path::Path::new("/d/a.jar"), "https://auth.example.org/api");
+        let a = super::args(
+            std::path::Path::new("/d/a.jar"),
+            "https://auth.example.org/api",
+        );
         assert_eq!(a[0], "-javaagent:/d/a.jar=https://auth.example.org/api");
         assert_eq!(a[1], "-Dauthlibinjector.side=client");
     }

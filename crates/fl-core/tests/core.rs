@@ -227,7 +227,10 @@ fn confirm_list_only_names_bindable_actions() {
             .iter()
             .find(|a| a["name"] == *name)
             .unwrap_or_else(|| panic!("{name} is not a registered action"));
-        assert_eq!(a["bindable"], true, "{name} needs no confirm if a theme cannot call it");
+        assert_eq!(
+            a["bindable"], true,
+            "{name} needs no confirm if a theme cannot call it"
+        );
         assert!(fl_core::actions::theme_needs_confirm(name));
     }
     assert!(!fl_core::actions::theme_needs_confirm("app.info"));
@@ -253,7 +256,10 @@ async fn theme_cannot_reach_destructive_actions() {
         "doctor.fix",
     ] {
         let err = c.dispatch(&theme, name, json!({})).await.unwrap_err();
-        assert!(err.to_string().contains("permission denied"), "{name}: {err}");
+        assert!(
+            err.to_string().contains("permission denied"),
+            "{name}: {err}"
+        );
     }
 }
 
@@ -263,7 +269,9 @@ async fn theme_cannot_reach_destructive_actions() {
 async fn theme_confirm_switch_only_weakens_in_settings() {
     let c = temp_core(false);
     async fn get(c: &std::sync::Arc<Core>) -> serde_json::Value {
-        c.dispatch(&Caller::BuiltinUi, "settings.get", json!({})).await.unwrap()
+        c.dispatch(&Caller::BuiltinUi, "settings.get", json!({}))
+            .await
+            .unwrap()
     }
     assert_eq!(get(&c).await["theme_confirm"], true, "default must ask");
 
@@ -286,9 +294,13 @@ async fn theme_confirm_switch_only_weakens_in_settings() {
     assert_eq!(get(&c).await["theme_confirm"], true);
 
     // The user (built-in UI) can.
-    c.dispatch(&Caller::BuiltinUi, "settings.set", json!({ "theme_confirm": false }))
-        .await
-        .unwrap();
+    c.dispatch(
+        &Caller::BuiltinUi,
+        "settings.set",
+        json!({ "theme_confirm": false }),
+    )
+    .await
+    .unwrap();
     assert_eq!(get(&c).await["theme_confirm"], false);
 
     // Reset to defaults turns it back on.
@@ -304,21 +316,37 @@ async fn safe_mode_can_enable_but_not_disable_theme_confirm() {
     // Start with it off, as the user would have left it.
     {
         let c = Core::new(dir.clone(), Instant::now(), false).unwrap();
-        c.dispatch(&Caller::BuiltinUi, "settings.set", json!({ "theme_confirm": false }))
-            .await
-            .unwrap();
+        c.dispatch(
+            &Caller::BuiltinUi,
+            "settings.set",
+            json!({ "theme_confirm": false }),
+        )
+        .await
+        .unwrap();
     }
     let c = Core::new(dir, Instant::now(), true).unwrap();
-    let v = c.dispatch(&Caller::BuiltinUi, "settings.get", json!({})).await.unwrap();
+    let v = c
+        .dispatch(&Caller::BuiltinUi, "settings.get", json!({}))
+        .await
+        .unwrap();
     assert_eq!(v["theme_confirm"], false);
     // No way to weaken from safe mode...
     assert!(c
-        .dispatch(&Caller::BuiltinUi, "settings.set", json!({ "theme_confirm": false }))
+        .dispatch(
+            &Caller::BuiltinUi,
+            "settings.set",
+            json!({ "theme_confirm": false })
+        )
         .await
         .is_err());
     // ...and one way to strengthen.
-    c.dispatch(&Caller::BuiltinUi, "safe.confirm_on", json!({})).await.unwrap();
-    let v = c.dispatch(&Caller::BuiltinUi, "settings.get", json!({})).await.unwrap();
+    c.dispatch(&Caller::BuiltinUi, "safe.confirm_on", json!({}))
+        .await
+        .unwrap();
+    let v = c
+        .dispatch(&Caller::BuiltinUi, "settings.get", json!({}))
+        .await
+        .unwrap();
     assert_eq!(v["theme_confirm"], true);
 }
 
@@ -326,7 +354,10 @@ async fn safe_mode_can_enable_but_not_disable_theme_confirm() {
 fn old_settings_files_default_to_asking() {
     let s: fl_core::settings::Settings =
         serde_json::from_str(r#"{"theme":"default","onboarded":true}"#).unwrap();
-    assert!(s.theme_confirm, "a settings.json from before the switch must keep asking");
+    assert!(
+        s.theme_confirm,
+        "a settings.json from before the switch must keep asking"
+    );
 }
 
 fn install_theme(c: &Core, id: &str, css: &str) {
@@ -358,17 +389,32 @@ async fn trust_is_bound_to_the_theme_files() {
     install_theme(&c, "night", "a{color:red}");
     assert!(trusted(&c).await.is_empty());
 
-    c.dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": "night" })).await.unwrap();
+    c.dispatch(
+        &Caller::BuiltinUi,
+        "themes.trust",
+        json!({ "theme": "night" }),
+    )
+    .await
+    .unwrap();
     assert_eq!(trusted(&c).await, vec!["night"]);
 
     // An "update" of the theme: trust does not carry over.
     install_theme(&c, "night", "a{color:blue}");
-    assert!(trusted(&c).await.is_empty(), "a changed theme must not stay trusted");
+    assert!(
+        trusted(&c).await.is_empty(),
+        "a changed theme must not stay trusted"
+    );
     // Putting the same files back brings the same hash back.
     install_theme(&c, "night", "a{color:red}");
     assert_eq!(trusted(&c).await, vec!["night"]);
 
-    c.dispatch(&Caller::BuiltinUi, "themes.untrust", json!({ "theme": "night" })).await.unwrap();
+    c.dispatch(
+        &Caller::BuiltinUi,
+        "themes.untrust",
+        json!({ "theme": "night" }),
+    )
+    .await
+    .unwrap();
     assert!(trusted(&c).await.is_empty());
 }
 
@@ -377,7 +423,9 @@ async fn built_in_and_missing_themes_cannot_be_trusted() {
     let c = temp_core(false);
     for id in ["default", "light", "nope", "../x"] {
         assert!(
-            c.dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": id })).await.is_err(),
+            c.dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": id }))
+                .await
+                .is_err(),
             "{id}"
         );
     }
@@ -390,10 +438,16 @@ async fn nobody_but_the_user_can_trust_a_theme() {
     let c = temp_core(false);
     install_theme(&c, "night", "a{color:red}");
     let theme = Caller::Theme { id: "night".into() };
-    let addon = Caller::Addon { id: "x".into(), granted: HashSet::new() };
+    let addon = Caller::Addon {
+        id: "x".into(),
+        granted: HashSet::new(),
+    };
     for caller in [&theme, &addon] {
         for name in ["themes.trust", "themes.untrust", "themes.trusted"] {
-            let e = c.dispatch(caller, name, json!({ "theme": "night" })).await.unwrap_err();
+            let e = c
+                .dispatch(caller, name, json!({ "theme": "night" }))
+                .await
+                .unwrap_err();
             assert!(e.to_string().contains("permission denied"), "{name}: {e}");
         }
     }
@@ -402,7 +456,11 @@ async fn nobody_but_the_user_can_trust_a_theme() {
     let safe_dir = c.data_dir.clone();
     let safe = Core::new(safe_dir, Instant::now(), true).unwrap();
     assert!(safe
-        .dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": "night" }))
+        .dispatch(
+            &Caller::BuiltinUi,
+            "themes.trust",
+            json!({ "theme": "night" })
+        )
         .await
         .is_err());
 }
@@ -413,20 +471,39 @@ async fn safe_mode_clears_trust_and_reset_does_too() {
     {
         let c = Core::new(dir.clone(), Instant::now(), false).unwrap();
         install_theme(&c, "night", "a{color:red}");
-        c.dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": "night" })).await.unwrap();
+        c.dispatch(
+            &Caller::BuiltinUi,
+            "themes.trust",
+            json!({ "theme": "night" }),
+        )
+        .await
+        .unwrap();
         assert_eq!(trusted(&c).await, vec!["night"]);
     }
     // Safe mode: the one thing it can do about trust is take it away.
     let safe = Core::new(dir.clone(), Instant::now(), true).unwrap();
-    safe.dispatch(&Caller::BuiltinUi, "safe.confirm_on", json!({})).await.unwrap();
-    let s = safe.dispatch(&Caller::BuiltinUi, "settings.get", json!({})).await.unwrap();
+    safe.dispatch(&Caller::BuiltinUi, "safe.confirm_on", json!({}))
+        .await
+        .unwrap();
+    let s = safe
+        .dispatch(&Caller::BuiltinUi, "settings.get", json!({}))
+        .await
+        .unwrap();
     assert!(s["trusted_themes"].as_object().unwrap().is_empty());
 
     // And a full reset does as well.
     {
         let c = Core::new(dir.clone(), Instant::now(), false).unwrap();
-        c.dispatch(&Caller::BuiltinUi, "themes.trust", json!({ "theme": "night" })).await.unwrap();
-        c.dispatch(&Caller::BuiltinUi, "safe.reset_settings", json!({})).await.unwrap();
+        c.dispatch(
+            &Caller::BuiltinUi,
+            "themes.trust",
+            json!({ "theme": "night" }),
+        )
+        .await
+        .unwrap();
+        c.dispatch(&Caller::BuiltinUi, "safe.reset_settings", json!({}))
+            .await
+            .unwrap();
         assert!(trusted(&c).await.is_empty());
     }
 }
@@ -652,7 +729,11 @@ async fn options_template_and_stats() {
     let c = temp_core(false);
     let ui = Caller::BuiltinUi;
     let a = c
-        .dispatch(&ui, "instances.create", json!({"name": "Tpl", "version": "1.21.4"}))
+        .dispatch(
+            &ui,
+            "instances.create",
+            json!({"name": "Tpl", "version": "1.21.4"}),
+        )
         .await
         .unwrap();
     let id = a["id"].as_str().unwrap().to_owned();
@@ -670,7 +751,11 @@ async fn options_template_and_stats() {
     assert_eq!(t["keys"], 2);
     assert_eq!(t["from"], "Tpl");
     let b = c
-        .dispatch(&ui, "instances.create", json!({"name": "Fresh", "version": "1.21.4"}))
+        .dispatch(
+            &ui,
+            "instances.create",
+            json!({"name": "Fresh", "version": "1.21.4"}),
+        )
         .await
         .unwrap();
     let fresh = root.join("Fresh");

@@ -56,7 +56,10 @@ fn present(game_dir: &Path, b: &Blocked) -> bool {
 
 /// Files of the list that are not in the instance yet.
 pub fn pending(game_dir: &Path) -> Result<Vec<Blocked>, CoreError> {
-    Ok(load(game_dir)?.into_iter().filter(|b| !present(game_dir, b)).collect())
+    Ok(load(game_dir)?
+        .into_iter()
+        .filter(|b| !present(game_dir, b))
+        .collect())
 }
 
 /// The user's Downloads folder(s).
@@ -77,7 +80,10 @@ pub fn downloads_dirs() -> Vec<PathBuf> {
 /// ones found into the instance. A file matches by SHA-1 (so a browser-renamed
 /// `x (1).jar` still counts); without a known hash only the exact name does.
 /// Returns the titles added and what is still missing.
-pub fn resolve(game_dir: &Path, extra: &[PathBuf]) -> Result<(Vec<String>, Vec<Blocked>), CoreError> {
+pub fn resolve(
+    game_dir: &Path,
+    extra: &[PathBuf],
+) -> Result<(Vec<String>, Vec<Blocked>), CoreError> {
     let mut want = pending(game_dir)?;
     let mut found = Vec::new();
     if want.is_empty() {
@@ -86,7 +92,9 @@ pub fn resolve(game_dir: &Path, extra: &[PathBuf]) -> Result<(Vec<String>, Vec<B
     let mut dirs: Vec<PathBuf> = extra.iter().filter(|d| d.is_dir()).cloned().collect();
     dirs.extend(downloads_dirs());
     for d in dirs {
-        let Ok(rd) = std::fs::read_dir(&d) else { continue };
+        let Ok(rd) = std::fs::read_dir(&d) else {
+            continue;
+        };
         for e in rd.flatten().take(MAX_SCAN) {
             if want.is_empty() {
                 break;
@@ -97,11 +105,15 @@ pub fn resolve(game_dir: &Path, extra: &[PathBuf]) -> Result<(Vec<String>, Vec<B
             }
             let name = e.file_name().to_string_lossy().into_owned();
             let len = meta.len();
-            let cand = |b: &Blocked| name == b.file_name || (!b.sha1.is_empty() && b.size > 0 && b.size == len);
+            let cand = |b: &Blocked| {
+                name == b.file_name || (!b.sha1.is_empty() && b.size > 0 && b.size == len)
+            };
             if !want.iter().any(cand) {
                 continue;
             }
-            let Ok(bytes) = std::fs::read(e.path()) else { continue };
+            let Ok(bytes) = std::fs::read(e.path()) else {
+                continue;
+            };
             let hash = download::sha1_hex(&bytes);
             let Some(pos) = want.iter().position(|b| {
                 if b.sha1.is_empty() {
@@ -113,7 +125,9 @@ pub fn resolve(game_dir: &Path, extra: &[PathBuf]) -> Result<(Vec<String>, Vec<B
                 continue;
             };
             let b = want.remove(pos);
-            let Some(rel) = mrpack::safe_rel(&b.rel) else { continue };
+            let Some(rel) = mrpack::safe_rel(&b.rel) else {
+                continue;
+            };
             let at = game_dir.join(rel);
             if let Some(p) = at.parent() {
                 std::fs::create_dir_all(p)?;
@@ -150,9 +164,22 @@ mod tests {
                 sha1: download::sha1_hex(&body),
                 size: body.len() as u64,
                 url: "https://www.curseforge.com/minecraft/mc-mods/structory/download/1".into(),
-                source: Some(mods::Source { project_id: "cf:1".into(), version_id: "cf:2".into(), title: "Structory".into(), ..Default::default() }),
+                source: Some(mods::Source {
+                    project_id: "cf:1".into(),
+                    version_id: "cf:2".into(),
+                    title: "Structory".into(),
+                    ..Default::default()
+                }),
             },
-            Blocked { title: "Other".into(), file_name: "o.jar".into(), rel: "mods/o.jar".into(), size: 3, sha1: "00".repeat(20), url: String::new(), source: None },
+            Blocked {
+                title: "Other".into(),
+                file_name: "o.jar".into(),
+                rel: "mods/o.jar".into(),
+                size: 3,
+                sha1: "00".repeat(20),
+                url: String::new(),
+                source: None,
+            },
         ];
         save(&gd, &list).unwrap();
         std::fs::write(dl.join("Structory_1.20.1 (1).jar"), &body).unwrap();
@@ -160,7 +187,10 @@ mod tests {
         let (found, left) = resolve(&gd, &[dl.clone()]).unwrap();
         assert_eq!(found, ["Structory"]);
         assert_eq!(left.len(), 1);
-        assert_eq!(std::fs::read(gd.join("mods/Structory_1.20.1.jar")).unwrap(), body);
+        assert_eq!(
+            std::fs::read(gd.join("mods/Structory_1.20.1.jar")).unwrap(),
+            body
+        );
         assert_eq!(pending(&gd).unwrap().len(), 1);
         let idx = mods::load_index(&gd, crate::modrinth::Kind::Mod).unwrap();
         assert!(idx.contains_key("Structory_1.20.1.jar"));

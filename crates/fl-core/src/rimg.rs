@@ -46,7 +46,8 @@ pub fn sniff(b: &[u8]) -> Option<&'static str> {
         Some("image/gif")
     } else if b.len() > 12 && &b[..4] == b"RIFF" && &b[8..12] == b"WEBP" {
         Some("image/webp")
-    } else if b.len() > 12 && &b[4..8] == b"ftyp" && (&b[8..12] == b"avif" || &b[8..12] == b"avis") {
+    } else if b.len() > 12 && &b[4..8] == b"ftyp" && (&b[8..12] == b"avif" || &b[8..12] == b"avis")
+    {
         Some("image/avif")
     } else if b.starts_with(&[0, 0, 1, 0]) {
         Some("image/x-icon")
@@ -56,8 +57,9 @@ pub fn sniff(b: &[u8]) -> Option<&'static str> {
         // SVG is inert inside <img>: no scripts, no external loads.
         let head = String::from_utf8_lossy(&b[..b.len().min(1024)]);
         let t = head.trim_start_matches('\u{feff}').trim_start();
-        ((t.starts_with("<svg") || t.starts_with("<?xml") || t.starts_with("<!--")) && head.contains("<svg"))
-            .then_some("image/svg+xml")
+        ((t.starts_with("<svg") || t.starts_with("<?xml") || t.starts_with("<!--"))
+            && head.contains("<svg"))
+        .then_some("image/svg+xml")
     }
 }
 
@@ -85,7 +87,10 @@ pub async fn get(data_dir: &Path, url: &str) -> Result<(Vec<u8>, &'static str), 
     }
     let mut res = client()
         .get(u)
-        .header("Accept", "image/avif,image/webp,image/svg+xml,image/*;q=0.8")
+        .header(
+            "Accept",
+            "image/avif,image/webp,image/svg+xml,image/*;q=0.8",
+        )
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -119,8 +124,14 @@ mod tests {
         assert_eq!(sniff(b"\x89PNG\r\n\x1a\n...."), Some("image/png"));
         assert_eq!(sniff(b"GIF89a.."), Some("image/gif"));
         assert_eq!(sniff(b"RIFF\0\0\0\0WEBPVP8 "), Some("image/webp"));
-        assert_eq!(sniff(b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"), Some("image/svg+xml"));
-        assert_eq!(sniff(b"<?xml version=\"1.0\"?><svg></svg>"), Some("image/svg+xml"));
+        assert_eq!(
+            sniff(b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"),
+            Some("image/svg+xml")
+        );
+        assert_eq!(
+            sniff(b"<?xml version=\"1.0\"?><svg></svg>"),
+            Some("image/svg+xml")
+        );
         assert_eq!(sniff(b"<!DOCTYPE html><html>"), None);
         assert_eq!(sniff(b"<?xml version=\"1.0\"?><feed/>"), None);
     }

@@ -85,7 +85,10 @@ fn lib_kind(name: &str) -> Option<&'static str> {
     let (stem, ext) = name.rsplit_once('.')?;
     let (kind, hash) = stem.split_once('-')?;
     let kind = *KINDS.iter().find(|k| **k == kind)?;
-    let hex = hash.len() == 16 && hash.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
+    let hex = hash.len() == 16
+        && hash
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
     (EXTS.contains(&ext) && hex).then_some(kind)
 }
 
@@ -94,8 +97,13 @@ pub fn remember(data_dir: &Path, kind: &str, bytes: &[u8]) -> Result<String, Cor
     if !KINDS.contains(&kind) {
         return Err(CoreError::BadArgs(format!("art: {kind}")));
     }
-    let (ext, _) = wallpaper::kind(bytes).ok_or_else(|| CoreError::msg("Нужна картинка PNG, JPEG, WebP или GIF"))?;
-    let hash: String = Sha1::digest(bytes).iter().take(8).map(|b| format!("{b:02x}")).collect();
+    let (ext, _) = wallpaper::kind(bytes)
+        .ok_or_else(|| CoreError::msg("Нужна картинка PNG, JPEG, WebP или GIF"))?;
+    let hash: String = Sha1::digest(bytes)
+        .iter()
+        .take(8)
+        .map(|b| format!("{b:02x}"))
+        .collect();
     let name = format!("{kind}-{hash}.{ext}");
     let p = lib_dir(data_dir).join(&name);
     if !p.exists() {
@@ -115,7 +123,11 @@ pub fn library(data_dir: &Path, kind: &str) -> Vec<String> {
     }
     let mark = lib_dir(data_dir).join(format!(".seeded-{kind}"));
     if !mark.exists() {
-        for e in std::fs::read_dir(data_dir.join("art")).into_iter().flatten().flatten() {
+        for e in std::fs::read_dir(data_dir.join("art"))
+            .into_iter()
+            .flatten()
+            .flatten()
+        {
             let n = e.file_name().to_string_lossy().into_owned();
             let p: Vec<&str> = n.split('.').collect();
             if p.len() == 3 && p[1] == kind && EXTS.contains(&p[2]) {
@@ -133,7 +145,14 @@ pub fn library(data_dir: &Path, kind: &str) -> Vec<String> {
         .flatten()
         .filter_map(|e| {
             let n = e.file_name().to_string_lossy().into_owned();
-            (lib_kind(&n) == Some(kind)).then(|| (e.metadata().and_then(|m| m.modified()).unwrap_or(std::time::UNIX_EPOCH), n))
+            (lib_kind(&n) == Some(kind)).then(|| {
+                (
+                    e.metadata()
+                        .and_then(|m| m.modified())
+                        .unwrap_or(std::time::UNIX_EPOCH),
+                    n,
+                )
+            })
         })
         .collect();
     out.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
@@ -150,7 +169,8 @@ pub fn lib_read(data_dir: &Path, name: &str) -> Option<(Vec<u8>, &'static str)> 
 /// Puts a library picture on an instance; returns its kind.
 pub fn use_lib(data_dir: &Path, id: &str, name: &str) -> Result<&'static str, CoreError> {
     let kind = lib_kind(name).ok_or_else(|| CoreError::BadArgs(format!("art: {name}")))?;
-    let bytes = std::fs::read(lib_dir(data_dir).join(name)).map_err(|_| CoreError::msg("Картинки больше нет"))?;
+    let bytes = std::fs::read(lib_dir(data_dir).join(name))
+        .map_err(|_| CoreError::msg("Картинки больше нет"))?;
     save(data_dir, id, kind, &bytes)?;
     Ok(kind)
 }
@@ -178,7 +198,10 @@ mod tests {
         save(&dir, "a-1", "cover", PNG).unwrap();
         save(&dir, "a-1", "cover", JPG).unwrap();
         assert_eq!(read(&dir, "a-1", "icon").unwrap().1, "image/png");
-        assert_eq!(read(&dir, "a-1", "cover").unwrap(), (JPG.to_vec(), "image/jpeg"));
+        assert_eq!(
+            read(&dir, "a-1", "cover").unwrap(),
+            (JPG.to_vec(), "image/jpeg")
+        );
         assert!(!dir.join("art/a-1.cover.png").exists());
         copy(&dir, "a-1", "b-2");
         assert!(read(&dir, "b-2", "cover").is_some());
@@ -202,7 +225,9 @@ mod tests {
         assert_eq!(library(&dir, "icon").len(), 1);
         assert_eq!(use_lib(&dir, "b-2", &a).unwrap(), "cover");
         assert_eq!(read(&dir, "b-2", "cover").unwrap().0, PNG.to_vec());
-        assert!(use_lib(&dir, "b-2", "../x.png").is_err() && lib_read(&dir, "cover-zz.png").is_none());
+        assert!(
+            use_lib(&dir, "b-2", "../x.png").is_err() && lib_read(&dir, "cover-zz.png").is_none()
+        );
         lib_remove(&dir, &a).unwrap();
         assert_eq!(library(&dir, "cover").len(), 1);
         let _ = std::fs::remove_dir_all(&dir);

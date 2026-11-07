@@ -79,13 +79,13 @@ pub fn url_ok(u: &str) -> bool {
         || u.starts_with("https://github.com/Freedom-Launcher/"))
         && u.len() <= 512
         && !u.contains("..")
-        && u.bytes().all(|b| b > 0x20 && b < 0x7f && !matches!(b, b'"' | b'\\' | b'<' | b'>'))
+        && u.bytes()
+            .all(|b| b > 0x20 && b < 0x7f && !matches!(b, b'"' | b'\\' | b'<' | b'>'))
 }
 
 fn valid(e: &Entry) -> bool {
     (1..=64).contains(&e.id.len())
-        && e
-            .id
+        && e.id
             .bytes()
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
         && !addons::RESERVED.contains(&e.id.as_str())
@@ -100,7 +100,12 @@ fn likes(r: &Value) -> u64 {
 }
 
 /// Catalog entries with live numbers; `old` supplies numbers GitHub did not return.
-fn merge(list: Vec<Entry>, issues: Option<&Value>, rel: Option<&Value>, old: &[Entry]) -> Vec<Entry> {
+fn merge(
+    list: Vec<Entry>,
+    issues: Option<&Value>,
+    rel: Option<&Value>,
+    old: &[Entry],
+) -> Vec<Entry> {
     let mut seen = HashSet::new();
     let issues = issues.and_then(Value::as_array);
     let assets = rel.and_then(|r| r["assets"].as_array());
@@ -117,9 +122,16 @@ fn merge(list: Vec<Entry>, issues: Option<&Value>, rel: Option<&Value>, old: &[E
                 Some(_) => 0,
                 None => prev.map_or(0, |p| p.likes),
             };
-            e.like_url = if e.issue > 0 { format!("{ISSUES}{}", e.issue) } else { String::new() };
+            e.like_url = if e.issue > 0 {
+                format!("{ISSUES}{}", e.issue)
+            } else {
+                String::new()
+            };
             e.downloads = match assets {
-                Some(a) => match a.iter().find(|x| !e.asset.is_empty() && x["name"].as_str() == Some(e.asset.as_str())) {
+                Some(a) => match a
+                    .iter()
+                    .find(|x| !e.asset.is_empty() && x["name"].as_str() == Some(e.asset.as_str()))
+                {
                     Some(x) => {
                         if let Some(u) = x["browser_download_url"].as_str().filter(|u| url_ok(u)) {
                             e.url = u.to_owned();
@@ -169,8 +181,16 @@ pub async fn catalog(c: &Core, refresh: bool) -> Result<(Vec<Entry>, bool), Core
         Err(_) if !cached.plugins.is_empty() => return Ok((cached.plugins, true)),
         Err(e) => return Err(CoreError::msg(format!("Каталог недоступен: {e}"))),
     };
-    let plugins = merge(feed.plugins, issues.ok().as_ref(), rel.ok().as_ref(), &cached.plugins);
-    if let Ok(b) = serde_json::to_vec(&Cache { at: t, plugins: plugins.clone() }) {
+    let plugins = merge(
+        feed.plugins,
+        issues.ok().as_ref(),
+        rel.ok().as_ref(),
+        &cached.plugins,
+    );
+    if let Ok(b) = serde_json::to_vec(&Cache {
+        at: t,
+        plugins: plugins.clone(),
+    }) {
         let _ = fs::write(&path, b);
     }
     Ok((plugins, false))
@@ -198,10 +218,14 @@ pub async fn install(c: &Core, id: &str) -> Result<String, CoreError> {
     if !got.eq_ignore_ascii_case(&e.sha256) {
         // The catalog may have moved on since it was cached.
         let _ = fs::remove_file(c.path(CACHE));
-        return Err(CoreError::msg("Файл плагина не совпал с каталогом. Обновите список и попробуйте ещё раз"));
+        return Err(CoreError::msg(
+            "Файл плагина не совпал с каталогом. Обновите список и попробуйте ещё раз",
+        ));
     }
     fs::create_dir_all(&c.data_dir)?;
-    let tmp = c.data_dir.join(format!("addon-dl-{}.zip", uuid::Uuid::new_v4()));
+    let tmp = c
+        .data_dir
+        .join(format!("addon-dl-{}.zip", uuid::Uuid::new_v4()));
     fs::write(&tmp, &buf)?;
     let r = addons::install_zip(&c.data_dir, &tmp);
     let _ = fs::remove_file(&tmp);
@@ -222,7 +246,9 @@ mod tests {
             id: id.into(),
             name: "N".into(),
             version: "1.0.0".into(),
-            url: format!("https://raw.githubusercontent.com/Freedom-Launcher/releases/main/plugins/{id}.zip"),
+            url: format!(
+                "https://raw.githubusercontent.com/Freedom-Launcher/releases/main/plugins/{id}.zip"
+            ),
             sha256: "a".repeat(64),
             asset: format!("{id}.zip"),
             issue: 3,
@@ -232,10 +258,14 @@ mod tests {
 
     #[test]
     fn urls() {
-        assert!(url_ok("https://github.com/Freedom-Launcher/releases/releases/download/plugins/a.zip"));
+        assert!(url_ok(
+            "https://github.com/Freedom-Launcher/releases/releases/download/plugins/a.zip"
+        ));
         assert!(!url_ok("http://github.com/Freedom-Launcher/x.zip"));
         assert!(!url_ok("https://github.com/someone/x.zip"));
-        assert!(!url_ok("https://raw.githubusercontent.com/Freedom-Launcher/../x/y.zip"));
+        assert!(!url_ok(
+            "https://raw.githubusercontent.com/Freedom-Launcher/../x/y.zip"
+        ));
         assert!(!url_ok("https://github.com.evil.io/Freedom-Launcher/x.zip"));
     }
 
@@ -251,7 +281,10 @@ mod tests {
         assert_eq!(out.len(), 1);
         assert_eq!((out[0].likes, out[0].downloads), (6, 17));
         assert!(out[0].url.contains("/releases/download/"));
-        assert_eq!(out[0].like_url, "https://github.com/Freedom-Launcher/releases/issues/3");
+        assert_eq!(
+            out[0].like_url,
+            "https://github.com/Freedom-Launcher/releases/issues/3"
+        );
         // GitHub unreachable: last known numbers stay.
         let again = merge(vec![e("mclogs")], None, None, &out);
         assert_eq!((again[0].likes, again[0].downloads), (6, 17));

@@ -40,7 +40,13 @@ pub struct Exit {
 
 impl Exit {
     fn new(code: Option<i32>, stopped: bool, secs: u64) -> Self {
-        Exit { code, stopped, secs, at: crate::unix_now(), crashed: !stopped && code != Some(0) }
+        Exit {
+            code,
+            stopped,
+            secs,
+            at: crate::unix_now(),
+            crashed: !stopped && code != Some(0),
+        }
     }
 }
 

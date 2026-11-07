@@ -48,10 +48,16 @@ pub async fn latest(core: &Core, loader: &str, mc: &str) -> Result<String, CoreE
 /// Every Forge / NeoForge build for a game version (unsorted).
 pub async fn versions(core: &Core, loader: &str, mc: &str) -> Result<Vec<String>, CoreError> {
     let (url, prefix) = if loader == "forge" {
-        (format!("{FORGE_MAVEN}net/minecraftforge/forge/maven-metadata.xml"), format!("{mc}-"))
+        (
+            format!("{FORGE_MAVEN}net/minecraftforge/forge/maven-metadata.xml"),
+            format!("{mc}-"),
+        )
     } else {
         let pre = neo_prefix(mc).unwrap_or_else(|| "-".into());
-        (format!("{NEO_MAVEN}net/neoforged/neoforge/maven-metadata.xml"), pre)
+        (
+            format!("{NEO_MAVEN}net/neoforged/neoforge/maven-metadata.xml"),
+            pre,
+        )
     };
     let xml = String::from_utf8_lossy(&get(core, &url).await?).into_owned();
     Ok(xml
@@ -59,7 +65,13 @@ pub async fn versions(core: &Core, loader: &str, mc: &str) -> Result<Vec<String>
         .skip(1)
         .filter_map(|s| s.split('<').next())
         .filter(|v| v.starts_with(&prefix))
-        .map(|v| if loader == "forge" { v[prefix.len()..].to_owned() } else { v.to_owned() })
+        .map(|v| {
+            if loader == "forge" {
+                v[prefix.len()..].to_owned()
+            } else {
+                v.to_owned()
+            }
+        })
         .collect())
 }
 
@@ -68,13 +80,20 @@ pub async fn versions(core: &Core, loader: &str, mc: &str) -> Result<Vec<String>
 /// MC 26.1 → `26.1.0.x`, MC 26.1.2 → `26.1.2.x`.
 pub fn neo_prefix(mc: &str) -> Option<String> {
     let p: Vec<&str> = mc.split('.').collect();
-    if p.iter().any(|x| x.is_empty() || !x.bytes().all(|b| b.is_ascii_digit())) {
+    if p.iter()
+        .any(|x| x.is_empty() || !x.bytes().all(|b| b.is_ascii_digit()))
+    {
         return None;
     }
     if p.first() == Some(&"1") {
         Some(format!("{}.{}.", p.get(1)?, p.get(2).unwrap_or(&"0")))
     } else {
-        Some(format!("{}.{}.{}.", p.first()?, p.get(1)?, p.get(2).unwrap_or(&"0")))
+        Some(format!(
+            "{}.{}.{}.",
+            p.first()?,
+            p.get(1)?,
+            p.get(2).unwrap_or(&"0")
+        ))
     }
 }
 
@@ -258,7 +277,7 @@ pub async fn post_install(
     let client = |p: &&Processor| {
         p.sides
             .as_ref()
-            .map_or(true, |s| s.iter().any(|x| x == "client"))
+            .is_none_or(|s| s.iter().any(|x| x == "client"))
     };
     for pr in profile.processors.iter().filter(client) {
         let mut outputs = Vec::new();

@@ -17,13 +17,21 @@ pub const PREFIX2: &str = "FL2-";
 pub const LINK_PREFIX: &str = "FL-";
 pub const MAX_ITEMS: usize = 512;
 /// Content kinds that travel, with their one-letter tag in the code.
-pub const KINDS: [(Kind, &str); 3] = [(Kind::Mod, "m"), (Kind::ResourcePack, "r"), (Kind::Shader, "s")];
+pub const KINDS: [(Kind, &str); 3] = [
+    (Kind::Mod, "m"),
+    (Kind::ResourcePack, "r"),
+    (Kind::Shader, "s"),
+];
 
 const PASTE_API: &str = "https://api.pastes.dev/";
 const PASTE_VIEW: &str = "https://pastes.dev/";
 const BYTEBIN: &str = "https://bytebin.lucko.me/";
 /// pastes.dev asks for an app name with contact information.
-const UA: &str = concat!("FreedomLauncher/", env!("FL_VERSION"), " (github.com/Freedom-Launcher)");
+const UA: &str = concat!(
+    "FreedomLauncher/",
+    env!("FL_VERSION"),
+    " (github.com/Freedom-Launcher)"
+);
 const MAX_FETCH: usize = 256 * 1024;
 const MAX_JSON: u64 = 1 << 20;
 
@@ -46,7 +54,8 @@ pub fn kind_of(tag: &str) -> Option<Kind> {
 fn ok_id(s: &str) -> bool {
     !s.is_empty()
         && s.len() <= 64
-        && s.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, ':' | '-' | '_'))
+        && s.chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, ':' | '-' | '_'))
 }
 
 fn bad() -> CoreError {
@@ -112,7 +121,9 @@ pub fn decode(code: &str) -> Result<Recipe, CoreError> {
     };
     let r: Recipe = serde_json::from_slice(&bytes).map_err(|_| bad())?;
     let items_ok = r.m.len() <= MAX_ITEMS
-        && r.m.iter().all(|(k, p, v)| kind_of(k).is_some() && ok_id(p) && ok_id(v));
+        && r.m
+            .iter()
+            .all(|(k, p, v)| kind_of(k).is_some() && ok_id(p) && ok_id(v));
     if !items_ok || r.mc.is_empty() || r.mc.len() > 64 || r.l.len() > 32 || r.lv.len() > 64 {
         return Err(bad());
     }
@@ -124,27 +135,46 @@ fn ok_key(k: &str) -> bool {
 }
 
 fn token_key(tok: &str) -> Option<String> {
-    let s = tok.trim_matches(|c: char| matches!(c, '<' | '>' | '(' | ')' | '[' | ']' | '"' | '\'' | ',' | '.' | '!' | '?' | '«' | '»'));
+    let s = tok.trim_matches(|c: char| {
+        matches!(
+            c,
+            '<' | '>' | '(' | ')' | '[' | ']' | '"' | '\'' | ',' | '.' | '!' | '?' | '«' | '»'
+        )
+    });
     let s = s.trim_end_matches('/');
-    let (bb, key) = if s.len() > 3 && s.get(..3).is_some_and(|p| p.eq_ignore_ascii_case(LINK_PREFIX)) {
+    let (bb, key) = if s.len() > 3
+        && s.get(..3)
+            .is_some_and(|p| p.eq_ignore_ascii_case(LINK_PREFIX))
+    {
         let k = &s[3..];
         match k.strip_prefix("b.") {
             Some(k) => (true, k),
             None => (false, k),
         }
     } else {
-        let rest = s.strip_prefix("https://").or_else(|| s.strip_prefix("http://")).unwrap_or(s);
+        let rest = s
+            .strip_prefix("https://")
+            .or_else(|| s.strip_prefix("http://"))
+            .unwrap_or(s);
         let rest = rest.strip_prefix("www.").unwrap_or(rest);
-        if let Some(k) = rest.strip_prefix("pastes.dev/").or_else(|| rest.strip_prefix("api.pastes.dev/")) {
+        if let Some(k) = rest
+            .strip_prefix("pastes.dev/")
+            .or_else(|| rest.strip_prefix("api.pastes.dev/"))
+        {
             (false, k)
-        } else if let Some(k) = rest.strip_prefix("bytebin.lucko.me/") {
-            (true, k)
         } else {
-            return None;
+            let k = rest.strip_prefix("bytebin.lucko.me/")?;
+            (true, k)
         }
     };
     let key = key.split(['?', '#']).next().unwrap_or("");
-    ok_key(key).then(|| if bb { format!("b.{key}") } else { key.to_owned() })
+    ok_key(key).then(|| {
+        if bb {
+            format!("b.{key}")
+        } else {
+            key.to_owned()
+        }
+    })
 }
 
 /// The paste key in a short code or link, also when it is part of a longer message.
@@ -199,7 +229,9 @@ pub async fn upload(c: &crate::Core, code: &str) -> Result<String, CoreError> {
     if let Some(k) = post(c, &format!("{BYTEBIN}post"), code).await {
         return Ok(format!("b.{k}"));
     }
-    Err(CoreError::msg("Не удалось создать ссылку — проверьте интернет"))
+    Err(CoreError::msg(
+        "Не удалось создать ссылку — проверьте интернет",
+    ))
 }
 
 /// A recipe from whatever was pasted: a code, a short code or a link.
@@ -208,7 +240,9 @@ pub async fn resolve(c: &crate::Core, input: &str) -> Result<Recipe, CoreError> 
     if t.starts_with(PREFIX) || t.starts_with(PREFIX2) {
         return decode(t);
     }
-    let Some(key) = link_key(t) else { return decode(t) };
+    let Some(key) = link_key(t) else {
+        return decode(t);
+    };
     let net = || CoreError::msg("Не удалось открыть ссылку — проверьте интернет");
     let r = c
         .http()
@@ -295,10 +329,22 @@ mod tests {
         assert_eq!(link_key("FL-ZGJ9m48j8y").as_deref(), Some("ZGJ9m48j8y"));
         assert_eq!(link_key(" fl-ZGJ9m48j8y ").as_deref(), Some("ZGJ9m48j8y"));
         assert_eq!(link_key("FL-b.CPlDkLZl7n").as_deref(), Some("b.CPlDkLZl7n"));
-        assert_eq!(link_key("https://pastes.dev/ZGJ9m48j8y").as_deref(), Some("ZGJ9m48j8y"));
-        assert_eq!(link_key("pastes.dev/ZGJ9m48j8y/").as_deref(), Some("ZGJ9m48j8y"));
-        assert_eq!(link_key("https://bytebin.lucko.me/CPlDkLZl7n").as_deref(), Some("b.CPlDkLZl7n"));
-        assert_eq!(link_key("Заходи: «https://pastes.dev/abc123»!").as_deref(), Some("abc123"));
+        assert_eq!(
+            link_key("https://pastes.dev/ZGJ9m48j8y").as_deref(),
+            Some("ZGJ9m48j8y")
+        );
+        assert_eq!(
+            link_key("pastes.dev/ZGJ9m48j8y/").as_deref(),
+            Some("ZGJ9m48j8y")
+        );
+        assert_eq!(
+            link_key("https://bytebin.lucko.me/CPlDkLZl7n").as_deref(),
+            Some("b.CPlDkLZl7n")
+        );
+        assert_eq!(
+            link_key("Заходи: «https://pastes.dev/abc123»!").as_deref(),
+            Some("abc123")
+        );
         assert_eq!(link_key("https://evil.example/abc"), None);
         assert_eq!(link_key("FL-../x"), None);
         assert_eq!(link_key("FL1-abc"), None);

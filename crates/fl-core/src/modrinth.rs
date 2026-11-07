@@ -627,7 +627,14 @@ pub async fn teams(core: &Core, ids: &[String]) -> Result<Vec<Vec<Member>>, Core
     let mut out = Vec::new();
     for chunk in ids.chunks(100) {
         let url = format!("{API}/teams?ids={}", encode(&json!(chunk).to_string()));
-        let page: Vec<Vec<Member>> = core.http().get(url).send().await?.error_for_status()?.json().await?;
+        let page: Vec<Vec<Member>> = core
+            .http()
+            .get(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
         out.extend(page);
     }
     Ok(out)
@@ -642,7 +649,14 @@ pub async fn organizations(core: &Core, ids: &[String]) -> Result<Vec<Organizati
         "https://api.modrinth.com/v3/organizations?ids={}",
         encode(&json!(ids).to_string())
     );
-    Ok(core.http().get(url).send().await?.error_for_status()?.json().await?)
+    Ok(core
+        .http()
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?)
 }
 
 /// Several versions by id, in chunks.
@@ -650,7 +664,14 @@ pub async fn versions_by_ids(core: &Core, ids: &[String]) -> Result<Vec<Version>
     let mut out = Vec::new();
     for chunk in ids.chunks(100) {
         let url = format!("{API}/versions?ids={}", encode(&json!(chunk).to_string()));
-        let page: Vec<Version> = core.http().get(url).send().await?.error_for_status()?.json().await?;
+        let page: Vec<Version> = core
+            .http()
+            .get(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
         out.extend(page);
     }
     Ok(out)
@@ -659,11 +680,18 @@ pub async fn versions_by_ids(core: &Core, ids: &[String]) -> Result<Vec<Version>
 /// One version by id.
 pub async fn version(core: &Core, id: &str) -> Result<Version, CoreError> {
     let url = format!("{API}/version/{}", encode(id));
-    Ok(core.http().get(url).send().await?.error_for_status()?.json().await?)
+    Ok(core
+        .http()
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?)
 }
 
 /// The publisher of a project: its organization, else the team owner.
-pub fn owner_of<'a>(members: &'a [Member]) -> Option<&'a MemberUser> {
+pub fn owner_of(members: &[Member]) -> Option<&MemberUser> {
     members
         .iter()
         .find(|m| m.role == "Owner")

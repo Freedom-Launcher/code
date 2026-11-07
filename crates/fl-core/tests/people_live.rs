@@ -21,10 +21,18 @@ async fn modrinth_creators() {
     assert!(cr["org"].is_null());
     assert_eq!(cr["members"][0]["role"], "Owner");
     let o = people::profile(&c, "org", "caffeinemc").await.unwrap();
-    assert!(o["projects"].as_array().unwrap().iter().any(|p| p["slug"] == "sodium"));
+    assert!(o["projects"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|p| p["slug"] == "sodium"));
     assert!(o["members"].as_array().unwrap().len() >= 2);
     let u = people::profile(&c, "user", "coderbot").await.unwrap();
-    assert!(u["projects"].as_array().unwrap().iter().any(|p| p["slug"] == "iris"));
+    assert!(u["projects"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|p| p["slug"] == "iris"));
     assert!(u["downloads"].as_u64().unwrap() > 1_000_000);
     assert!(people::profile(&c, "user", "../x").await.is_err());
 }
@@ -40,5 +48,9 @@ async fn curseforge_author() {
     assert_eq!(cr["members"][0]["name"], "mezz");
     let p = people::profile(&c, "cf", "17072262").await.unwrap();
     assert_eq!(p["creator"]["name"], "mezz");
-    assert!(p["projects"].as_array().unwrap().iter().any(|w| w["project_id"] == "cf:238222"));
+    assert!(p["projects"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|w| w["project_id"] == "cf:238222"));
 }

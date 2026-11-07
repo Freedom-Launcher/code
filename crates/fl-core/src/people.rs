@@ -76,7 +76,10 @@ pub struct Credits {
 }
 
 fn s(v: &Value, k: &str) -> String {
-    v.get(k).and_then(Value::as_str).unwrap_or_default().to_owned()
+    v.get(k)
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_owned()
 }
 fn n(v: &Value, k: &str) -> u64 {
     v.get(k).and_then(Value::as_u64).unwrap_or(0)
@@ -84,7 +87,11 @@ fn n(v: &Value, k: &str) -> u64 {
 fn list(v: &Value, k: &str) -> Vec<String> {
     v.get(k)
         .and_then(Value::as_array)
-        .map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_owned)).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str().map(str::to_owned))
+                .collect()
+        })
         .unwrap_or_default()
 }
 fn https(u: Option<&str>) -> Option<String> {
@@ -133,9 +140,15 @@ pub fn work_of(v: &Value) -> Option<Work> {
     }
     let loaders = list(v, "loaders");
     let kind = kind_of(&types, &loaders)?;
-    let title = Some(s(v, "title")).filter(|t| !t.is_empty()).unwrap_or_else(|| s(v, "name"));
+    let title = Some(s(v, "title"))
+        .filter(|t| !t.is_empty())
+        .unwrap_or_else(|| s(v, "name"));
     // v2's `description` is the summary; v3 calls it `summary` and `description` is the body.
-    let description = if v.get("summary").is_some() { s(v, "summary") } else { s(v, "description") };
+    let description = if v.get("summary").is_some() {
+        s(v, "summary")
+    } else {
+        s(v, "description")
+    };
     Some(Work {
         project_id: id,
         slug: s(v, "slug"),
@@ -161,7 +174,7 @@ fn works(v: &Value) -> Vec<Work> {
             out.push(w);
         }
     }
-    out.sort_by(|a, b| b.downloads.cmp(&a.downloads));
+    out.sort_by_key(|a| std::cmp::Reverse(a.downloads));
     out
 }
 
@@ -196,7 +209,7 @@ pub fn members_of(v: &Value) -> Vec<Creator> {
             },
         ));
     }
-    ms.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)));
+    ms.sort_by_key(|a| (a.0, a.1));
     ms.into_iter().map(|x| x.2).collect()
 }
 
@@ -206,10 +219,15 @@ fn org_of(v: &Value) -> Option<Creator> {
         return None;
     }
     let slug = s(v, "slug");
-    let name = Some(s(v, "name")).filter(|x| !x.is_empty()).unwrap_or_else(|| slug.clone());
+    let name = Some(s(v, "name"))
+        .filter(|x| !x.is_empty())
+        .unwrap_or_else(|| slug.clone());
     Some(Creator {
         kind: "org",
-        url: format!("https://modrinth.com/organization/{}", modrinth::encode(if slug.is_empty() { &id } else { &slug })),
+        url: format!(
+            "https://modrinth.com/organization/{}",
+            modrinth::encode(if slug.is_empty() { &id } else { &slug })
+        ),
         name,
         id,
         avatar: https(v.get("icon_url").and_then(Value::as_str)),
@@ -227,7 +245,10 @@ fn cf_author(a: &cf::CfAuthor) -> Creator {
         url: if a.url.starts_with("https://") {
             a.url.clone()
         } else {
-            format!("https://www.curseforge.com/members/{}", modrinth::encode(&a.name))
+            format!(
+                "https://www.curseforge.com/members/{}",
+                modrinth::encode(&a.name)
+            )
         },
     }
 }
@@ -289,7 +310,9 @@ fn cache() -> &'static Mutex<HashMap<String, (Instant, Value)>> {
 }
 fn cached(key: &str) -> Option<Value> {
     let c = cache().lock().ok()?;
-    c.get(key).filter(|(t, _)| t.elapsed() < TTL).map(|(_, v)| v.clone())
+    c.get(key)
+        .filter(|(t, _)| t.elapsed() < TTL)
+        .map(|(_, v)| v.clone())
 }
 fn keep(key: String, v: &Value) {
     if let Ok(mut c) = cache().lock() {
@@ -309,7 +332,13 @@ pub async fn credits(core: &Core, project: &str) -> Result<Value, CoreError> {
     let c = if cf::is_cf(project) {
         let id = cf::num(project).ok_or_else(|| CoreError::msg("Неверный проект"))?;
         let m = cf::mods(core, &[id]).await?;
-        Credits { org: None, members: m.first().map(|m| cf_authors(&m.authors)).unwrap_or_default() }
+        Credits {
+            org: None,
+            members: m
+                .first()
+                .map(|m| cf_authors(&m.authors))
+                .unwrap_or_default(),
+        }
     } else {
         let e = modrinth::encode(project);
         let (ms, org) = join(
@@ -319,8 +348,15 @@ pub async fn credits(core: &Core, project: &str) -> Result<Value, CoreError> {
         .await;
         let ms = ms?.ok_or_else(|| CoreError::msg("Проект не найден"))?;
         // A project without an organization answers 404; that is not an error.
-        let org = org.ok().flatten().filter(|v| !v.is_null()).and_then(|v| org_of(&v));
-        Credits { org, members: members_of(&ms) }
+        let org = org
+            .ok()
+            .flatten()
+            .filter(|v| !v.is_null())
+            .and_then(|v| org_of(&v));
+        Credits {
+            org,
+            members: members_of(&ms),
+        }
     };
     let v = serde_json::to_value(c)?;
     keep(key, &v);
@@ -377,7 +413,12 @@ async fn user(core: &Core, id: &str) -> Result<Profile, CoreError> {
         bio: s(&u, "bio"),
         created: s(&u, "created"),
         members: Vec::new(),
-        orgs: orgs.as_array().into_iter().flatten().filter_map(org_of).collect(),
+        orgs: orgs
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(org_of)
+            .collect(),
         projects: works(&ps?.unwrap_or_default()),
         downloads: 0,
         follows: 0,
@@ -419,7 +460,7 @@ async fn cf_person(core: &Core, id: u64) -> Result<Profile, CoreError> {
             projects.push(w);
         }
     }
-    projects.sort_by(|a, b| b.downloads.cmp(&a.downloads));
+    projects.sort_by_key(|a| std::cmp::Reverse(a.downloads));
     Ok(Profile {
         creator: me,
         bio: String::new(),
@@ -439,7 +480,9 @@ mod tests {
 
     #[test]
     fn newest_release_skips_snapshots() {
-        let v: Vec<String> = ["1.20.1", "1.21", "24w14a", "1.21.1", "26.1", "1.8.9"].map(String::from).to_vec();
+        let v: Vec<String> = ["1.20.1", "1.21", "24w14a", "1.21.1", "26.1", "1.8.9"]
+            .map(String::from)
+            .to_vec();
         assert_eq!(newest_release(&v), "26.1");
         assert_eq!(newest_release(&[]), "");
     }
@@ -450,11 +493,22 @@ mod tests {
             "status":"approved","downloads":10,"followers":3,"loaders":["fabric"],"game_versions":["1.20.1","1.21.1"],
             "icon_url":"https://cdn.modrinth.com/x.webp","categories":["optimization"]});
         let w = work_of(&v2).unwrap();
-        assert_eq!((w.title.as_str(), w.description.as_str(), w.kind.as_str(), w.mc.as_str()), ("Iris Shaders", "short", "mod", "1.21.1"));
+        assert_eq!(
+            (
+                w.title.as_str(),
+                w.description.as_str(),
+                w.kind.as_str(),
+                w.mc.as_str()
+            ),
+            ("Iris Shaders", "short", "mod", "1.21.1")
+        );
         let v3 = json!({"id":"AANobbMI","slug":"sodium","name":"Sodium","summary":"fast","description":"# body",
             "project_types":["mod"],"status":"archived","loaders":["fabric"],"icon_url":"http://bad"});
         let w = work_of(&v3).unwrap();
-        assert_eq!((w.title.as_str(), w.description.as_str()), ("Sodium", "fast"));
+        assert_eq!(
+            (w.title.as_str(), w.description.as_str()),
+            ("Sodium", "fast")
+        );
         assert!(w.archived);
         assert_eq!(w.icon_url, None);
         let dp = json!({"id":"a","project_type":"mod","loaders":["datapack"]});
@@ -472,7 +526,10 @@ mod tests {
             {"role":"Dev","ordering":0,"user":{"id":"1","username":"IMS"}}
         ]);
         let m = members_of(&v);
-        assert_eq!(m.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(), ["coderbot", "IMS"]);
+        assert_eq!(
+            m.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(),
+            ["coderbot", "IMS"]
+        );
         assert_eq!(m[0].url, "https://modrinth.com/user/coderbot");
         assert_eq!(m[0].avatar.as_deref(), Some("https://a/b.png"));
     }
@@ -480,17 +537,36 @@ mod tests {
     #[test]
     fn org_links_by_slug() {
         let o = org_of(&json!({"id":"LjcZDkRW","slug":"caffeinemc","name":"CaffeineMC"})).unwrap();
-        assert_eq!((o.kind, o.url.as_str()), ("org", "https://modrinth.com/organization/caffeinemc"));
+        assert_eq!(
+            (o.kind, o.url.as_str()),
+            ("org", "https://modrinth.com/organization/caffeinemc")
+        );
     }
 
     #[test]
     fn cf_skips_other_classes() {
-        let m = cf::CfMod { id: 7, class_id: 17, ..Default::default() };
+        let m = cf::CfMod {
+            id: 7,
+            class_id: 17,
+            ..Default::default()
+        };
         assert!(cf_work(&m).is_none());
-        let m = cf::CfMod { id: 238222, class_id: 6, name: "JEI".into(), ..Default::default() };
+        let m = cf::CfMod {
+            id: 238222,
+            class_id: 6,
+            name: "JEI".into(),
+            ..Default::default()
+        };
         let w = cf_work(&m).unwrap();
-        assert_eq!((w.project_id.as_str(), w.kind.as_str()), ("cf:238222", "mod"));
-        let a = cf::CfAuthor { id: 5, name: "mezz".into(), ..Default::default() };
+        assert_eq!(
+            (w.project_id.as_str(), w.kind.as_str()),
+            ("cf:238222", "mod")
+        );
+        let a = cf::CfAuthor {
+            id: 5,
+            name: "mezz".into(),
+            ..Default::default()
+        };
         assert_eq!(cf_author(&a).url, "https://www.curseforge.com/members/mezz");
     }
 }

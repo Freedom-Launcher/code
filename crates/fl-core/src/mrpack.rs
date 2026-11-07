@@ -431,7 +431,10 @@ mod tests {
         let src = d.join("big.mrpack");
         std::fs::write(&src, b"PK\x03\x04more").unwrap();
         let t2 = stage_file(&d, &src).unwrap();
-        assert_eq!(std::fs::read(staged(&d, &t2).unwrap()).unwrap(), b"PK\x03\x04more");
+        assert_eq!(
+            std::fs::read(staged(&d, &t2).unwrap()).unwrap(),
+            b"PK\x03\x04more"
+        );
         release(&d, &t2);
         assert!(src.exists(), "the user's own pack must survive release");
         assert!(!d.join("imports").join(format!("{t2}.ref")).exists());

@@ -5,7 +5,9 @@ use std::{sync::Arc, time::Instant};
 use fl_core::{Caller, Core};
 use serde_json::{json, Value};
 use tauri::Manager;
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult};
+use tauri_plugin_dialog::{
+    DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult,
+};
 use tauri_plugin_opener::OpenerExt;
 
 mod updater;
@@ -139,7 +141,11 @@ async fn theme_action(
         .dispatch(&Caller::BuiltinUi, "themes.trusted", Value::Null)
         .await
         .ok()
-        .and_then(|v| v["trusted"].as_array().map(|a| a.iter().any(|x| x.as_str() == Some(id.as_str()))))
+        .and_then(|v| {
+            v["trusted"]
+                .as_array()
+                .map(|a| a.iter().any(|x| x.as_str() == Some(id.as_str())))
+        })
         .unwrap_or(false);
     if ask && !trusted && fl_core::actions::theme_needs_confirm(&name) {
         // Only the theme's id is shown (a-z, 0-9, '-'): its display name is author text.
@@ -172,8 +178,14 @@ async fn theme_action(
             "{text}\n\n{}",
             tr("«Всегда для этой темы» запомнит эту версию темы: после её обновления вопрос вернётся.")
         );
-        match choose_native(app, tr("Тема просит действие"), text, tr("Разрешить"), tr("Всегда для этой темы"))
-            .await?
+        match choose_native(
+            app,
+            tr("Тема просит действие"),
+            text,
+            tr("Разрешить"),
+            tr("Всегда для этой темы"),
+        )
+        .await?
         {
             Choice::Allow => {}
             Choice::Always => {
@@ -192,7 +204,11 @@ async fn theme_action(
 /// Whole-window zoom for «Масштаб интерфейса» (Settings → Вид → Раскладка).
 #[tauri::command]
 fn set_ui_zoom(app: tauri::AppHandle, scale: f64) -> Result<(), String> {
-    let scale = if scale.is_finite() { scale.clamp(0.5, 2.0) } else { 1.0 };
+    let scale = if scale.is_finite() {
+        scale.clamp(0.5, 2.0)
+    } else {
+        1.0
+    };
     let w = app.get_webview_window("main").ok_or("no main window")?;
     w.set_zoom(scale).map_err(|e| e.to_string())
 }
@@ -265,7 +281,11 @@ async fn ms_window_login(
     }
     let core = Arc::clone(&state.0);
     let start = core
-        .dispatch(&Caller::BuiltinUi, "accounts.microsoft.authorize", Value::Null)
+        .dispatch(
+            &Caller::BuiltinUi,
+            "accounts.microsoft.authorize",
+            Value::Null,
+        )
         .await
         .map_err(|e| e.to_string())?;
     let url: tauri::Url = start["url"]
@@ -382,11 +402,19 @@ async fn pick_content(
 
 /// Files dropped onto the content tab.
 #[tauri::command]
-async fn drop_content(state: tauri::State<'_, AppCore>, args: Value, paths: Vec<String>) -> Result<Value, String> {
+async fn drop_content(
+    state: tauri::State<'_, AppCore>,
+    args: Value,
+    paths: Vec<String>,
+) -> Result<Value, String> {
     add_content(state, args, paths).await
 }
 
-async fn add_content(state: tauri::State<'_, AppCore>, mut args: Value, paths: Vec<String>) -> Result<Value, String> {
+async fn add_content(
+    state: tauri::State<'_, AppCore>,
+    mut args: Value,
+    paths: Vec<String>,
+) -> Result<Value, String> {
     args["paths"] = serde_json::json!(paths);
     let core = Arc::clone(&state.0);
     core.dispatch(&Caller::BuiltinUi, "mods.add_files", args)
@@ -396,7 +424,10 @@ async fn add_content(state: tauri::State<'_, AppCore>, mut args: Value, paths: V
 
 /// Settings → Плагины → «Выбрать файл…»: install a plugin `.zip`.
 #[tauri::command]
-async fn pick_addon(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) -> Result<Value, String> {
+async fn pick_addon(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+) -> Result<Value, String> {
     let picked = tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
@@ -406,16 +437,25 @@ async fn pick_addon(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) -> 
     })
     .await
     .map_err(|e| e.to_string())?;
-    let Some(path) = picked else { return Ok(Value::Null) };
+    let Some(path) = picked else {
+        return Ok(Value::Null);
+    };
     let core = Arc::clone(&state.0);
-    core.dispatch(&Caller::BuiltinUi, "addons.install", serde_json::json!({ "path": path }))
-        .await
-        .map_err(|e| e.to_string())
+    core.dispatch(
+        &Caller::BuiltinUi,
+        "addons.install",
+        serde_json::json!({ "path": path }),
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 /// Settings → Вид → «Установить из файла…»: install a theme `.fltheme`.
 #[tauri::command]
-async fn pick_theme(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) -> Result<Value, String> {
+async fn pick_theme(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+) -> Result<Value, String> {
     let picked = tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
@@ -425,11 +465,17 @@ async fn pick_theme(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) -> 
     })
     .await
     .map_err(|e| e.to_string())?;
-    let Some(path) = picked else { return Ok(Value::Null) };
+    let Some(path) = picked else {
+        return Ok(Value::Null);
+    };
     let core = Arc::clone(&state.0);
-    core.dispatch(&Caller::BuiltinUi, "themes.install", serde_json::json!({ "path": path }))
-        .await
-        .map_err(|e| e.to_string())
+    core.dispatch(
+        &Caller::BuiltinUi,
+        "themes.install",
+        serde_json::json!({ "path": path }),
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 /// Settings → Вид → «Поделиться темой»: save the theme as one `.fltheme` file.
@@ -450,19 +496,28 @@ async fn export_theme(
     })
     .await
     .map_err(|e| e.to_string())?;
-    let Some(mut path) = picked else { return Ok(Value::Null) };
+    let Some(mut path) = picked else {
+        return Ok(Value::Null);
+    };
     if path.extension().is_none_or(|e| e != "fltheme") {
         path.set_extension("fltheme");
     }
     let core = Arc::clone(&state.0);
-    core.dispatch(&Caller::BuiltinUi, "themes.export", serde_json::json!({ "id": id, "path": path }))
-        .await
-        .map_err(|e| e.to_string())
+    core.dispatch(
+        &Caller::BuiltinUi,
+        "themes.export",
+        serde_json::json!({ "id": id, "path": path }),
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 /// Native folder picker (Settings → Игра → «Папка сборок»); `None` if cancelled.
 #[tauri::command]
-async fn pick_folder(app: tauri::AppHandle, title: Option<String>) -> Result<Option<String>, String> {
+async fn pick_folder(
+    app: tauri::AppHandle,
+    title: Option<String>,
+) -> Result<Option<String>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let mut d = app.dialog().file();
         if let Some(t) = title {
@@ -524,7 +579,13 @@ async fn open_shots_folder(
     instance: String,
 ) -> Result<(), String> {
     let core = Arc::clone(&state.0);
-    open_action_path(app, core, "screenshots.folder", serde_json::json!({ "instance": instance })).await
+    open_action_path(
+        app,
+        core,
+        "screenshots.folder",
+        serde_json::json!({ "instance": instance }),
+    )
+    .await
 }
 
 /// Opens an instance's `logs/` folder.
@@ -535,7 +596,13 @@ async fn open_logs_folder(
     instance: String,
 ) -> Result<(), String> {
     let core = Arc::clone(&state.0);
-    open_action_path(app, core, "logs.folder", serde_json::json!({ "instance": instance })).await
+    open_action_path(
+        app,
+        core,
+        "logs.folder",
+        serde_json::json!({ "instance": instance }),
+    )
+    .await
 }
 
 #[tauri::command]
@@ -545,7 +612,13 @@ async fn open_backups_folder(
     instance: String,
 ) -> Result<(), String> {
     let core = Arc::clone(&state.0);
-    open_action_path(app, core, "worlds.backups_folder", serde_json::json!({ "instance": instance })).await
+    open_action_path(
+        app,
+        core,
+        "worlds.backups_folder",
+        serde_json::json!({ "instance": instance }),
+    )
+    .await
 }
 
 /// Serves screenshots: `shot://localhost/<instance>/<file>` (Windows: `http://shot.localhost/...`).
@@ -622,7 +695,10 @@ async fn stage_mrpack(
 /// Picks a `.mrpack` with the native dialog and stages it straight from disk, so the
 /// WebView never has to read the file (WebView2 throws NotReadableError on some files).
 #[tauri::command]
-async fn pick_mrpack(app: tauri::AppHandle, state: tauri::State<'_, AppCore>) -> Result<Option<String>, String> {
+async fn pick_mrpack(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+) -> Result<Option<String>, String> {
     let data_dir = state.0.data_dir.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let Some(path) = app
@@ -648,11 +724,16 @@ fn stage_mrpack_file(data_dir: &std::path::Path, path: &std::path::Path) -> Resu
 
 /// Stages a `.mrpack` dropped onto the window (path from the drag-drop event).
 #[tauri::command]
-async fn stage_mrpack_path(path: String, state: tauri::State<'_, AppCore>) -> Result<String, String> {
+async fn stage_mrpack_path(
+    path: String,
+    state: tauri::State<'_, AppCore>,
+) -> Result<String, String> {
     let data_dir = state.0.data_dir.clone();
-    tauri::async_runtime::spawn_blocking(move || stage_mrpack_file(&data_dir, std::path::Path::new(&path)))
-        .await
-        .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || {
+        stage_mrpack_file(&data_dir, std::path::Path::new(&path))
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Saves an instance's own icon or cover, already cropped by the UI. Raw body; the
@@ -665,17 +746,32 @@ async fn set_art(
     let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
         return Err("Нужна картинка".into());
     };
-    let h = |k: &str| request.headers().get(k).and_then(|v| v.to_str().ok()).unwrap_or("").to_owned();
-    fl_core::art::save(&state.0.data_dir, &h("x-inst"), &h("x-kind"), bytes).map_err(|e| e.to_string())
+    let h = |k: &str| {
+        request
+            .headers()
+            .get(k)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .to_owned()
+    };
+    fl_core::art::save(&state.0.data_dir, &h("x-inst"), &h("x-kind"), bytes)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn clear_art(instance: String, kind: String, state: tauri::State<'_, AppCore>) -> Result<(), String> {
+async fn clear_art(
+    instance: String,
+    kind: String,
+    state: tauri::State<'_, AppCore>,
+) -> Result<(), String> {
     fl_core::art::clear(&state.0.data_dir, &instance, &kind).map_err(|e| e.to_string())
 }
 
 /// Serves own instance pictures: `art://localhost/<id>/<icon|cover>` (Windows: `http://art.localhost/...`).
-fn art_protocol(app: &tauri::AppHandle, req: &tauri::http::Request<Vec<u8>>) -> tauri::http::Response<Vec<u8>> {
+fn art_protocol(
+    app: &tauri::AppHandle,
+    req: &tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Vec<u8>> {
     use tauri::http::Response;
     let path = req.uri().path().trim_start_matches('/');
     let found = path.split_once('/').and_then(|(id, kind)| {
@@ -693,14 +789,24 @@ fn art_protocol(app: &tauri::AppHandle, req: &tauri::http::Request<Vec<u8>>) -> 
         .status(200)
         .header("Content-Type", mime)
         .header("X-Content-Type-Options", "nosniff")
-        .header("Cache-Control", if path.starts_with("lib/") { "private, max-age=31536000, immutable" } else { "no-cache" })
+        .header(
+            "Cache-Control",
+            if path.starts_with("lib/") {
+                "private, max-age=31536000, immutable"
+            } else {
+                "no-cache"
+            },
+        )
         .body(bytes)
         .unwrap()
 }
 
 /// Remote images in descriptions: `rimg://localhost/<encoded url>` (Windows:
 /// `http://rimg.localhost/...`), fetched and checked by the core.
-async fn rimg_protocol(app: &tauri::AppHandle, req: &tauri::http::Request<Vec<u8>>) -> tauri::http::Response<Vec<u8>> {
+async fn rimg_protocol(
+    app: &tauri::AppHandle,
+    req: &tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Vec<u8>> {
     use tauri::http::Response;
     let url = percent_decode(req.uri().path().trim_start_matches('/'));
     let Some(state) = app.try_state::<AppCore>() else {
@@ -712,7 +818,10 @@ async fn rimg_protocol(app: &tauri::AppHandle, req: &tauri::http::Request<Vec<u8
             .status(200)
             .header("Content-Type", mime)
             .header("X-Content-Type-Options", "nosniff")
-            .header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
+            .header(
+                "Content-Security-Policy",
+                "default-src 'none'; style-src 'unsafe-inline'",
+            )
             .header("Cache-Control", "private, max-age=86400")
             .body(bytes)
             .unwrap(),
@@ -1029,7 +1138,9 @@ fn set_app_icon(app: tauri::AppHandle, rgba: Vec<u8>, w: u32, h: u32) -> Result<
 /// Tauri sets only the small window icon; the taskbar and Alt+Tab use the big one.
 #[cfg(windows)]
 fn set_big_icon(hwnd: windows_sys::Win32::Foundation::HWND, img: &tauri::image::Image<'_>) {
-    use windows_sys::Win32::UI::WindowsAndMessaging::{CreateIcon, DestroyIcon, SendMessageW, ICON_BIG, WM_SETICON};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        CreateIcon, DestroyIcon, SendMessageW, ICON_BIG, WM_SETICON,
+    };
     static PREV: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let (w, h) = (img.width() as i32, img.height() as i32);
     let mut bgra = img.rgba().to_vec();
@@ -1040,7 +1151,15 @@ fn set_big_icon(hwnd: windows_sys::Win32::Foundation::HWND, img: &tauri::image::
     }
     // SAFETY: both buffers outlive the call and hold w*h pixels; the previous handle is ours to free.
     unsafe {
-        let icon = CreateIcon(std::ptr::null_mut(), w, h, 1, 32, and_mask.as_ptr(), bgra.as_ptr());
+        let icon = CreateIcon(
+            std::ptr::null_mut(),
+            w,
+            h,
+            1,
+            32,
+            and_mask.as_ptr(),
+            bgra.as_ptr(),
+        );
         if icon.is_null() {
             return;
         }
@@ -1082,7 +1201,10 @@ fn tr(s: &str) -> String {
     UI_STRINGS
         .read()
         .ok()
-        .and_then(|m| m.as_ref().and_then(|m| m.get(s).filter(|v| !v.is_empty()).cloned()))
+        .and_then(|m| {
+            m.as_ref()
+                .and_then(|m| m.get(s).filter(|v| !v.is_empty()).cloned())
+        })
         .unwrap_or_else(|| s.to_string())
 }
 
@@ -1189,7 +1311,9 @@ fn main() {
         .register_uri_scheme_protocol("art", |ctx, req| art_protocol(ctx.app_handle(), &req))
         .register_asynchronous_uri_scheme_protocol("rimg", |ctx, req, responder| {
             let app = ctx.app_handle().clone();
-            tauri::async_runtime::spawn(async move { responder.respond(rimg_protocol(&app, &req).await) });
+            tauri::async_runtime::spawn(async move {
+                responder.respond(rimg_protocol(&app, &req).await)
+            });
         })
         .setup(move |app| {
             tray(app)?;
@@ -1270,7 +1394,10 @@ fn main() {
 mod link_tests {
     #[test]
     fn percent_decoding() {
-        assert_eq!(super::percent_decode("2026-10-16_21.04.46.png"), "2026-10-16_21.04.46.png");
+        assert_eq!(
+            super::percent_decode("2026-10-16_21.04.46.png"),
+            "2026-10-16_21.04.46.png"
+        );
         assert_eq!(super::percent_decode("a%20b.png"), "a b.png");
         assert_eq!(super::percent_decode("%D0%BC.png"), "м.png");
         assert_eq!(super::percent_decode("bad%zz%"), "bad%zz%");

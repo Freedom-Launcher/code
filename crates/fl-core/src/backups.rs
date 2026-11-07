@@ -34,8 +34,12 @@ fn is_stamp(s: &[u8]) -> bool {
 
 /// Drops a trailing ` (2)` / `(2)` that tells same-second copies apart.
 fn strip_copy_no(s: &str) -> &str {
-    let Some(inner) = s.strip_suffix(')') else { return s };
-    let Some(open) = inner.rfind('(') else { return s };
+    let Some(inner) = s.strip_suffix(')') else {
+        return s;
+    };
+    let Some(open) = inner.rfind('(') else {
+        return s;
+    };
     let n = &inner[open + 1..];
     if n.is_empty() || !n.bytes().all(|b| b.is_ascii_digit()) {
         return s;
@@ -49,20 +53,27 @@ pub fn matches(file: &str, world: &str) -> bool {
     if b.len() <= STAMP + 4 || !is_stamp(&b[..STAMP]) {
         return false;
     }
-    let Some(name) = file[STAMP..].strip_suffix(".zip") else { return false };
+    let Some(name) = file[STAMP..].strip_suffix(".zip") else {
+        return false;
+    };
     let base = strip_copy_no(name);
     name == world || base == world || base.strip_suffix(AUTO) == Some(world)
 }
 
 /// Whether copy `file` of `world` was made automatically before a launch.
 pub fn is_auto(file: &str, world: &str) -> bool {
-    let name = file.get(STAMP..).and_then(|n| n.strip_suffix(".zip")).unwrap_or_default();
+    let name = file
+        .get(STAMP..)
+        .and_then(|n| n.strip_suffix(".zip"))
+        .unwrap_or_default();
     matches(file, world) && name != world && strip_copy_no(name) != world
 }
 
 /// File names in the backups folder.
 pub fn files(game_dir: &Path) -> Vec<String> {
-    let Ok(rd) = fs::read_dir(dir(game_dir)) else { return Vec::new() };
+    let Ok(rd) = fs::read_dir(dir(game_dir)) else {
+        return Vec::new();
+    };
     rd.flatten()
         .filter(|e| e.file_type().is_ok_and(|t| t.is_file()))
         .filter_map(|e| e.file_name().into_string().ok())
@@ -114,7 +125,12 @@ fn stamp(t: u64) -> String {
     let d = doy - (153 * mp + 2) / 5 + 1;
     let m = if mp < 10 { mp + 3 } else { mp - 9 };
     let y = yoe + era * 400 + i64::from(m <= 2);
-    format!("{y:04}-{m:02}-{d:02}_{:02}-{:02}-{:02}_", s / 3600, s % 3600 / 60, s % 60)
+    format!(
+        "{y:04}-{m:02}-{d:02}_{:02}-{:02}-{:02}_",
+        s / 3600,
+        s % 3600 / 60,
+        s % 60
+    )
 }
 
 fn zerr(e: zip::result::ZipError) -> CoreError {
@@ -136,8 +152,15 @@ pub fn latest_world(game_dir: &Path) -> Option<String> {
         .ok()?
         .flatten()
         .filter_map(|e| {
-            let n = e.file_name().into_string().ok().filter(|n| !n.starts_with('.'))?;
-            let t = fs::metadata(e.path().join("level.dat")).ok()?.modified().ok()?;
+            let n = e
+                .file_name()
+                .into_string()
+                .ok()
+                .filter(|n| !n.starts_with('.'))?;
+            let t = fs::metadata(e.path().join("level.dat"))
+                .ok()?
+                .modified()
+                .ok()?;
             Some((t, n))
         })
         .max_by(|a, b| a.0.cmp(&b.0).then_with(|| b.1.cmp(&a.1)))
@@ -146,7 +169,12 @@ pub fn latest_world(game_dir: &Path) -> Option<String> {
 
 /// The copy made before a launch: skipped when the world has not changed since the newest
 /// copy, and only the `keep` newest automatic copies stay (copies made by hand are never touched).
-pub fn auto(game_dir: &Path, world: &str, now: u64, keep: usize) -> Result<Option<Value>, CoreError> {
+pub fn auto(
+    game_dir: &Path,
+    world: &str,
+    now: u64,
+    keep: usize,
+) -> Result<Option<Value>, CoreError> {
     let saved = fs::metadata(game_dir.join("saves").join(world).join("level.dat"))
         .and_then(|m| m.modified())
         .ok();
@@ -160,7 +188,11 @@ pub fn auto(game_dir: &Path, world: &str, now: u64, keep: usize) -> Result<Optio
         return Ok(None);
     }
     let made = create_as(game_dir, world, now, true)?;
-    for e in list(game_dir, world).iter().filter(|e| e["auto"] == true).skip(keep.max(1)) {
+    for e in list(game_dir, world)
+        .iter()
+        .filter(|e| e["auto"] == true)
+        .skip(keep.max(1))
+    {
         if let Some(f) = e["id"].as_str() {
             let _ = fs::remove_file(d.join(f));
         }
@@ -194,7 +226,8 @@ fn create_as(game_dir: &Path, world: &str, now: u64, auto: bool) -> Result<Value
 
 fn write_zip(src: &Path, world: &str, to: &Path) -> Result<(), CoreError> {
     let mut z = zip::ZipWriter::new(io::BufWriter::new(fs::File::create(to)?));
-    let opts = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    let opts = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated);
     let mut stack = vec![PathBuf::new()];
     while let Some(rel) = stack.pop() {
         let mut items: Vec<_> = fs::read_dir(src.join(&rel))?.flatten().collect();
@@ -216,7 +249,8 @@ fn write_zip(src: &Path, world: &str, to: &Path) -> Result<(), CoreError> {
                     continue;
                 }
                 let len = e.metadata()?.len();
-                z.start_file(zname, opts.large_file(len >= u64::from(u32::MAX))).map_err(zerr)?;
+                z.start_file(zname, opts.large_file(len >= u64::from(u32::MAX)))
+                    .map_err(zerr)?;
                 io::copy(&mut fs::File::open(e.path())?, &mut z)?;
             }
         }
@@ -232,10 +266,15 @@ fn extract(zip_path: &Path, to: &Path) -> Result<(), CoreError> {
     let mut prefix: Option<PathBuf> = None;
     for i in 0..z.len() {
         let e = z.by_index_raw(i).map_err(|_| broken())?;
-        let Some(p) = e.enclosed_name() else { return Err(broken()) };
+        let Some(p) = e.enclosed_name() else {
+            return Err(broken());
+        };
         if p.file_name() == Some("level.dat".as_ref()) {
             let parent = p.parent().map(Path::to_path_buf).unwrap_or_default();
-            if prefix.as_ref().is_none_or(|q| parent.components().count() < q.components().count()) {
+            if prefix
+                .as_ref()
+                .is_none_or(|q| parent.components().count() < q.components().count())
+            {
                 prefix = Some(parent);
             }
         }
@@ -243,8 +282,12 @@ fn extract(zip_path: &Path, to: &Path) -> Result<(), CoreError> {
     let prefix = prefix.ok_or_else(|| CoreError::msg("В копии нет мира"))?;
     for i in 0..z.len() {
         let mut e = z.by_index(i).map_err(|_| broken())?;
-        let Some(p) = e.enclosed_name() else { return Err(broken()) };
-        let Ok(rel) = p.strip_prefix(&prefix) else { continue };
+        let Some(p) = e.enclosed_name() else {
+            return Err(broken());
+        };
+        let Ok(rel) = p.strip_prefix(&prefix) else {
+            continue;
+        };
         if rel.as_os_str().is_empty() || e.unix_mode().is_some_and(|m| m & 0o170000 == 0o120000) {
             continue;
         }
@@ -263,7 +306,8 @@ fn extract(zip_path: &Path, to: &Path) -> Result<(), CoreError> {
 
 /// The path of copy `file` of `world`, if it really is one.
 pub fn path(game_dir: &Path, world: &str, file: &str) -> Result<PathBuf, CoreError> {
-    let ok = !file.starts_with('.') && !file.contains(['/', '\\', ':', '\0']) && matches(file, world);
+    let ok =
+        !file.starts_with('.') && !file.contains(['/', '\\', ':', '\0']) && matches(file, world);
     let p = dir(game_dir).join(file);
     if !ok || !p.is_file() {
         return Err(CoreError::msg("Такой копии нет"));
@@ -309,7 +353,9 @@ pub fn restore(
         let old = saves.join(format!(".replaced-{world}"));
         let _ = fs::remove_dir_all(&old);
         fs::rename(&cur, &old).map_err(|_| {
-            cleanup(CoreError::msg("Не удалось заменить мир: папка открыта в другой программе"))
+            cleanup(CoreError::msg(
+                "Не удалось заменить мир: папка открыта в другой программе",
+            ))
         })?;
         if let Err(e) = fs::rename(&tmp, &cur) {
             let _ = fs::rename(&old, &cur);
@@ -339,14 +385,21 @@ mod tests {
         fs::create_dir_all(&w).unwrap();
         fs::write(w.join("level.dat"), b"x").unwrap();
         let touch = |secs: u64| {
-            let f = fs::File::options().write(true).open(w.join("level.dat")).unwrap();
-            f.set_modified(std::time::SystemTime::now() + std::time::Duration::from_secs(secs)).unwrap();
+            let f = fs::File::options()
+                .write(true)
+                .open(w.join("level.dat"))
+                .unwrap();
+            f.set_modified(std::time::SystemTime::now() + std::time::Duration::from_secs(secs))
+                .unwrap();
         };
         assert!(matches("2026-10-25_21-14-03_World [auto].zip", "World"));
         assert!(matches("2026-10-25_21-14-03_World [auto] (2).zip", "World"));
         assert!(is_auto("2026-10-25_21-14-03_World [auto] (2).zip", "World"));
         assert!(!is_auto("2026-10-25_21-14-03_World.zip", "World"));
-        assert!(!matches("2026-10-25_21-14-03_World [auto].zip", "World [auto] x"));
+        assert!(!matches(
+            "2026-10-25_21-14-03_World [auto].zip",
+            "World [auto] x"
+        ));
         let hand = create(&g, "World", 1_000).unwrap();
         assert_eq!(hand["auto"], false);
         // Nothing changed since the copy made by hand.
@@ -376,7 +429,10 @@ mod tests {
         assert_eq!(stamp(1_700_000_000), "2023-11-14_22-13-20_");
         assert_eq!(stamp(951_782_400), "2000-02-29_00-00-00_");
         assert!(matches("2026-10-25_21-14-03_New World.zip", "New World"));
-        assert!(matches("2026-10-25_21-14-03_New World (2).zip", "New World"));
+        assert!(matches(
+            "2026-10-25_21-14-03_New World (2).zip",
+            "New World"
+        ));
         assert!(matches("2026-10-25_21-14-03_Мир(3).zip", "Мир"));
         assert!(matches("2026-10-25_21-14-03_Мир (2).zip", "Мир (2)"));
         assert!(!matches("2026-10-25_21-14-03_New World.zip", "New"));
@@ -409,11 +465,25 @@ mod tests {
         fs::write(w.join("new.dat"), b"x").unwrap();
         assert!(restore(&g, "Мир", a["id"].as_str().unwrap(), 1_700_000_100, || true).is_err());
         let calls = std::cell::Cell::new(0);
-        let late = || { calls.set(calls.get() + 1); calls.get() > 1 };
+        let late = || {
+            calls.set(calls.get() + 1);
+            calls.get() > 1
+        };
         assert!(restore(&g, "Мир", a["id"].as_str().unwrap(), 1_700_000_100, late).is_err());
-        assert_eq!(list(&g, "Мир").len(), 1, "no stray safety copy after a refused restore");
+        assert_eq!(
+            list(&g, "Мир").len(),
+            1,
+            "no stray safety copy after a refused restore"
+        );
         assert_eq!(fs::read(w.join("level.dat")).unwrap(), b"v2");
-        let r = restore(&g, "Мир", a["id"].as_str().unwrap(), 1_700_000_100, || false).unwrap();
+        let r = restore(
+            &g,
+            "Мир",
+            a["id"].as_str().unwrap(),
+            1_700_000_100,
+            || false,
+        )
+        .unwrap();
         assert_eq!(fs::read(w.join("level.dat")).unwrap(), b"v1");
         assert_eq!(fs::read(w.join("region/r.0.0.mca")).unwrap().len(), 100_000);
         assert!(!w.join("new.dat").exists() && !w.join("session.lock").exists());
@@ -423,7 +493,11 @@ mod tests {
         restore(&g, "Мир", &safety, 1_700_000_200, || false).unwrap();
         assert_eq!(fs::read(w.join("level.dat")).unwrap(), b"v2");
         assert!(w.join("new.dat").is_file());
-        let left: Vec<String> = fs::read_dir(g.join("saves")).unwrap().flatten().map(|e| e.file_name().into_string().unwrap()).collect();
+        let left: Vec<String> = fs::read_dir(g.join("saves"))
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().into_string().unwrap())
+            .collect();
         assert_eq!(left, vec!["Мир".to_string()]);
         fs::remove_dir_all(&g).unwrap();
     }
@@ -440,7 +514,10 @@ mod tests {
         w.start_file("level.dat", o).unwrap();
         w.write_all(b"old").unwrap();
         w.finish().unwrap();
-        restore(&g, "A", "2020-01-01_00-00-00_A.zip", 1_700_000_000, || false).unwrap();
+        restore(&g, "A", "2020-01-01_00-00-00_A.zip", 1_700_000_000, || {
+            false
+        })
+        .unwrap();
         assert_eq!(fs::read(g.join("saves/A/level.dat")).unwrap(), b"old");
         fs::remove_dir_all(&g).unwrap();
     }

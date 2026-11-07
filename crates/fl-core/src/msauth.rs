@@ -222,9 +222,14 @@ pub async fn authorize(core: &Core) -> Result<Value, CoreError> {
 
 /// Reads the authorization code from the address the sign-in window stopped at.
 fn code_from_redirect(redirect: &str, state: &str) -> Result<String, CoreError> {
-    let url = reqwest::Url::parse(redirect)
-        .map_err(|_| CoreError::msg("unexpected sign-in address"))?;
-    let base = format!("{}://{}{}", url.scheme(), url.host_str().unwrap_or(""), url.path());
+    let url =
+        reqwest::Url::parse(redirect).map_err(|_| CoreError::msg("unexpected sign-in address"))?;
+    let base = format!(
+        "{}://{}{}",
+        url.scheme(),
+        url.host_str().unwrap_or(""),
+        url.path()
+    );
     if base != REDIRECT_URI {
         return Err(CoreError::msg("unexpected sign-in address"));
     }
@@ -320,7 +325,11 @@ mod code_flow_tests {
             .unwrap_err()
             .to_string()
             .contains("cancelled"));
-        assert!(code_from_redirect("https://evil.example/common/oauth2/nativeclient?code=x&state=s1", "s1").is_err());
+        assert!(code_from_redirect(
+            "https://evil.example/common/oauth2/nativeclient?code=x&state=s1",
+            "s1"
+        )
+        .is_err());
     }
 }
 

@@ -87,7 +87,8 @@ async fn main() {
     };
     let args = launch::build_args(&v, &env, &layout, &auth, &opts);
     std::fs::write(game_dir.join("args.txt"), args.join("\n")).ok();
-    let mut child = launch::spawn(&exe, &args, &game_dir, None, &Default::default()).expect("spawn");
+    let mut child =
+        launch::spawn(&exe, &args, &game_dir, None, &Default::default()).expect("spawn");
     let t = Instant::now();
     let code = loop {
         if let Some(s) = child.try_wait().unwrap() {

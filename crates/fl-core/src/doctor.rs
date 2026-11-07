@@ -27,11 +27,29 @@ use crate::{
 const OFF: &str = ".disabled";
 /// Mod ids every loader provides on its own.
 const BUILTIN: &[&str] = &[
-    "minecraft", "java", "fabricloader", "fabric-loader", "quilt_loader", "quilted_fabric_loader",
-    "forge", "neoforge", "fml", "javafml", "lowcodefml", "mixinextras", "mixin",
+    "minecraft",
+    "java",
+    "fabricloader",
+    "fabric-loader",
+    "quilt_loader",
+    "quilted_fabric_loader",
+    "forge",
+    "neoforge",
+    "fml",
+    "javafml",
+    "lowcodefml",
+    "mixinextras",
+    "mixin",
 ];
 /// Mods that break when OptiFine is next to them.
-const RENDERERS: &[&str] = &["sodium", "embeddium", "rubidium", "magnesium", "iris", "oculus"];
+const RENDERERS: &[&str] = &[
+    "sodium",
+    "embeddium",
+    "rubidium",
+    "magnesium",
+    "iris",
+    "oculus",
+];
 /// Strings planted by the fractureiser malware (June 2023).
 const MARKERS: &[&[u8]] = &[b"85.217.144.130", b"107.189.3.101", b"files-8ie.pages.dev"];
 const MAX_META: u64 = 1 << 20;
@@ -51,13 +69,19 @@ impl Req {
     fn fabric(v: &Value) -> Req {
         let any = match v {
             Value::String(s) => vec![s.clone()],
-            Value::Array(a) => a.iter().filter_map(|x| x.as_str().map(str::to_owned)).collect(),
+            Value::Array(a) => a
+                .iter()
+                .filter_map(|x| x.as_str().map(str::to_owned))
+                .collect(),
             _ => Vec::new(),
         };
         Req { any, maven: false }
     }
     fn maven(range: String) -> Req {
-        Req { any: vec![range], maven: true }
+        Req {
+            any: vec![range],
+            maven: true,
+        }
     }
     fn anything(&self) -> bool {
         self.any.iter().all(|p| matches!(p.trim(), "" | "*"))
@@ -69,7 +93,11 @@ impl Req {
         }
         let mut unknown = false;
         for p in &self.any {
-            let r = if self.maven { maven_ok(p, v) } else { fabric_ok(p, v) };
+            let r = if self.maven {
+                maven_ok(p, v)
+            } else {
+                fabric_ok(p, v)
+            };
             match r {
                 Some(true) => return Some(true),
                 None => unknown = true,
@@ -315,7 +343,11 @@ fn quilt(v: &Value, m: &mut Meta) {
     }
     let entry = |d: &Value| match d {
         Value::String(x) => (x.clone(), Value::Null, false),
-        _ => (s(&d["id"]), d["versions"].clone(), d["optional"].as_bool().unwrap_or(false)),
+        _ => (
+            s(&d["id"]),
+            d["versions"].clone(),
+            d["optional"].as_bool().unwrap_or(false),
+        ),
     };
     for d in q["depends"].as_array().into_iter().flatten() {
         let (id, ver, optional) = entry(d);
@@ -378,10 +410,15 @@ fn toml(t: &str, m: &mut Meta, neo: bool) {
             };
             continue;
         }
-        let Some((k, v)) = l.split_once('=') else { continue };
+        let Some((k, v)) = l.split_once('=') else {
+            continue;
+        };
         let (k, v) = (k.trim().trim_matches('"'), v.trim());
         // Multi-line strings run to their closing quotes.
-        if let Some(q) = ["'''", "\"\"\""].into_iter().find(|q| v.starts_with(q) && !v[3..].contains(q)) {
+        if let Some(q) = ["'''", "\"\"\""]
+            .into_iter()
+            .find(|q| v.starts_with(q) && !v[3..].contains(q))
+        {
             for l2 in lines.by_ref() {
                 if l2.contains(q) {
                     break;
@@ -446,7 +483,11 @@ fn text<R: Read + Seek>(z: &mut zip::ZipArchive<R>, name: &str) -> Option<String
     }
     let mut b = Vec::new();
     f.take(MAX_META).read_to_end(&mut b).ok()?;
-    Some(String::from_utf8_lossy(&b).trim_start_matches('\u{feff}').to_owned())
+    Some(
+        String::from_utf8_lossy(&b)
+            .trim_start_matches('\u{feff}')
+            .to_owned(),
+    )
 }
 
 fn read_archive<R: Read + Seek>(z: &mut zip::ZipArchive<R>, m: &mut Meta, depth: u8) {
@@ -455,10 +496,12 @@ fn read_archive<R: Read + Seek>(z: &mut zip::ZipArchive<R>, m: &mut Meta, depth:
         m.optifine = names.iter().any(|n| n.starts_with("net/optifine/"));
         m.neko = names.iter().any(|n| n.starts_with("dev/neko/"));
     }
-    if let Some(v) = text(z, "fabric.mod.json").and_then(|t| serde_json::from_str::<Value>(&t).ok()) {
+    if let Some(v) = text(z, "fabric.mod.json").and_then(|t| serde_json::from_str::<Value>(&t).ok())
+    {
         fabric(&v, m);
     }
-    if let Some(v) = text(z, "quilt.mod.json").and_then(|t| serde_json::from_str::<Value>(&t).ok()) {
+    if let Some(v) = text(z, "quilt.mod.json").and_then(|t| serde_json::from_str::<Value>(&t).ok())
+    {
         quilt(&v, m);
     }
     if let Some(t) = text(z, "META-INF/neoforge.mods.toml") {
@@ -474,7 +517,10 @@ fn read_archive<R: Read + Seek>(z: &mut zip::ZipArchive<R>, m: &mut Meta, depth:
     }
     let nested = names
         .iter()
-        .filter(|n| (n.starts_with("META-INF/jars/") || n.starts_with("META-INF/jarjar/")) && n.ends_with(".jar"))
+        .filter(|n| {
+            (n.starts_with("META-INF/jars/") || n.starts_with("META-INF/jarjar/"))
+                && n.ends_with(".jar")
+        })
         .take(MAX_NESTED);
     for n in nested {
         let Ok(f) = z.by_name(n) else { continue };
@@ -485,7 +531,9 @@ fn read_archive<R: Read + Seek>(z: &mut zip::ZipArchive<R>, m: &mut Meta, depth:
         if f.take(MAX_NESTED_BYTES).read_to_end(&mut b).is_err() {
             continue;
         }
-        let Ok(mut inner) = zip::ZipArchive::new(Cursor::new(b)) else { continue };
+        let Ok(mut inner) = zip::ZipArchive::new(Cursor::new(b)) else {
+            continue;
+        };
         let mut sub = Meta::default();
         read_archive(&mut inner, &mut sub, depth + 1);
         if !sub.id.is_empty() {
@@ -537,14 +585,25 @@ pub fn read_jar(p: &Path) -> Result<Meta, String> {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum Fix {
-    Disable { files: Vec<String> },
-    Enable { files: Vec<String> },
+    Disable {
+        files: Vec<String>,
+    },
+    Enable {
+        files: Vec<String>,
+    },
     /// Moves a pack out of `mods/` into `resourcepacks` or `shaderpacks`.
-    Move { file: String, to: String },
+    Move {
+        file: String,
+        to: String,
+    },
     /// Installs a catalog project (done by the UI through `mods.install`).
-    Install { project: String },
+    Install {
+        project: String,
+    },
     /// Opens the catalog search (done by the UI).
-    Search { query: String },
+    Search {
+        query: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -579,12 +638,30 @@ pub struct Scan {
     present: HashSet<String>,
 }
 
-fn issue(kind: &'static str, level: &'static str, files: Vec<String>, names: Vec<String>, detail: String, fix: Option<Fix>) -> Issue {
-    Issue { kind, level, files, names, detail, fix }
+fn issue(
+    kind: &'static str,
+    level: &'static str,
+    files: Vec<String>,
+    names: Vec<String>,
+    detail: String,
+    fix: Option<Fix>,
+) -> Issue {
+    Issue {
+        kind,
+        level,
+        files,
+        names,
+        detail,
+        fix,
+    }
 }
 
 fn norm(s: &str) -> String {
-    let n: String = s.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect();
+    let n: String = s
+        .chars()
+        .filter(|c| c.is_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect();
     if n == "fabric" {
         "fabricapi".into()
     } else {
@@ -614,7 +691,8 @@ impl Jar {
         }
     }
     fn answers(&self, id: &str) -> bool {
-        self.m().is_some_and(|m| m.id == id || m.provides.iter().any(|p| p == id))
+        self.m()
+            .is_some_and(|m| m.id == id || m.provides.iter().any(|p| p == id))
     }
 }
 
@@ -664,15 +742,23 @@ fn family(l: &str) -> &'static str {
 
 /// Packs that ended up in `mods/` by mistake.
 fn stray_packs(gd: &Path, out: &mut Vec<Issue>) {
-    let Ok(rd) = fs::read_dir(mods::dir(gd, Kind::Mod)) else { return };
+    let Ok(rd) = fs::read_dir(mods::dir(gd, Kind::Mod)) else {
+        return;
+    };
     for e in rd.flatten() {
         let name = e.file_name().to_string_lossy().into_owned();
         if mods::check_file(Kind::ResourcePack, &name).is_err() {
             continue;
         }
-        let Ok(z) = fs::File::open(e.path()).map_err(|_| ()).and_then(|f| zip::ZipArchive::new(f).map_err(|_| ())) else { continue };
+        let Ok(z) = fs::File::open(e.path())
+            .map_err(|_| ())
+            .and_then(|f| zip::ZipArchive::new(f).map_err(|_| ()))
+        else {
+            continue;
+        };
         let has = |p: &str| z.file_names().any(|n| n.starts_with(p));
-        let to = if z.file_names().any(|n| n == "pack.mcmeta") && (has("assets/") || !has("data/")) {
+        let to = if z.file_names().any(|n| n == "pack.mcmeta") && (has("assets/") || !has("data/"))
+        {
             "resourcepacks"
         } else if has("shaders/") {
             "shaderpacks"
@@ -680,7 +766,17 @@ fn stray_packs(gd: &Path, out: &mut Vec<Issue>) {
             continue;
         };
         let title = name.trim_end_matches(".zip").to_owned();
-        out.push(issue("stray_pack", "warn", vec![name.clone()], vec![title], to.into(), Some(Fix::Move { file: name, to: to.into() })));
+        out.push(issue(
+            "stray_pack",
+            "warn",
+            vec![name.clone()],
+            vec![title],
+            to.into(),
+            Some(Fix::Move {
+                file: name,
+                to: to.into(),
+            }),
+        ));
     }
 }
 
@@ -702,7 +798,14 @@ pub fn scan(gd: &Path, loader: &str, mc: &str) -> Result<Scan, CoreError> {
     stray_packs(gd, &mut out);
     if loader == "vanilla" {
         if s.report.enabled > 0 {
-            out.push(issue("no_loader", "warn", vec![], vec![], s.report.enabled.to_string(), None));
+            out.push(issue(
+                "no_loader",
+                "warn",
+                vec![],
+                vec![],
+                s.report.enabled.to_string(),
+                None,
+            ));
         }
         s.report.issues = out;
         return Ok(s);
@@ -711,7 +814,11 @@ pub fn scan(gd: &Path, loader: &str, mc: &str) -> Result<Scan, CoreError> {
     let jars: Vec<Jar> = list
         .into_iter()
         .map(|e| {
-            let name = if e.enabled { e.file.clone() } else { format!("{}{OFF}", e.file) };
+            let name = if e.enabled {
+                e.file.clone()
+            } else {
+                format!("{}{OFF}", e.file)
+            };
             let meta = read_jar(&dir.join(name));
             Jar { e, meta }
         })
@@ -721,10 +828,23 @@ pub fn scan(gd: &Path, loader: &str, mc: &str) -> Result<Scan, CoreError> {
 
     let broken: Vec<&Jar> = on.iter().copied().filter(|j| j.meta.is_err()).collect();
     if !broken.is_empty() {
-        out.push(issue("broken", "error", files(&broken), titles(&broken), String::new(), Some(Fix::Disable { files: files(&broken) })));
+        out.push(issue(
+            "broken",
+            "error",
+            files(&broken),
+            titles(&broken),
+            String::new(),
+            Some(Fix::Disable {
+                files: files(&broken),
+            }),
+        ));
     }
 
-    let mcv = if !mc.is_empty() && mc.bytes().all(|b| b.is_ascii_digit() || b == b'.') { nums(mc) } else { None };
+    let mcv = if !mc.is_empty() && mc.bytes().all(|b| b.is_ascii_digit() || b == b'.') {
+        nums(mc)
+    } else {
+        None
+    };
     let connector = on.iter().any(|j| j.answers("connector"));
     let ok = accepted(loader, mcv.as_deref(), connector);
     let mut wrong: HashSet<&str> = HashSet::new();
@@ -737,24 +857,52 @@ pub fn scan(gd: &Path, loader: &str, mc: &str) -> Result<Scan, CoreError> {
         }
     }
     for (l, js) in by_loader {
-        out.push(issue("wrong_loader", "error", files(&js), titles(&js), l.into(), Some(Fix::Disable { files: files(&js) })));
+        out.push(issue(
+            "wrong_loader",
+            "error",
+            files(&js),
+            titles(&js),
+            l.into(),
+            Some(Fix::Disable { files: files(&js) }),
+        ));
     }
     if let Some(v) = &mcv {
         let bad: Vec<&Jar> = on
             .iter()
             .copied()
             .filter(|j| !wrong.contains(j.e.file.as_str()))
-            .filter(|j| j.m().and_then(|m| m.mc.as_ref()).is_some_and(|r| r.fits(v) == Some(false)))
+            .filter(|j| {
+                j.m()
+                    .and_then(|m| m.mc.as_ref())
+                    .is_some_and(|r| r.fits(v) == Some(false))
+            })
             .collect();
         if !bad.is_empty() {
             wrong.extend(bad.iter().map(|j| j.e.file.as_str()));
-            out.push(issue("wrong_game", "error", files(&bad), titles(&bad), mc.into(), Some(Fix::Disable { files: files(&bad) })));
+            out.push(issue(
+                "wrong_game",
+                "error",
+                files(&bad),
+                titles(&bad),
+                mc.into(),
+                Some(Fix::Disable { files: files(&bad) }),
+            ));
         }
     }
-    let live: Vec<&Jar> = on.iter().copied().filter(|j| j.m().is_some() && !wrong.contains(j.e.file.as_str())).collect();
+    let live: Vec<&Jar> = on
+        .iter()
+        .copied()
+        .filter(|j| j.m().is_some() && !wrong.contains(j.e.file.as_str()))
+        .collect();
 
     for j in &on {
-        s.present.insert(norm(&j.e.file.trim_end_matches(".jar").split(['-', '_', '+']).next().unwrap_or("")));
+        s.present.insert(norm(
+            j.e.file
+                .trim_end_matches(".jar")
+                .split(['-', '_', '+'])
+                .next()
+                .unwrap_or(""),
+        ));
         s.present.insert(norm(&j.title()));
         if let Some(src) = &j.e.source {
             s.present.insert(norm(&src.slug));
@@ -779,7 +927,14 @@ pub fn scan(gd: &Path, loader: &str, mc: &str) -> Result<Scan, CoreError> {
         }
         js.sort_by(|a, b| newer(b, a));
         let old = files(&js[1..]);
-        out.push(issue("duplicate", "error", files(&js), vec![js[0].title()], id.into(), Some(Fix::Disable { files: old })));
+        out.push(issue(
+            "duplicate",
+            "error",
+            files(&js),
+            vec![js[0].title()],
+            id.into(),
+            Some(Fix::Disable { files: old }),
+        ));
     }
 
     // Declared conflicts and OptiFine next to Sodium.
@@ -790,20 +945,47 @@ pub fn scan(gd: &Path, loader: &str, mc: &str) -> Result<Scan, CoreError> {
                 if std::ptr::eq(*j, *k) || !k.answers(bid) {
                     continue;
                 }
-                let hit = req.anything() || k.m().and_then(|m| nums(&m.version)).and_then(|v| req.fits(&v)) == Some(true);
+                let hit = req.anything()
+                    || k.m()
+                        .and_then(|m| nums(&m.version))
+                        .and_then(|v| req.fits(&v))
+                        == Some(true);
                 let (a, b) = (j.e.file.clone(), k.e.file.clone());
                 let key = if a < b { (a, b) } else { (b, a) };
                 if hit && pairs.insert(key) {
-                    out.push(issue("conflict", "error", vec![j.e.file.clone(), k.e.file.clone()], vec![j.title(), k.title()], String::new(), None));
+                    out.push(issue(
+                        "conflict",
+                        "error",
+                        vec![j.e.file.clone(), k.e.file.clone()],
+                        vec![j.title(), k.title()],
+                        String::new(),
+                        None,
+                    ));
                 }
             }
         }
     }
-    let opti: Vec<&Jar> = on.iter().copied().filter(|j| j.m().is_some_and(|m| m.optifine)).collect();
-    if let (false, Some(r)) = (opti.is_empty(), live.iter().find(|j| RENDERERS.iter().any(|x| j.answers(x)))) {
+    let opti: Vec<&Jar> = on
+        .iter()
+        .copied()
+        .filter(|j| j.m().is_some_and(|m| m.optifine))
+        .collect();
+    if let (false, Some(r)) = (
+        opti.is_empty(),
+        live.iter().find(|j| RENDERERS.iter().any(|x| j.answers(x))),
+    ) {
         let mut names = titles(&opti);
         names.push(r.title());
-        out.push(issue("optifine", "error", files(&opti), names, String::new(), Some(Fix::Disable { files: files(&opti) })));
+        out.push(issue(
+            "optifine",
+            "error",
+            files(&opti),
+            names,
+            String::new(),
+            Some(Fix::Disable {
+                files: files(&opti),
+            }),
+        ));
     }
 
     // Dependencies.
@@ -811,7 +993,9 @@ pub fn scan(gd: &Path, loader: &str, mc: &str) -> Result<Scan, CoreError> {
     let ids_ok = loader != "quilt";
     for j in &live {
         let m = j.m().expect("live jars have metadata");
-        if !ids_ok || (m.loaders.iter().all(|l| *l == "fabric") && matches!(loader, "forge" | "neoforge")) {
+        if !ids_ok
+            || (m.loaders.iter().all(|l| *l == "fabric") && matches!(loader, "forge" | "neoforge"))
+        {
             continue;
         }
         for d in &m.depends {
@@ -822,29 +1006,48 @@ pub fn scan(gd: &Path, loader: &str, mc: &str) -> Result<Scan, CoreError> {
             if ps.is_empty() {
                 push_unique(s.missing.entry(d.clone()).or_default(), j.title());
             } else {
-                let e = dep_off.entry(files(&ps)).or_insert_with(|| (ps[0].title(), Vec::new()));
+                let e = dep_off
+                    .entry(files(&ps))
+                    .or_insert_with(|| (ps[0].title(), Vec::new()));
                 push_unique(&mut e.1, j.title());
             }
         }
     }
-    let on_pids: HashSet<&str> = on.iter().filter_map(|j| j.e.source.as_ref()).map(|s| s.project_id.as_str()).collect();
+    let on_pids: HashSet<&str> = on
+        .iter()
+        .filter_map(|j| j.e.source.as_ref())
+        .map(|s| s.project_id.as_str())
+        .collect();
     for j in &live {
         let Some(src) = &j.e.source else { continue };
         for d in &src.deps {
             if on_pids.contains(d.as_str()) {
                 continue;
             }
-            let ps: Vec<&Jar> = off.iter().copied().filter(|k| k.e.source.as_ref().is_some_and(|s| &s.project_id == d)).collect();
+            let ps: Vec<&Jar> = off
+                .iter()
+                .copied()
+                .filter(|k| k.e.source.as_ref().is_some_and(|s| &s.project_id == d))
+                .collect();
             if ps.is_empty() {
                 push_unique(s.wanted.entry(d.clone()).or_default(), j.title());
             } else {
-                let e = dep_off.entry(files(&ps)).or_insert_with(|| (ps[0].title(), Vec::new()));
+                let e = dep_off
+                    .entry(files(&ps))
+                    .or_insert_with(|| (ps[0].title(), Vec::new()));
                 push_unique(&mut e.1, j.title());
             }
         }
     }
     for (fs_, (title, need)) in dep_off {
-        out.push(issue("dep_off", "error", fs_.clone(), need, title, Some(Fix::Enable { files: fs_ })));
+        out.push(issue(
+            "dep_off",
+            "error",
+            fs_.clone(),
+            need,
+            title,
+            Some(Fix::Enable { files: fs_ }),
+        ));
     }
     s.report.issues = out;
     Ok(s)
@@ -856,19 +1059,35 @@ pub fn finish(s: Scan, projects: &HashMap<String, (String, String)>) -> Report {
     let mut r = s.report;
     let mut covered: HashSet<String> = HashSet::new();
     for (pid, need) in s.wanted {
-        let Some((title, slug)) = projects.get(&pid) else { continue };
+        let Some((title, slug)) = projects.get(&pid) else {
+            continue;
+        };
         let keys = [norm(slug), norm(title)];
         if keys.iter().any(|k| !k.is_empty() && s.present.contains(k)) {
             continue;
         }
         covered.extend(keys);
-        r.issues.push(issue("missing_dep", "error", vec![], need, title.clone(), Some(Fix::Install { project: pid })));
+        r.issues.push(issue(
+            "missing_dep",
+            "error",
+            vec![],
+            need,
+            title.clone(),
+            Some(Fix::Install { project: pid }),
+        ));
     }
     for (id, need) in s.missing {
         if covered.contains(&norm(&id)) {
             continue;
         }
-        r.issues.push(issue("missing_dep", "error", vec![], need, id.clone(), Some(Fix::Search { query: id })));
+        r.issues.push(issue(
+            "missing_dep",
+            "error",
+            vec![],
+            need,
+            id.clone(),
+            Some(Fix::Search { query: id }),
+        ));
     }
     r.issues.sort_by_key(|i| u8::from(i.level != "error"));
     r
@@ -902,7 +1121,9 @@ pub fn apply(gd: &Path, fix: &Fix) -> Result<usize, CoreError> {
             fs::rename(from, dest)?;
             Ok(1)
         }
-        Fix::Install { .. } | Fix::Search { .. } => Err(CoreError::BadArgs("this fix runs in the interface".into())),
+        Fix::Install { .. } | Fix::Search { .. } => {
+            Err(CoreError::BadArgs("this fix runs in the interface".into()))
+        }
     }
 }
 
@@ -921,11 +1142,27 @@ pub fn jar_files(gd: &Path) -> Result<Vec<JarFile>, CoreError> {
     let dir = mods::dir(gd, Kind::Mod);
     let mut out = Vec::new();
     for e in mods::list(gd, Kind::Mod)? {
-        let path = dir.join(if e.enabled { e.file.clone() } else { format!("{}{OFF}", e.file) });
+        let path = dir.join(if e.enabled {
+            e.file.clone()
+        } else {
+            format!("{}{OFF}", e.file)
+        });
         let Ok(b) = fs::read(&path) else { continue };
-        let sha1 = Sha1::digest(&b).iter().map(|x| format!("{x:02x}")).collect();
-        let cf = e.source.as_ref().is_some_and(|s| crate::curseforge::is_cf(&s.project_id));
-        out.push(JarFile { name: e.title, file: e.file, path, sha1, cf });
+        let sha1 = Sha1::digest(&b)
+            .iter()
+            .map(|x| format!("{x:02x}"))
+            .collect();
+        let cf = e
+            .source
+            .as_ref()
+            .is_some_and(|s| crate::curseforge::is_cf(&s.project_id));
+        out.push(JarFile {
+            name: e.title,
+            file: e.file,
+            path,
+            sha1,
+            cf,
+        });
     }
     Ok(out)
 }
@@ -985,14 +1222,27 @@ fn infected(p: &Path, deep: bool) -> Option<&'static str> {
 
 /// `known` holds the sha1 of jars Modrinth recognised.
 pub fn verify(jars: Vec<JarFile>, known: &HashSet<String>, online: bool) -> Verify {
-    let mut v = Verify { total: jars.len(), online, unknown: Vec::new(), suspects: Vec::new() };
+    let mut v = Verify {
+        total: jars.len(),
+        online,
+        unknown: Vec::new(),
+        suspects: Vec::new(),
+    };
     for j in jars {
         let catalog = known.contains(&j.sha1) || j.cf;
         if let Some(why) = infected(&j.path, !catalog) {
-            v.suspects.push(Found { file: j.file.clone(), name: j.name.clone(), why });
+            v.suspects.push(Found {
+                file: j.file.clone(),
+                name: j.name.clone(),
+                why,
+            });
         }
         if !catalog && online {
-            v.unknown.push(Found { file: j.file, name: j.name, why: "" });
+            v.unknown.push(Found {
+                file: j.file,
+                name: j.name,
+                why: "",
+            });
         }
     }
     v
@@ -1019,7 +1269,10 @@ mod tests {
         assert_eq!(fabric_ok("1.19.4 || 1.20.1", &v("1.20.1")), Some(true));
         assert_eq!(fabric_ok("*", &v("1.8.9")), Some(true));
         assert_eq!(fabric_ok("23w14a", &v("1.20")), None);
-        let r = Req { any: vec!["1.19.4".into(), "1.20.1".into()], maven: false };
+        let r = Req {
+            any: vec!["1.19.4".into(), "1.20.1".into()],
+            maven: false,
+        };
         assert_eq!(r.fits(&v("1.20.1")), Some(true));
         assert_eq!(r.fits(&v("1.21")), Some(false));
     }
@@ -1083,7 +1336,8 @@ A [[mods]] line = inside a description
     }
 
     fn fab(id: &str, ver: &str, extra: &str) -> Vec<u8> {
-        format!(r#"{{"schemaVersion":1,"id":"{id}","version":"{ver}","name":"{id}"{extra}}}"#).into_bytes()
+        format!(r#"{{"schemaVersion":1,"id":"{id}","version":"{ver}","name":"{id}"{extra}}}"#)
+            .into_bytes()
     }
 
     #[test]
@@ -1092,16 +1346,50 @@ A [[mods]] line = inside a description
         let md = gd.join("mods");
         fs::create_dir_all(&md).unwrap();
         let j = |n: &str, files: &[(&str, &[u8])]| zip_of(&md.join(n), files);
-        j("a.jar", &[("fabric.mod.json", &fab("a", "1.0", r#","depends":{"minecraft":">=1.20","b":"*","zzz":"*"}"#))]);
-        j("b.jar.disabled", &[("fabric.mod.json", &fab("b", "1.0", ""))]);
-        j("c.jar", &[("META-INF/mods.toml", b"[[mods]]\nmodId=\"c\"\n[[dependencies.c]]\nmodId=\"forge\"\nmandatory=true\n")]);
-        j("d.jar", &[("fabric.mod.json", &fab("d", "1.0", r#","depends":{"minecraft":"1.21"}"#))]);
+        j(
+            "a.jar",
+            &[(
+                "fabric.mod.json",
+                &fab(
+                    "a",
+                    "1.0",
+                    r#","depends":{"minecraft":">=1.20","b":"*","zzz":"*"}"#,
+                ),
+            )],
+        );
+        j(
+            "b.jar.disabled",
+            &[("fabric.mod.json", &fab("b", "1.0", ""))],
+        );
+        j(
+            "c.jar",
+            &[(
+                "META-INF/mods.toml",
+                b"[[mods]]\nmodId=\"c\"\n[[dependencies.c]]\nmodId=\"forge\"\nmandatory=true\n",
+            )],
+        );
+        j(
+            "d.jar",
+            &[(
+                "fabric.mod.json",
+                &fab("d", "1.0", r#","depends":{"minecraft":"1.21"}"#),
+            )],
+        );
         j("e-1.jar", &[("fabric.mod.json", &fab("e", "1.0", ""))]);
         j("e-2.jar", &[("fabric.mod.json", &fab("e", "2.0", ""))]);
         j("opt.jar", &[("net/optifine/Config.class", b"x")]);
-        j("sodium.jar", &[("fabric.mod.json", &fab("sodium", "0.5", r#","breaks":{"x":"*"}"#))]);
+        j(
+            "sodium.jar",
+            &[(
+                "fabric.mod.json",
+                &fab("sodium", "0.5", r#","breaks":{"x":"*"}"#),
+            )],
+        );
         j("x.jar", &[("fabric.mod.json", &fab("x", "1.0", ""))]);
-        zip_of(&md.join("pack.zip"), &[("pack.mcmeta", b"{}"), ("assets/a.png", b"x")]);
+        zip_of(
+            &md.join("pack.zip"),
+            &[("pack.mcmeta", b"{}"), ("assets/a.png", b"x")],
+        );
         fs::write(md.join("bad.jar"), b"not a zip").unwrap();
 
         let s = scan(&gd, "fabric", "1.20.1").unwrap();
@@ -1111,8 +1399,18 @@ A [[mods]] line = inside a description
         assert_eq!(kind("wrong_loader")[0].files, vec!["c.jar"]);
         assert_eq!(kind("wrong_loader")[0].detail, "forge");
         assert_eq!(kind("wrong_game")[0].files, vec!["d.jar"]);
-        assert_eq!(kind("duplicate")[0].fix, Some(Fix::Disable { files: vec!["e-1.jar".into()] }));
-        assert_eq!(kind("dep_off")[0].fix, Some(Fix::Enable { files: vec!["b.jar".into()] }));
+        assert_eq!(
+            kind("duplicate")[0].fix,
+            Some(Fix::Disable {
+                files: vec!["e-1.jar".into()]
+            })
+        );
+        assert_eq!(
+            kind("dep_off")[0].fix,
+            Some(Fix::Enable {
+                files: vec!["b.jar".into()]
+            })
+        );
         assert_eq!(kind("missing_dep")[0].detail, "zzz");
         assert_eq!(kind("conflict")[0].names, vec!["sodium", "x"]);
         assert_eq!(kind("optifine")[0].files, vec!["opt.jar"]);
@@ -1121,7 +1419,8 @@ A [[mods]] line = inside a description
         assert_eq!(r.issues.last().unwrap().level, "warn");
 
         for i in &r.issues {
-            if let Some(f @ (Fix::Disable { .. } | Fix::Enable { .. } | Fix::Move { .. })) = &i.fix {
+            if let Some(f @ (Fix::Disable { .. } | Fix::Enable { .. } | Fix::Move { .. })) = &i.fix
+            {
                 apply(&gd, f).unwrap();
             }
         }
@@ -1131,7 +1430,14 @@ A [[mods]] line = inside a description
         let left = finish(scan(&gd, "fabric", "1.20.1").unwrap(), &HashMap::new());
         let kinds: Vec<_> = left.issues.iter().map(|i| i.kind).collect();
         assert_eq!(kinds, vec!["conflict", "missing_dep"]);
-        assert!(apply(&gd, &Fix::Move { file: "../x.zip".into(), to: "resourcepacks".into() }).is_err());
+        assert!(apply(
+            &gd,
+            &Fix::Move {
+                file: "../x.zip".into(),
+                to: "resourcepacks".into()
+            }
+        )
+        .is_err());
         fs::remove_dir_all(&gd).ok();
     }
 
@@ -1140,10 +1446,32 @@ A [[mods]] line = inside a description
         let gd = std::env::temp_dir().join(format!("fl-doc-{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(gd.join("mods")).unwrap();
         let inner = gd.join("inner.jar");
-        zip_of(&inner, &[("fabric.mod.json", &fab("fabric-api-base", "1.0", ""))]);
+        zip_of(
+            &inner,
+            &[("fabric.mod.json", &fab("fabric-api-base", "1.0", ""))],
+        );
         let ib = fs::read(&inner).unwrap();
-        zip_of(&gd.join("mods/api.jar"), &[("fabric.mod.json", &fab("fabric-api", "1.0", r#","provides":["fabric"]"#)), ("META-INF/jars/base.jar", &ib)]);
-        zip_of(&gd.join("mods/m.jar"), &[("fabric.mod.json", &fab("m", "1.0", r#","depends":{"fabric-api-base":"*","fabric":"*"}"#))]);
+        zip_of(
+            &gd.join("mods/api.jar"),
+            &[
+                (
+                    "fabric.mod.json",
+                    &fab("fabric-api", "1.0", r#","provides":["fabric"]"#),
+                ),
+                ("META-INF/jars/base.jar", &ib),
+            ],
+        );
+        zip_of(
+            &gd.join("mods/m.jar"),
+            &[(
+                "fabric.mod.json",
+                &fab(
+                    "m",
+                    "1.0",
+                    r#","depends":{"fabric-api-base":"*","fabric":"*"}"#,
+                ),
+            )],
+        );
         let r = finish(scan(&gd, "fabric", "1.20.1").unwrap(), &HashMap::new());
         assert!(r.issues.is_empty(), "{:?}", r.issues);
         let jars = jar_files(&gd).unwrap();

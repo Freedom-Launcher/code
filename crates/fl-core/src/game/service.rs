@@ -219,7 +219,9 @@ pub async fn launch_instance(
     last: bool,
     server: Option<String>,
 ) -> Result<Value, CoreError> {
-    let server = server.map(|s| s.trim().to_owned()).filter(|s| !s.is_empty());
+    let server = server
+        .map(|s| s.trim().to_owned())
+        .filter(|s| !s.is_empty());
     if let Some(s) = &server {
         if !crate::servers::valid_address(s) {
             return Err(CoreError::msg("Неверный адрес сервера"));
@@ -242,11 +244,15 @@ pub async fn launch_instance(
                 return Err(CoreError::msg("Такого мира нет"));
             }
             if !launch::quick_play_supported(&inst.version) {
-                return Err(CoreError::msg("Сразу в мир можно зайти начиная с Minecraft 1.20"));
+                return Err(CoreError::msg(
+                    "Сразу в мир можно зайти начиная с Minecraft 1.20",
+                ));
             }
             Some(w)
         }
-        None if last && launch::quick_play_supported(&inst.version) => crate::backups::latest_world(&gd),
+        None if last && launch::quick_play_supported(&inst.version) => {
+            crate::backups::latest_world(&gd)
+        }
         None => None,
     };
     if !core.game_running.begin(instance) {
@@ -285,9 +291,16 @@ async fn start(
         Some(p) => return Err(CoreError::msg(format!("Java not found: {p}"))),
         None => {
             let major = java::component_for(v.java_version.as_ref()).1;
-            match global.javas.get(&major.to_string()).map(std::path::PathBuf::from) {
+            match global
+                .javas
+                .get(&major.to_string())
+                .map(std::path::PathBuf::from)
+            {
                 Some(p) if p.is_file() => p,
-                _ => java::ensure(core, v.java_version.as_ref(), Arc::new(Progress::default())).await?,
+                _ => {
+                    java::ensure(core, v.java_version.as_ref(), Arc::new(Progress::default()))
+                        .await?
+                }
             }
         }
     };
@@ -307,7 +320,8 @@ async fn start(
     };
     if let Some(root) = auth.yggdrasil.as_deref() {
         let jar = crate::agent::ensure(core).await?;
-        opts.extra_jvm_args.splice(0..0, crate::agent::args(&jar, root));
+        opts.extra_jvm_args
+            .splice(0..0, crate::agent::args(&jar, root));
     }
     let mut env = Env::current();
     if opts.resolution.is_some() {
@@ -371,14 +385,18 @@ async fn start(
     let mut backup_error = None;
     let mut backup = None;
     if set.auto_backup == Some(true) && server.is_none() {
-        let target = world.clone().or_else(|| crate::backups::latest_world(&opts.game_dir));
+        let target = world
+            .clone()
+            .or_else(|| crate::backups::latest_world(&opts.game_dir));
         if let Some(w) = target {
             let pr = progress_for(core, &inst.id);
             pr.set_stage("backup");
             let gd = opts.game_dir.clone();
             let keep = set.backup_keep.unwrap_or(5) as usize;
             let now = unix_now();
-            match tokio::task::spawn_blocking(move || crate::backups::auto(&gd, &w, now, keep)).await {
+            match tokio::task::spawn_blocking(move || crate::backups::auto(&gd, &w, now, keep))
+                .await
+            {
                 Ok(Ok(made)) => backup = made,
                 Ok(Err(e)) => backup_error = Some(e.to_string()),
                 Err(e) => backup_error = Some(e.to_string()),
@@ -461,7 +479,9 @@ mod tests {
     fn provider_account(expires_in: i64) -> Account {
         Account {
             id: "p1".into(),
-            kind: AccountKind::Provider { provider: "auth".into() },
+            kind: AccountKind::Provider {
+                provider: "auth".into(),
+            },
             name: "Steve_2".into(),
             uuid: "0f1e2d3c-4b5a-4978-8a69-5a4b3c2d1e0f".into(),
             owns_game: false,
@@ -478,7 +498,8 @@ mod tests {
     #[tokio::test]
     async fn provider_account_launches_without_microsoft() {
         let c = core_with_provider();
-        crate::accounts::save_store(&c.path(ACCOUNTS), &store_with(provider_account(3600))).unwrap();
+        crate::accounts::save_store(&c.path(ACCOUNTS), &store_with(provider_account(3600)))
+            .unwrap();
         let a = launch_auth(&c).await.unwrap();
         assert_eq!(a.name, "Steve_2");
         assert_eq!(a.user_type, "mojang");
