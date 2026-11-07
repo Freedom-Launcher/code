@@ -11,6 +11,12 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Review leftovers (unreleased)
+
+- Linux secrets in the Secret Service (`keychain.rs`; availability is probed at runtime, the file stays as fallback; `FL_NO_KEYCHAIN=1`). The success path needs a desktop session with a default keyring: `tests/keychain_live.rs` is `#[ignore]`d and was not run against a real keyring yet; the fallback path is covered.
+- Temurin fallback checks SHA-256 and size from Adoptium's `assets/latest` before unpacking (`pick_package` / `verify_package`, tests in `game/java.rs`).
+- `examples/` build again, so `cargo test -p fl-core` works.
+
 ## Trust this theme (unreleased)
 
 - «Доверять этой теме» (Settings → Вид) and the third button «Всегда для этой темы» in the native confirmation: a trusted theme skips the launch / sign-in dialog. Trust is bound to a hash of the theme's files (`signing::tree_hash`), so an updated or edited theme is asked about again; it is not tied to the author name in `theme.json`. Settings keeps `trusted_themes` (id → hash); `themes.trust` / `untrust` / `trusted` are `Internal`; safe mode and «Сбросить настройки» only clear it. Tests: `trust_is_bound_to_the_theme_files`, `built_in_and_missing_themes_cannot_be_trusted`, `nobody_but_the_user_can_trust_a_theme`, `safe_mode_clears_trust_and_reset_does_too`.

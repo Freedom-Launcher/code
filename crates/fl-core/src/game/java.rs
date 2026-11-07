@@ -2,7 +2,8 @@
 //!
 //! Primary source: Mojang's official `java-runtime` manifest. The component
 //! comes from the version JSON (`javaVersion.component`) and every file is
-//! SHA1-checked. Fallback: an Eclipse Temurin JRE archive (Windows zip).
+//! SHA1-checked. Fallback: an Eclipse Temurin JRE archive (Windows zip), checked against the
+//! SHA-256 and size Adoptium publishes for it before anything is unpacked.
 //!
 //! Layout: `<data_dir>/java/<component>/` with a `.version` marker.
 
@@ -249,20 +250,66 @@ async fn from_temurin(core: &Core, env: &Env, major: u32, dir: &Path) -> Result<
         "arm64" => "aarch64",
         _ => "x64",
     };
-    let url = format!(
-        "https://api.adoptium.net/v3/binary/latest/{major}/ga/windows/{arch}/jre/hotspot/normal/eclipse"
+    // Ask for the package description first: it carries the SHA-256 and size of the archive,
+    // so what we unpack is exactly what Adoptium published (a bare download link gives no such proof).
+    let meta_url = format!(
+        "https://api.adoptium.net/v3/assets/latest/{major}/hotspot?architecture={arch}&image_type=jre&os=windows&vendor=eclipse&release_type=ga&jvm_impl=hotspot&heap_size=normal"
     );
+    let meta: serde_json::Value = core
+        .http()
+        .get(&meta_url)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    let pkg = pick_package(&meta)?;
     let bytes = core
         .http()
-        .get(&url)
+        .get(&pkg.link)
         .send()
         .await?
         .error_for_status()?
         .bytes()
         .await?;
+    verify_package(&bytes, &pkg)?;
     let _ = fs::remove_dir_all(dir);
     unzip_strip(&bytes, dir)?;
     fs::write(dir.join(".version"), format!("temurin-{major}"))?;
+    Ok(())
+}
+
+/// What Adoptium says about the archive: where it is, how big, and its SHA-256.
+#[derive(Debug, PartialEq)]
+struct Package {
+    link: String,
+    sha256: String,
+    size: Option<u64>,
+}
+
+/// First package of an Adoptium `assets/latest` answer. The link must be https and the checksum
+/// a real SHA-256, otherwise there is nothing to check the download against, so we refuse.
+fn pick_package(v: &serde_json::Value) -> Result<Package, CoreError> {
+    let p = &v[0]["binary"]["package"];
+    let link = p["link"].as_str().unwrap_or_default();
+    let sha = p["checksum"].as_str().unwrap_or_default();
+    if !link.starts_with("https://") {
+        return Err(CoreError::msg("Adoptium: no https download link for Java"));
+    }
+    if sha.len() != 64 || !sha.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err(CoreError::msg("Adoptium: no SHA-256 for the Java archive, refusing to unpack it"));
+    }
+    Ok(Package { link: link.to_owned(), sha256: sha.to_ascii_lowercase(), size: p["size"].as_u64() })
+}
+
+fn verify_package(bytes: &[u8], p: &Package) -> Result<(), CoreError> {
+    use sha2::{Digest, Sha256};
+    if p.size.is_some_and(|s| s != bytes.len() as u64) {
+        return Err(CoreError::msg("Java archive has the wrong size, download again"));
+    }
+    if crate::signing::hex(&Sha256::digest(bytes)) != p.sha256 {
+        return Err(CoreError::msg("Java archive checksum does not match Adoptium's, refusing to unpack it"));
+    }
     Ok(())
 }
 
@@ -348,5 +395,51 @@ mod tests {
     #[test]
     fn legacy_versions_get_java_8() {
         assert_eq!(component_for(None), ("jre-legacy".into(), 8));
+    }
+}
+
+#[cfg(test)]
+mod temurin_tests {
+    use super::*;
+    use serde_json::json;
+    use sha2::{Digest, Sha256};
+
+    fn answer(link: &str, sum: &str) -> serde_json::Value {
+        json!([{ "binary": { "package": { "link": link, "checksum": sum, "size": 4 } } }])
+    }
+    const SUM: &str = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"; // sha256("test")
+
+    #[test]
+    fn a_real_package_is_picked() {
+        let p = pick_package(&answer("https://github.com/adoptium/x.zip", SUM)).unwrap();
+        assert_eq!(p.link, "https://github.com/adoptium/x.zip");
+        assert_eq!(p.sha256, SUM);
+        assert_eq!(p.size, Some(4));
+    }
+
+    #[test]
+    fn no_proof_no_download() {
+        for bad in [
+            answer("http://example.org/x.zip", SUM),   // plain http
+            answer("https://example.org/x.zip", ""),     // no checksum
+            answer("https://example.org/x.zip", "abc"),  // not a SHA-256
+            answer("https://example.org/x.zip", &"z".repeat(64)), // not hex
+            json!([]),
+            json!({"message": "nope"}),
+        ] {
+            assert!(pick_package(&bad).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn the_archive_must_match_checksum_and_size() {
+        let p = pick_package(&answer("https://example.org/x.zip", SUM)).unwrap();
+        assert!(verify_package(b"test", &p).is_ok());
+        assert!(verify_package(b"tesx", &p).unwrap_err().to_string().contains("checksum"));
+        assert!(verify_package(b"test!", &p).unwrap_err().to_string().contains("size"));
+        // Uppercase hex from the server is the same sum.
+        let up = pick_package(&answer("https://example.org/x.zip", &SUM.to_ascii_uppercase())).unwrap();
+        assert!(verify_package(b"test", &up).is_ok());
+        assert_eq!(crate::signing::hex(&Sha256::digest(b"test")), SUM);
     }
 }
