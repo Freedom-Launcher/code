@@ -17,8 +17,20 @@ jobs:
       - run: cargo clippy -p fl-core -- -D warnings
       - run: cargo test -p fl-core
 
+  ui:
+    # Theme templates (shell, Settings, every screen) mounted against the real index.html.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save jsdom
+      - run: node scripts/ui-mount-test.js
+      - run: node --check ui/app.js && node --check ui/themes.js && node --check ui/addons.js
+
   app:
-    needs: core
+    needs: [core, ui]
     strategy:
       fail-fast: false
       matrix:

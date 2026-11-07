@@ -43,5 +43,5 @@ Microsoft sign-in needs the Azure application (client) ID in `FREEDOM_MSA_CLIENT
 (at build time or at runtime). Set `FREEDOM_LOG_STARTUP=1` to print startup time.
 ## CI
 
-The GitHub Actions workflow lives in `docs/ci.workflow.yml`. To enable it, copy it to `.github/workflows/ci.yml`
-(GitHub only accepts workflow files from accounts with the `workflows` permission).
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request: `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` for `fl-core`, the UI mount test (`scripts/ui-mount-test.js`, jsdom) and a release build of the app on Linux, Windows and macOS.
+Locally: `cargo fmt --all --check && cargo clippy -p fl-core -- -D warnings && cargo test -p fl-core`.

@@ -16,6 +16,7 @@
 - Linux secrets in the Secret Service (`keychain.rs`; availability is probed at runtime, the file stays as fallback; `FL_NO_KEYCHAIN=1`). The success path needs a desktop session with a default keyring: `tests/keychain_live.rs` is `#[ignore]`d and was not run against a real keyring yet; the fallback path is covered.
 - Temurin fallback checks SHA-256 and size from Adoptium's `assets/latest` before unpacking (`pick_package` / `verify_package`, tests in `game/java.rs`).
 - `examples/` build again, so `cargo test -p fl-core` works.
+- CI is on (`.github/workflows/ci.yml`): fmt, clippy `-D warnings`, core tests, UI mount test, app build on three systems. To make it pass the code was formatted once (`cargo fmt --all`, a no-behaviour commit) and 15 old clippy findings were fixed.
 
 ## Trust this theme (unreleased)
 
