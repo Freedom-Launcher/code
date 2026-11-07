@@ -23,6 +23,11 @@ flate2 = { version = "1", default-features = false, features = ["rust_backend"] 
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 keyring = { version = "3", features = ["windows-native", "apple-native"] }
 
+# Linux: the Secret Service (GNOME Keyring, KWallet, KeePassXC). `vendored` builds libdbus
+# with the crate, so nothing extra has to be installed on the player's machine.
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", features = ["sync-secret-service", "crypto-rust", "vendored"] }
+
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 [target.'cfg(windows)'.dependencies]

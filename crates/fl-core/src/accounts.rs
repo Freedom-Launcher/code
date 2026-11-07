@@ -121,7 +121,7 @@ pub fn offline_uuid(name: &str) -> String {
 /// file (older versions) are moved there.
 pub fn load_store(path: &std::path::Path) -> Result<AccountStore, crate::CoreError> {
     let mut s: AccountStore = crate::store::load(path)?;
-    let migrate = crate::keychain::AVAILABLE && s.accounts.iter().any(|a| a.secrets.is_some());
+    let migrate = crate::keychain::available() && s.accounts.iter().any(|a| a.secrets.is_some());
     for a in &mut s.accounts {
         if a.secrets.is_none() {
             a.secrets = crate::keychain::get(&a.id);

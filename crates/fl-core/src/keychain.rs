@@ -1,15 +1,52 @@
-//! OS keychain for account secrets (Windows Credential Manager, macOS
-//! Keychain). Elsewhere, or when the keychain refuses a write, secrets stay
-//! in `accounts.json` with owner-only permissions.
+//! OS keychain for account secrets: Windows Credential Manager, macOS Keychain, and on
+//! Linux the Secret Service (GNOME Keyring, KWallet, KeePassXC). Where there is none (a
+//! bare window manager, a container), or when the keychain refuses a write, secrets stay
+//! in `accounts.json` with owner-only permissions, so nothing is ever lost or blocked.
+//! `FL_NO_KEYCHAIN=1` turns the keychain off (headless runs, tests).
 
 use crate::accounts::Secrets;
 
-#[cfg(any(windows, target_os = "macos"))]
+/// Whether the keychain should be tried at all.
+pub fn available() -> bool {
+    !disabled(std::env::var("FL_NO_KEYCHAIN").ok().as_deref()) && imp::available()
+}
+
+fn disabled(env: Option<&str>) -> bool {
+    env.is_some_and(|v| !v.is_empty() && v != "0")
+}
+
+#[cfg(any(windows, target_os = "macos", target_os = "linux"))]
 mod imp {
     use super::Secrets;
 
     const SERVICE: &str = "freedom-launcher";
-    pub const AVAILABLE: bool = true;
+
+    /// Windows and macOS always have one. On Linux there must be a session bus to talk to
+    /// (we never auto-launch one), and the Secret Service has to answer on it.
+    pub fn available() -> bool {
+        #[cfg(target_os = "linux")]
+        {
+            use std::sync::OnceLock;
+            static OK: OnceLock<bool> = OnceLock::new();
+            *OK.get_or_init(|| {
+                let bus = std::env::var_os("DBUS_SESSION_BUS_ADDRESS").is_some()
+                    || std::env::var_os("XDG_RUNTIME_DIR")
+                        .is_some_and(|d| std::path::Path::new(&d).join("bus").exists());
+                if !bus {
+                    return false;
+                }
+                // A missing entry is a good answer: the service is there and just has nothing.
+                match entry("probe", "probe").map(|e| e.get_password()) {
+                    Some(Ok(_)) | Some(Err(keyring::Error::NoEntry)) => true,
+                    _ => false,
+                }
+            })
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            true
+        }
+    }
 
     // Two entries per account: Credential Manager caps one blob at 2.5 KB.
     fn entry(id: &str, part: &str) -> Option<keyring::Entry> {
@@ -42,11 +79,13 @@ mod imp {
     }
 }
 
-#[cfg(not(any(windows, target_os = "macos")))]
+#[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
 mod imp {
     use super::Secrets;
 
-    pub const AVAILABLE: bool = false;
+    pub fn available() -> bool {
+        false
+    }
     pub fn set(_id: &str, _s: &Secrets) -> bool {
         false
     }
@@ -56,4 +95,34 @@ mod imp {
     pub fn delete(_id: &str) {}
 }
 
-pub use imp::{delete, get, set, AVAILABLE};
+pub fn set(id: &str, s: &Secrets) -> bool {
+    available() && imp::set(id, s)
+}
+
+pub fn get(id: &str) -> Option<Secrets> {
+    if available() {
+        imp::get(id)
+    } else {
+        None
+    }
+}
+
+pub fn delete(id: &str) {
+    if available() {
+        imp::delete(id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::disabled;
+
+    #[test]
+    fn the_off_switch() {
+        assert!(disabled(Some("1")));
+        assert!(disabled(Some("yes")));
+        assert!(!disabled(Some("0")));
+        assert!(!disabled(Some("")));
+        assert!(!disabled(None));
+    }
+}

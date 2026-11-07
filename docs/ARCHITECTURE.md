@@ -59,7 +59,7 @@ Badges: **Официальный** (built by the project), **Проверено*
 - Microsoft: OAuth device code → Xbox Live → XSTS → Minecraft services. Tokens stay in the core; the UI sees only public fields.
 - Local profiles are created only when a Microsoft account with Minecraft: Java Edition is present.
 - Third-party services: account-provider addons (Extended tier).
-- Secrets currently in `accounts.json` with 0600; moving to the OS keychain is planned (M1).
+- Account secrets live in the OS keychain: Windows Credential Manager, macOS Keychain, and on Linux the Secret Service (GNOME Keyring, KWallet, KeePassXC). Where there is none (a bare window manager, a container) or it refuses a write, they stay in `accounts.json` with owner-only permissions, so sign-in never breaks; `FL_NO_KEYCHAIN=1` forces the file. The Linux probe never auto-launches a D-Bus session.
 
 ## Startup performance
 
