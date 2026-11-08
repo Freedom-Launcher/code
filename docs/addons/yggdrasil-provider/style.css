@@ -1,0 +1,12 @@
+body { margin: 0; font: 13px var(--font-ui, sans-serif); color: var(--text, #ddd); background: transparent; }
+h3 { margin: 0 0 8px; font-size: 14px; }
+ul { list-style: none; margin: 0 0 10px; padding: 0; }
+li { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border, #333); }
+form { display: grid; gap: 8px; max-width: 320px; }
+label { display: grid; gap: 4px; color: var(--text-2, #aaa); }
+input { padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border, #444); background: var(--bg-2, #1b1b1b); color: var(--text, #eee); font: inherit; }
+button { padding: 8px 12px; border: 0; border-radius: 8px; background: var(--accent, #4c8dff); color: var(--on-accent, #fff); font: inherit; cursor: pointer; }
+button.ghost { background: transparent; color: var(--text-2, #aaa); border: 1px solid var(--border, #444); padding: 4px 8px; }
+button:disabled { opacity: .6; cursor: default; }
+#msg { min-height: 1.3em; margin: 8px 0 0; color: var(--text-2, #aaa); }
+#msg.err { color: var(--danger, #ff6b6b); }

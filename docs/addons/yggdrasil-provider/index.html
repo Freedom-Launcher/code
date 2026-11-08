@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+  <script src="fl-sdk.js"></script>
+  <script src="config.js"></script>
+  <script src="main.js" defer></script>
+</head>
+<body>
+  <h3 id="title"></h3>
+  <ul id="accounts"></ul>
+  <form id="form" autocomplete="off">
+    <label><span id="l-login"></span><input id="login" required maxlength="254" autocomplete="username"></label>
+    <label><span id="l-pass"></span><input id="pass" type="password" required maxlength="256" autocomplete="current-password"></label>
+    <label id="code-row" hidden><span id="l-code"></span><input id="code" inputmode="numeric" maxlength="12" autocomplete="one-time-code"></label>
+    <button id="go" type="submit"></button>
+  </form>
+  <p id="msg" role="status"></p>
+</body>
+</html>

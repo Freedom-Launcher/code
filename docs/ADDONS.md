@@ -41,7 +41,17 @@ plugin.
 - `signature.json` travels inside the archive, so a signed plugin keeps its
   badge.
 
-Reference plugin in its own repository: `Freedom-Launcher/plugin-elyby`.
+Ready-made sign-in plugin: [`docs/addons/yggdrasil-provider`](addons/yggdrasil-provider) (Ely.by). To make one
+for another Yggdrasil / authlib-injector service, give the generator its name and API root:
+
+```
+python3 scripts/new-yggdrasil-plugin.py --name LittleSkin --root https://littleskin.cn/api/yggdrasil
+```
+
+It writes a folder with `addon.json`, `config.js` and the page; zip it (with `addon.json` at the top) and
+publish it anywhere. `--two-factor` is for services that take `password:code` (Ely.by does). Checked by
+`scripts/yggdrasil-plugin-test.js` (the page, against a fake launcher) and the core test
+`the_yggdrasil_template_is_a_valid_provider`.
 
 ## Built-in plugins
 

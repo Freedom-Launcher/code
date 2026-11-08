@@ -1,0 +1,15 @@
+{
+  "id": "elyby",
+  "name": "Ely.by",
+  "version": "0.1.0",
+  "author": "Freedom Launcher",
+  "description": "Вход через Ely.by без аккаунта Microsoft: ники, скины и плащи сервиса",
+  "entry": "index.html",
+  "permissions": ["accounts_provide", "network"],
+  "hosts": ["authserver.ely.by"],
+  "slots": ["accounts.end"],
+  "account_provider": {
+    "label": "Ely.by",
+    "yggdrasil": "https://authserver.ely.by/api/authlib-injector"
+  }
+}

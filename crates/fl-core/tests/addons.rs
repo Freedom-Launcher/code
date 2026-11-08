@@ -366,3 +366,32 @@ async fn instance_files_stay_inside() {
     .unwrap();
     assert!(!d.join("instances/a/config/x.json").exists());
 }
+
+/// The plugin template shipped in docs/addons/yggdrasil-provider is a valid account provider
+/// as far as the core's manifest rules go (permissions, hosts, the yggdrasil root's host).
+#[test]
+fn the_yggdrasil_template_is_a_valid_provider() {
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../docs/addons/yggdrasil-provider");
+    let mut files: Vec<(String, String)> = Vec::new();
+    for e in std::fs::read_dir(&src).unwrap() {
+        let e = e.unwrap();
+        files.push((
+            format!("elyby/{}", e.file_name().to_string_lossy()),
+            std::fs::read_to_string(e.path()).unwrap(),
+        ));
+    }
+    let refs: Vec<(&str, &str)> = files
+        .iter()
+        .map(|(a, b)| (a.as_str(), b.as_str()))
+        .collect();
+    let d = tmp(&refs);
+    let m = addons::load(&d, "elyby").expect("the template must load");
+    assert!(m
+        .permissions
+        .contains(&fl_core::Permission::AccountsProvide));
+    assert!(m.permissions.contains(&fl_core::Permission::Network));
+    assert_eq!(m.hosts, vec!["authserver.ely.by"]);
+    // No badge, and that is fine: trust is not permission.
+    assert_eq!(addons::trust(&d, "elyby"), fl_core::Trust::Community);
+}
