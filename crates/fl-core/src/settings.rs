@@ -2,6 +2,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
+/// A plugin catalog the user added: where it is and what it calls itself.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PluginSource {
+    pub url: String,
+    pub name: String,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -18,6 +26,8 @@ pub struct Settings {
     /// whose files changed since is no longer trusted. Trusted themes skip the native
     /// confirmation (`theme_confirm`). Changed only by the user; safe mode only clears it.
     pub trusted_themes: BTreeMap<String, String>,
+    /// Plugin catalogs the user added besides the official one (`plugin_store`).
+    pub plugin_sources: Vec<PluginSource>,
     /// Look of the built-in shell. `None` until the UI saves it once, so the UI
     /// knows to migrate the values it used to keep in localStorage.
     pub look: Option<Look>,
@@ -165,6 +175,7 @@ impl Default for Settings {
             onboarded: false,
             theme_confirm: true,
             trusted_themes: BTreeMap::new(),
+            plugin_sources: Vec::new(),
             look: None,
             loader_priority: LOADER_ORDER.iter().map(|s| s.to_string()).collect(),
             ui: UiCustom::default(),

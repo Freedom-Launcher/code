@@ -26,10 +26,11 @@ Example: [`docs/addons/example`](addons/example). Copy it into the addons folder
 ## Installing and publishing
 
 A plugin can live in any repository. Its author publishes a `.zip` of the
-plugin folder (for example as a GitHub release asset); players install it with
-Settings → Плагины → «Установить плагин» → «Выбрать файл…» (action
-`addons.install { path }`). Nothing in the launcher has to change for a new
-plugin.
+plugin folder (for example as a GitHub release asset). Players get it in one of
+two ways: add the repository once as a **source** and install from the catalog
+(see «Plugin sources»), or pick the file with Settings → Плагины → «Установить
+плагин» → «Выбрать файл…» (action `addons.install { path }`). Nothing in the
+launcher has to change for a new plugin, and nobody has to approve it first.
 
 - `addon.json` sits at the top of the archive or inside one top folder.
 - Only plugin files are accepted: `html js css json png jpg jpeg webp svg woff2
@@ -353,3 +354,43 @@ its SHA-256 and installs it like a `.zip` picked by hand; the plugin still asks 
 Sources of official plugins live in `plugins/<id>/` of this repository.
 `python3 scripts/plugins-pack.py <seed file> <out dir>` signs them as «Официальный», zips them and
 writes `catalog.json`; push the output to `plugins/` of `Freedom-Launcher/releases`.
+
+## Plugin sources
+
+Anyone can publish plugins without us: put a `freedom-plugins.json` at the root of a repository (or
+host the same JSON at any https URL):
+
+```json
+{ "name": "My plugins",
+  "plugins": [ { "id": "my-plugin", "name": "My plugin", "version": "1.0.0", "author": "me",
+    "description": "What it does", "permissions": ["network"],
+    "url": "https://github.com/me/repo/releases/download/v1.0.0/my-plugin.zip",
+    "sha256": "<sha-256 of the zip>", "size": 12345 } ] }
+```
+
+`python3 scripts/plugin-catalog-entry.py my-plugin.zip --url <download URL>` writes or updates the entry
+for you (id, version, permissions from `addon.json`; SHA-256 and size from the zip).
+
+**Player.** Плагины → Каталог → «Добавить источник», then type `owner/repository`, a GitHub repository
+address (`/tree/<branch>` is honoured) or the https link of the JSON. It is added once and stays: its
+plugins appear in the same catalog, labelled «Сообщество» with the source's name, and install in one click
+(`addons.source_add`, `addons.source_remove`, `addons.sources`, `addons.install_from { id, source }`). Up to
+16 sources. The official catalog is always there and cannot be removed.
+
+**What the launcher checks for a plugin from a source** (nobody reviews it by hand):
+
+- The list and the zip are fetched over https only, from public addresses only (also after a redirect,
+  at most three, which GitHub downloads need); a list is at most 1 MB, a zip 64 MB, a source lists at most 200 plugins.
+- The zip's SHA-256 equals the one in the list. The archive holds the plugin the entry names (same `id`).
+- **The archive asks for no permission the entry did not list**: what the player read in the catalog is a
+  ceiling. An archive that wants more is refused before anything is installed.
+- The usual archive rules apply (allowed file types, safe names, size limits, valid manifest, reserved
+  ids and rights stay reserved).
+- A feed cannot call itself official or invent downloads and likes: those are overwritten.
+- A plugin installed from one source is not replaced by another source, and a signed plugin
+  («Проверено» / «Официальный») is not replaced by any foreign source. Remove it first.
+- Nothing is switched on by the install: the player still sees the permission dialog (with the stronger
+  warning for sign-in providers), and the plugin stays «Сообщество» unless it carries a valid project signature.
+
+What it does **not** do: read the plugin's code. «Проверено» still means a project signature, nothing else.
+A source is as trustworthy as its author, so the catalog says «Плагины из чужих источников мы не проверяем».

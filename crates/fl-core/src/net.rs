@@ -145,6 +145,50 @@ fn client() -> &'static reqwest::Client {
     })
 }
 
+/// A GET from the core itself for files a user chose to fetch (plugin catalogs and archives from
+/// sources they added): https only, public addresses only (also after a redirect, which GitHub
+/// release downloads need), at most 3 redirects and only to https, and never more than `max` bytes.
+pub(crate) async fn fetch_limited(url: &str, max: usize) -> Result<Vec<u8>, String> {
+    static C: OnceLock<reqwest::Client> = OnceLock::new();
+    let c = C.get_or_init(|| {
+        reqwest::Client::builder()
+            .user_agent(concat!(
+                "FreedomLauncher/",
+                env!("FL_VERSION"),
+                " (plugins)"
+            ))
+            .redirect(Policy::custom(|a| {
+                if a.previous().len() >= 3 || a.url().scheme() != "https" {
+                    a.stop()
+                } else {
+                    a.follow()
+                }
+            }))
+            .no_proxy()
+            .https_only(true)
+            .connect_timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(120))
+            .dns_resolver(Arc::new(PublicOnly))
+            .build()
+            .expect("failed to build download HTTP client")
+    });
+    let mut r = c
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?;
+    let mut buf = Vec::new();
+    while let Some(chunk) = r.chunk().await.map_err(|e| e.to_string())? {
+        if buf.len() + chunk.len() > max {
+            return Err("файл слишком большой".into());
+        }
+        buf.extend_from_slice(&chunk);
+    }
+    Ok(buf)
+}
+
 /// One JSON POST from the core itself (not on behalf of a plugin) through the same
 /// locked-down client: https only, no redirects, public addresses only. `(status, body)`;
 /// a body that is not JSON comes back as `null`.

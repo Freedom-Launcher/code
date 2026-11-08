@@ -1,5 +1,10 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Добавить источник": "Add source",
+"Источник добавлен": "Source added",
+"Убрать источник": "Remove source",
+"владелец/репозиторий или ссылка на список": "owner/repository or a link to the list",
+"Плагины из чужих источников мы не проверяем. Перед включением лаунчер покажет, какие права они просят.": "We do not check plugins from other sources. Before you switch one on, the launcher shows which permissions it asks for.",
 "Доверять этой теме": "Trust this theme",
 "Тема не будет спрашивать разрешение на запуск игры и вход. Доверие относится к текущим файлам темы: после её обновления вопрос вернётся.": "The theme will not ask before starting the game or signing in. Trust applies to the theme's current files: after it is updated, the question comes back.",
 "Доверять теме?": "Trust this theme?",

@@ -393,18 +393,51 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             refresh: bool,
         }
         let A { refresh } = if a.is_null() { A::default() } else { args(a)? };
-        let (plugins, offline) = crate::plugin_store::catalog(&c, refresh).await?;
-        Ok(json!({ "plugins": plugins, "offline": offline }))
+        let cat = crate::plugin_store::catalog(&c, refresh).await?;
+        Ok(json!({ "plugins": cat.plugins, "offline": cat.offline, "sources": cat.sources }))
     });
+    // `source` is the catalog URL of the source that lists it; empty means the official catalog.
     r.register(
         "addons.install_from",
         P::Internal,
         false,
         |c, a| async move {
-            let IdArg { id } = args(a)?;
-            crate::plugin_store::install(&c, &id).await?;
+            #[derive(Deserialize)]
+            struct A {
+                id: String,
+                #[serde(default)]
+                source: String,
+            }
+            let A { id, source } = args(a)?;
+            crate::plugin_store::install(&c, &id, &source).await?;
             let st: addons::State = store::load(&c.path(addons::STATE))?;
             Ok(json!(addons::list(&c.data_dir, &st)))
+        },
+    );
+    // Plugin sources: catalogs besides the official one. Adding one is the user's act.
+    r.register("addons.sources", P::Internal, false, |c, _| async move {
+        let s: Settings = store::load(&c.path(SETTINGS))?;
+        Ok(json!(s.plugin_sources))
+    });
+    r.register("addons.source_add", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            input: String,
+        }
+        let A { input } = args(a)?;
+        Ok(json!(crate::plugin_store::add_source(&c, &input).await?))
+    });
+    r.register(
+        "addons.source_remove",
+        P::Internal,
+        false,
+        |c, a| async move {
+            #[derive(Deserialize)]
+            struct A {
+                url: String,
+            }
+            let A { url } = args(a)?;
+            Ok(json!(crate::plugin_store::remove_source(&c, &url).await?))
         },
     );
     r.register("addons.folder", P::Internal, false, |c, _| async move {

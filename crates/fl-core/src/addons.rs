@@ -163,6 +163,9 @@ pub struct Entry {
     /// Requested permissions the user chose not to give. Not asked again
     /// until the user opens «Права…» themselves.
     pub declined: BTreeSet<Permission>,
+    /// The catalog source it was installed from: `official` or the source's catalog URL.
+    /// Empty for plugins put in by hand. Another source cannot replace it.
+    pub source: String,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -429,9 +432,8 @@ const MAX_BYTES: u64 = 64 << 20;
 /// `addon.json` at the top of the archive or inside one top folder. An
 /// installed copy with the same id is replaced only if the new one loads; its
 /// approval stays, and new permissions are asked about again.
-pub fn install_zip(data_dir: &Path, zip_path: &Path) -> R<String> {
-    let f = fs::File::open(zip_path).map_err(|_| "файл не найден".to_string())?;
-    let mut z = zip::ZipArchive::new(f).map_err(|_| "это не архив .zip".to_string())?;
+/// Where `addon.json` sits in a plugin archive (at the top or inside one top folder) and its text.
+fn locate_manifest(z: &mut zip::ZipArchive<fs::File>) -> R<(String, Vec<u8>)> {
     if z.len() > MAX_FILES {
         return Err(format!("в архиве больше {MAX_FILES} файлов"));
     }
@@ -460,6 +462,32 @@ pub fn install_zip(data_dir: &Path, zip_path: &Path) -> R<String> {
         .take(64 * 1024 + 1)
         .read_to_end(&mut raw)
         .map_err(|e| format!("addon.json: {e}"))?;
+    Ok((prefix, raw))
+}
+
+/// The manifest of a plugin archive, read without installing anything: `(id, permissions)`.
+pub fn zip_manifest(zip_path: &Path) -> R<(String, Vec<String>)> {
+    let f = fs::File::open(zip_path).map_err(|_| "файл не найден".to_string())?;
+    let mut z = zip::ZipArchive::new(f).map_err(|_| "это не архив .zip".to_string())?;
+    let (_, raw) = locate_manifest(&mut z)?;
+    let v: Value =
+        serde_json::from_slice(&raw).map_err(|_| "addon.json: неверный JSON".to_string())?;
+    let id = v["id"].as_str().unwrap_or_default().to_owned();
+    let perms = v["permissions"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|p| p.as_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok((id, perms))
+}
+
+pub fn install_zip(data_dir: &Path, zip_path: &Path) -> R<String> {
+    let f = fs::File::open(zip_path).map_err(|_| "файл не найден".to_string())?;
+    let mut z = zip::ZipArchive::new(f).map_err(|_| "это не архив .zip".to_string())?;
+    let (prefix, raw) = locate_manifest(&mut z)?;
     let id = serde_json::from_slice::<Value>(&raw)
         .ok()
         .and_then(|v| v["id"].as_str().map(str::to_owned))

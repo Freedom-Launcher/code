@@ -11,6 +11,12 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Plugin sources (unreleased)
+
+- Any repository can publish plugins: `freedom-plugins.json` at its root (or any https JSON). A player adds the source once (`owner/repo`, a GitHub address or a link) under Плагины → Каталог; its plugins join the catalog as «Сообщество» and install in one click. Official catalog unchanged and not removable; up to 16 sources.
+- Basic automatic checks instead of a manual review: https + public addresses only, SHA-256, the archive is the plugin the entry names, permissions within what the entry listed, a feed cannot claim «official»/likes, another source cannot replace an installed plugin, signed plugins are never replaced by a foreign source. Installs stay off until the player approves the permissions.
+- `scripts/plugin-catalog-entry.py` writes the entry for authors. Tests: unit and end-to-end with a fake internet in `plugin_store.rs` (including mutation checks for the two key rules) and `scripts/ui-plugins-catalog-test.js` (jsdom).
+
 ## Review leftovers (unreleased)
 
 - Linux secrets in the Secret Service (`keychain.rs`; availability is probed at runtime, the file stays as fallback; `FL_NO_KEYCHAIN=1`). The success path needs a desktop session with a default keyring: `tests/keychain_live.rs` is `#[ignore]`d and was not run against a real keyring yet; the fallback path is covered.

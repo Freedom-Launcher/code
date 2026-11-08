@@ -359,7 +359,7 @@
   // ---------- «Плагины» page (launcher extensions; code name "addons") ----------
   let filter = 'all', query = '', detail = null, armed = 0;
   let tab = (() => { try { return localStorage.getItem('fl.plg.tab') === 'installed' ? 'installed' : 'catalog'; } catch { return 'catalog'; } })();
-  let cat = [], catSt = 'idle', catErr = '';
+  let cat = [], catSt = 'idle', catErr = '', srcs = [], srcDraft = '';
   const busy = new Set();
   const attn = (a) => !!(a.error || a.pending || a.signature_error);
   const FILTERS = [['all', _t("Все")], ['on', _t("Включены")], ['off', _t("Выключены")], ['attn', _t("Требуют внимания")]];
@@ -513,23 +513,67 @@
     }
     return stop(h('div', 'plg-nums', dl, like));
   }
+  const key = (e) => `${e.id}|${e.source_url || ''}`;
+  // Sources: the official catalog plus repositories the player added once. Anyone can publish one;
+  // the launcher checks the archive, but only the official one is ours (hence the badge on each tile).
+  function sourcesBar() {
+    const chips = h('div', 'plg-src-chips');
+    for (const s of srcs) {
+      const c = h('span', `plg-src${s.error ? ' is-err' : ''}`, h('b', null, s.official ? 'Freedom Launcher' : (s.name || s.url)), h('small', null, String(s.count)));
+      if (s.error) c.title = _tr(s.error);
+      if (!s.official) {
+        const x = h('button', 'plg-src-x', '×');
+        x.type = 'button';
+        x.title = _t("Убрать источник");
+        x.setAttribute('aria-label', _t("Убрать источник"));
+        x.onclick = () => removeSource(s.url);
+        c.append(x);
+      }
+      chips.append(c);
+    }
+    const input = h('input', 'plg-src-input');
+    input.type = 'text';
+    input.maxLength = 512;
+    input.spellcheck = false;
+    input.value = srcDraft;
+    input.placeholder = _t("владелец/репозиторий или ссылка на список");
+    input.oninput = () => { srcDraft = input.value; };
+    const add = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Добавить источник")));
+    add.type = 'button';
+    const go = () => { const v = input.value.trim(); if (v) addSource(v, add); };
+    add.onclick = go;
+    input.onkeydown = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); go(); } };
+    return h('div', 'plg-sources', chips, h('div', 'plg-src-add', input, add),
+      h('p', 'plg-src-hint', _t("Плагины из чужих источников мы не проверяем. Перед включением лаунчер покажет, какие права они просят.")));
+  }
+  async function addSource(v, btn) {
+    btn.disabled = true;
+    try { await call('addons.source_add', { input: v }); srcDraft = ''; await loadCat(true); toast(_t("Источник добавлен")); }
+    catch (e) { toast(_tr(String(e)), { error: true }); }
+    btn.disabled = false;
+  }
+  async function removeSource(url) {
+    try { await call('addons.source_remove', { url }); await loadCat(true); }
+    catch (e) { toast(_tr(String(e)), { error: true }); }
+  }
   function catCard(e, i) {
+    const official = e.official !== false;
     const have = list.find((a) => a.id === e.id);
     const upd = !!have && !have.error && newer(e.version, have.version);
     const c = h('article', `plg-card is-cat${have ? ' is-have' : ''}`);
     c.style.setProperty('--i', String(i));
-    const fl = [h('span', 'plg-flag is-accent', h('i'), TRUST.official)];
+    const fl = [h('span', 'plg-flag is-accent', h('i'), official ? TRUST.official : TRUST.community)];
     if (have) fl.push(upd ? h('span', 'plg-flag is-st-attn', h('i'), _t("Есть обновление")) : h('span', 'plg-flag is-st-on', h('i'), _t("Установлен")));
-    const meta = [e.author, e.version && `v${e.version}`].filter(Boolean).join(' · ');
+    const meta = [e.author, e.version && `v${e.version}`, !official && e.source].filter(Boolean).join(' · ');
     c.append(banner(e), h('div', 'plg-flags', ...fl),
       h('div', 'plg-body', h('div', 'plg-name', _t(e.name)), h('div', 'plg-meta', meta), h('p', 'plg-desc', _t(e.description || ''))));
-    const wait = busy.has(e.id);
+    const wait = busy.has(key(e));
     const b = h('button', `btn ${have && !upd ? 'btn-ghost' : 'btn-primary'}`, h('span', 'lbl',
       wait ? _t("Установка…") : upd ? _t("Обновить") : have ? _t("Открыть") : _t("Установить")));
     b.type = 'button';
     b.disabled = wait;
-    b.onclick = () => (have && !upd ? (have.error ? setTab('installed') : openDetail(e.id)) : installFrom(e.id));
-    c.append(h('div', 'plg-foot', nums(e), h('span', 'grow'), stop(b)));
+    b.onclick = () => (have && !upd ? (have.error ? setTab('installed') : openDetail(e.id)) : installFrom(e));
+    c.append(h('div', 'plg-foot', official ? nums(e) : h('span'), h('span', 'grow'), stop(b)));
     return c;
   }
   function renderCat() {
@@ -550,7 +594,7 @@
     }
     const ok = (e) => !query || [e.name, _t(e.name), e.id, e.description, _t(e.description || '')].filter(Boolean).join(' ').toLowerCase().includes(query);
     const shown = cat.filter(ok);
-    box.replaceChildren(...(shown.length ? shown.map(catCard) : [noneState()]));
+    box.replaceChildren(sourcesBar(), ...(shown.length ? shown.map(catCard) : [noneState()]));
   }
   async function loadCat(refresh) {
     if (catSt === 'loading') return;
@@ -559,6 +603,7 @@
     try {
       const r = await call('addons.catalog', { refresh: !!refresh });
       cat = Array.isArray(r?.plugins) ? r.plugins : [];
+      srcs = Array.isArray(r?.sources) ? r.sources : [];
       catSt = 'ok';
     } catch (e) {
       catErr = String(e);
@@ -567,13 +612,14 @@
     }
     render();
   }
-  async function installFrom(id) {
-    if (busy.has(id)) return;
-    busy.add(id);
+  async function installFrom(e) {
+    const id = e.id, k = key(e);
+    if (busy.has(k)) return;
+    busy.add(k);
     renderCat();
     let ok = false;
-    try { list = (await call('addons.install_from', { id })) || list; ok = true; } catch (e) { toast(_tr(String(e)), { error: true }); }
-    busy.delete(id);
+    try { list = (await call('addons.install_from', { id, source: e.source_url || '' })) || list; ok = true; } catch (err) { toast(_tr(String(err)), { error: true }); }
+    busy.delete(k);
     render();
     if (!ok) return;
     mount();
