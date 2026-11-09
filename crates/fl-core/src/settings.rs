@@ -28,6 +28,10 @@ pub struct Settings {
     pub trusted_themes: BTreeMap<String, String>,
     /// Plugin catalogs the user added besides the official one (`plugin_store`).
     pub plugin_sources: Vec<PluginSource>,
+    /// Developer mode for plugins (`dev_plugins`): off by default.
+    pub developer_mode: bool,
+    /// Plugin folders linked in developer mode (absolute paths).
+    pub dev_plugins: Vec<String>,
     /// Look of the built-in shell. `None` until the UI saves it once, so the UI
     /// knows to migrate the values it used to keep in localStorage.
     pub look: Option<Look>,
@@ -176,6 +180,8 @@ impl Default for Settings {
             theme_confirm: true,
             trusted_themes: BTreeMap::new(),
             plugin_sources: Vec::new(),
+            developer_mode: false,
+            dev_plugins: Vec::new(),
             look: None,
             loader_priority: LOADER_ORDER.iter().map(|s| s.to_string()).collect(),
             ui: UiCustom::default(),

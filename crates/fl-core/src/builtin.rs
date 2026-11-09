@@ -102,6 +102,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             reduce_motion: Option<bool>,
             onboarded: Option<bool>,
             theme_confirm: Option<bool>,
+            developer_mode: Option<bool>,
             loader_priority: Option<Vec<String>>,
             ui: Option<Value>,
             game: Option<instances::InstanceSettings>,
@@ -115,6 +116,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             reduce_motion,
             onboarded,
             theme_confirm,
+            developer_mode,
             loader_priority,
             ui,
             game,
@@ -144,6 +146,9 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         }
         if let Some(t) = theme_confirm {
             s.theme_confirm = t;
+        }
+        if let Some(d) = developer_mode {
+            s.developer_mode = d;
         }
         if let Some(p) = loader_priority {
             if p.len() > 8 {
@@ -414,6 +419,47 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             Ok(json!(addons::list(&c.data_dir, &st)))
         },
     );
+    // Developer mode: link a plugin folder and the installed copy follows it (`dev_plugins`).
+    // All of these refuse unless `developer_mode` is on.
+    r.register("addons.dev_state", P::Internal, false, |c, _| async move {
+        Ok(json!(crate::dev_plugins::state(&c).await?))
+    });
+    r.register("addons.dev_link", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            path: String,
+        }
+        let A { path } = args(a)?;
+        Ok(json!(crate::dev_plugins::link(&c, &path).await?))
+    });
+    r.register("addons.dev_unlink", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            path: String,
+        }
+        let A { path } = args(a)?;
+        Ok(json!(crate::dev_plugins::unlink(&c, &path).await?))
+    });
+    r.register("addons.dev_new", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            parent: String,
+            id: String,
+            name: String,
+        }
+        let A { parent, id, name } = args(a)?;
+        Ok(json!(
+            crate::dev_plugins::new_plugin(&c, &parent, &id, &name).await?
+        ))
+    });
+    r.register("addons.dev_folder", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize)]
+        struct A {
+            path: String,
+        }
+        let A { path } = args(a)?;
+        Ok(json!({ "path": crate::dev_plugins::folder(&c, &path)? }))
+    });
     // Installed plugins that have a newer version in the source they came from.
     r.register("addons.updates", P::Internal, false, |c, a| async move {
         #[derive(Deserialize, Default)]

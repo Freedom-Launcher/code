@@ -241,7 +241,7 @@ const SRC_CACHE: &str = "addons-sources.json";
 const SETTINGS_FILE: &str = "settings.json";
 
 /// Read-change-write of one of our JSON state files under the core lock.
-async fn update_json<T: Serialize + serde::de::DeserializeOwned + Default>(
+pub(crate) async fn update_json<T: Serialize + serde::de::DeserializeOwned + Default>(
     c: &Core,
     file: &str,
     f: impl FnOnce(&mut T),
@@ -751,7 +751,7 @@ fn perms_within(manifest: &[String], listed: &[String]) -> Result<(), String> {
 /// May a plugin from `source` (`official` or a catalog URL) replace what is installed?
 /// `have_source` is where the installed copy came from (empty: put in by hand) and
 /// `signed` whether it carries a «Проверено» / «Официальный» signature.
-fn may_replace(
+pub(crate) fn may_replace(
     have: bool,
     have_source: &str,
     signed: bool,

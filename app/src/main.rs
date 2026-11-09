@@ -1087,6 +1087,28 @@ async fn open_addons_folder(
         .map_err(|e| e.to_string())
 }
 
+/// Opens a plugin folder linked in developer mode. Only linked folders: the core checks.
+#[tauri::command]
+async fn open_dev_folder(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppCore>,
+    path: String,
+) -> Result<(), String> {
+    let core = Arc::clone(&state.0);
+    let v = core
+        .dispatch(
+            &Caller::BuiltinUi,
+            "addons.dev_folder",
+            json!({ "path": path }),
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    let path = v["path"].as_str().ok_or("no folder")?.to_owned();
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 /// Shift held while the launcher starts opens safe settings.
 #[cfg(windows)]
 fn shift_held() -> bool {
@@ -1352,6 +1374,7 @@ fn main() {
             set_ui_strings,
             theme_action,
             confirm_action,
+            open_dev_folder,
             open_login_page,
             ms_window_login,
             open_link,

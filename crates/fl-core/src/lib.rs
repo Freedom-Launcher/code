@@ -28,6 +28,7 @@ mod builtin;
 pub mod bundled;
 pub mod catalog;
 pub mod curseforge;
+pub mod dev_plugins;
 pub mod doctor;
 pub mod error;
 pub mod export;
@@ -83,6 +84,9 @@ pub struct Core {
         std::sync::Mutex<std::collections::HashMap<String, Arc<game::download::Progress>>>,
     /// Game processes per instance (`game.running`, no double launches).
     pub(crate) game_running: game::running::Running,
+    /// Developer-linked plugin folders: what was last synced (`dev_plugins`).
+    pub(crate) dev_links:
+        std::sync::Mutex<std::collections::BTreeMap<String, dev_plugins::LinkState>>,
 }
 
 impl Core {
@@ -107,6 +111,7 @@ impl Core {
             ms_code: Default::default(),
             game_progress: Default::default(),
             game_running: Default::default(),
+            dev_links: Default::default(),
         }))
     }
 
