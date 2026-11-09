@@ -11,6 +11,11 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Plugin updates (unreleased)
+
+- `addons.updates`: installed plugins with a newer version in the source they came from (installs from before sources were recorded count as official when signed; hand-made installs and developer links are left alone). Banner + «Обновить всё», per-plugin «Обновить до vX», catalog tile «Есть обновление» (only for the plugin's own source). `is_newer` handles pre-releases and ignores unreadable versions. New permissions in an update wait for approval; approved ones stay.
+- Tests: version table and source mapping, end-to-end update flow with a fake internet (including the new-permission case and "another source / dev link get no offers"), `scripts/ui-plugins-updates-test.js` (jsdom).
+
 ## Plugin sources (unreleased)
 
 - Any repository can publish plugins: `freedom-plugins.json` at its root (or any https JSON). A player adds the source once (`owner/repo`, a GitHub address or a link) under Плагины → Каталог; its plugins join the catalog as «Сообщество» and install in one click. Official catalog unchanged and not removable; up to 16 sources.

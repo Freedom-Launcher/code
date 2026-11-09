@@ -359,7 +359,7 @@
   // ---------- «Плагины» page (launcher extensions; code name "addons") ----------
   let filter = 'all', query = '', detail = null, armed = 0;
   let tab = (() => { try { return localStorage.getItem('fl.plg.tab') === 'installed' ? 'installed' : 'catalog'; } catch { return 'catalog'; } })();
-  let cat = [], catSt = 'idle', catErr = '', srcs = [], srcDraft = '', srcFilter = ''; // srcFilter: '' = all, 'official', or a source's catalog URL
+  let cat = [], catSt = 'idle', catErr = '', srcs = [], srcDraft = '', srcFilter = '', ups = []; // srcFilter: '' = all, 'official', or a source's catalog URL
   const busy = new Set();
   const attn = (a) => !!(a.error || a.pending || a.signature_error);
   const FILTERS = [['all', _t("Все")], ['on', _t("Включены")], ['off', _t("Выключены")], ['attn', _t("Требуют внимания")]];
@@ -456,6 +456,13 @@
     const ce = cat.find((e) => e.id === a.id);
     if (!a.error) foot.append(ce ? nums(ce) : permStat(a));
     foot.append(h('span', 'grow'));
+    const u = !a.error && updFor(a.id);
+    if (u) {
+      const b = h('button', 'btn btn-primary', h('span', 'lbl', busy.has(key({ id: a.id, source_url: u.source_url })) ? _t("Обновление…") : _t("Обновить до v{0}", [u.version])));
+      b.type = 'button';
+      b.onclick = (ev) => { ev.stopPropagation(); updateOne(u); };
+      foot.append(b);
+    }
     if (a.error) {
       const b = h('button', 'btn btn-ghost', h('span', 'lbl', _t("Открыть папку")));
       b.type = 'button';
@@ -469,6 +476,13 @@
       c.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === c) { e.preventDefault(); openDetail(a.id); } };
     }
     return c;
+  }
+  function updatesBanner() {
+    const b = h('button', 'btn btn-primary', h('span', 'lbl', ups.length > 1 ? _t("Обновить всё") : _t("Обновить")));
+    b.type = 'button';
+    b.onclick = updateAll;
+    return h('div', 'plg-updates', h('b', null, _t("Доступны обновления: {0}", [String(ups.length)])),
+      h('span', 'plg-updates-list', ups.map((u) => `${u.name || u.id} ${u.have} → ${u.version}`).join(' · ')), h('span', 'grow'), b);
   }
   function emptyState() {
     const b = h('button', 'btn btn-primary', h('span', 'lbl', _t("Открыть каталог")));
@@ -492,11 +506,21 @@
   const SVG_DL = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v9.59l3.3-3.3a1 1 0 1 1 1.4 1.42l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.42l3.3 3.3V4a1 1 0 0 1 1-1ZM5 19a1 1 0 1 0 0 2h14a1 1 0 1 0 0-2H5Z"/></svg>';
   const SVG_HEART = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.7 10.6 19.4C5.4 14.7 2 11.6 2 7.8 2 4.7 4.4 2.3 7.5 2.3c1.7 0 3.4.8 4.5 2.1 1.1-1.3 2.8-2.1 4.5-2.1 3.1 0 5.5 2.4 5.5 5.5 0 3.8-3.4 6.9-8.6 11.6L12 20.7Z"/></svg>';
   const fmtN = (n) => (n >= 1e6 ? _t("{0} млн", [(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)]) : n >= 1e3 ? _t("{0} тыс", [Math.round(n / 1e3)]) : String(n));
-  const newer = (a, b) => {
-    const x = String(a).split('.').map(Number), y = String(b || '').split('.').map(Number);
-    for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d > 0; }
-    return false;
-  };
+  // Updates come from the core (`addons.updates`): it knows which source a plugin came from and
+  // compares versions properly. A source's plugin is only ever updated from that same source.
+  const updFor = (id) => ups.find((u) => u.id === id);
+  async function checkUpdates(refresh) {
+    try { ups = (await call('addons.updates', { refresh: !!refresh })) || []; } catch { ups = []; }
+    render();
+  }
+  async function updateOne(u) {
+    await installFrom({ id: u.id, source_url: u.source_url || '' });
+    await checkUpdates(false);
+  }
+  async function updateAll() {
+    for (const u of [...ups]) await installFrom({ id: u.id, source_url: u.source_url || '' });
+    await checkUpdates(false);
+  }
   function nums(e) {
     const dl = h('span', 'plg-num');
     dl.innerHTML = SVG_DL;
@@ -570,7 +594,7 @@
   function catCard(e, i) {
     const official = e.official !== false;
     const have = list.find((a) => a.id === e.id);
-    const upd = !!have && !have.error && newer(e.version, have.version);
+    const upd = !!have && !have.error && ups.some((u) => u.id === e.id && (u.source_url || '') === (e.source_url || ''));
     const c = h('article', `plg-card is-cat${have ? ' is-have' : ''}`);
     c.style.setProperty('--i', String(i));
     const fl = [h('span', 'plg-flag is-accent', h('i'), official ? TRUST.official : TRUST.community)];
@@ -618,6 +642,7 @@
       const r = await call('addons.catalog', { refresh: !!refresh });
       cat = Array.isArray(r?.plugins) ? r.plugins : [];
       srcs = Array.isArray(r?.sources) ? r.sources : [];
+      checkUpdates(false);
       if (srcFilter && srcFilter !== 'official' && !srcs.some((s) => s.url === srcFilter)) srcFilter = ''; // that source is gone
       catSt = 'ok';
     } catch (e) {
@@ -672,7 +697,8 @@
     const bar = document.getElementById('plg-bar');
     if (bar) bar.hidden = tab !== 'installed' || !list.length;
     const shown = list.filter((a) => pass(filter, a) && match(a));
-    box.replaceChildren(...(!list.length ? [emptyState()] : shown.length ? shown.map(card) : [noneState()]));
+    const banner = ups.length && list.length ? [updatesBanner()] : [];
+    box.replaceChildren(...banner, ...(!list.length ? [emptyState()] : shown.length ? shown.map(card) : [noneState()]));
     box.hidden = tab !== 'installed';
     tabs(need);
     renderCat();
@@ -757,6 +783,7 @@
     try { list = (await call('addons.list')) || []; } catch { list = []; }
     render();
     mount();
+    checkUpdates(false); // quietly: a failure (offline) just means no banner
     document.querySelector('#addon-folder')?.addEventListener('click', () => invoke('open_addons_folder').catch((e) => toast(String(e), { error: true })));
     document.querySelector('#addon-install')?.addEventListener('click', install);
     document.getElementById('plg-q')?.addEventListener('input', (e) => { query = e.target.value.trim().toLowerCase(); render(); });
@@ -777,7 +804,7 @@
       window.FUI.closeDlg();
       act('addons.revoke', { id });
     });
-    document.querySelector('#addon-reload')?.addEventListener('click', () => { act('addons.list'); loadCat(true); });
+    document.querySelector('#addon-reload')?.addEventListener('click', () => { act('addons.list'); loadCat(true); checkUpdates(true); });
     document.querySelectorAll('#plg-tabs .plg-tab').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
     document.getElementById('dlg-addon-perms')?.addEventListener('submit', (e) => {
       e.preventDefault();

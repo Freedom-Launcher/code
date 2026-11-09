@@ -409,6 +409,7 @@ pub fn list(data_dir: &Path, st: &State) -> Vec<Value> {
                     "signature_error": crate::signing::check(&dir(data_dir).join(&id), &id).err(),
                     "permissions": perms, "slots": m.slots, "hosts": m.hosts,
                     "entry": m.entry, "enabled": e.enabled, "pending": pending,
+                    "source": e.source,
                     "account_provider": m.account_provider,
                     "pages": pages, "launch_overlay": overlay,
                     "actions": actions, "panels": panels, "places": places,

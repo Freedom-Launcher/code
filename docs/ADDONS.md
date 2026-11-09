@@ -393,5 +393,14 @@ source (a click shows only that source, a second click shows everything).
 - Nothing is switched on by the install: the player still sees the permission dialog (with the stronger
   warning for sign-in providers), and the plugin stays «Сообщество» unless it carries a valid project signature.
 
+**Updates.** The launcher checks quietly (cached for ten minutes) whether a plugin has a newer version in the
+source **it came from** (`addons.updates`): a banner «Доступны обновления» with «Обновить всё» appears on the installed
+tab, each plugin gets «Обновить до vX». A higher version of the same id in another source is never offered, a
+hand-installed plugin and a developer link are never touched, and an update goes through the same checks as an install.
+Versions compare numerically (`1.10.0` > `1.9.0`), a pre-release is older than its release (`1.0.0-beta` < `1.0.0`), and
+an unreadable version never triggers an update. If the new version asks for a **new permission** (the entry must list it),
+what the player approved stays approved and only the new one waits for a decision; the plugin is not switched on or
+given more by the update.
+
 What it does **not** do: read the plugin's code. «Проверено» still means a project signature, nothing else.
 A source is as trustworthy as its author, so the catalog says «Плагины из чужих источников мы не проверяем».

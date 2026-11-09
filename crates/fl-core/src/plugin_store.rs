@@ -598,6 +598,136 @@ pub async fn remove_source(
     Ok(left)
 }
 
+// ---------------------------------------------------------------- updates
+
+/// Is the catalog's `cat` version newer than the installed `have`? Dotted numbers compare
+/// numerically (missing parts are 0), a pre-release (`1.2.0-beta.1`) is older than its release,
+/// build metadata (`+abc`) is ignored. Anything unreadable is "not newer": a version we cannot
+/// parse must never trigger an update.
+pub fn is_newer(cat: &str, have: &str) -> bool {
+    type Parsed = (Vec<u64>, Option<Vec<String>>);
+    fn parse(v: &str) -> Option<Parsed> {
+        let v = v.trim().trim_start_matches(['v', 'V']);
+        let v = v.split('+').next()?;
+        let (core, pre) = match v.split_once('-') {
+            Some((c, p)) => (c, Some(p.split('.').map(str::to_owned).collect())),
+            None => (v, None),
+        };
+        let nums: Option<Vec<u64>> = core.split('.').map(|x| x.parse().ok()).collect();
+        let nums = nums.filter(|n| !n.is_empty())?;
+        Some((nums, pre))
+    }
+    let (Some((a, ap)), Some((b, bp))) = (parse(cat), parse(have)) else {
+        return false;
+    };
+    let n = a.len().max(b.len());
+    for i in 0..n {
+        let (x, y) = (
+            a.get(i).copied().unwrap_or(0),
+            b.get(i).copied().unwrap_or(0),
+        );
+        if x != y {
+            return x > y;
+        }
+    }
+    match (ap, bp) {
+        (None, None) | (Some(_), None) => false,
+        (None, Some(_)) => true,
+        (Some(x), Some(y)) => {
+            for (p, q) in x.iter().zip(&y) {
+                let ord = match (p.parse::<u64>(), q.parse::<u64>()) {
+                    (Ok(p), Ok(q)) => p.cmp(&q),
+                    (Ok(_), Err(_)) => std::cmp::Ordering::Less,
+                    (Err(_), Ok(_)) => std::cmp::Ordering::Greater,
+                    _ => p.cmp(q),
+                };
+                if ord != std::cmp::Ordering::Equal {
+                    return ord == std::cmp::Ordering::Greater;
+                }
+            }
+            x.len() > y.len()
+        }
+    }
+}
+
+/// An installed plugin that has a newer version in the source it came from.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Update {
+    pub id: String,
+    pub name: String,
+    pub have: String,
+    pub version: String,
+    /// `official` or the source's catalog URL (what `install_from` takes as `source`, "" for official).
+    pub source: String,
+    pub source_url: String,
+    pub official: bool,
+}
+
+/// Which source an installed plugin should be updated from. The recorded source wins; an older
+/// install of a signed plugin (no source recorded yet) counts as official; hand-made installs and
+/// developer links (`dev`) are never updated behind the player's back.
+fn effective_source(recorded: &str, signed: bool) -> Option<String> {
+    match recorded {
+        "dev" => None,
+        "" if signed => Some(OFFICIAL.to_owned()),
+        "" => None,
+        other => Some(other.to_owned()),
+    }
+}
+
+/// Plugins with a newer version in their own source (cached catalogs unless `refresh`).
+pub async fn updates(c: &Core, refresh: bool) -> Result<Vec<Update>, CoreError> {
+    updates_with(c, &Net, refresh, true).await
+}
+
+async fn updates_with<F: Fetch>(
+    c: &Core,
+    f: &F,
+    refresh: bool,
+    official: bool,
+) -> Result<Vec<Update>, CoreError> {
+    let cat = catalog_with(c, f, refresh, official).await?;
+    let st: addons::State = crate::store::load(&c.path(addons::STATE)).unwrap_or_default();
+    let mut out = Vec::new();
+    for a in addons::list(&c.data_dir, &st) {
+        let (Some(id), Some(have)) = (a["id"].as_str(), a["version"].as_str()) else {
+            continue;
+        };
+        if a.get("error").is_some_and(|e| !e.is_null()) {
+            continue;
+        }
+        let recorded = st
+            .addons
+            .get(id)
+            .map(|x| x.source.as_str())
+            .unwrap_or_default();
+        let signed = addons::trust(&c.data_dir, id) != crate::Trust::Community;
+        let Some(src) = effective_source(recorded, signed) else {
+            continue;
+        };
+        let found = cat.plugins.iter().find(|e| {
+            e.id == id
+                && if src == OFFICIAL {
+                    e.official
+                } else {
+                    !e.official && e.source_url == src
+                }
+        });
+        if let Some(e) = found.filter(|e| is_newer(&e.version, have)) {
+            out.push(Update {
+                id: id.to_owned(),
+                name: e.name.clone(),
+                have: have.to_owned(),
+                version: e.version.clone(),
+                source: src,
+                source_url: e.source_url.clone(),
+                official: e.official,
+            });
+        }
+    }
+    Ok(out)
+}
+
 // ---------------------------------------------------------------- install
 
 /// Every permission the archive asks for must be one the entry listed: what the player read in the
@@ -1026,18 +1156,37 @@ mod sources {
 }
 
 #[cfg(test)]
+mod end_to_end_support {
+    pub use super::end_to_end::{archive, core, sha, Web, ZIP};
+    use super::*;
+
+    pub fn manifest_v(id: &str, version: &str, perms: &str) -> String {
+        format!(r#"{{"id":"{id}","name":"Demo","version":"{version}","permissions":[{perms}]}}"#)
+    }
+
+    pub fn feed_v(id: &str, version: &str, perms: &[&str], zip: &[u8]) -> Vec<u8> {
+        serde_json::to_vec(&serde_json::json!({
+            "name": "S",
+            "plugins": [{ "id": id, "name": "Demo", "version": version, "url": ZIP,
+                "sha256": sha(zip), "permissions": perms }]
+        }))
+        .unwrap()
+    }
+}
+
+#[cfg(test)]
 mod end_to_end {
     use super::*;
     use std::sync::Mutex;
 
     /// A pretend internet: url -> bytes. Records what was asked for.
     #[derive(Default)]
-    struct Web {
-        files: Mutex<BTreeMap<String, Vec<u8>>>,
-        asked: Mutex<Vec<String>>,
+    pub struct Web {
+        pub files: Mutex<BTreeMap<String, Vec<u8>>>,
+        pub asked: Mutex<Vec<String>>,
     }
     impl Web {
-        fn put(&self, url: &str, bytes: Vec<u8>) {
+        pub fn put(&self, url: &str, bytes: Vec<u8>) {
             self.files.lock().unwrap().insert(url.into(), bytes);
         }
     }
@@ -1054,9 +1203,9 @@ mod end_to_end {
     }
 
     const LIST: &str = "https://example.org/list.json";
-    const ZIP: &str = "https://example.org/demo.zip";
+    pub const ZIP: &str = "https://example.org/demo.zip";
 
-    fn archive(manifest: &str) -> Vec<u8> {
+    pub fn archive(manifest: &str) -> Vec<u8> {
         use std::io::Write;
         let mut w = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
         let o = zip::write::SimpleFileOptions::default();
@@ -1067,7 +1216,7 @@ mod end_to_end {
         w.finish().unwrap().into_inner()
     }
 
-    fn sha(b: &[u8]) -> String {
+    pub fn sha(b: &[u8]) -> String {
         crate::signing::hex(&Sha256::digest(b))
     }
 
@@ -1080,7 +1229,7 @@ mod end_to_end {
         .unwrap()
     }
 
-    fn core() -> std::sync::Arc<Core> {
+    pub fn core() -> std::sync::Arc<Core> {
         let d = std::env::temp_dir().join(format!("fl-e2e-{}", uuid::Uuid::new_v4()));
         Core::new(d, std::time::Instant::now(), false).unwrap()
     }
@@ -1316,5 +1465,203 @@ mod end_to_end {
             .unwrap()
             .plugins
             .is_empty());
+    }
+}
+
+#[cfg(test)]
+mod update_flow {
+    use super::end_to_end_support::*;
+    use super::*;
+
+    #[tokio::test]
+    async fn a_new_version_in_the_source_is_found_and_installed() {
+        let c = core();
+        let web = Web::default();
+        let url = resolve_source("https://example.org/list.json").unwrap();
+        let v1 = archive(&manifest_v("demo", "1.0.0", r#""network""#));
+        web.put(&url, feed_v("demo", "1.0.0", &["network"], &v1));
+        web.put(ZIP, v1);
+        add_source_with(&c, &web, "https://example.org/list.json")
+            .await
+            .unwrap();
+        install_with(&c, &web, "demo", &url, false).await.unwrap();
+        assert!(
+            updates_with(&c, &web, true, false)
+                .await
+                .unwrap()
+                .is_empty(),
+            "nothing newer yet"
+        );
+
+        // The player approves it and switches it on.
+        crate::store::save(
+            &c.path(addons::STATE),
+            &{
+                let mut st: addons::State = crate::store::load(&c.path(addons::STATE)).unwrap();
+                let e = st.addons.get_mut("demo").unwrap();
+                e.enabled = true;
+                e.granted.insert(crate::Permission::Network);
+                st
+            },
+            false,
+        )
+        .unwrap();
+
+        // The author publishes 1.1.0, which also wants `storage` and says so in the list.
+        let v2 = archive(&manifest_v("demo", "1.1.0", r#""network","storage""#));
+        web.put(&url, feed_v("demo", "1.1.0", &["network", "storage"], &v2));
+        web.put(ZIP, v2);
+        let ups = updates_with(&c, &web, true, false).await.unwrap();
+        assert_eq!(ups.len(), 1);
+        assert_eq!(
+            (
+                ups[0].id.as_str(),
+                ups[0].have.as_str(),
+                ups[0].version.as_str()
+            ),
+            ("demo", "1.0.0", "1.1.0")
+        );
+        assert_eq!(ups[0].source_url, url);
+        assert!(!ups[0].official);
+
+        install_with(&c, &web, "demo", &ups[0].source_url, false)
+            .await
+            .unwrap();
+        assert!(
+            updates_with(&c, &web, true, false)
+                .await
+                .unwrap()
+                .is_empty(),
+            "now up to date"
+        );
+        // The new right is not given for free: still on, still has `network`, `storage` waits for the player.
+        let st: addons::State = crate::store::load(&c.path(addons::STATE)).unwrap();
+        let info = addons::list(&c.data_dir, &st)
+            .into_iter()
+            .find(|a| a["id"] == "demo")
+            .unwrap();
+        assert_eq!(info["version"], "1.1.0");
+        assert_eq!(info["pending"], true, "a new permission has to be approved");
+        let storage = info["permissions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["id"] == "storage")
+            .unwrap();
+        assert_eq!(storage["granted"], false);
+        let net = info["permissions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["id"] == "network")
+            .unwrap();
+        assert_eq!(net["granted"], true, "what was approved stays approved");
+    }
+
+    #[tokio::test]
+    async fn other_sources_and_hand_made_installs_get_no_update_offers() {
+        let c = core();
+        let web = Web::default();
+        let a = resolve_source("https://a.example.org/l.json").unwrap();
+        let b = resolve_source("https://b.example.org/l.json").unwrap();
+        let v1 = archive(&manifest_v("demo", "1.0.0", r#""network""#));
+        web.put(&a, feed_v("demo", "1.0.0", &["network"], &v1));
+        web.put(ZIP, v1.clone());
+        add_source_with(&c, &web, "https://a.example.org/l.json")
+            .await
+            .unwrap();
+        install_with(&c, &web, "demo", &a, false).await.unwrap();
+        // Source B lists a higher version of the same id. It is not where the plugin came from.
+        let v9 = archive(&manifest_v("demo", "9.0.0", r#""network""#));
+        web.put(&b, feed_v("demo", "9.0.0", &["network"], &v9));
+        add_source_with(&c, &web, "https://b.example.org/l.json")
+            .await
+            .unwrap();
+        assert!(updates_with(&c, &web, true, false)
+            .await
+            .unwrap()
+            .is_empty());
+        // A developer link is never updated from a catalog either.
+        crate::store::save(
+            &c.path(addons::STATE),
+            &{
+                let mut st: addons::State = crate::store::load(&c.path(addons::STATE)).unwrap();
+                st.addons.get_mut("demo").unwrap().source = "dev".into();
+                st
+            },
+            false,
+        )
+        .unwrap();
+        web.put(&a, feed_v("demo", "2.0.0", &["network"], &v9));
+        assert!(updates_with(&c, &web, true, false)
+            .await
+            .unwrap()
+            .is_empty());
+    }
+}
+
+#[cfg(test)]
+mod update_tests {
+    use super::*;
+
+    #[test]
+    fn versions_compare_like_people_expect() {
+        for (new, old) in [
+            ("1.0.1", "1.0.0"),
+            ("1.1", "1.0.9"),
+            ("2", "1.99.99"),
+            ("1.10.0", "1.9.0"),
+            ("v1.2.0", "1.1.9"),
+            ("1.0.0", "1.0.0-beta"),
+            ("1.0.0-rc.2", "1.0.0-rc.1"),
+            ("1.0.0-beta.10", "1.0.0-beta.9"),
+            ("1.0.0-beta", "1.0.0-alpha"),
+            ("1.0.0.1", "1.0.0"),
+            ("1.0.0+b2", "0.9.9+b1"),
+        ] {
+            assert!(is_newer(new, old), "{new} should be newer than {old}");
+            assert!(!is_newer(old, new), "{old} should not be newer than {new}");
+        }
+        for (a, b) in [
+            ("1.0.0", "1.0.0"),
+            ("1.0", "1.0.0"),
+            ("v1.0.0", "1.0.0"),
+            ("1.0.0+x", "1.0.0+y"),
+            ("1.0.0-beta", "1.0.0-beta"),
+        ] {
+            assert!(
+                !is_newer(a, b) && !is_newer(b, a),
+                "{a} and {b} are the same version"
+            );
+        }
+        // Unreadable versions never cause an update, in either position.
+        for (a, b) in [
+            ("latest", "1.0.0"),
+            ("1.0.0", "latest"),
+            ("", "1.0.0"),
+            ("1.0.0", ""),
+            ("1..0", "1.0.0"),
+            ("-", "1.0.0"),
+        ] {
+            assert!(!is_newer(a, b), "{a:?} vs {b:?} must not be an update");
+        }
+    }
+
+    #[test]
+    fn where_an_installed_plugin_is_updated_from() {
+        assert_eq!(
+            effective_source("https://example.org/l.json", false).as_deref(),
+            Some("https://example.org/l.json")
+        );
+        assert_eq!(
+            effective_source("official", true).as_deref(),
+            Some("official")
+        );
+        // Installed before sources were recorded, but signed: it came from the official catalog.
+        assert_eq!(effective_source("", true).as_deref(), Some("official"));
+        // By hand, or linked from a developer's folder: never touched automatically.
+        assert_eq!(effective_source("", false), None);
+        assert_eq!(effective_source("dev", true), None);
+        assert_eq!(effective_source("dev", false), None);
     }
 }

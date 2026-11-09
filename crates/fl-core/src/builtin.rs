@@ -414,6 +414,16 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             Ok(json!(addons::list(&c.data_dir, &st)))
         },
     );
+    // Installed plugins that have a newer version in the source they came from.
+    r.register("addons.updates", P::Internal, false, |c, a| async move {
+        #[derive(Deserialize, Default)]
+        struct A {
+            #[serde(default)]
+            refresh: bool,
+        }
+        let A { refresh } = if a.is_null() { A::default() } else { args(a)? };
+        Ok(json!(crate::plugin_store::updates(&c, refresh).await?))
+    });
     // Plugin sources: catalogs besides the official one. Adding one is the user's act.
     r.register("addons.sources", P::Internal, false, |c, _| async move {
         let s: Settings = store::load(&c.path(SETTINGS))?;

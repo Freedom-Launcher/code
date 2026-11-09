@@ -1,5 +1,9 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Обновить до v{0}": "Update to v{0}",
+"Обновление…": "Updating…",
+"Доступны обновления: {0}": "Updates available: {0}",
+"Обновить всё": "Update all",
 "Добавить источник": "Add source",
 "Источник добавлен": "Source added",
 "Убрать источник": "Remove source",

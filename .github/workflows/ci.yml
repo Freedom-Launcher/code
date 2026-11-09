@@ -29,6 +29,7 @@ jobs:
       - run: node scripts/ui-mount-test.js
       - run: node scripts/yggdrasil-plugin-test.js
       - run: node scripts/ui-plugins-catalog-test.js
+      - run: node scripts/ui-plugins-updates-test.js
       - run: node --check ui/app.js && node --check ui/themes.js && node --check ui/addons.js
 
   app:
