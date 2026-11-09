@@ -243,3 +243,18 @@ html[data-motion="off"] .btn.is-busy > svg { animation: none; }
 .plg-updates { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-card); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .plg-updates b { color: var(--text); font-weight: var(--w-semibold); }
 .plg-updates-list { color: var(--text-2); font-size: var(--text-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Developer mode ---------- */
+.plg-dev { display: flex; flex-direction: column; gap: 12px; }
+.plg-dev-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-card); background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--line); }
+.plg-dev-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.plg-dev-info small { color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plg-dev-ok { color: var(--text-2); font-size: var(--text-xs); }
+.plg-dev-err { color: var(--danger); font-size: var(--text-xs); white-space: pre-wrap; }
+.plg-dev-log { max-height: 280px; overflow: auto; font: 12px/1.5 var(--font-mono, monospace); display: flex; flex-direction: column; gap: 2px; }
+.plg-dev-line { display: flex; gap: 8px; color: var(--text-2); }
+.plg-dev-line time { color: var(--text-3); flex: none; }
+.plg-dev-line b { flex: none; font-weight: var(--w-semibold); color: var(--text); }
+.plg-dev-line span { white-space: pre-wrap; word-break: break-word; }
+.plg-dev-line.is-error span { color: var(--danger); }
+.plg-dev-line.is-warn span { color: var(--warn, var(--text)); }

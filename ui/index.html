@@ -459,6 +459,7 @@
             <div class="plg-tabs" id="plg-tabs" role="tablist">
               <button type="button" class="plg-tab is-on" role="tab" aria-selected="true" data-tab="catalog" data-id="plugins.tab.catalog"><span>Каталог</span></button>
               <button type="button" class="plg-tab" role="tab" aria-selected="false" data-tab="installed" data-id="plugins.tab.installed"><span>Установленные</span><b id="plg-count"></b></button>
+              <button type="button" class="plg-tab" id="plg-tab-dev" role="tab" aria-selected="false" data-tab="dev" data-id="plugins.tab.dev" hidden><span>Разработка</span></button>
             </div>
             <span class="spacer"></span>
             <label class="plg-q"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M10.5 2a8.5 8.5 0 1 0 5.262 15.176l3.652 3.652a1 1 0 0 0 1.414-1.414l-3.652-3.652A8.5 8.5 0 0 0 10.5 2M4 10.5a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0"/></g></svg><input class="field" id="plg-q" type="search" placeholder="Найти плагин" autocomplete="off" spellcheck="false" data-id="plugins.search"></label>
@@ -470,6 +471,7 @@
             <div class="plg-filter" id="plg-filter" role="group" aria-label="Фильтр"></div>
           </div>
           <div class="plg-grid" id="plg-catalog" data-id="plugins.catalog"></div>
+          <div class="plg-grid plg-dev" id="plg-dev" data-id="plugins.dev" hidden></div>
           <div class="plg-grid" id="addon-list" data-id="plugins.list" hidden></div>
         </div>
       </section>
@@ -645,6 +647,11 @@
           <div class="rows set-card" data-id="settings.addons.open">
             <div class="r"><div class="grow"><div class="t">Плагины на своей странице</div></div>
               <button class="btn btn-primary" id="set-plugins-open" data-view="plugins" data-id="settings.addons.goto"><span class="lbl">Открыть</span></button></div>
+          </div>
+          <div class="set-label">Для разработчиков</div>
+          <div class="rows set-card" data-id="settings.devmode">
+            <div class="r"><div class="grow"><div class="t">Режим разработчика</div><div class="s">Вкладка «Разработка» в плагинах: подключите папку плагина, и лаунчер сам обновляет установленную копию при каждом изменении файлов. Плагин всё равно нужно включить и выдать права вручную.</div></div>
+              <label class="switch"><input type="checkbox" id="dev-mode" data-id="settings.devmode.switch"><i></i></label></div>
           </div>
           <div class="set-label">Подтверждения</div>
           <div class="rows set-card" data-id="settings.security.confirm">

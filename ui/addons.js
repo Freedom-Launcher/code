@@ -307,6 +307,8 @@
     const id = f.dataset.addon;
     if (m.type === 'resize') {
       if (f.dataset.kind === 'slot' || f.dataset.kind === 'panel') f.style.height = `${Math.max(0, Math.min(2000, Number(m.height) || 0))}px`;
+    } else if (m.type === 'log') {
+      devLogPush(f.title || id, m.level, m.text);
     } else if (m.type === 'toast') {
       toast(`${f.title}: ${String(m.text).slice(0, 200)}`);
     } else if (m.type === 'overlay-done') {
@@ -359,7 +361,10 @@
   // ---------- «Плагины» page (launcher extensions; code name "addons") ----------
   let filter = 'all', query = '', detail = null, armed = 0;
   let tab = (() => { try { return localStorage.getItem('fl.plg.tab') === 'installed' ? 'installed' : 'catalog'; } catch { return 'catalog'; } })();
-  let cat = [], catSt = 'idle', catErr = '', srcs = [], srcDraft = '', srcFilter = '', ups = []; // srcFilter: '' = all, 'official', or a source's catalog URL
+  let cat = [], catSt = 'idle', catErr = '', srcs = [], srcDraft = '', srcFilter = '', ups = [];
+  // Developer mode: linked folders, a log of what plugins print and when the copy was refreshed.
+  let devMode = false, dev = [], devLog = [], devTimer = null, devPolling = false, devDraft = { name: '', id: '' };
+  const devSeen = new Map(); // path -> last rev / error shown // srcFilter: '' = all, 'official', or a source's catalog URL
   const busy = new Set();
   const attn = (a) => !!(a.error || a.pending || a.signature_error);
   const FILTERS = [['all', _t("Все")], ['on', _t("Включены")], ['off', _t("Выключены")], ['attn', _t("Требуют внимания")]];
@@ -476,6 +481,88 @@
       c.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === c) { e.preventDefault(); openDetail(a.id); } };
     }
     return c;
+  }
+  // ---------------------------------------------------------------- developer mode
+  const clock = (ms) => new Date(ms).toLocaleTimeString();
+  function devLogPush(who, level, text) {
+    if (!devMode) return;
+    devLog.push({ t: Date.now(), who: String(who || ''), level: ['log', 'info', 'warn', 'error'].includes(level) ? level : 'log', text: String(text).slice(0, 600) });
+    if (devLog.length > 200) devLog.splice(0, devLog.length - 200);
+    if (tab === 'dev') renderDev();
+  }
+  // Looks at the linked folders (the core re-syncs what changed); when a copy was refreshed the
+  // plugin list and its frames are rebuilt, so the change shows up without any click.
+  async function devPoll(force) {
+    if (!devMode || devPolling || (!force && !dev.length && tab !== 'dev')) return;
+    devPolling = true;
+    try {
+      const st = (await call('addons.dev_state')) || [];
+      let refreshed = false;
+      for (const s of st) {
+        const seen = devSeen.get(s.path);
+        if (seen && seen.rev !== s.rev) { refreshed = true; devLogPush(s.name || s.id, 'info', `${_t("Обновлено")} #${s.rev}`); }
+        if (s.error && (!seen || seen.error !== s.error)) devLogPush(s.name || s.id || s.path, 'error', s.error);
+        devSeen.set(s.path, { rev: s.rev, error: s.error || '' });
+      }
+      const changed = JSON.stringify(st) !== JSON.stringify(dev);
+      dev = st;
+      if (refreshed) { try { list = (await call('addons.list')) || list; } catch { /* keep the old list */ } render(); mount(); }
+      else if (changed) renderDev();
+    } catch { dev = []; } // dev mode was switched off meanwhile
+    devPolling = false;
+  }
+  function setDev(on) {
+    devMode = !!on;
+    clearInterval(devTimer);
+    devTimer = null;
+    if (devMode) { devTimer = setInterval(() => devPoll(false), 1000); devPoll(true); }
+    else { dev = []; devLog = []; devSeen.clear(); }
+    render();
+  }
+  async function devAfter(p) {
+    try { dev = await p; list = (await call('addons.list')) || list; for (const s of dev) devSeen.set(s.path, { rev: s.rev, error: s.error || '' }); render(); mount(); }
+    catch (e) { toast(_tr(String(e)), { error: true }); }
+  }
+  async function devLinkFolder() {
+    const p = await invoke('pick_folder', { title: _t("Папка с плагином") }).catch(() => null);
+    if (p) await devAfter(call('addons.dev_link', { path: p }));
+  }
+  async function devNewPlugin() {
+    const name = devDraft.name.trim(), id = devDraft.id.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (!name || !id) { toast(_t("Введите название и идентификатор (a-z, 0-9, «-»)"), { error: true }); return; }
+    const parent = await invoke('pick_folder', { title: _t("Где создать папку плагина") }).catch(() => null);
+    if (!parent) return;
+    await devAfter(call('addons.dev_new', { parent, id, name }));
+    devDraft = { name: '', id: '' };
+  }
+  function renderDev() {
+    const box = document.getElementById('plg-dev');
+    if (!box) return;
+    box.hidden = tab !== 'dev';
+    if (tab !== 'dev') return;
+    const btn = (cls, label, fn) => { const b = h('button', cls, h('span', 'lbl', label)); b.type = 'button'; b.onclick = fn; return b; };
+    const field = (key, ph) => {
+      const i = h('input', 'plg-src-input'); i.type = 'text'; i.maxLength = 60; i.spellcheck = false; i.placeholder = ph; i.value = devDraft[key];
+      i.oninput = () => { devDraft[key] = i.value; }; return i;
+    };
+    const rows = dev.map((s) => {
+      const status = s.error ? h('span', 'plg-dev-err', s.error) : h('span', 'plg-dev-ok', `${_t("Синхронизировано")} ${clock(s.synced_at * 1000)} · #${s.rev}`);
+      return h('div', 'plg-dev-row', h('div', 'plg-dev-info', h('b', null, s.name || s.id || _t("(не прочитано)")), h('small', null, s.path), status),
+        btn('btn btn-ghost', _t("Открыть папку"), () => invoke('open_dev_folder', { path: s.path }).catch((e) => toast(String(e), { error: true }))),
+        btn('btn btn-ghost', _t("Отключить"), () => devAfter(call('addons.dev_unlink', { path: s.path }))));
+    });
+    const log = h('div', 'plg-dev-log');
+    for (const l of devLog.slice(-100)) log.append(h('div', `plg-dev-line is-${l.level}`, h('time', null, clock(l.t)), h('b', null, l.who), h('span', null, l.text)));
+    log.scrollTop = log.scrollHeight;
+    box.replaceChildren(
+      h('div', 'plg-sources', h('b', null, _t("Режим разработчика")),
+        h('p', 'plg-src-hint', _t("Подключите папку с плагином: лаунчер следит за ней и обновляет установленную копию сразу после изменения файлов. Плагин нужно включить и выдать ему права вручную, как обычно.")),
+        h('div', 'plg-src-add', btn('btn btn-primary', _t("Подключить папку…"), devLinkFolder)),
+        h('div', 'plg-src-add', field('name', _t("Название нового плагина")), field('id', _t("идентификатор (необязательно)")), btn('btn btn-ghost', _t("Создать плагин…"), devNewPlugin))),
+      ...(rows.length ? rows : [h('p', 'plg-src-hint', _t("Папок пока нет."))]),
+      h('div', 'plg-sources', h('b', null, _t("Журнал плагинов")),
+        h('p', 'plg-src-hint', _t("Ошибки и сообщения консоли плагинов, а также обновления копий.")), log,
+        btn('btn btn-ghost', _t("Очистить"), () => { devLog = []; renderDev(); })));
   }
   function updatesBanner() {
     const b = h('button', 'btn btn-primary', h('span', 'lbl', ups.length > 1 ? _t("Обновить всё") : _t("Обновить")));
@@ -667,7 +754,7 @@
     if (a?.pending) askPerms(a); else toast(_t("Плагин установлен"));
   }
   function setTab(t) {
-    tab = t === 'installed' ? 'installed' : 'catalog';
+    tab = t === 'dev' && devMode ? 'dev' : t === 'installed' ? 'installed' : 'catalog';
     try { localStorage.setItem('fl.plg.tab', tab); } catch { /* no storage */ }
     if (tab === 'catalog' && catSt !== 'ok') loadCat(false);
     render();
@@ -700,6 +787,10 @@
     const banner = ups.length && list.length ? [updatesBanner()] : [];
     box.replaceChildren(...banner, ...(!list.length ? [emptyState()] : shown.length ? shown.map(card) : [noneState()]));
     box.hidden = tab !== 'installed';
+    const devTab = document.getElementById('plg-tab-dev');
+    if (devTab) devTab.hidden = !devMode;
+    if (!devMode && tab === 'dev') tab = 'catalog';
+    renderDev();
     tabs(need);
     renderCat();
     if (detail && document.getElementById('dlg-plugin')?.hasAttribute('data-open')) fill();
@@ -781,6 +872,7 @@
 
   async function start() {
     try { list = (await call('addons.list')) || []; } catch { list = []; }
+    try { setDev(!!(await call('settings.get'))?.developer_mode); } catch { /* dev mode stays off */ }
     render();
     mount();
     checkUpdates(false); // quietly: a failure (offline) just means no banner
@@ -816,5 +908,5 @@
 
   // Theme switched live: tell running addons.
   const retheme = () => document.querySelectorAll('iframe.addon-frame').forEach((f) => f.contentWindow?.postMessage(themeMsg(), '*'));
-  window.FAddons = Object.freeze({ start, mount, retheme, emit, shown, openPage, buttons, commands, instance });
+  window.FAddons = Object.freeze({ setDev, start, mount, retheme, emit, shown, openPage, buttons, commands, instance });
 })();

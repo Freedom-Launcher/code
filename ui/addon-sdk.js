@@ -10,6 +10,26 @@
   const handlers = new Map();
   const actions = new Map();
   const post = (m) => window.parent.postMessage(Object.assign({ fl: 1 }, m), '*');
+  // Errors and console output also go to the launcher, which shows them in the developer log
+  // (and ignores them otherwise). Rate-limited so a noisy loop cannot flood the window.
+  {
+    let sent = 0, since = Date.now();
+    const report = (level, args) => {
+      const now = Date.now();
+      if (now - since > 1000) { since = now; sent = 0; }
+      if (++sent > 20) return;
+      try {
+        const text = args.map((a) => (a instanceof Error ? (a.stack || a.message) : typeof a === 'string' ? a : JSON.stringify(a))).join(' ').slice(0, 600);
+        post({ type: 'log', level, text });
+      } catch { /* never break the addon for a log line */ }
+    };
+    for (const level of ['log', 'info', 'warn', 'error']) {
+      const orig = console[level].bind(console);
+      console[level] = (...a) => { orig(...a); report(level, a); };
+    }
+    window.addEventListener('error', (e) => report('error', [`${e.message} (${String(e.filename || '').split('/').pop()}:${e.lineno})`]));
+    window.addEventListener('unhandledrejection', (e) => report('error', ['Unhandled promise rejection:', e.reason]));
+  }
   const fire = (name, data) => {
     for (const cb of [...(handlers.get(name) || []), ...(handlers.get('*') || [])]) {
       try { cb(data, name); } catch (err) { console.error(err); }

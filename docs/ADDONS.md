@@ -355,6 +355,24 @@ Sources of official plugins live in `plugins/<id>/` of this repository.
 `python3 scripts/plugins-pack.py <seed file> <out dir>` signs them as «Официальный», zips them and
 writes `catalog.json`; push the output to `plugins/` of `Freedom-Launcher/releases`.
 
+## Developer mode
+
+Settings → Плагины → «Режим разработчика» (off by default) adds a **Разработка** tab to the plugins screen:
+
+- **Подключить папку…** links a plugin folder. The launcher installs a copy and keeps it in step: within a second of a
+  file change the copy is refreshed, the plugin list is rebuilt and the plugin's frames are reloaded. No zipping, no
+  reinstalling. **Создать плагин…** makes a new folder from the example plugin and links it.
+- The copy goes through exactly the rules of a normal install (allowed file types, size limits, valid manifest, reserved
+  ids and rights). `.git`, `node_modules`, `target` and dotfiles are not shipped. A problem is shown next to the folder
+  and in the log; the last good copy keeps running, and fixing the files is enough.
+- A linked plugin is an ordinary «Сообщество» plugin: you still switch it on and approve each permission. A link
+  cannot replace a signed plugin or one installed from a catalog source, and is never updated from a catalog.
+- The **log** shows what your plugin prints (`console.log/info/warn/error`), uncaught errors and unhandled promise
+  rejections (the SDK forwards them, at most 20 lines a second), and every refresh of the copy.
+
+Actions (all `Internal`, refuse while the mode is off): `addons.dev_state` (also picks up changes), `addons.dev_link`,
+`addons.dev_unlink`, `addons.dev_new`, `addons.dev_folder`.
+
 ## Plugin sources
 
 Anyone can publish plugins without us: put a `freedom-plugins.json` at the root of a repository (or

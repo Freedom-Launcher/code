@@ -1027,6 +1027,7 @@ async function syncLook() {
     const st = await call('settings.get');
     S.onboarded = !!st?.onboarded;
     S.themeConfirm = st?.theme_confirm !== false;
+    S.devMode = !!st?.developer_mode;
     if (st?.look) {
       S.look = { ...LOOK_DEF, ...st.look }; mirrorLook(S.look);
       localStorage.setItem('fl.motion', st.reduce_motion ? 'off' : 'on');
@@ -1182,6 +1183,7 @@ function applyLook() {
   document.documentElement.dataset.motion = localStorage.getItem('fl.motion') || 'on';
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
   $('#sec-confirm').checked = S.themeConfirm !== false;
+  $('#dev-mode').checked = !!S.devMode;
   document.documentElement.dataset.fx = fxLite() ? 'lite' : 'full';
   $('#fx-lite').checked = fxLite();
   document.documentElement.dataset.cover = S.look.cover;
@@ -1218,6 +1220,13 @@ document.addEventListener('look:change', () => {
 $('#fx-motion').addEventListener('change', (e) => { setMotion(e.target.checked); applyLook(); });
 // Turning the theme confirmations off is the one place that weakens a safeguard, so it asks in a
 // native dialog (a theme's CSS can cover this switch, but not that dialog). Turning on needs no ask.
+// Developer mode: a «Разработка» tab in plugins (see addons.js). Harmless to switch on: linked plugins
+// are still ordinary community plugins that need approval.
+$('#dev-mode').addEventListener('change', async (e) => {
+  const box = e.target, on = box.checked;
+  try { await call('settings.set', { developer_mode: on }); S.devMode = on; FAddons.setDev(on); }
+  catch (err) { box.checked = !on; toast(String(err), { error: true }); }
+});
 $('#sec-confirm').addEventListener('change', async (e) => {
   const box = e.target, on = box.checked;
   if (!on) {

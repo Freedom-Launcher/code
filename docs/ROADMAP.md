@@ -11,6 +11,11 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Developer mode for plugins (unreleased)
+
+- Settings → Плагины → «Режим разработчика»: a «Разработка» tab to link a plugin folder (or make one from the example); the installed copy follows the folder within a second and the plugin reloads. Same install rules as an archive, a link cannot replace signed or catalog plugins, still needs approval. A log of plugin errors/console output (SDK forwards them, rate-limited) and of refreshes.
+- Tests: `dev_plugins.rs` (gate, live sync, errors and recovery, ignored folders, signed/catalog protection with mutation checks, path safety, unlink, scaffold) and `scripts/ui-plugins-dev-test.js` (jsdom: tab, link, live reload, log as text, forged messages ignored, SDK forwarding and rate limit).
+
 ## Plugin updates (unreleased)
 
 - `addons.updates`: installed plugins with a newer version in the source they came from (installs from before sources were recorded count as official when signed; hand-made installs and developer links are left alone). Banner + «Обновить всё», per-plugin «Обновить до vX», catalog tile «Есть обновление» (only for the plugin's own source). `is_newer` handles pre-releases and ignores unreadable versions. New permissions in an update wait for approval; approved ones stay.
