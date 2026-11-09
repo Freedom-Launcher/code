@@ -15,6 +15,7 @@
 
 - Any repository can publish plugins: `freedom-plugins.json` at its root (or any https JSON). A player adds the source once (`owner/repo`, a GitHub address or a link) under Плагины → Каталог; its plugins join the catalog as «Сообщество» and install in one click. Official catalog unchanged and not removable; up to 16 sources.
 - Basic automatic checks instead of a manual review: https + public addresses only, SHA-256, the archive is the plugin the entry names, permissions within what the entry listed, a feed cannot claim «official»/likes, another source cannot replace an installed plugin, signed plugins are never replaced by a foreign source. Installs stay off until the player approves the permissions.
+- The source chips filter the catalog by source; official plugins are always listed first.
 - `scripts/plugin-catalog-entry.py` writes the entry for authors. Tests: unit and end-to-end with a fake internet in `plugin_store.rs` (including mutation checks for the two key rules) and `scripts/ui-plugins-catalog-test.js` (jsdom).
 
 ## Review leftovers (unreleased)

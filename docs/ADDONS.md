@@ -375,7 +375,8 @@ for you (id, version, permissions from `addon.json`; SHA-256 and size from the z
 address (`/tree/<branch>` is honoured) or the https link of the JSON. It is added once and stays: its
 plugins appear in the same catalog, labelled «Сообщество» with the source's name, and install in one click
 (`addons.source_add`, `addons.source_remove`, `addons.sources`, `addons.install_from { id, source }`). Up to
-16 sources. The official catalog is always there and cannot be removed.
+16 sources. The official catalog is always there, listed first, and cannot be removed. The chips above the list filter by
+source (a click shows only that source, a second click shows everything).
 
 **What the launcher checks for a plugin from a source** (nobody reviews it by hand):
 

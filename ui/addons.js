@@ -359,7 +359,7 @@
   // ---------- «Плагины» page (launcher extensions; code name "addons") ----------
   let filter = 'all', query = '', detail = null, armed = 0;
   let tab = (() => { try { return localStorage.getItem('fl.plg.tab') === 'installed' ? 'installed' : 'catalog'; } catch { return 'catalog'; } })();
-  let cat = [], catSt = 'idle', catErr = '', srcs = [], srcDraft = '';
+  let cat = [], catSt = 'idle', catErr = '', srcs = [], srcDraft = '', srcFilter = ''; // srcFilter: '' = all, 'official', or a source's catalog URL
   const busy = new Set();
   const attn = (a) => !!(a.error || a.pending || a.signature_error);
   const FILTERS = [['all', _t("Все")], ['on', _t("Включены")], ['off', _t("Выключены")], ['attn', _t("Требуют внимания")]];
@@ -518,9 +518,20 @@
   // the launcher checks the archive, but only the official one is ours (hence the badge on each tile).
   function sourcesBar() {
     const chips = h('div', 'plg-src-chips');
+    // A chip filters the list to its source; a second click shows everything again.
+    const chip = (key, label, count, extra) => {
+      const pick = h('button', 'plg-src-pick', h('b', null, label), h('small', null, String(count)));
+      pick.type = 'button';
+      pick.setAttribute('aria-pressed', String(srcFilter === key));
+      pick.onclick = () => { srcFilter = srcFilter === key ? '' : key; renderCat(); };
+      const c = h('span', `plg-src${srcFilter === key ? ' is-on' : ''}${extra?.error ? ' is-err' : ''}`, pick);
+      if (extra?.error) c.title = _tr(extra.error);
+      return c;
+    };
+    chips.append(chip('', _t("Все"), cat.length));
     for (const s of srcs) {
-      const c = h('span', `plg-src${s.error ? ' is-err' : ''}`, h('b', null, s.official ? 'Freedom Launcher' : (s.name || s.url)), h('small', null, String(s.count)));
-      if (s.error) c.title = _tr(s.error);
+      const key = s.official ? 'official' : s.url;
+      const c = chip(key, s.official ? 'Freedom Launcher' : (s.name || s.url), s.count, s);
       if (!s.official) {
         const x = h('button', 'plg-src-x', '×');
         x.type = 'button';
@@ -593,7 +604,10 @@
       return;
     }
     const ok = (e) => !query || [e.name, _t(e.name), e.id, e.description, _t(e.description || '')].filter(Boolean).join(' ').toLowerCase().includes(query);
-    const shown = cat.filter(ok);
+    // The official catalog comes first; the sources follow in the order they were added.
+    const rank = (e) => (e.official === false ? 1 : 0);
+    const inSource = (e) => !srcFilter || (srcFilter === 'official' ? e.official !== false : e.source_url === srcFilter);
+    const shown = cat.filter((e) => ok(e) && inSource(e)).sort((x, y) => rank(x) - rank(y));
     box.replaceChildren(sourcesBar(), ...(shown.length ? shown.map(catCard) : [noneState()]));
   }
   async function loadCat(refresh) {
@@ -604,6 +618,7 @@
       const r = await call('addons.catalog', { refresh: !!refresh });
       cat = Array.isArray(r?.plugins) ? r.plugins : [];
       srcs = Array.isArray(r?.sources) ? r.sources : [];
+      if (srcFilter && srcFilter !== 'official' && !srcs.some((s) => s.url === srcFilter)) srcFilter = ''; // that source is gone
       catSt = 'ok';
     } catch (e) {
       catErr = String(e);

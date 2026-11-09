@@ -41,7 +41,7 @@ const entry = (o) => ({ id: 'p', name: 'P', author: 'a', description: 'd', versi
   const box = d.getElementById('plg-catalog');
   ok(box && !box.hidden, 'catalog tab is shown');
   ok(box.querySelector('.plg-sources'), 'the sources bar is there');
-  ok([...box.querySelectorAll('.plg-src b')].map((b) => b.textContent).join() === 'Freedom Launcher', 'only the official source at first');
+  ok([...box.querySelectorAll('.plg-src b')].map((b) => b.textContent).join() === 'Все,Freedom Launcher', 'the «Все» chip and only the official source at first');
   ok(!box.querySelector('.plg-src-x'), 'the official source cannot be removed');
   ok(box.querySelectorAll('.plg-card').length === 1 && /Официальный/.test(box.textContent), 'official plugin carries the official badge');
 
@@ -51,7 +51,7 @@ const entry = (o) => ({ id: 'p', name: 'P', author: 'a', description: 'd', versi
   input.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await tick(80);
   ok(log.some((l) => l[0] === 'addons.source_add' && l[1].input === 'someone/plugins'), 'the typed repository goes to the core');
   const box2 = d.getElementById('plg-catalog');
-  ok([...box2.querySelectorAll('.plg-src b')].map((b) => b.textContent).join() === 'Freedom Launcher,Someone', 'the new source appears as a chip');
+  ok([...box2.querySelectorAll('.plg-src b')].map((b) => b.textContent).join() === 'Все,Freedom Launcher,Someone', 'the new source appears as a chip');
   const cards = [...box2.querySelectorAll('.plg-card')];
   const third = cards.find((c) => /Third/.test(c.textContent));
   ok(third && /Сообщество/.test(third.textContent) && !/Официальный/.test(third.textContent), 'a plugin from another source is labelled «Сообщество», not official');
@@ -64,6 +64,20 @@ const entry = (o) => ({ id: 'p', name: 'P', author: 'a', description: 'd', versi
   const inv = log.find((l) => l[0] === 'addons.install_from');
   ok(inv && inv[1].id === 'third' && inv[1].source === sources[1].url, 'install names the source, so a same-id plugin elsewhere is not meant');
 
+  // chips filter by source, official first
+  const names = () => [...d.querySelectorAll('#plg-catalog .plg-card .plg-name, #plg-catalog .plg-card h3, #plg-catalog .plg-card b')].map((n) => n.textContent);
+  const cardsNow = () => [...d.querySelectorAll('#plg-catalog .plg-card')].map((c) => c.textContent);
+  ok(/Official One/.test(cardsNow()[0]) && /Third/.test(cardsNow()[1]), 'the official plugin is listed before the source\'s');
+  const pick = (label) => [...d.querySelectorAll('#plg-catalog .plg-src-pick')].find((b) => b.textContent.startsWith(label));
+  pick('Someone').click();
+  ok(cardsNow().length === 1 && /Third/.test(cardsNow()[0]), 'clicking a source shows only its plugins');
+  ok(pick('Someone').getAttribute('aria-pressed') === 'true', 'the chip says it is pressed');
+  pick('Someone').click();
+  ok(cardsNow().length === 2, 'clicking it again shows everything');
+  pick('Freedom Launcher').click();
+  ok(cardsNow().length === 1 && /Official One/.test(cardsNow()[0]), 'the official chip shows only official plugins');
+  pick('Все').click();
+
   // bad address: a message, nothing added
   const before = sources.length;
   const i3 = d.getElementById('plg-catalog').querySelector('.plg-src-input'); i3.value = 'bad'; i3.dispatchEvent(new w.Event('input'));
@@ -71,8 +85,10 @@ const entry = (o) => ({ id: 'p', name: 'P', author: 'a', description: 'd', versi
   ok(sources.length === before && log.some((l) => l[0] === 'toast' && /прочитать/.test(l[1])), 'a bad address shows the error and adds nothing');
 
   // remove it
+  pick('Someone').click(); // filtered to the source we are about to remove
   d.getElementById('plg-catalog').querySelector('.plg-src-x').click(); await tick(80);
   ok(log.some((l) => l[0] === 'addons.source_remove') && ![...d.querySelectorAll('#plg-catalog .plg-src b')].some((b) => b.textContent === 'Someone'), 'removing a source takes its chip and plugins away');
+  ok(d.querySelectorAll('#plg-catalog .plg-card').length === 1, 'removing the filtered source resets the filter (the list is not left empty)');
 
   console.log(bad ? '\nFAILED' : '\nall ok'); process.exit(bad);
 })();
