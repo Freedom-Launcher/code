@@ -4,7 +4,7 @@
 //! `client_token`) and never sees it again. Before a launch the core asks the
 //! service whether the token still works (`/authserver/validate`) and, if not,
 //! swaps it for a fresh one (`/authserver/refresh`), so the player is not sent
-//! back to the plugin's sign-in every few days. Requests go only to the API root
+//! back to the plugin's sign-in every few days. Requests go only to the sign-in API base
 //! the plugin's manifest declared (its host is in `hosts`), https only, public
 //! addresses only (`net::post_json`).
 
@@ -47,24 +47,20 @@ pub(crate) enum Check {
     SignInAgain,
 }
 
-fn endpoint(root: &str, op: &str, hosts: &[String]) -> Option<Url> {
-    net::check_url(
-        &format!("{}/authserver/{op}", root.trim_end_matches('/')),
-        hosts,
-    )
-    .ok()
+fn endpoint(base: &str, op: &str, hosts: &[String]) -> Option<Url> {
+    net::check_url(&format!("{}/{op}", base.trim_end_matches('/')), hosts).ok()
 }
 
 pub(crate) async fn check<T: Transport>(
     t: &T,
-    root: &str,
+    base: &str,
     hosts: &[String],
     client_token: &str,
     access: &str,
 ) -> Check {
     let (Some(validate), Some(refresh)) = (
-        endpoint(root, "validate", hosts),
-        endpoint(root, "refresh", hosts),
+        endpoint(base, "validate", hosts),
+        endpoint(base, "refresh", hosts),
     ) else {
         return Check::Unreachable;
     };
@@ -103,7 +99,7 @@ pub(crate) async fn session<T: Transport>(
         .as_ref()
         .ok_or_else(|| CoreError::msg("session expired, sign in through the addon again"))?;
     let in_date = sec.mc_expires_at > unix_now() + 60;
-    let root = crate::providers::yggdrasil(core, provider);
+    let root = crate::providers::auth_api(core, provider);
     // Without a service root or a client token there is nothing to ask: the saved date rules.
     let (Some(root), false) = (root, sec.refresh_token.is_empty()) else {
         return if in_date {
@@ -176,7 +172,7 @@ mod tests {
         }
     }
 
-    const ROOT: &str = "https://auth.example.org/api/authlib-injector";
+    const ROOT: &str = "https://auth.example.org/api/authlib-injector/authserver";
     fn hosts() -> Vec<String> {
         vec!["auth.example.org".into()]
     }
@@ -272,6 +268,12 @@ mod tests {
     // ---- through `session`: the stored account really changes ----
 
     fn core_with_ygg_provider() -> std::sync::Arc<Core> {
+        core_with_provider_block(
+            json!({"label": "Ely", "yggdrasil": ROOT.trim_end_matches("/authserver")}),
+        )
+    }
+
+    fn core_with_provider_block(block: Value) -> std::sync::Arc<Core> {
         let dir = std::env::temp_dir().join(format!("fl-ygg-{}", uuid::Uuid::new_v4()));
         let c = Core::new(dir, Instant::now(), false).unwrap();
         let d = c.data_dir.join("addons").join("ely");
@@ -279,7 +281,7 @@ mod tests {
         fs::write(d.join("index.html"), "<p>x</p>").unwrap();
         let m = json!({"id": "ely", "name": "Ely", "permissions": ["accounts_provide", "network"],
             "hosts": ["auth.example.org"],
-            "account_provider": {"label": "Ely", "yggdrasil": ROOT}});
+            "account_provider": block});
         fs::write(d.join("addon.json"), m.to_string()).unwrap();
         let st = json!({"addons": {"ely": {"enabled": true, "granted": ["accounts_provide", "network"]}}});
         fs::write(c.path(crate::addons::STATE), st.to_string()).unwrap();
@@ -371,5 +373,38 @@ mod tests {
             "OLD"
         );
         let _ = fs::remove_dir_all(&c.data_dir);
+    }
+
+    /// Ely.by documents its sign-in API at /auth, not under the authlib-injector root: with
+    /// `auth_api` the core asks exactly there, and the standard path is only the default.
+    #[tokio::test]
+    async fn auth_api_decides_where_the_session_is_checked() {
+        let c = core_with_provider_block(
+            json!({"label": "Ely", "yggdrasil": ROOT.trim_end_matches("/authserver"),
+            "auth_api": "https://auth.example.org/auth"}),
+        );
+        let a = account("client", 3600);
+        store(&c, &a);
+        let t = Fake::new(vec![
+            Ok((403, Value::Null)),
+            ok(json!({"accessToken": "NEW"})),
+        ]);
+        assert_eq!(session(&c, &t, "ely", &a).await.unwrap(), "NEW");
+        assert_eq!(t.seen(), vec!["/auth/validate", "/auth/refresh"]);
+        // Without it, the authlib-injector default.
+        let c = core_with_ygg_provider();
+        store(&c, &a);
+        let t = Fake::new(vec![Ok((204, Value::Null))]);
+        session(&c, &t, "ely", &a).await.unwrap();
+        assert_eq!(t.seen(), vec!["/api/authlib-injector/authserver/validate"]);
+        // An auth_api on a host the plugin did not declare is refused when the manifest loads.
+        let d = c.data_dir.join("addons").join("ely");
+        let m = json!({"id": "ely", "name": "Ely", "permissions": ["accounts_provide", "network"],
+            "hosts": ["auth.example.org"],
+            "account_provider": {"label": "Ely", "auth_api": "https://evil.example/auth"}});
+        fs::write(d.join("addon.json"), m.to_string()).unwrap();
+        assert!(addons::load(&c.data_dir, "ely")
+            .unwrap_err()
+            .contains("auth_api"));
     }
 }

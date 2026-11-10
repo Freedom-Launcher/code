@@ -1,12 +1,15 @@
-body { margin: 0; font: 13px var(--font-ui, sans-serif); color: var(--text, #ddd); background: transparent; }
-h3 { margin: 0 0 8px; font-size: 14px; }
-ul { list-style: none; margin: 0 0 10px; padding: 0; }
-li { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border, #333); }
-form { display: grid; gap: 8px; max-width: 320px; }
-label { display: grid; gap: 4px; color: var(--text-2, #aaa); }
-input { padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border, #444); background: var(--bg-2, #1b1b1b); color: var(--text, #eee); font: inherit; }
-button { padding: 8px 12px; border: 0; border-radius: 8px; background: var(--accent, #4c8dff); color: var(--on-accent, #fff); font: inherit; cursor: pointer; }
-button.ghost { background: transparent; color: var(--text-2, #aaa); border: 1px solid var(--border, #444); padding: 4px 8px; }
-button:disabled { opacity: .6; cursor: default; }
-#msg { min-height: 1.3em; margin: 8px 0 0; color: var(--text-2, #aaa); }
-#msg.err { color: var(--danger, #ff6b6b); }
+/* Only the variables the launcher hands to plugin pages (--bg --surface-1 --surface-2 --text --text-2 --text-3
+   --line --accent --on-accent --font-ui --r-control --r-card) follow the theme; anything else is a fixed fallback. */
+body { margin: 0; font: 13px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--text, #e8e8ea); background: transparent; }
+h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+ul { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: var(--r-control, 10px); background: var(--surface-1, rgba(127,127,127,.12)); color: var(--text, #e8e8ea); }
+form { display: grid; gap: 10px; max-width: 340px; padding: 12px; border-radius: var(--r-card, 14px); background: var(--surface-1, rgba(127,127,127,.12)); }
+label { display: grid; gap: 4px; color: var(--text-2, #a8a8ae); font-size: 12px; }
+input { padding: 8px 10px; border-radius: var(--r-control, 10px); border: 1px solid var(--line, rgba(127,127,127,.35)); background: var(--surface-2, rgba(127,127,127,.18)); color: var(--text, #e8e8ea); font: inherit; }
+input:focus { outline: none; border-color: var(--accent, #4c8dff); }
+button { padding: 9px 14px; border: 0; border-radius: var(--r-control, 10px); background: var(--accent, #4c8dff); color: var(--on-accent, #fff); font: inherit; font-weight: 600; cursor: pointer; }
+button.ghost { padding: 4px 10px; background: transparent; color: var(--text-2, #a8a8ae); border: 1px solid var(--line, rgba(127,127,127,.35)); font-weight: 400; }
+button:disabled { opacity: .55; cursor: default; }
+#msg { min-height: 1.4em; margin: 10px 0 0; color: var(--text-2, #a8a8ae); }
+#msg.err { color: #e5484d; }

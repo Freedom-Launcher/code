@@ -47,7 +47,7 @@
   async function authenticate(login, password) {
     let res;
     try {
-      res = await fl.fetch(`${P.apiRoot}/authserver/authenticate`, {
+      res = await fl.fetch(`${P.authApi}/authenticate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: login, password, clientToken: hex(16), requestUser: false,

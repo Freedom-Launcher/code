@@ -148,6 +148,12 @@ pub struct ProviderInfo {
     /// `hosts`). The game then signs in, and loads skins and capes, there.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub yggdrasil: Option<String>,
+    /// Base URL of the service's sign-in API (https, host listed in `hosts`): the core asks
+    /// `<auth_api>/validate` and `<auth_api>/refresh` to keep the session alive. Services that
+    /// follow authlib-injector use `<yggdrasil>/authserver` (the default); Ely.by documents
+    /// `https://authserver.ely.by/auth`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auth_api: Option<String>,
 }
 
 fn default_entry() -> String {
@@ -267,6 +273,10 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
         if let Some(y) = &p.yggdrasil {
             crate::net::check_url(y, &m.hosts)
                 .map_err(|e| format!("account_provider.yggdrasil: {e}"))?;
+        }
+        if let Some(a) = &p.auth_api {
+            crate::net::check_url(a, &m.hosts)
+                .map_err(|e| format!("account_provider.auth_api: {e}"))?;
         }
     }
     if !m.pages.is_empty() && !m.permissions.contains(&Permission::UiPages) {

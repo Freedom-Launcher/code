@@ -27,6 +27,7 @@ def main():
     a.add_argument("--id", help="plugin id a-z0-9- (default: made from the name)")
     a.add_argument("--author", default="", help="author shown in settings")
     a.add_argument("--version", default="0.1.0")
+    a.add_argument("--auth-api", help="base URL of the sign-in API if it is not <root>/authserver (Ely.by: https://authserver.ely.by/auth)")
     a.add_argument("--two-factor", action="store_true", help="the service takes 'password:code' (Ely.by does)")
     a.add_argument("--out", help="output folder (default: ./<id>)")
     o = a.parse_args()
@@ -44,6 +45,10 @@ def main():
     if re.fullmatch(r"[0-9.]+|\[.*\]", u.hostname):
         die("root must use a host name, not an IP address")
     root = o.root.rstrip("/")
+    auth = (o.auth_api or f"{root}/authserver").rstrip("/")
+    ua = urlparse(auth)
+    if ua.scheme != "https" or ua.hostname != u.hostname or ua.username or ua.password or ua.port not in (None, 443):
+        die("--auth-api must be an https URL on the same host as --root")
 
     out = Path(o.out or pid)
     if out.exists():
@@ -53,7 +58,7 @@ def main():
     m = json.loads((out / "addon.json").read_text(encoding="utf-8"))
     m.update(id=pid, name=o.name, version=o.version, hosts=[u.hostname],
              description=f"Вход через {o.name}",
-             account_provider={"label": o.name, "yggdrasil": root})
+             account_provider={"label": o.name, "yggdrasil": root, "auth_api": auth})
     if o.author:
         m["author"] = o.author
     (out / "addon.json").write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -62,6 +67,7 @@ def main():
     # json.dumps gives a valid JS string for any name (quotes, backslashes); lambdas keep re from reading escapes.
     cfg = re.sub(r"label: '[^']*'", lambda _: "label: " + json.dumps(o.name, ensure_ascii=False), cfg, count=1)
     cfg = re.sub(r"apiRoot: '[^']*'", lambda _: "apiRoot: " + json.dumps(root), cfg, count=1)
+    cfg = re.sub(r"authApi: '[^']*'", lambda _: "authApi: " + json.dumps(auth), cfg, count=1)
     cfg = re.sub(r"twoFactor: ('colon'|null)", lambda _: "twoFactor: " + ("'colon'" if o.two_factor else "null"), cfg, count=1)
     (out / "config.js").write_text(cfg, encoding="utf-8")
 

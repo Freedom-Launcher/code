@@ -50,7 +50,13 @@ python3 scripts/new-yggdrasil-plugin.py --name LittleSkin --root https://littles
 ```
 
 It writes a folder with `addon.json`, `config.js` and the page; zip it (with `addon.json` at the top) and
-publish it anywhere. `--two-factor` is for services that take `password:code` (Ely.by does). Checked by
+publish it anywhere. `--two-factor` is for services that take `password:code` (Ely.by does). `--auth-api` is the base URL of the service's sign-in API
+when it is not `<root>/authserver` (Ely.by documents `https://authserver.ely.by/auth`; services that follow authlib-injector,
+like LittleSkin, use the default). The manifest field is `account_provider.auth_api` (https, host listed in `hosts`): the
+plugin signs in at `<auth_api>/authenticate` and the core keeps the session alive at `<auth_api>/validate` and `/refresh`.
+Without it the core uses `<yggdrasil>/authserver`. In plugin pages only the theme variables the launcher passes
+(`--bg --surface-1 --surface-2 --text --text-2 --text-3 --line --accent --on-accent --font-ui --r-control --r-card`)
+follow the theme; the template test fails on any other. Checked by
 `scripts/yggdrasil-plugin-test.js` (the page, against a fake launcher) and the core test
 `the_yggdrasil_template_is_a_valid_provider`.
 

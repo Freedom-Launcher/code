@@ -392,6 +392,12 @@ fn the_yggdrasil_template_is_a_valid_provider() {
         .contains(&fl_core::Permission::AccountsProvide));
     assert!(m.permissions.contains(&fl_core::Permission::Network));
     assert_eq!(m.hosts, vec!["authserver.ely.by"]);
+    let p = m.account_provider.expect("an account_provider block");
+    assert_eq!(
+        p.auth_api.as_deref(),
+        Some("https://authserver.ely.by/auth"),
+        "Ely.by signs in at /auth"
+    );
     // No badge, and that is fine: trust is not permission.
     assert_eq!(addons::trust(&d, "elyby"), fl_core::Trust::Community);
 }

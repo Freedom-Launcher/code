@@ -29,12 +29,20 @@ async function run(script, accounts = []) {
 }
 const good = { status: 200, body: { accessToken: 'TOK', clientToken: 'CLI', selectedProfile: { id: '0f1e2d3c4b5a49788a695a4b3c2d1e0f', name: 'Steve' } } };
 
+// The page may only use theme variables the launcher really passes to plugin frames (ui/addons.js TOKENS);
+// anything else silently falls back to a fixed colour, which is what made the first version look wrong.
+const passed = (fs.readFileSync(path.join(__dirname, '..', 'ui', 'addons.js'), 'utf8').match(/const TOKENS = \[([^\]]*)\]/) || [, ''])[1].match(/--[a-z0-9-]+/g) || [];
+const used = [...new Set((fs.readFileSync(path.join(dir, 'style.css'), 'utf8').match(/var\((--[a-z0-9-]+)/g) || []).map((v) => v.slice(4)))];
+ok(passed.length > 5 && used.length > 3, 'the launcher\'s token list and the page\'s variables were both found');
+ok(used.every((v) => passed.includes(v)), `style.css uses only variables the launcher passes (unknown: ${used.filter((v) => !passed.includes(v)).join(', ') || 'none'})`);
+
 (async () => {
   // 1. plain success
   let t = await run([good]); const P = t.w.PROVIDER;
   await t.submit('steve@example.org', 'hunter2');
   const [url, opt] = t.fetches[0]; const sent = JSON.parse(opt.body);
-  ok(url === `${P.apiRoot}/authserver/authenticate` && opt.method === 'POST', 'posts to <apiRoot>/authserver/authenticate');
+  ok(url === `${P.authApi}/authenticate` && opt.method === 'POST', 'posts to <authApi>/authenticate');
+  ok(/^https:\/\/[^/]+\/.+/.test(P.authApi) && new URL(P.authApi).host === new URL(P.apiRoot).host, 'the sign-in API is on the service\'s own host');
   ok(sent.username === 'steve@example.org' && sent.password === 'hunter2' && sent.requestUser === false, 'sends login and password, no user object');
   const save = t.saves()[0][1];
   ok(save.name === 'Steve' && save.uuid === '0f1e2d3c-4b5a-4978-8a69-5a4b3c2d1e0f', 'saves the name and a dashed uuid');

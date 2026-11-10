@@ -52,6 +52,17 @@ pub fn yggdrasil(core: &Core, id: &str) -> Option<String> {
         .yggdrasil
 }
 
+/// Base URL of an active provider's sign-in API (`validate`, `refresh`): its own `auth_api`,
+/// else the authlib-injector standard `<yggdrasil>/authserver`.
+pub fn auth_api(core: &Core, id: &str) -> Option<String> {
+    active(core, id)?;
+    let p = addons::load(&core.data_dir, id).ok()?.account_provider?;
+    p.auth_api.or_else(|| {
+        p.yggdrasil
+            .map(|y| format!("{}/authserver", y.trim_end_matches('/')))
+    })
+}
+
 /// Active providers for the accounts screen.
 pub fn list(core: &Core) -> Vec<Value> {
     addons::installed_ids(&core.data_dir)
