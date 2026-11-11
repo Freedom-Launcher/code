@@ -7,7 +7,8 @@ const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if (!c) bad = 1
 const tick = () => new Promise((r) => setTimeout(r, 10));
 
 async function run(script, accounts = []) {
-  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8').replace(/<script[\s\S]*?<\/script>/g, '');
+  const css = fs.readFileSync(path.join(dir, 'style.css'), 'utf8');
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8').replace(/<script[\s\S]*?<\/script>/g, '').replace(/<link[^>]*stylesheet[^>]*>/, `<style>${css}</style>`);
   const dom = new JSDOM(html, { runScripts: 'outside-only' });
   const w = dom.window; const calls = []; const fetches = []; w.__accounts = accounts;
   w.crypto = require('crypto').webcrypto;
@@ -20,12 +21,16 @@ async function run(script, accounts = []) {
   w.eval(fs.readFileSync(path.join(dir, 'main.js'), 'utf8'));
   await tick();
   const d = w.document;
-  const submit = async (login, pass, code) => {
+  // What a person does: types, then clicks «Войти» (or presses Enter). The frame is sandboxed without
+  // allow-forms in the launcher, so a real <form> submit would never happen; the page must not rely on one.
+  const submit = async (login, pass, code, how = 'click') => {
     d.getElementById('login').value = login; d.getElementById('pass').value = pass;
     if (code !== undefined) d.getElementById('code').value = code;
-    d.getElementById('form').dispatchEvent(new w.Event('submit', { cancelable: true, bubbles: true })); await tick(); await tick();
+    if (how === 'enter') d.getElementById('pass').dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    else d.getElementById('go').click();
+    await tick(); await tick();
   };
-  return { w, d, calls, fetches, submit, msg: () => d.getElementById('msg').textContent, saves: () => calls.filter((c) => c[0] === 'accounts.provider.save') };
+  return { w, d, calls, fetches, submit, visible: (id) => w.getComputedStyle(d.getElementById(id)).display !== 'none', msg: () => d.getElementById('msg').textContent, saves: () => calls.filter((c) => c[0] === 'accounts.provider.save') };
 }
 const good = { status: 200, body: { accessToken: 'TOK', clientToken: 'CLI', selectedProfile: { id: '0f1e2d3c4b5a49788a695a4b3c2d1e0f', name: 'Steve' } } };
 
@@ -36,7 +41,24 @@ const used = [...new Set((fs.readFileSync(path.join(dir, 'style.css'), 'utf8').m
 ok(passed.length > 5 && used.length > 3, 'the launcher\'s token list and the page\'s variables were both found');
 ok(used.every((v) => passed.includes(v)), `style.css uses only variables the launcher passes (unknown: ${used.filter((v) => !passed.includes(v)).join(', ') || 'none'})`);
 
+ok(!/<form[\s>]/i.test(fs.readFileSync(path.join(dir, 'index.html'), 'utf8')), 'the page has no <form> (a sandboxed plugin frame cannot submit one)');
+
 (async () => {
+  // 0. first look: the 2FA row must really be hidden until the service asks for a code
+  let t0 = await run([]);
+  ok(!t0.visible('code-row'), 'the 2FA row is not shown at first (computed style, not only the hidden attribute)');
+  ok(t0.visible('login') && t0.visible('pass') && t0.visible('go'), 'login, password and the button are shown');
+  // Enter in the password field signs in too
+  let te = await run([good]); await te.submit('steve', 'pw', undefined, 'enter');
+  ok(te.saves().length === 1, 'Enter in the password field signs in');
+  // empty fields: a hint, no request
+  let tf = await run([good]); await tf.submit('', '');
+  ok(tf.fetches.length === 0 && /Введите/.test(tf.msg()), 'empty fields: a hint and no request to the service');
+  // a double click does not send two requests
+  let td = await run([good, good]); td.d.getElementById('login').value = 'a'; td.d.getElementById('pass').value = 'b';
+  td.d.getElementById('go').click(); td.d.getElementById('go').click(); await tick(); await tick();
+  ok(td.fetches.length === 1, 'clicking twice while signing in sends one request');
+
   // 1. plain success
   let t = await run([good]); const P = t.w.PROVIDER;
   await t.submit('steve@example.org', 'hunter2');
@@ -61,10 +83,10 @@ ok(used.every((v) => passed.includes(v)), `style.css uses only variables the lau
     // 3. two-factor: ask for the code only when the service asks, then send password:code
     t = await run([{ status: 401, body: { errorMessage: 'Account protected with two factor auth.' } }, good]);
     await t.submit('steve', 'pw');
-    ok(t.saves().length === 0 && !t.d.getElementById('code-row').hidden, '2FA required: code field appears, nothing saved yet');
+    ok(t.saves().length === 0 && t.visible('code-row'), '2FA required: the code field appears, nothing saved yet');
     await t.submit('steve', 'pw', '123456');
     ok(JSON.parse(t.fetches[1][1].body).password === 'pw:123456', 'the code is appended as password:code');
-    ok(t.saves().length === 1 && t.d.getElementById('code-row').hidden, '2FA success: saved, code field hidden again');
+    ok(t.saves().length === 1 && !t.visible('code-row'), '2FA success: saved, code field hidden again');
 
     // 4. wrong code after 2FA
     t = await run([{ status: 401, body: { errorMessage: 'Account protected with two factor auth.' } }, { status: 401, body: { errorMessage: 'Invalid credentials. Invalid email or password.' } }]);

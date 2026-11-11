@@ -8,11 +8,11 @@
     ru: { title: (s) => `Аккаунты ${s}`, pass: 'Пароль', code: 'Код из приложения (2FA)', go: 'Войти', busy: 'Входим…',
       none: 'Пока нет аккаунтов', remove: 'Убрать', ok: (n) => `Готово: ${n}`, bad: 'Неверный логин или пароль',
       need2fa: 'Аккаунт защищён двухфакторной защитой: введите код.', bad2fa: 'Неверный пароль или код',
-      noprofile: 'У аккаунта нет игрового профиля', net: 'Не удалось связаться с сервисом', fail: 'Сервис ответил ошибкой' },
+      noprofile: 'У аккаунта нет игрового профиля', fill: 'Введите логин и пароль', net: 'Не удалось связаться с сервисом', fail: 'Сервис ответил ошибкой' },
     en: { title: (s) => `${s} accounts`, pass: 'Password', code: 'Code from your app (2FA)', go: 'Sign in', busy: 'Signing in…',
       none: 'No accounts yet', remove: 'Remove', ok: (n) => `Done: ${n}`, bad: 'Wrong login or password',
       need2fa: 'This account uses two-factor authentication: enter the code.', bad2fa: 'Wrong password or code',
-      noprofile: 'This account has no game profile', net: 'Could not reach the service', fail: 'The service returned an error' },
+      noprofile: 'This account has no game profile', fill: 'Enter your login and password', net: 'Could not reach the service', fail: 'The service returned an error' },
   };
   const T = L[fl.lang] || L.ru;
   const lang = L[fl.lang] ? fl.lang : 'ru';
@@ -64,12 +64,13 @@
   }
 
   let need2fa = false;
-  $('form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+  async function signIn() {
     const login = $('login').value.trim();
+    if (!login || !$('pass').value) return msg(T.fill, true);
     let password = $('pass').value;
     const code = $('code').value.trim();
     if (need2fa && P.twoFactor === 'colon' && code) password = `${password}:${code}`;
+    if ($('go').disabled) return; // already signing in
     $('go').disabled = true; msg(T.busy);
     const r = await authenticate(login, password);
     password = ''; // not kept
@@ -89,7 +90,10 @@
     } catch (err) { return msg(String(err && err.message || err), true); }
     $('pass').value = ''; $('code').value = ''; $('code-row').hidden = true; need2fa = false;
     msg(T.ok(p.name)); render();
-  });
+  }
+  // A click or Enter. (No <form>: the frame is sandboxed without allow-forms, a form would never submit.)
+  $('go').addEventListener('click', signIn);
+  for (const id of ['login', 'pass', 'code']) $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); signIn(); } });
 
   render();
 })();

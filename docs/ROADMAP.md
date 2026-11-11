@@ -11,6 +11,10 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Sign-in button did nothing, 2FA row always shown (unreleased)
+
+- The sign-in template used a `<form>`; plugin frames are sandboxed without `allow-forms`, so the browser never submitted it and nothing happened on click. Now a button with click/Enter handlers. The 2FA row was visible from the start because `display: grid` beat its `hidden` attribute; fixed with `[hidden]{display:none!important}`. The page test now clicks and presses Enter like a person and checks computed visibility, and fails if the page contains a form (the old generated copies fail it, as they should).
+
 ## Sign-in through Ely.by fixed (unreleased)
 
 - The Ely.by plugin signed in at the authlib-injector path, but Ely.by documents `https://authserver.ely.by/auth/…` for launchers; sign-in could not work. New manifest field `account_provider.auth_api` (default `<yggdrasil>/authserver`, Ely.by: `/auth`), used by the plugin and by the core's validate/refresh. The plugin page used theme variables the launcher never passes (so it looked wrong in every theme); now only the real ones, checked by a test.

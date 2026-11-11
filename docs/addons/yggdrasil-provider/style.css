@@ -1,10 +1,11 @@
 /* Only the variables the launcher hands to plugin pages (--bg --surface-1 --surface-2 --text --text-2 --text-3
    --line --accent --on-accent --font-ui --r-control --r-card) follow the theme; anything else is a fixed fallback. */
-body { margin: 0; font: 13px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--text, #e8e8ea); background: transparent; }
-h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+[hidden] { display: none !important; } /* label{display:grid} would otherwise show the 2FA row all the time */
+body { margin: 0; padding: 4px 2px 8px; font: 13px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--text, #e8e8ea); background: transparent; }
+h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; line-height: 1.3; }
 ul { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
 li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: var(--r-control, 10px); background: var(--surface-1, rgba(127,127,127,.12)); color: var(--text, #e8e8ea); }
-form { display: grid; gap: 10px; max-width: 340px; padding: 12px; border-radius: var(--r-card, 14px); background: var(--surface-1, rgba(127,127,127,.12)); }
+.form { display: grid; gap: 10px; max-width: 340px; padding: 12px; border-radius: var(--r-card, 14px); background: var(--surface-1, rgba(127,127,127,.12)); }
 label { display: grid; gap: 4px; color: var(--text-2, #a8a8ae); font-size: 12px; }
 input { padding: 8px 10px; border-radius: var(--r-control, 10px); border: 1px solid var(--line, rgba(127,127,127,.35)); background: var(--surface-2, rgba(127,127,127,.18)); color: var(--text, #e8e8ea); font: inherit; }
 input:focus { outline: none; border-color: var(--accent, #4c8dff); }
