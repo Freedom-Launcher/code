@@ -234,7 +234,10 @@ pub fn load(data_dir: &Path, id: &str) -> R<Manifest> {
     }
     let mut m: Manifest = serde_json::from_slice(&bytes).map_err(|e| format!("addon.json: {e}"))?;
     if m.id != id {
-        return Err("id в addon.json не совпадает с именем папки".into());
+        return Err(format!(
+            "Папка плагина «{id}» должна называться так же, как его id в addon.json («{}»). Переименуйте папку или поправьте id",
+            m.id
+        ));
     }
     if m.name.trim().is_empty() || m.name.chars().count() > 60 {
         return Err("name: от 1 до 60 символов".into());

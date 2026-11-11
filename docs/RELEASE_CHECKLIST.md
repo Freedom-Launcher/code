@@ -20,7 +20,7 @@ service can show. Tick them before publishing a release (`scripts/release-feed.s
 - [ ] A theme with a `shell` template and a rebuilt `view.settings`: everything is reachable; Ctrl+Alt+Shift+T restores the default theme from anywhere.
 
 ## Plugins and other sign-ins
-- [ ] Install the Ely.by plugin from `docs/addons/yggdrasil-provider` (zip with `addon.json` at the top): the consent box warns that it is unverified and wants a third-party sign-in.
+- [ ] Install the Ely.by plugin from `docs/addons/elyby` (zip with `addon.json` at the top): the consent box warns that it is unverified and wants a third-party sign-in.
 - [ ] Sign in with a real Ely.by account (also one with two-factor): the account appears; start the game with it; skin and cape show up in game.
 - [ ] Next day (or after changing the system clock) start again: no new sign-in is asked, the token was refreshed by the launcher.
 

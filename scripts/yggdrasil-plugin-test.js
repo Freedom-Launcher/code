@@ -1,7 +1,7 @@
 // Behaviour of the Yggdrasil sign-in plugin template against a fake `fl` (jsdom).
 // Run: npm i --no-save jsdom && node scripts/yggdrasil-plugin-test.js [plugin-folder]
 const { JSDOM } = require('jsdom'); const fs = require('fs'); const path = require('path');
-const dir = path.resolve(process.argv[2] || path.join(__dirname, '..', 'docs', 'addons', 'yggdrasil-provider'));
+const dir = path.resolve(process.argv[2] || path.join(__dirname, '..', 'docs', 'addons', 'elyby'));
 let bad = 0;
 const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if (!c) bad = 1; };
 const tick = () => new Promise((r) => setTimeout(r, 10));

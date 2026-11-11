@@ -11,6 +11,10 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Plugin folder = plugin id (unreleased)
+
+- The Ely.by template folder is now `docs/addons/elyby` (it was `yggdrasil-provider` with id `elyby`, which the launcher refuses when copied in by hand). The generator always creates `<--out>/<id>`; the developer link reports a folder whose name differs from the id; the core's message names both. Test: `the_folder_must_be_named_like_the_plugin_id`.
+
 ## Sign-in button did nothing, 2FA row always shown (unreleased)
 
 - The sign-in template used a `<form>`; plugin frames are sandboxed without `allow-forms`, so the browser never submitted it and nothing happened on click. Now a button with click/Enter handlers. The 2FA row was visible from the start because `display: grid` beat its `hidden` attribute; fixed with `[hidden]{display:none!important}`. The page test now clicks and presses Enter like a person and checks computed visibility, and fails if the page contains a form (the old generated copies fail it, as they should).

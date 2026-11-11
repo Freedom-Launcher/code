@@ -367,12 +367,11 @@ async fn instance_files_stay_inside() {
     assert!(!d.join("instances/a/config/x.json").exists());
 }
 
-/// The plugin template shipped in docs/addons/yggdrasil-provider is a valid account provider
+/// The plugin template shipped in docs/addons/elyby is a valid account provider
 /// as far as the core's manifest rules go (permissions, hosts, the yggdrasil root's host).
 #[test]
 fn the_yggdrasil_template_is_a_valid_provider() {
-    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../docs/addons/yggdrasil-provider");
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/addons/elyby");
     let mut files: Vec<(String, String)> = Vec::new();
     for e in std::fs::read_dir(&src).unwrap() {
         let e = e.unwrap();

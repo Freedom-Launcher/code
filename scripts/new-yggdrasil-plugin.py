@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Makes a sign-in plugin for a Yggdrasil / authlib-injector service from the template in
-docs/addons/yggdrasil-provider. You give it the service's name and API root; it writes a
+docs/addons/elyby. You give it the service's name and API root; it writes a
 ready folder (addon.json + config.js + the page) that you can zip and publish.
 
   python3 scripts/new-yggdrasil-plugin.py --name LittleSkin --root https://littleskin.cn/api/yggdrasil
   python3 scripts/new-yggdrasil-plugin.py --id elyby --name Ely.by --two-factor \\
-      --root https://authserver.ely.by/api/authlib-injector --author "Your Name" --out ./my-plugin
+      --root https://authserver.ely.by/api/authlib-injector --author "Your Name" --out ./my-plugins
 """
 import argparse, json, re, shutil, sys
 from pathlib import Path
 from urllib.parse import urlparse
 
-TEMPLATE = Path(__file__).resolve().parent.parent / "docs" / "addons" / "yggdrasil-provider"
+TEMPLATE = Path(__file__).resolve().parent.parent / "docs" / "addons" / "elyby"
 RESERVED = {"app", "accounts", "game", "instances", "mods", "settings", "themes", "addons", "safe", "net", "files"}
 
 
@@ -29,7 +29,7 @@ def main():
     a.add_argument("--version", default="0.1.0")
     a.add_argument("--auth-api", help="base URL of the sign-in API if it is not <root>/authserver (Ely.by: https://authserver.ely.by/auth)")
     a.add_argument("--two-factor", action="store_true", help="the service takes 'password:code' (Ely.by does)")
-    a.add_argument("--out", help="output folder (default: ./<id>)")
+    a.add_argument("--out", help="folder to create the plugin folder in (default: the current folder); the plugin folder is always named like its id")
     o = a.parse_args()
 
     pid = o.id or re.sub(r"[^a-z0-9]+", "-", o.name.lower()).strip("-")
@@ -50,7 +50,7 @@ def main():
     if ua.scheme != "https" or ua.hostname != u.hostname or ua.username or ua.password or ua.port not in (None, 443):
         die("--auth-api must be an https URL on the same host as --root")
 
-    out = Path(o.out or pid)
+    out = Path(o.out or ".") / pid  # the folder is named like the plugin id, as the launcher requires
     if out.exists():
         die(f"{out} already exists")
     shutil.copytree(TEMPLATE, out)

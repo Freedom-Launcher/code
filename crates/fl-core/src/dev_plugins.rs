@@ -179,6 +179,13 @@ async fn sync_one(c: &Core, path: &str, force: bool) -> Result<(), CoreError> {
             fs::create_dir_all(&c.data_dir)?;
             pack(&files, &tmp)?;
             let (id, _) = addons::zip_manifest(&tmp).map_err(CoreError::BadArgs)?;
+            // The folder is called like the plugin: the same rule as when a folder is copied in by hand.
+            let folder = root.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            if folder != id {
+                return Err(CoreError::BadArgs(format!(
+                    "Папка называется «{folder}», а id плагина «{id}»: они должны совпадать. Переименуйте папку или поправьте id в addon.json"
+                )));
+            }
             let state: addons::State =
                 crate::store::load(&c.path(addons::STATE)).unwrap_or_default();
             let have = addons::installed_ids(&c.data_dir).contains(&id);
@@ -654,5 +661,28 @@ mod tests {
         assert!(new_plugin(&c, &parent.to_string_lossy(), "my-plugin", "X")
             .await
             .is_err());
+    }
+
+    #[tokio::test]
+    async fn the_folder_must_be_named_like_the_plugin_id() {
+        let c = core();
+        dev_on(&c).await;
+        let d = folder("demo", "0.1.0");
+        let renamed = d.parent().unwrap().join("something-else");
+        fs::rename(&d, &renamed).unwrap();
+        let st = link(&c, &renamed.to_string_lossy()).await.unwrap();
+        let e = st[0].error.as_deref().unwrap_or("");
+        assert!(e.contains("something-else") && e.contains("demo"), "{e}");
+        assert!(
+            !addons::installed_ids(&c.data_dir).contains(&"demo".to_string()),
+            "nothing was installed"
+        );
+        // Renaming it right is enough.
+        let right = renamed.parent().unwrap().join("demo");
+        fs::rename(&renamed, &right).unwrap();
+        unlink(&c, &st[0].path).await.unwrap();
+        assert!(link(&c, &right.to_string_lossy()).await.unwrap()[0]
+            .error
+            .is_none());
     }
 }

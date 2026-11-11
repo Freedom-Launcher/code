@@ -42,13 +42,17 @@ launcher has to change for a new plugin, and nobody has to approve it first.
 - `signature.json` travels inside the archive, so a signed plugin keeps its
   badge.
 
+**The plugin folder is named exactly like its `id`** (`addons/elyby/addon.json` has `"id": "elyby"`). Copy a folder in by hand
+under another name and the launcher refuses it; the generator, the «Создать плагин…» button and the developer link all
+follow the rule (the developer link reports a mismatch instead of installing).
+
 **Do not use a `<form>` in a plugin page.** Plugin frames are sandboxed with `allow-scripts` only, so the browser never
 submits a form there and its `submit` handler never runs (the first version of the sign-in template had exactly this
 bug: the button did nothing). Use a `type="button"` with a `click` handler and a `keydown` handler for Enter. Also
 remember that `display: grid/flex` on an element overrides its `hidden` attribute unless the page has
 `[hidden] { display: none !important; }`.
 
-Ready-made sign-in plugin: [`docs/addons/yggdrasil-provider`](addons/yggdrasil-provider) (Ely.by). To make one
+Ready-made sign-in plugin: [`docs/addons/elyby`](addons/elyby) (Ely.by). To make one
 for another Yggdrasil / authlib-injector service, give the generator its name and API root:
 
 ```
