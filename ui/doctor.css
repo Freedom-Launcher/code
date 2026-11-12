@@ -15,8 +15,9 @@
 .dc-auto { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; color: var(--text-2); font-size: var(--text-sm); cursor: pointer; }
 .dialog.dc .actions #dc-skip { margin-left: auto; }
 
-/* Strip above the content list */
-.ct-dupes.ct-doc {
-  background: color-mix(in srgb, #e5484d 8%, var(--surface-1));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #e5484d 28%, transparent);
-}.dialog.dc .actions [hidden] { display: none; }
+/* The doctor's button above the content list: small, neutral, on the right. */
+.ct-doc-row { display: flex; justify-content: flex-end; margin: 0 0 var(--s-2, 8px); }
+.ct-doc-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); }
+.ct-doc-btn:hover { color: var(--text-1); }
+.ct-doc-dot { width: 8px; height: 8px; border-radius: 50%; background: #e5484d; flex: none; }
+.dialog.dc .actions [hidden] { display: none; }

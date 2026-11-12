@@ -1184,6 +1184,7 @@ function applyLook() {
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
   $('#sec-confirm').checked = S.themeConfirm !== false;
   $('#dev-mode').checked = !!S.devMode;
+  $('#doctor-on').checked = window.FDoctor ? window.FDoctor.isOn() : localStorage.getItem('fl.doctor') !== 'off';
   document.documentElement.dataset.fx = fxLite() ? 'lite' : 'full';
   $('#fx-lite').checked = fxLite();
   document.documentElement.dataset.cover = S.look.cover;
@@ -1222,6 +1223,7 @@ $('#fx-motion').addEventListener('change', (e) => { setMotion(e.target.checked);
 // native dialog (a theme's CSS can cover this switch, but not that dialog). Turning on needs no ask.
 // Developer mode: a «Разработка» tab in plugins (see addons.js). Harmless to switch on: linked plugins
 // are still ordinary community plugins that need approval.
+$('#doctor-on').addEventListener('change', (e) => window.FDoctor?.setEnabled(e.target.checked));
 $('#dev-mode').addEventListener('change', async (e) => {
   const box = e.target, on = box.checked;
   try { await call('settings.set', { developer_mode: on }); S.devMode = on; FAddons.setDev(on); }
