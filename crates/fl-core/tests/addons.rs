@@ -399,4 +399,10 @@ fn the_yggdrasil_template_is_a_valid_provider() {
     );
     // No badge, and that is fine: trust is not permission.
     assert_eq!(addons::trust(&d, "elyby"), fl_core::Trust::Community);
+    // The accounts page learns from the list which plugins are sign-in plugins.
+    let info = addons::list(&d, &addons::State::default());
+    assert_eq!(
+        info.iter().find(|a| a["id"] == "elyby").unwrap()["provider"],
+        "Ely.by"
+    );
 }

@@ -27,7 +27,7 @@ async function boot({ installed, updates, catalog }) {
     }
   } } };
   w._t = (s, args) => (args ? String(s).replace(/\{(\d+)\}/g, (_, i) => args[i]) : s); w._tr = (s) => s;
-  w.FUI = { toast: (t) => log.push(['toast', t]), openDlg() {}, closeDlg() {} };
+  w.FUI = { toast: (t) => log.push(['toast', t]), openDlg: (id) => log.push(['dlg', id]), closeDlg() {} };
   w.eval(fs.readFileSync(path.join(UI, 'addons.js'), 'utf8'));
   await w.FAddons.start(); w.FAddons.shown('plugins'); await tick(80);
   const tab = async (name) => { w.document.querySelector(`#plg-tabs .plg-tab[data-tab="${name}"]`).click(); await tick(); };
@@ -75,5 +75,13 @@ const cat = (o) => ({ id: 'a', name: 'A', version: '1.0.0', author: 'x', descrip
   const other = tiles.find((c) => /Other/.test(c.textContent));
   ok(official && /Есть обновление/.test(official.textContent), 'the tile of the source it came from says «Есть обновление»');
   ok(other && !/Есть обновление/.test(other.textContent), 'a higher version in another source is not offered as an update');
+  // 5. sign-in plugins that would show nothing yet are pointed out on the accounts page
+  const prov = (o) => plugin({ id: 'ely', name: 'Ely.by', provider: 'Ely.by', enabled: false, ...o });
+  t = await boot({ installed: [prov({}), prov({ id: 'p2', provider: 'Two', enabled: true, pending: true }), prov({ id: 'p3', enabled: true, pending: false }), prov({ id: 'p4', error: 'broken' }), plugin({ id: 'plain', enabled: false })], updates: [], catalog: [] });
+  const hints = t.w.FAddons.providerHints();
+  ok(hints.map((h) => h.id).join() === 'ely,p2', 'only sign-in plugins that are off or waiting for approval are pointed out');
+  ok(hints[0].pending === false && hints[1].pending === true && hints[1].label === 'Two', 'off and «waiting for rights» are told apart');
+  t.w.FAddons.reveal('ely'); await tick();
+  ok(t.log.some((l) => l[0] === 'dlg' && l[1] === 'dlg-plugin') || t.d.querySelector('#plg-tabs .plg-tab[aria-selected="true"]')?.dataset.tab === 'installed', 'reveal opens the installed tab and the plugin\'s dialog');
   console.log(bad ? '\nFAILED' : '\nall ok'); process.exit(bad);
 })();

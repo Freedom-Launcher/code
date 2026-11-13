@@ -11,6 +11,10 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Sign-in plugin hint on the accounts page (unreleased)
+
+- `addons.list` now says which plugins are sign-in plugins (`provider`). The accounts page shows «плагин входа установлен, но выключен» (or «ждёт подтверждения прав») with a button that opens that plugin's dialog, instead of showing nothing. Tested in `scripts/ui-plugins-updates-test.js` and the template test.
+
 ## Release workflow (unreleased)
 
 - `.github/workflows/release.yml` (manual): checks the version against `tauri.conf.json`, tests, builds the signed NSIS installer on Windows and publishes through `scripts/release-push.sh`. Needs the secrets `TAURI_SIGNING_PRIVATE_KEY` (+ password) and `RELEASES_TOKEN`; without them it stops before building. Not run yet (no key available when it was written). `docs/RELEASING.md` has both ways.

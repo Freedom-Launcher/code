@@ -797,6 +797,14 @@
   }
 
   // ---------- Plugin details ----------
+  // Sign-in plugins that are installed but would show nothing yet: switched off, or waiting for approval of
+  // their permissions. The accounts page says so and offers the way in (see renderProviderHints in app.js).
+  function providerHints() {
+    return list
+      .filter((a) => a.provider && !a.error && (!a.enabled || a.pending))
+      .map((a) => ({ id: a.id, label: a.provider, pending: !!(a.enabled && a.pending) }));
+  }
+  function reveal(id) { setTab('installed'); openDetail(id); }
   function openDetail(id) {
     detail = id;
     disarm();
@@ -908,5 +916,5 @@
 
   // Theme switched live: tell running addons.
   const retheme = () => document.querySelectorAll('iframe.addon-frame').forEach((f) => f.contentWindow?.postMessage(themeMsg(), '*'));
-  window.FAddons = Object.freeze({ setDev, start, mount, retheme, emit, shown, openPage, buttons, commands, instance });
+  window.FAddons = Object.freeze({ providerHints, reveal, setDev, start, mount, retheme, emit, shown, openPage, buttons, commands, instance });
 })();
