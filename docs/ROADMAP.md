@@ -11,6 +11,10 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Release workflow (unreleased)
+
+- `.github/workflows/release.yml` (manual): checks the version against `tauri.conf.json`, tests, builds the signed NSIS installer on Windows and publishes through `scripts/release-push.sh`. Needs the secrets `TAURI_SIGNING_PRIVATE_KEY` (+ password) and `RELEASES_TOKEN`; without them it stops before building. Not run yet (no key available when it was written). `docs/RELEASING.md` has both ways.
+
 ## Doctor: a switch and a small button (unreleased)
 
 - Settings → Параметры сборок → «Доктор сборок» turns the whole build doctor off: no automatic checks when a mod list opens, no check before a launch, no button, no menu entries. Remembered on this device (`fl.doctor`); the narrower «check before launch» choice in the doctor's dialog stays.
