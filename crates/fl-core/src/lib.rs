@@ -84,11 +84,8 @@ pub struct Core {
     /// Memoized `settings.json` and the file's `(mtime, length)` when it was read
     /// (see [`Core::settings`]).
     settings_cache: std::sync::Mutex<Option<(Stamp, Arc<settings::Settings>)>>,
-<<<<<<< HEAD
-=======
     /// Core state facts (`game.running`/`game.progress`) for the shell to relay.
     pub(crate) events: Arc<events::Events>,
->>>>>>> 1feabc9bb3a46e0c45fd899e233c124cf1d31694
     /// Install progress per instance id, polled by `game.progress`.
     pub(crate) game_progress:
         std::sync::Mutex<std::collections::HashMap<String, Arc<game::download::Progress>>>,
@@ -109,22 +106,6 @@ impl Core {
         let mut registry = ActionRegistry::default();
         builtin::register(&mut registry, safe_mode);
         net::register(&mut registry);
-<<<<<<< HEAD
-        Ok(Arc::new(Self {
-            data_dir,
-            safe_mode,
-            started,
-            ready_ms: OnceLock::new(),
-            http: OnceLock::new(),
-            registry,
-            state_lock: Default::default(),
-            ms_pending: Default::default(),
-            ms_code: Default::default(),
-            settings_cache: Default::default(),
-            game_progress: Default::default(),
-            game_running: Default::default(),
-            dev_links: Default::default(),
-=======
         Ok(Arc::new_cyclic(|core| {
             let bus = Arc::new(events::Events::default());
             let (running, rx) = game::running::Running::new();
@@ -158,7 +139,6 @@ impl Core {
                 game_running: running,
                 dev_links: Default::default(),
             }
->>>>>>> 1feabc9bb3a46e0c45fd899e233c124cf1d31694
         }))
     }
 

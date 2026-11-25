@@ -199,12 +199,9 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 })
                 .collect();
         }
-<<<<<<< HEAD
-=======
         if let Some(m) = mirror {
             s.mirror = m;
         }
->>>>>>> 1feabc9bb3a46e0c45fd899e233c124cf1d31694
         c.save_settings(&s)?;
         Ok(serde_json::to_value(s)?)
     });
