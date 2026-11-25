@@ -62,7 +62,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJDMTU2ODQ5RkUzOTZCMUIKUldRYmF6bitTV2dWdkVURSt5WVIrbW92MHQ0ZUljSU1jM3RsRkY1VUltRTNRVTZKd3lxcnlQQk8K",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFBMzRFM0JGNEJFN0I4ODgKUldTSXVPZEx2K00wR3R0ZzRIMG95QzBnZEpIMmlUcGE1QWljN1R6WFFYeVJGcHdrWnVXRDk2VFoK",
       "endpoints": [
         "https://github.com/Freedom-Launcher/releases/releases/latest/download/latest.json"
       ],
