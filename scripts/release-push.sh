@@ -6,6 +6,10 @@
 # Release, uploads the files and deletes `staging`. The in-app updater reads
 # https://github.com/Freedom-Launcher/releases/releases/latest/download/latest.json
 set -eu
+export PYTHONUTF8=1
+export PYTHONIOENCODING=utf-8
+export LC_ALL=C.UTF-8
+
 VER="$1"; NOTES="${2:-}"
 DIR="target/x86_64-pc-windows-msvc/release/bundle/nsis"
 sh scripts/release-feed.sh "$VER" "$NOTES" >/dev/null
@@ -23,4 +27,4 @@ cp "$DIR/latest.json" "$W/latest.json"
 git -C "$W" add "$A" "$A.sig" latest.json
 git -C "$W" -c user.name="${GIT_NAME:-Freedom Launcher}" -c user.email="${GIT_EMAIL:-release@freedom-launcher.local}" commit -q -m "v$VER"
 git -C "$W" -c http.postBuffer=524288000 push -q -f "$REMOTE" staging
-echo "v$VER → staging; https://github.com/Freedom-Launcher/releases/actions"
+echo "v$VER -> staging; https://github.com/Freedom-Launcher/releases/actions"
