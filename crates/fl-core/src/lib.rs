@@ -31,6 +31,7 @@ pub mod curseforge;
 pub mod dev_plugins;
 pub mod doctor;
 pub mod error;
+pub mod events;
 pub mod export;
 pub mod fonts;
 pub mod foreign;
@@ -38,6 +39,7 @@ pub mod game;
 pub mod instances;
 pub mod keychain;
 pub mod media;
+pub mod mirror;
 pub mod modrinth;
 pub mod mods;
 pub mod mrpack;
@@ -82,6 +84,11 @@ pub struct Core {
     /// Memoized `settings.json` and the file's `(mtime, length)` when it was read
     /// (see [`Core::settings`]).
     settings_cache: std::sync::Mutex<Option<(Stamp, Arc<settings::Settings>)>>,
+<<<<<<< HEAD
+=======
+    /// Core state facts (`game.running`/`game.progress`) for the shell to relay.
+    pub(crate) events: Arc<events::Events>,
+>>>>>>> 1feabc9bb3a46e0c45fd899e233c124cf1d31694
     /// Install progress per instance id, polled by `game.progress`.
     pub(crate) game_progress:
         std::sync::Mutex<std::collections::HashMap<String, Arc<game::download::Progress>>>,
@@ -102,6 +109,7 @@ impl Core {
         let mut registry = ActionRegistry::default();
         builtin::register(&mut registry, safe_mode);
         net::register(&mut registry);
+<<<<<<< HEAD
         Ok(Arc::new(Self {
             data_dir,
             safe_mode,
@@ -116,6 +124,41 @@ impl Core {
             game_progress: Default::default(),
             game_running: Default::default(),
             dev_links: Default::default(),
+=======
+        Ok(Arc::new_cyclic(|core| {
+            let bus = Arc::new(events::Events::default());
+            let (running, rx) = game::running::Running::new();
+            // One supervisor thread per core: it reaps exited game processes,
+            // flushes playtime and turns state changes into events. It parks
+            // forever while nothing runs; a spawn failure is not fatal, the
+            // `game.running` action stays as the fallback truth.
+            let weak = core.clone();
+            if let Err(e) = std::thread::Builder::new()
+                .name("fl-game-watch".into())
+                .spawn({
+                    let bus = Arc::clone(&bus);
+                    move || game::running::supervise(weak, rx, bus)
+                })
+            {
+                eprintln!("fl-game-watch: {e}");
+            }
+            Self {
+                data_dir,
+                safe_mode,
+                started,
+                ready_ms: OnceLock::new(),
+                http: OnceLock::new(),
+                registry,
+                state_lock: Default::default(),
+                ms_pending: Default::default(),
+                ms_code: Default::default(),
+                settings_cache: Default::default(),
+                game_progress: Default::default(),
+                events: bus,
+                game_running: running,
+                dev_links: Default::default(),
+            }
+>>>>>>> 1feabc9bb3a46e0c45fd899e233c124cf1d31694
         }))
     }
 
@@ -191,6 +234,13 @@ impl Core {
         }
         let st: addons::State = store::load(&self.path(addons::STATE)).ok()?;
         addons::caller(&self.data_dir, &st, id)
+    }
+
+    /// Subscribes to core state changes: `game.running`/`game.progress` facts
+    /// as [`events::Event`]s. Delivery is best-effort; a slow reader is told
+    /// to resync with `Lagged`.
+    pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<events::Event> {
+        self.events.subscribe()
     }
 
     pub fn http(&self) -> &reqwest::Client {

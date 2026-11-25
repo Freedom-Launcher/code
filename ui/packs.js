@@ -31,12 +31,10 @@
     const b = $('#ip-update'), token = crypto.randomUUID();
     b.hidden = false; b.disabled = true; b.dataset.state = 'loading';
     label(b, _t("Готовим…"));
-    const poll = setInterval(async () => {
-      const p = await call('game.progress', { instance: token }).catch(() => null);
-      if (!p) return;
+    FProgress.watch(token, (p) => {
       const f = p.total_bytes > 0 ? p.done_bytes / p.total_bytes : p.total_files > 0 ? p.done_files / p.total_files : null;
       if (f != null) label(b, `${Math.floor(f * 100)}%`);
-    }, 250);
+    });
     try {
       const r = await call('modpacks.update', { instance: i.id, token, ...(version ? { version } : {}) });
       await reloadInstances();
@@ -46,7 +44,7 @@
       window.FBlocked?.after(r);
     } catch (e) { toast(String(e), { error: true }); }
     finally {
-      clearInterval(poll);
+      FProgress.unwatch(token);
       busy = false; b.disabled = false; delete b.dataset.state;
       label(b, _t("Обновить"));
       instance(byId(i.id));

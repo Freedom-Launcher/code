@@ -128,17 +128,16 @@
   $('#isx-java-path').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); testPath(); } });
   async function install(btn, major) {
     const lbl = $('.lbl', btn);
-    const t = setInterval(async () => {
-      const p = await call('game.progress', { instance: `java:${major}` }).catch(() => null);
+    FProgress.watch(`java:${major}`, (p) => {
       if (p?.total_bytes) lbl.textContent = `${Math.floor((p.done_bytes / p.total_bytes) * 100)}%`;
-    }, 400);
+    });
     try {
       const j = await run(btn, 'java.install', { major });
       st.java = j.path;
       st.javas = [j, ...(st.javas || []).filter((x) => x.path !== j.path)];
       $('#isx-java-path').value = j.path;
       paintJavas(); dirty();
-    } catch { lbl.textContent = _t("Скачать Java {0}", [major]); } finally { clearInterval(t); }
+    } catch { lbl.textContent = _t("Скачать Java {0}", [major]); } finally { FProgress.unwatch(`java:${major}`); }
   }
 
   // ---------- Memory ----------

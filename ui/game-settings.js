@@ -78,11 +78,10 @@
     });
     get.addEventListener('click', async () => {
       const lbl = $('.lbl', get);
-      const t = setInterval(async () => {
-        const p = await call('game.progress', { instance: `java:${m}` }).catch(() => null);
+      FProgress.watch(`java:${m}`, (p) => {
         if (p?.total_bytes) lbl.textContent = `${Math.floor((p.done_bytes / p.total_bytes) * 100)}%`;
-      }, 400);
-      try { setJava(m, await run(get, 'java.install', { major: m })); } catch { /* toast shown */ } finally { clearInterval(t); lbl.textContent = _t("Скачать"); }
+      });
+      try { setJava(m, await run(get, 'java.install', { major: m })); } catch { /* toast shown */ } finally { FProgress.unwatch(`java:${m}`); lbl.textContent = _t("Скачать"); }
     });
     reset.addEventListener('click', () => setJava(m, null));
     row.append(el('span', { class: 'gs-jn' }, String(m)),

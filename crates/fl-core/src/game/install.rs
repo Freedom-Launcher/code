@@ -191,19 +191,13 @@ pub async fn load_version(
     let path = layout.version_json(id);
     let bytes = match versions::locate(core, id).await {
         Ok((url, sha1)) if !download::is_valid(&path, &sha1, 0) => {
-            let b = core
-                .http()
-                .get(&url)
-                .send()
-                .await?
-                .error_for_status()?
-                .bytes()
-                .await?;
+            let rule = crate::mirror::rule(core);
+            let b = crate::mirror::get_with_fallback(core.http(), &rule, &url).await?;
             if !sha1.is_empty() && !download::sha1_hex(&b).eq_ignore_ascii_case(&sha1) {
                 return Err(CoreError::msg(format!("checksum mismatch: {url}")));
             }
             download::write_atomic(&path, &b)?;
-            b.to_vec()
+            b
         }
         Ok(_) => fs::read(&path)?,
         Err(_) if path.exists() => fs::read(&path)?,
@@ -224,6 +218,7 @@ pub async fn install(
     let layout = Layout::new(core);
     let env = Env::current();
     let http = core.http();
+    let mirror = crate::mirror::rule(core);
 
     // Step 1: small metadata files (asset index, log config) and the client jar.
     let mut first = Vec::new();
@@ -254,7 +249,7 @@ pub async fn install(
             size: l.file.size,
         });
     }
-    download::fetch_all(http, first, Arc::clone(&progress)).await?;
+    download::fetch_all(http, first, Arc::clone(&progress), &mirror).await?;
 
     // Step 2: libraries and asset objects together.
     let libs = library_plan(&v, &env, &layout.libraries());
@@ -267,7 +262,7 @@ pub async fn install(
     if let Some(index) = &index {
         tasks.extend(asset_tasks(index, &layout.assets()));
     }
-    download::fetch_all(http, tasks, progress).await?;
+    download::fetch_all(http, tasks, progress, &mirror).await?;
 
     // Step 3: natives, freshly extracted each install.
     let natives_dir = layout.natives_dir(&v.id);

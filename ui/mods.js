@@ -527,15 +527,13 @@ const CHEV = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidde
     b.disabled = true;
     b.dataset.state = 'loading';
     lbl.textContent = _t("Готовим…");
-    const poll = setInterval(async () => {
-      const p = await call('game.progress', { instance: token }).catch(() => null);
-      if (!p) return;
+    FProgress.watch(token, (p) => {
       const f = p.total_bytes > 0 ? p.done_bytes / p.total_bytes : p.total_files > 0 ? p.done_files / p.total_files : null;
       if (f != null) lbl.textContent = `${Math.floor(f * 100)}%`;
-    }, 250);
+    });
     try {
       const created = await call('modpacks.install', { project: h.project_id, token, ...(version ? { version } : {}), ...(loaders.size ? { loaders: [...loaders] } : {}) });
-      clearInterval(poll);
+      FProgress.unwatch(token);
       b.dataset.state = 'success';
       lbl.textContent = _t("Установлена");
       S.instances = await call('instances.list');
@@ -544,7 +542,7 @@ const CHEV = '<svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidde
       if (created.blocked_files?.length) window.FBlocked?.after(created);
       else if (created.blocked?.length) toast(_t("Не скачано (автор разрешает только сайт CurseForge): {0}", [created.blocked.join(', ')]), { error: true });
     } catch (e) {
-      clearInterval(poll);
+      FProgress.unwatch(token);
       b.disabled = false;
       b.dataset.state = 'error';
       lbl.textContent = _t("Установить");

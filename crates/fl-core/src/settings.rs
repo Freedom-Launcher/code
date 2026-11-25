@@ -53,6 +53,10 @@ pub struct Settings {
     /// token name (without `--`) → `#rrggbb` or `#rrggbbaa`. Laid over the active theme.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub colors: BTreeMap<String, BTreeMap<String, String>>,
+    /// Where game files come from (`mirror`): `"auto"` (official first, mirror as
+    /// the retry), `"mojang"`, `"bmclapi"`, or the https base of a self-hosted
+    /// mirror with the same URL layout. Checked by `mirror::valid_base`.
+    pub mirror: String,
 }
 
 /// Tokens the color editor may set. Shades (hover, press, soft, on-accent) are derived by the UI.
@@ -189,6 +193,7 @@ impl Default for Settings {
             instances_dir: None,
             javas: BTreeMap::new(),
             colors: BTreeMap::new(),
+            mirror: "auto".into(),
         }
     }
 }

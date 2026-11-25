@@ -112,16 +112,15 @@
       $('#fg-stage').textContent = `${todo.length > 1 ? _t("{0} из {1} · ", [n + 1, todo.length]) : ''}${f.name}`;
       $('#fg-count').textContent = '';
       progress($('#fg-bar'), null);
-      const poll = setInterval(async () => {
-        const p = await call('game.progress', { instance: token }).catch(() => null);
+      FProgress.watch(token, (p) => {
         if (!p || !p.total_bytes) return;
         progress($('#fg-bar'), p.done_bytes / p.total_bytes);
         $('#fg-count').textContent = `${STAGE[p.stage] || ''} · ${fmtBytes(p.done_bytes)} / ${fmtBytes(p.total_bytes)}`;
-      }, 250);
+      });
       try {
         made.push(await call('foreign.import', { path: f.path, token, version: f.pick || null, link: link.checked }));
         markDone(f.path);
-      } catch (e) { failed.push(`${f.name}: ${_tr(String(e))}`); } finally { clearInterval(poll); }
+      } catch (e) { failed.push(`${f.name}: ${_tr(String(e))}`); } finally { FProgress.unwatch(token); }
     }
     busy = false;
     dlg.classList.remove('is-importing');

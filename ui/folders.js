@@ -20,19 +20,18 @@
     pick.disabled = reset.disabled = true;
     bar.hidden = false;
     bar.setAttribute('data-indeterminate', '');
-    const tick = setInterval(async () => {
-      const p = await call('game.progress', { instance: KEY }).catch(() => null);
+    FProgress.watch(KEY, (p) => {
       if (!p || !p.total_bytes) return;
       bar.removeAttribute('data-indeterminate');
       bar.style.setProperty('--p', String(Math.min(1, p.done_bytes / p.total_bytes)));
       label.textContent = _t("Перенос… {0} из {1}", [size(p.done_bytes), size(p.total_bytes)]);
-    }, 250);
+    });
     try {
       const r = await run(btn, 'instances.move_root', { path });
       toast(r.moved ? _t("Сборки перенесены: {0}", [r.moved]) : _t("Папка сборок изменена"));
       await window.reloadInstances?.();
     } catch { /* toast shown by run() */ }
-    clearInterval(tick);
+    FProgress.unwatch(KEY);
     bar.style.setProperty('--p', '1');
     setTimeout(() => { bar.hidden = true; bar.style.removeProperty('--p'); }, 320);
     pick.disabled = reset.disabled = false;

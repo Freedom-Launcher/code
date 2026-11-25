@@ -109,6 +109,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             colors: Option<
                 std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
             >,
+            mirror: Option<String>,
         }
         let A {
             look,
@@ -121,6 +122,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             game,
             javas,
             colors,
+            mirror,
         } = args(a)?;
         if let Some(m) = &colors {
             crate::settings::check_colors(m).map_err(CoreError::BadArgs)?;
@@ -130,6 +132,15 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         }
         if let Some(g) = &game {
             g.validate()?;
+        }
+        if let Some(m) = &mirror {
+            let ok = matches!(m.as_str(), "auto" | "mojang" | "bmclapi")
+                || crate::mirror::valid_base(m);
+            if !ok {
+                return Err(CoreError::BadArgs(
+                    "mirror: ожидается auto, mojang, bmclapi или https-адрес своего зеркала".into(),
+                ));
+            }
         }
         let _g = c.state_lock.lock().await;
         let mut s = c.settings()?.as_ref().clone();
@@ -188,6 +199,12 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 })
                 .collect();
         }
+<<<<<<< HEAD
+=======
+        if let Some(m) = mirror {
+            s.mirror = m;
+        }
+>>>>>>> 1feabc9bb3a46e0c45fd899e233c124cf1d31694
         c.save_settings(&s)?;
         Ok(serde_json::to_value(s)?)
     });
@@ -1605,7 +1622,14 @@ async fn fill_from_pack(
         })
         .collect();
     p.set_stage("files");
-    crate::game::download::fetch_all(c.http(), tasks, std::sync::Arc::clone(p)).await?;
+    // Modpack files come from their own hosts, never from a game-file mirror.
+    crate::game::download::fetch_all(
+        c.http(),
+        tasks,
+        std::sync::Arc::clone(p),
+        &crate::mirror::Rule::Never,
+    )
+    .await?;
     p.set_stage("overrides");
     mrpack::extract_overrides_from(z, game_dir, &plan.overrides)?;
     store::save(&game_dir.join(instances::PACK_FILES), &owned, false)?;
