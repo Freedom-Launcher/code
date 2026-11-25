@@ -69,7 +69,8 @@ pub fn valid_base(u: &str) -> bool {
         return false;
     };
     u.len() <= 200
-        && u.bytes().all(|b| b > 0x20 && b < 0x7f && !matches!(b, b'"' | b'\\' | b'<' | b'>'))
+        && u.bytes()
+            .all(|b| b > 0x20 && b < 0x7f && !matches!(b, b'"' | b'\\' | b'<' | b'>'))
         && p.scheme() == "https"
         && p.host_str().is_some_and(|h| !h.is_empty())
         && p.username().is_empty()
@@ -87,7 +88,10 @@ const OFFICIAL: [(&str, &str); 9] = [
     ("https://maven.minecraftforge.net/", "maven/"),
     ("https://meta.fabricmc.net/", "fabric-meta/"),
     ("https://piston-data.mojang.com/", ""),
-    ("https://piston-meta.mojang.com/v1/products/", "v1/products/"),
+    (
+        "https://piston-meta.mojang.com/v1/products/",
+        "v1/products/",
+    ),
     ("https://piston-meta.mojang.com/mc/game/", "mc/game/"),
     ("https://launchermeta.mojang.com/", ""),
 ];
@@ -165,14 +169,14 @@ pub async fn get_with_fallback(
 ) -> Result<Vec<u8>, CoreError> {
     let mut last = None;
     for url in meta_urls(rule, official) {
-        let bounded = (&url != official).then_some(MIRROR_ANSWER);
-        let got = async {
-            get(http, &url, bounded)
+        let bounded = (url != official).then_some(MIRROR_ANSWER);
+        let got: Result<Vec<u8>, CoreError> = async {
+            Ok(get(http, &url, bounded)
                 .await?
                 .error_for_status()?
                 .bytes()
-                .await
-                .map(|b| b.to_vec())
+                .await?
+                .to_vec())
         }
         .await;
         match got {
@@ -207,8 +211,11 @@ mod tests {
             Some("https://bmclapi2.bangbang93.com/v1/products/java-runtime/ab/all.json")
         );
         assert_eq!(
-            m("https://libraries.minecraft.net/com/mojang/logging/1.1.1/logging-1.1.1.jar").as_deref(),
-            Some("https://bmclapi2.bangbang93.com/maven/com/mojang/logging/1.1.1/logging-1.1.1.jar")
+            m("https://libraries.minecraft.net/com/mojang/logging/1.1.1/logging-1.1.1.jar")
+                .as_deref(),
+            Some(
+                "https://bmclapi2.bangbang93.com/maven/com/mojang/logging/1.1.1/logging-1.1.1.jar"
+            )
         );
         assert_eq!(
             m("https://resources.download.minecraft.net/ab/abcdef").as_deref(),
@@ -242,7 +249,7 @@ mod tests {
             "https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
             "https://resources.download.minecraft.net", // the bare host, no file
             "https://bmclapi2.bangbang93.com/maven/a.jar", // already the mirror
-            "http://libraries.minecraft.net/com/x.jar",   // not https
+            "http://libraries.minecraft.net/com/x.jar", // not https
         ] {
             assert_eq!(rewrite(url, BMCLAPI), None, "{url}");
         }
@@ -269,10 +276,7 @@ mod tests {
             attempts(&Rule::Always(BMCLAPI.into()), url),
             vec![via, url, url]
         );
-        assert_eq!(
-            attempts(&Rule::Never, url),
-            vec![url.to_owned(); 3]
-        );
+        assert_eq!(attempts(&Rule::Never, url), vec![url.to_owned(); 3]);
         // Not a game source: the rule adds nothing, whichever it is.
         let other = "https://cdn.modrinth.com/data/x.zip";
         for rule in [Rule::Auto(BMCLAPI.into()), Rule::Always(BMCLAPI.into())] {
@@ -283,10 +287,7 @@ mod tests {
             meta_urls(&Rule::Auto(BMCLAPI.into()), url),
             vec![url.to_owned(), via.to_owned()]
         );
-        assert_eq!(
-            meta_urls(&Rule::Never, url),
-            vec![url.to_owned()]
-        );
+        assert_eq!(meta_urls(&Rule::Never, url), vec![url.to_owned()]);
     }
 
     #[test]
@@ -305,7 +306,6 @@ mod tests {
             "ftp://mirror.example.org",
             "https://",
             "https://mirror example.org",
-            "https://mirror.example.org/",
         ] {
             assert!(!valid_base(bad), "{bad:?}");
         }

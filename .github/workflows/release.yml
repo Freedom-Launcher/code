@@ -13,11 +13,11 @@ on:
       version:
         description: "Version to release; must equal app/tauri.conf.json"
         required: true
-        default: "0.3.50"
+        default: "0.3.51"
       notes:
         description: "What is new (shown in the update dialog)"
         required: false
-        default: "Темы могут переделать всё приложение, включая настройки; Ctrl+Alt+Shift+T возвращает стандартную тему. Темы спрашивают разрешение на запуск игры и вход, доверенным можно разрешить без вопросов. Вход через сторонние сервисы (Ely.by и другие) работает без Microsoft и сам продлевает сессию. Плагины можно ставить из любых репозиториев (источники), есть обновления плагинов и режим разработчика. Доктор сборок можно выключить, а проблемы показывает маленькая кнопка. Секреты на Linux в системном хранилище."
+        default: "Принудительное обновление."
 permissions:
   contents: read
 concurrency:

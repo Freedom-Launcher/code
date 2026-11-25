@@ -134,8 +134,8 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             g.validate()?;
         }
         if let Some(m) = &mirror {
-            let ok = matches!(m.as_str(), "auto" | "mojang" | "bmclapi")
-                || crate::mirror::valid_base(m);
+            let ok =
+                matches!(m.as_str(), "auto" | "mojang" | "bmclapi") || crate::mirror::valid_base(m);
             if !ok {
                 return Err(CoreError::BadArgs(
                     "mirror: ожидается auto, mojang, bmclapi или https-адрес своего зеркала".into(),

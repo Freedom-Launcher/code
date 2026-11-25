@@ -202,9 +202,9 @@ async fn fetch_one(
 }
 
 async fn try_fetch(http: &reqwest::Client, url: &str, t: &Task) -> Result<u64, CoreError> {
-    let bytes = http
-        .get(url)
-        .send()
+    // A mirror attempt (any URL but the task's own) only gets a bounded time to answer.
+    let bounded = (url != t.url).then_some(crate::mirror::MIRROR_ANSWER);
+    let bytes = crate::mirror::get(http, url, bounded)
         .await?
         .error_for_status()?
         .bytes()
@@ -360,8 +360,8 @@ mod tests {
             Arc::clone(&progress),
             &crate::mirror::Rule::Never,
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
         assert_eq!(progress.done_files.load(Ordering::Relaxed), 1);
         assert_eq!(progress.total_bytes.load(Ordering::Relaxed), 0);
         assert_eq!(progress.done_bytes.load(Ordering::Relaxed), 0);
