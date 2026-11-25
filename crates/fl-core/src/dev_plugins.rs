@@ -48,7 +48,7 @@ pub struct Status {
 }
 
 fn settings(c: &Core) -> Settings {
-    crate::store::load(&c.path(SETTINGS_FILE)).unwrap_or_default()
+    c.settings().map(|s| s.as_ref().clone()).unwrap_or_default()
 }
 
 fn require_dev(c: &Core) -> Result<Settings, CoreError> {

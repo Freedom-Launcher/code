@@ -4,7 +4,7 @@ use std::{sync::Arc, time::Instant};
 
 use fl_core::{Caller, Core};
 use serde_json::{json, Value};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::{
     DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult,
 };
@@ -1359,7 +1359,27 @@ fn main() {
                     eprintln!("bundled addons: {e}");
                 }
             }
+            // Forward core state changes to the UI as Tauri events: the core
+            // publishes facts on its bus, the shell relays them. Delivery
+            // errors are ignored on purpose — a closed window must never take
+            // the app down, and a slow UI gets a `resync` marker instead.
+            let mut rx = core.subscribe();
+            let handle = app.handle().clone();
             app.manage(AppCore(core));
+            tauri::async_runtime::spawn(async move {
+                loop {
+                    match rx.recv().await {
+                        Ok(ev) => {
+                            let _ = handle.emit("fl:core", &ev);
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                            // Slow consumer missed events: one fresh snapshot fixes the UI.
+                            let _ = handle.emit("fl:core", &json!({ "kind": "resync" }));
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                    }
+                }
+            });
             if safe_mode {
                 if let Some(w) = app.get_webview_window("main") {
                     let _ = w.set_title(SAFE_TITLE);

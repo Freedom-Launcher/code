@@ -3,12 +3,25 @@
 
 use std::collections::{HashMap, HashSet};
 use std::process::Child;
-use std::sync::Mutex;
-use std::time::Instant;
+use std::sync::{Arc, Mutex, Weak};
+use std::time::{Duration, Instant};
 
-#[derive(Default)]
+use crate::events::{Event, Events};
+use crate::Core;
+
 pub struct Running {
     inner: Mutex<Inner>,
+    /// Wakes the supervisor thread after any state mutation.
+    kick: std::sync::mpsc::Sender<()>,
+}
+
+impl Default for Running {
+    fn default() -> Self {
+        // No supervisor attached: the receiver is dropped at once, so kicks
+        // are harmless no-ops.
+        let (r, _) = Self::new();
+        r
+    }
 }
 
 #[derive(Default)]
@@ -50,8 +63,10 @@ impl Exit {
     }
 }
 
-/// Drops processes that have exited.
-fn reap(g: &mut Inner) {
+/// Drops processes that have exited; returns their `(id, exit)` pairs. The
+/// existing callers ignore the return value — the supervisor derives its
+/// events from the `exits` map instead, so a `stop` is reported the same way.
+fn reap(g: &mut Inner) -> Vec<(String, Exit)> {
     let mut done = Vec::new();
     let mut ended = Vec::new();
     g.children.retain(|id, (c, t)| {
@@ -65,18 +80,38 @@ fn reap(g: &mut Inner) {
         ended.push((id.clone(), Exit::new(code, false, secs)));
         false
     });
-    g.exits.extend(ended);
+    g.exits.extend(ended.clone());
     for (id, _) in &done {
         if let Some(mut c) = g.after_exit.remove(id) {
             let _ = c.spawn();
         }
     }
     g.finished.extend(done);
+    ended
 }
 
 impl Running {
+    /// A fresh registry. Returns the wake-up receiver for [`supervise`]:
+    /// one supervisor thread per registry drains it.
+    pub(crate) fn new() -> (Self, std::sync::mpsc::Receiver<()>) {
+        let (kick, rx) = std::sync::mpsc::channel();
+        (
+            Self {
+                inner: Mutex::new(Inner::default()),
+                kick,
+            },
+            rx,
+        )
+    }
+
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
         self.inner.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// Wakes the supervisor; a dropped receiver (tests, plain registries)
+    /// makes this a harmless no-op.
+    fn kick(&self) {
+        let _ = self.kick.send(());
     }
 
     /// Reserves the instance for a launch; `false` if it is starting or running.
@@ -87,12 +122,15 @@ impl Running {
             return false;
         }
         g.starting.insert(id.to_owned());
+        drop(g);
+        self.kick();
         true
     }
 
     /// The launch failed before a process existed.
     pub fn cancel(&self, id: &str) {
         self.lock().starting.remove(id);
+        self.kick();
     }
 
     pub fn started(&self, id: &str, child: Child) {
@@ -100,6 +138,8 @@ impl Running {
         g.starting.remove(id);
         g.children.insert(id.to_owned(), (child, Instant::now()));
         g.exits.remove(id);
+        drop(g);
+        self.kick();
     }
 
     /// How each instance's last session ended (only instances that ran since the launcher started).
@@ -151,9 +191,99 @@ impl Running {
                 if let Some(mut c) = g.after_exit.remove(id) {
                     let _ = c.spawn();
                 }
+                drop(g);
+                self.kick();
                 true
             }
             None => false,
+        }
+    }
+}
+
+/// Body of the supervisor thread (one per core, spawned by `Core::new`).
+///
+/// Reaps exited game processes, flushes playtime and turns every state change
+/// into an event — the single place that publishes, so the UI sees one ordered
+/// stream (`game_exit` before the `game_running` it belongs to). With no game
+/// up the thread parks on the channel with no timer at all; while a game runs
+/// it wakes on mutations or at least once a second, the only way a natural
+/// exit can surface (`try_wait`).
+pub(crate) fn supervise(core: Weak<Core>, rx: std::sync::mpsc::Receiver<()>, events: Arc<Events>) {
+    // Playtime bookkeeping stays core-internal: `record_playtime` only awaits
+    // the state lock and does sync fs work under it, so a tiny current-thread
+    // runtime driven by `block_on` is enough here.
+    let rt = match tokio::runtime::Builder::new_current_thread().build() {
+        Ok(rt) => rt,
+        Err(e) => {
+            eprintln!("fl-game-watch: {e}");
+            return;
+        }
+    };
+    // The kick senders live inside the core, so the first kick implies the
+    // core is built; parking here first also closes the `new_cyclic` race.
+    if rx.recv().is_err() {
+        return; // the registry is gone before anything ran: nothing to watch
+    }
+    // Last published `(running, starting)`: a fresh core has none.
+    let mut last: Option<(Vec<String>, Vec<String>)> = Some((Vec::new(), Vec::new()));
+    // Exits already published. Both `reap` (natural exits) and `stop` write
+    // into `exits`; `Exit` is `PartialEq`, so a re-exit of the same instance
+    // shows up as a change.
+    let mut seen: HashMap<String, Exit> = HashMap::new();
+    loop {
+        // 1. Snapshot under the lock only; the guard is dropped before any
+        //    blocking work (event delivery, playtime, parking).
+        let Some(core) = core.upgrade() else { return };
+        let (running, starting, ended, has_children) = {
+            let mut g = core.game_running.lock();
+            reap(&mut g);
+            let mut run: Vec<String> = g.children.keys().cloned().collect();
+            let mut st: Vec<String> = g.starting.iter().cloned().collect();
+            run.sort();
+            st.sort();
+            let mut ended = Vec::new();
+            for (id, exit) in &g.exits {
+                if seen.get(id) != Some(exit) {
+                    ended.push((id.clone(), exit.clone()));
+                }
+            }
+            seen = g.exits.clone();
+            let has_children = !g.children.is_empty();
+            (run, st, ended, has_children)
+        };
+        // 2. Emit outside the lock; delivery can never fail the core.
+        for (id, exit) in &ended {
+            events.send(Event::GameExit {
+                instance: id.clone(),
+                exit: exit.clone(),
+            });
+        }
+        let changed = match &last {
+            Some((r, s)) => r != &running || s != &starting,
+            None => false,
+        };
+        if changed {
+            events.send(Event::GameRunning {
+                running: running.clone(),
+                starting: starting.clone(),
+            });
+        }
+        last = Some((running, starting));
+        if !ended.is_empty() {
+            // Sessions ended: hand them to the playtime bookkeeping.
+            let _ = rt.block_on(super::service::record_playtime(&core));
+        }
+        drop(core); // the strong handle must not keep the core alive while parked
+                    // 3. Park. Idle: block indefinitely — zero wake-ups. A game running:
+                    // wake on kick or at least once a second to catch natural exits.
+        match if has_children {
+            rx.recv_timeout(Duration::from_secs(1))
+        } else {
+            rx.recv()
+                .map_err(|_| std::sync::mpsc::RecvTimeoutError::Disconnected)
+        } {
+            Ok(()) | Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return,
         }
     }
 }
@@ -208,5 +338,153 @@ mod tests {
         assert!(r.stop("i4"));
         let e = r.exits().remove("i4").unwrap();
         assert!(e.stopped && !e.crashed);
+    }
+
+    /// Waits for a matching event with a deadline (the supervisor ticks at 1 Hz).
+    fn wait_event(
+        rx: &mut tokio::sync::broadcast::Receiver<Event>,
+        ms: u64,
+        f: &dyn Fn(&Event) -> bool,
+    ) -> Option<Event> {
+        let deadline = Instant::now() + Duration::from_millis(ms);
+        loop {
+            match rx.try_recv() {
+                Ok(ev) => {
+                    if f(&ev) {
+                        return Some(ev);
+                    }
+                }
+                Err(tokio::sync::broadcast::error::TryRecvError::Empty) => {
+                    if Instant::now() >= deadline {
+                        return None;
+                    }
+                    std::thread::sleep(Duration::from_millis(20));
+                }
+                Err(tokio::sync::broadcast::error::TryRecvError::Lagged(_)) => continue,
+                Err(tokio::sync::broadcast::error::TryRecvError::Closed) => return None,
+            }
+        }
+    }
+
+    /// A natural exit reaches the bus: `game_exit` first, then an empty
+    /// `game_running`, and the supervisor flushes playtime itself.
+    #[test]
+    fn supervisor_reports_a_natural_exit() {
+        let dir = std::env::temp_dir().join(format!("fl-sup-{}", uuid::Uuid::new_v4()));
+        let c = Core::new(dir.clone(), Instant::now(), false).unwrap();
+        let mut rx = c.subscribe();
+        assert!(c.game_running.begin("i1"));
+        assert!(
+            wait_event(&mut rx, 5000, &|ev| matches!(ev,
+                Event::GameRunning { running, starting }
+                if running.is_empty() && starting.len() == 1 && starting[0] == "i1"
+            ))
+            .is_some(),
+            "no starting snapshot"
+        );
+        let mut child = Command::new("true").spawn().unwrap();
+        let _ = child.wait();
+        c.game_running.started("i1", child);
+        assert!(
+            wait_event(&mut rx, 5000, &|ev| matches!(ev,
+                Event::GameRunning { running, .. } if running.len() == 1 && running[0] == "i1"
+            ))
+            .is_some(),
+            "no running snapshot"
+        );
+        assert!(
+            wait_event(&mut rx, 5000, &|ev| matches!(ev,
+                Event::GameExit { instance, .. } if instance == "i1"
+            ))
+            .is_some(),
+            "no exit event"
+        );
+        assert!(
+            wait_event(&mut rx, 5000, &|ev| matches!(ev,
+                Event::GameRunning { running, starting }
+                if running.is_empty() && starting.is_empty()
+            ))
+            .is_some(),
+            "no empty snapshot after the exit"
+        );
+        // The supervisor's playtime flush writes instances.json; afterwards
+        // nothing is left for the pollers.
+        for _ in 0..100 {
+            if dir.join("instances.json").exists() {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert!(dir.join("instances.json").exists(), "playtime not flushed");
+        assert!(c.game_running.take_finished().is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// `stop` writes its exit directly into the registry; the supervisor's
+    /// per-key diff reports it (stopped, not a crash) and the list empties.
+    #[test]
+    fn supervisor_reports_stop() {
+        let dir = std::env::temp_dir().join(format!("fl-sup2-{}", uuid::Uuid::new_v4()));
+        let c = Core::new(dir.clone(), Instant::now(), false).unwrap();
+        let mut rx = c.subscribe();
+        assert!(c.game_running.begin("i1"));
+        let child = Command::new("sleep").arg("30").spawn().unwrap();
+        c.game_running.started("i1", child);
+        assert!(
+            wait_event(&mut rx, 5000, &|ev| matches!(ev,
+                Event::GameRunning { running, .. } if running.len() == 1 && running[0] == "i1"
+            ))
+            .is_some(),
+            "no running snapshot"
+        );
+        assert!(c.game_running.stop("i1"));
+        assert!(
+            wait_event(&mut rx, 5000, &|ev| matches!(ev,
+                Event::GameExit { instance, exit } if instance == "i1" && exit.stopped
+            ))
+            .is_some(),
+            "no stopped exit event"
+        );
+        assert!(
+            wait_event(&mut rx, 5000, &|ev| matches!(ev,
+                Event::GameRunning { running, .. } if running.is_empty()
+            ))
+            .is_some(),
+            "running list did not empty"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A second run of the same instance ends with a different exit: the
+    /// per-key diff must see it even though the key existed before.
+    #[test]
+    fn supervisor_sees_a_reexit_of_the_same_instance() {
+        let dir = std::env::temp_dir().join(format!("fl-sup3-{}", uuid::Uuid::new_v4()));
+        let c = Core::new(dir.clone(), Instant::now(), false).unwrap();
+        let mut rx = c.subscribe();
+        assert!(c.game_running.begin("i1"));
+        let mut child = Command::new("true").spawn().unwrap();
+        let _ = child.wait();
+        c.game_running.started("i1", child);
+        assert!(
+            wait_event(&mut rx, 5000, &|ev| matches!(ev,
+                Event::GameExit { instance, .. } if instance == "i1"
+            ))
+            .is_some(),
+            "no first exit event"
+        );
+        assert!(c.game_running.begin("i1"));
+        let mut child = Command::new("false").spawn().unwrap();
+        let _ = child.wait();
+        c.game_running.started("i1", child);
+        assert!(
+            wait_event(&mut rx, 5000, &|ev| matches!(ev,
+                Event::GameExit { instance, exit }
+                if instance == "i1" && exit.crashed && exit.code == Some(1)
+            ))
+            .is_some(),
+            "no second exit event"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

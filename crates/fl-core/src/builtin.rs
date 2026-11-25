@@ -40,7 +40,6 @@ fn args<T: DeserializeOwned>(v: Value) -> Result<T, CoreError> {
 
 const ACCOUNTS: &str = "accounts.json";
 const INSTANCES: &str = "instances.json";
-const SETTINGS: &str = "settings.json";
 
 pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     r.register(
@@ -58,8 +57,8 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
 
     // Safe mode: settings recovery only. No themes, no addons, no game.
     r.register("settings.get", P::Public, false, |c, _| async move {
-        let s: Settings = store::load(&c.path(SETTINGS))?;
-        Ok(serde_json::to_value(s)?)
+        let s = c.settings()?;
+        Ok(serde_json::to_value(s.as_ref())?)
     });
     r.register("safe.restore_theme", P::Internal, true, |c, _| async move {
         update_settings(&c, |s| {
@@ -133,7 +132,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             g.validate()?;
         }
         let _g = c.state_lock.lock().await;
-        let mut s: Settings = store::load(&c.path(SETTINGS))?;
+        let mut s = c.settings()?.as_ref().clone();
         if let Some(p) = look {
             let base = s.look.clone().unwrap_or_default();
             s.look = Some(base.patch(&p).map_err(CoreError::BadArgs)?);
@@ -189,7 +188,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
                 })
                 .collect();
         }
-        store::save(&c.path(SETTINGS), &s, false)?;
+        c.save_settings(&s)?;
         Ok(serde_json::to_value(s)?)
     });
 
@@ -198,7 +197,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         Ok(json!(themes::list(&c.data_dir)))
     });
     r.register("themes.current", P::Public, false, |c, _| async move {
-        let s: Settings = store::load(&c.path(SETTINGS))?;
+        let s = c.settings()?;
         Ok(themes::current(&c.data_dir, &s.theme))
     });
     // "Trust this theme": its confirmations are skipped while its files stay exactly as they are.
@@ -229,7 +228,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     });
     // Ids of themes that are trusted right now (files unchanged since they were trusted).
     r.register("themes.trusted", P::Internal, false, |c, _| async move {
-        let s: Settings = store::load(&c.path(SETTINGS))?;
+        let s = c.settings()?;
         let ids: Vec<&String> = s
             .trusted_themes
             .iter()
@@ -248,7 +247,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             themes::load(&c.data_dir, &theme).map_err(CoreError::BadArgs)?;
         }
         update_settings(&c, |s| s.theme = theme).await?;
-        let s: Settings = store::load(&c.path(SETTINGS))?;
+        let s = c.settings()?;
         Ok(themes::current(&c.data_dir, &s.theme))
     });
     r.register("themes.template", P::Public, false, |c, a| async move {
@@ -257,7 +256,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
             screen: String,
         }
         let A { screen } = args(a)?;
-        let s: Settings = store::load(&c.path(SETTINGS))?;
+        let s = c.settings()?;
         // A broken template must never break the screen: fall back to the built-in one.
         let html = themes::template(&c.data_dir, &s.theme, &screen).unwrap_or(None);
         Ok(json!({ "screen": screen, "html": html }))
@@ -272,7 +271,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         }
         let A { name, tokens } = args(a)?;
         let _g = c.state_lock.lock().await;
-        let mut s: Settings = store::load(&c.path(SETTINGS))?;
+        let mut s = c.settings()?.as_ref().clone();
         let baked = !tokens.is_empty();
         let id = themes::save(&c.data_dir, &s.theme, &name, s.ui.clone(), tokens)
             .map_err(CoreError::BadArgs)?;
@@ -289,7 +288,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
         }
         s.theme = id;
         s.ui = Default::default();
-        store::save(&c.path(SETTINGS), &s, false)?;
+        c.save_settings(&s)?;
         Ok(themes::current(&c.data_dir, &s.theme))
     });
     // A theme shared as one `.fltheme` file: install it, or pack one for sharing.
@@ -472,7 +471,7 @@ pub(crate) fn register(r: &mut ActionRegistry, safe_mode: bool) {
     });
     // Plugin sources: catalogs besides the official one. Adding one is the user's act.
     r.register("addons.sources", P::Internal, false, |c, _| async move {
-        let s: Settings = store::load(&c.path(SETTINGS))?;
+        let s = c.settings()?;
         Ok(json!(s.plugin_sources))
     });
     r.register("addons.source_add", P::Internal, false, |c, a| async move {
@@ -997,7 +996,7 @@ async fn install_modpack(
     let v = match version {
         Some(id) => versions.iter().find(|v| v.id == id),
         None => {
-            let s: Settings = store::load(&c.path(SETTINGS))?;
+            let s = c.settings()?;
             let order: Vec<&str> = crate::settings::loader_order(&s.loader_priority)
                 .into_iter()
                 .filter(|l| loaders.is_empty() || loaders.iter().any(|x| x == l))
@@ -1949,9 +1948,9 @@ fn register_instance_manage(r: &mut ActionRegistry) {
                 tokio::task::spawn_blocking(move || crate::relocate::move_all(&dirs, &o, &n, &pp))
                     .await
                     .map_err(|e| CoreError::msg(e.to_string()))??;
-            let mut st: Settings = store::load(&c.path(SETTINGS))?;
+            let mut st = c.settings()?.as_ref().clone();
             st.instances_dir = crate::relocate::to_setting(&new, &default);
-            store::save(&c.path(SETTINGS), &st, false)?;
+            c.save_settings(&st)?;
             Ok(json!({ "path": new, "moved": moved }))
         },
     );
@@ -2400,9 +2399,9 @@ fn register_game(r: &mut ActionRegistry) {
 
 async fn update_settings(c: &Core, f: impl FnOnce(&mut Settings)) -> Result<Value, CoreError> {
     let _g = c.state_lock.lock().await;
-    let mut s: Settings = store::load(&c.path(SETTINGS))?;
+    let mut s = c.settings()?.as_ref().clone();
     f(&mut s);
-    store::save(&c.path(SETTINGS), &s, false)?;
+    c.save_settings(&s)?;
     Ok(serde_json::to_value(s)?)
 }
 

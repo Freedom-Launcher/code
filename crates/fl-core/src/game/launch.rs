@@ -395,6 +395,13 @@ mod tests {
         }
     }
 
+    /// Expectations are written with `/`, but `Path::join` on Windows yields `\`
+    /// after a root kept as it was written, so built arguments mix separators;
+    /// one separator on both sides keeps the tests platform-neutral.
+    fn norm(a: Vec<String>) -> Vec<String> {
+        a.into_iter().map(|x| x.replace('\\', "/")).collect()
+    }
+
     #[test]
     fn legacy_arguments() {
         let v: VersionJson = serde_json::from_value(json!({
@@ -405,7 +412,7 @@ mod tests {
         let layout = Layout {
             root: "/d/game".into(),
         };
-        let a = build_args(&v, &win(), &layout, &auth(), &opts());
+        let a = norm(build_args(&v, &win(), &layout, &auth(), &opts()));
         assert_eq!(a[0], "-Xmx4096M");
         assert!(a
             .iter()
@@ -443,12 +450,12 @@ mod tests {
         let layout = Layout {
             root: "/d/game".into(),
         };
-        let a = build_args(&v, &win(), &layout, &auth(), &opts());
+        let a = norm(build_args(&v, &win(), &layout, &auth(), &opts()));
         let cp = a.iter().position(|x| x == "-cp").unwrap();
         assert_eq!(a[cp + 1], "/d/game/versions/1.21/1.21.jar");
-        assert!(a.contains(
-            &"-Dlog4j.configurationFile=/d/game/assets/log_configs/client-1.12.xml".to_owned()
-        ));
+        assert!(a
+            .iter()
+            .any(|x| x == "-Dlog4j.configurationFile=/d/game/assets/log_configs/client-1.12.xml"));
         assert!(a.ends_with(&[
             "M".into(),
             "--assetIndex".into(),

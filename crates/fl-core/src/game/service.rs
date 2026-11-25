@@ -33,8 +33,9 @@ async fn mark_played(core: &Core, id: &str) -> Result<(), CoreError> {
     Ok(())
 }
 
-/// Adds ended game sessions to each instance's playtime.
-async fn record_playtime(core: &Core) -> Result<(), CoreError> {
+/// Adds ended game sessions to each instance's playtime. Also called by the
+/// supervisor thread (`game::running::supervise`) off the async world.
+pub(crate) async fn record_playtime(core: &Core) -> Result<(), CoreError> {
     let done = core.game_running.take_finished();
     if done.is_empty() {
         return Ok(());
@@ -61,6 +62,8 @@ pub(crate) fn progress_for(core: &Core, instance: &str) -> Arc<Progress> {
     let mut map = core.game_progress.lock().expect("progress lock");
     let p = Arc::new(Progress::default());
     map.insert(instance.to_owned(), Arc::clone(&p));
+    // Every key the UI can poll also pushes its changes onto the event bus.
+    p.attach(Arc::clone(&core.events), instance.to_owned());
     p
 }
 
@@ -278,7 +281,7 @@ async fn start(
         install_instance(core, &inst.id, false).await?;
     }
     let v = loader::resolve(core, &layout, inst).await?;
-    let global: crate::settings::Settings = store::load(&core.path("settings.json"))?;
+    let global = core.settings()?;
     let merged = inst.settings.over(&global.game);
     let set = &merged;
     let java = match set
@@ -532,5 +535,24 @@ mod tests {
         let e = launch_auth(&c).await.unwrap_err().to_string();
         assert!(e.contains("local profiles need a Microsoft account"), "{e}");
         let _ = fs::remove_dir_all(&c.data_dir);
+    }
+
+    /// `progress_for` keys also push onto the event bus, so the UI can watch
+    /// instead of polling `game.progress`.
+    #[test]
+    fn progress_for_subscribes_the_key_to_events() {
+        let dir = std::env::temp_dir().join(format!("fl-prog-{}", uuid::Uuid::new_v4()));
+        let c = Core::new(dir.clone(), Instant::now(), false).unwrap();
+        let mut rx = c.subscribe();
+        let p = progress_for(&c, "inst-7");
+        p.set_stage("game");
+        match rx.blocking_recv().unwrap() {
+            crate::events::Event::GameProgress { key, progress } => {
+                assert_eq!(key, "inst-7");
+                assert_eq!(progress["stage"].as_str(), Some("game"));
+            }
+            ev => panic!("unexpected event: {ev:?}"),
+        }
+        let _ = fs::remove_dir_all(&dir);
     }
 }

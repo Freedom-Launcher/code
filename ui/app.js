@@ -4,6 +4,30 @@ const { invoke } = window.__TAURI__.core;
 const { $, $$, toast, progress, openDlg, closeDlg, closeMenu, swapText } = window.FUI;
 const call = (name, args = null) => invoke('action', { name, args });
 
+// Core state arrives as push events on one Tauri topic; the UI keeps no
+// background timers for it (game.running/game.progress stay for the first
+// snapshot and manual resyncs). Progress watchers are keyed exactly like the
+// `game.progress` `instance` argument, so modules switch to them one by one.
+const { listen } = window.__TAURI__?.event ?? {};
+const FProgress = {
+  watchers: new Map(),
+  watch(key, fn) { this.watchers.set(key, fn); },
+  unwatch(key) { this.watchers.delete(key); },
+};
+if (typeof listen === 'function') {
+  listen('fl:core', (e) => onCoreEvent(e.payload)).catch(() => {});
+}
+function onCoreEvent(p) {
+  if (!p) return;
+  switch (p.kind) {
+    case 'game_running': applyRunning({ running: p.running || [], starting: p.starting || [] }); break;
+    // The following game_running reports it (FCrash, FAddons).
+    case 'game_exit': (S.exits ||= {})[p.instance] = p.exit; break;
+    case 'game_progress': FProgress.watchers.get(p.key)?.(p.progress); break;
+    case 'resync': refreshRunning(); break;
+  }
+}
+
 const S = { accounts: { accounts: [], selected: null, offline_available: false }, instances: [], current: null, playing: null, running: [], view: 'empty' };
 const KIND = { microsoft: 'Microsoft', offline: _t("Офлайн"), provider: _t("Сервис") };
 const STAGE = { idle: _t("Подготовка"), loader: _t("Готовим загрузчик…"), java: 'Java', version: _t("Версия"), libraries: _t("Библиотеки"), assets: _t("Ресурсы"), natives: _t("Нативные файлы"), launch: _t("Запуск"), backup: _t("Резервная копия мира…"), done: _t("Готово") };
@@ -525,7 +549,6 @@ async function runImport(stage) {
   const btn = $('#c-import');
   const box = $('#c-import-status');
   const form = $('#create-form');
-  let poll = 0;
   let token = null;
   const busy = (on) => {
     form.classList.toggle('is-importing', on);
@@ -540,9 +563,7 @@ async function runImport(stage) {
     $('#ci-stage').textContent = IMPORT_STAGE.prepare;
     $('#ci-count').textContent = '';
     progress($('#ci-bar'), null);
-    poll = setInterval(async () => {
-      const p = await call('game.progress', { instance: token }).catch(() => null);
-      if (!p) return;
+    FProgress.watch(token, (p) => {
       $('#ci-stage').textContent = IMPORT_STAGE[p.stage] || IMPORT_STAGE.prepare;
       if (p.total_bytes > 0) {
         progress($('#ci-bar'), p.done_bytes / p.total_bytes);
@@ -551,9 +572,9 @@ async function runImport(stage) {
         progress($('#ci-bar'), p.done_files / p.total_files);
         $('#ci-count').textContent = `${p.done_files} / ${p.total_files}`;
       }
-    }, 250);
+    });
     const created = await call('instances.import_mrpack', { token });
-    clearInterval(poll);
+    FProgress.unwatch(token);
     progress($('#ci-bar'), 1);
     await applyCreateArt(created.id);
     S.instances = await call('instances.list');
@@ -565,7 +586,7 @@ async function runImport(stage) {
     btn.dataset.state = 'error';
     toast(String(e), { error: true });
   } finally {
-    clearInterval(poll);
+    FProgress.unwatch(token);
     busy(false);
   }
 }
@@ -680,7 +701,13 @@ function setRunning() {
 async function refreshRunning() {
   const r = await call('game.running').catch(() => null);
   if (!r) return;
-  S.exits = r.exits || {};
+  applyRunning(r);
+}
+// Applies one game.running snapshot — from the action above, or from a
+// `game_running` event (whose exits were already stored by `game_exit`, so
+// `r.exits` is optional here). Idempotent: no diff, no repaint.
+function applyRunning(r) {
+  S.exits = r.exits || S.exits || {};
   const next = r.running || [];
   if (next.join() !== S.running.join()) window.FCrash?.exited(S.exits);
   if (next.join() === S.running.join()) return;
@@ -690,7 +717,9 @@ async function refreshRunning() {
   renderInstances();
   if (S.view === 'instance') renderInstancePage();
 }
-setInterval(() => { if (!document.hidden) refreshRunning(); }, 2000);
+// The core pushes changes, but a throttled hidden window can lag behind:
+// catch up when it becomes visible again.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshRunning(); });
 async function stopGame(id = S.current) {
   if (!id) return;
   await call('game.stop', { instance: id }).catch((e) => toast(String(e), { error: true }));
@@ -714,9 +743,7 @@ async function play(id = S.current, launch = true, stay = false, opts = {}) {
   btn.dataset.state = 'loading';
   $('#play-status').hidden = false;
   progress($('#ps-bar'), null);
-  const poll = setInterval(async () => {
-    const p = await call('game.progress', { instance: id }).catch(() => null);
-    if (!p) return;
+  FProgress.watch(id, (p) => {
     $('#ps-stage').textContent = STAGE[p.stage] || p.stage;
     if (p.total_bytes > 0) {
       progress($('#ps-bar'), p.done_bytes / p.total_bytes);
@@ -725,7 +752,7 @@ async function play(id = S.current, launch = true, stay = false, opts = {}) {
       progress($('#ps-bar'), p.done_files / p.total_files);
       $('#ps-count').textContent = `${p.done_files} / ${p.total_files}`;
     }
-  }, 250);
+  });
   let launched = null;
   try {
     await call('game.install', { instance: id, verify: !launch });
@@ -750,7 +777,7 @@ async function play(id = S.current, launch = true, stay = false, opts = {}) {
     if (launch) window.FAddons?.emit('game.failed', { instance: id });
     toast(String(e), { error: true });
   } finally {
-    clearInterval(poll);
+    FProgress.unwatch(id);
     S.playing = null;
     setRunning();
     renderInstances();

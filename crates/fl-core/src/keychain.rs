@@ -8,7 +8,20 @@ use crate::accounts::Secrets;
 
 /// Whether the keychain should be tried at all.
 pub fn available() -> bool {
-    !disabled(std::env::var("FL_NO_KEYCHAIN").ok().as_deref()) && imp::available()
+    #[cfg(test)]
+    {
+        // This crate's own unit tests never touch the real user keychain: fake
+        // account secrets would land in it for real, and tests sharing an
+        // account id would overwrite each other's credentials. Secrets then
+        // stay in the test's own accounts.json, which is what they assert on.
+        // The integration tests in `tests/` compile fl-core as a dependency,
+        // where this `cfg(test)` is off, so they still exercise the real thing.
+        return false;
+    }
+    #[allow(unreachable_code)]
+    {
+        !disabled(std::env::var("FL_NO_KEYCHAIN").ok().as_deref()) && imp::available()
+    }
 }
 
 fn disabled(env: Option<&str>) -> bool {

@@ -134,13 +134,12 @@
     $('#fc-status').hidden = false;
     $('#fc-stage').textContent = _t("Читаем сборку"); $('#fc-count').textContent = '';
     progress($('#fc-bar'), null);
-    const poll = setInterval(async () => {
-      const p = await call('game.progress', { instance: token }).catch(() => null);
+    FProgress.watch(token, (p) => {
       if (!p || !(p.total_files > 0)) return;
       $('#fc-stage').textContent = _t("Скачиваем файлы");
       progress($('#fc-bar'), p.done_files / p.total_files);
       $('#fc-count').textContent = `${p.done_files} / ${p.total_files}`;
-    }, 250);
+    });
     try {
       const r = await call('instances.from_code', { code, name: $('#fc-name').value.trim() || null, token });
       progress($('#fc-bar'), 1);
@@ -154,7 +153,7 @@
       b.dataset.state = 'error';
       toast(_t(String(e).replace(/^Error:\s*/, '')), { error: true });
     } finally {
-      clearInterval(poll);
+      FProgress.unwatch(token);
       delete fc.dataset.busy;
       b.disabled = false;
     }
