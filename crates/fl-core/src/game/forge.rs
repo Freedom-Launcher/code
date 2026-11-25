@@ -367,8 +367,11 @@ mod tests {
         let l = Path::new("/l");
         assert_eq!(resolve_arg("{SIDE}", &vars, l).unwrap(), "client");
         assert_eq!(resolve_arg("'abc'", &vars, l).unwrap(), "abc");
+        // Paths come back in the platform's own separators; compare with `/`.
         assert_eq!(
-            resolve_arg("[net.minecraft:client:1.21.4:mappings@tsrg]", &vars, l).unwrap(),
+            resolve_arg("[net.minecraft:client:1.21.4:mappings@tsrg]", &vars, l)
+                .unwrap()
+                .replace('\\', "/"),
             "/l/net/minecraft/client/1.21.4/client-1.21.4-mappings.tsrg"
         );
     }

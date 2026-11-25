@@ -11,6 +11,19 @@
 - **M5 — release:** Tauri NSIS installer (per-user, no admin, WebView2 bootstrapper, uninstaller), `tauri-plugin-updater` on GitHub Releases with signed manifests, code signing, first-run guide inside the launcher, startup budget enforced in CI.
   - Done: NSIS per-user installer config (ru/en, WebView2 bootstrapper); first-run guide (sign in → look → first instance, `settings.onboarded`). Look settings moved into the core (`settings.set`). Waiting on a public repo: code signing (SignPath) and the updater endpoint on GitHub Releases.
 
+## Sign-in plugin hint on the accounts page (unreleased)
+
+- `addons.list` now says which plugins are sign-in plugins (`provider`). The accounts page shows «плагин входа установлен, но выключен» (or «ждёт подтверждения прав») with a button that opens that plugin's dialog, instead of showing nothing. Tested in `scripts/ui-plugins-updates-test.js` and the template test.
+
+## Release workflow (unreleased)
+
+- `.github/workflows/release.yml` (manual): checks the version against `tauri.conf.json`, tests, builds the signed NSIS installer on Windows and publishes through `scripts/release-push.sh`. Needs the secrets `TAURI_SIGNING_PRIVATE_KEY` (+ password) and `RELEASES_TOKEN`; without them it stops before building. Not run yet (no key available when it was written). `docs/RELEASING.md` has both ways.
+
+## Doctor: a switch and a small button (unreleased)
+
+- Settings → Параметры сборок → «Доктор сборок» turns the whole build doctor off: no automatic checks when a mod list opens, no check before a launch, no button, no menu entries. Remembered on this device (`fl.doctor`); the narrower «check before launch» choice in the doctor's dialog stays.
+- When it is on, the big red banner is gone: one small button «Доктор · N» (N = errors) on the right above the mod list, only when there are errors. A click opens the dialog with the details and «Исправить всё». `scripts/ui-doctor-test.js` (jsdom) covers the button, the switch and the launch path.
+
 ## Plugin folder = plugin id (unreleased)
 
 - The Ely.by template folder is now `docs/addons/elyby` (it was `yggdrasil-provider` with id `elyby`, which the launcher refuses when copied in by hand). The generator always creates `<--out>/<id>`; the developer link reports a folder whose name differs from the id; the core's message names both. Test: `the_folder_must_be_named_like_the_plugin_id`.

@@ -1,0 +1,64 @@
+# Release: builds the signed Windows installer and publishes it as a Release in Freedom-Launcher/releases,
+# which is where the in-app updater looks. Run it by hand: Actions -> release -> Run workflow.
+#
+# One-time setup (Settings -> Secrets and variables -> Actions -> New repository secret):
+#   TAURI_SIGNING_PRIVATE_KEY           the Tauri updater PRIVATE key (the one whose public key is in app/tauri.conf.json)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its password, if it has one
+#   RELEASES_TOKEN                      fine-grained token for Freedom-Launcher/releases, Contents: Read and write
+# Without the key nothing is signed and the updater would refuse the build, so the job stops before building.
+name: release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release; must equal app/tauri.conf.json"
+        required: true
+        default: "0.3.50"
+      notes:
+        description: "What is new (shown in the update dialog)"
+        required: false
+        default: "Темы могут переделать всё приложение, включая настройки; Ctrl+Alt+Shift+T возвращает стандартную тему. Темы спрашивают разрешение на запуск игры и вход, доверенным можно разрешить без вопросов. Вход через сторонние сервисы (Ely.by и другие) работает без Microsoft и сам продлевает сессию. Плагины можно ставить из любых репозиториев (источники), есть обновления плагинов и режим разработчика. Доктор сборок можно выключить, а проблемы показывает маленькая кнопка. Секреты на Linux в системном хранилище."
+permissions:
+  contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check version and secrets
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          set -eu
+          CONF=$(python -c "import json;print(json.load(open('app/tauri.conf.json',encoding='utf-8'))['version'])")
+          [ "$CONF" = "$VERSION" ] || { echo "::error::Version $VERSION is not the one in app/tauri.conf.json ($CONF)"; exit 1; }
+          [ -n "$KEY" ] || { echo "::error::Add the repository secret TAURI_SIGNING_PRIVATE_KEY (the Tauri updater private key)"; exit 1; }
+          [ -n "$TOKEN" ] || { echo "::error::Add the repository secret RELEASES_TOKEN (Contents: write on Freedom-Launcher/releases)"; exit 1; }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+      - name: Tests (what CI runs, so a broken main is not shipped)
+        run: cargo test -p fl-core
+      - name: Build the signed installer
+        working-directory: app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: cargo tauri build --target x86_64-pc-windows-msvc --bundles nsis
+      - name: Publish to Freedom-Launcher/releases
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          NOTES: ${{ inputs.notes }}
+          PYTHON: python
+          RELEASES_REMOTE: https://x-access-token:${{ secrets.RELEASES_TOKEN }}@github.com/Freedom-Launcher/releases.git
+          GIT_NAME: Freedom Launcher release
+          GIT_EMAIL: release@freedom-launcher.local
+        run: sh scripts/release-push.sh "$VERSION" "$NOTES"

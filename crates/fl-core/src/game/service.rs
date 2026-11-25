@@ -278,7 +278,7 @@ async fn start(
         install_instance(core, &inst.id, false).await?;
     }
     let v = loader::resolve(core, &layout, inst).await?;
-    let global: crate::settings::Settings = store::load(&core.path("settings.json"))?;
+    let global = core.settings()?;
     let merged = inst.settings.over(&global.game);
     let set = &merged;
     let java = match set

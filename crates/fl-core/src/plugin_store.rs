@@ -249,7 +249,12 @@ pub(crate) async fn update_json<T: Serialize + serde::de::DeserializeOwned + Def
     let _g = c.state_lock.lock().await;
     let mut v: T = crate::store::load(&c.path(file))?;
     f(&mut v);
-    crate::store::save(&c.path(file), &v, false)
+    crate::store::save(&c.path(file), &v, false)?;
+    // Sources and dev links live in the settings: the memoized copy must not outlive them.
+    if file == crate::SETTINGS {
+        c.invalidate_settings();
+    }
+    Ok(())
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -484,8 +489,7 @@ async fn catalog_with<F: Fetch>(
     refresh: bool,
     official: bool,
 ) -> Result<Catalog, CoreError> {
-    let settings: crate::settings::Settings =
-        crate::store::load(&c.path(SETTINGS_FILE)).unwrap_or_default();
+    let settings = c.settings().map(|s| s.as_ref().clone()).unwrap_or_default();
     let off = if official {
         official_catalog(c, refresh).await
     } else {
@@ -552,8 +556,7 @@ async fn add_source_with<F: Fetch>(
     input: &str,
 ) -> Result<Vec<crate::settings::PluginSource>, CoreError> {
     let url = resolve_source(input)?;
-    let mut st: crate::settings::Settings =
-        crate::store::load(&c.path(SETTINGS_FILE)).unwrap_or_default();
+    let mut st = c.settings().map(|s| s.as_ref().clone()).unwrap_or_default();
     if st.plugin_sources.iter().any(|s| s.url == url) {
         return Ok(st.plugin_sources);
     }

@@ -133,7 +133,7 @@ function show(view, defer) {
   if (view === 'settings') (defer ? run : requestAnimationFrame)(() => { window.FSettings?.shown(); $('#cover-seg')._place?.(false); $('#panels-seg')._place?.(false); $('#density-seg')._place?.(false); $('#wall-seg')._place?.(false); $('#browse-seg')._place?.(false); });
   if (view === 'home') renderHome(true);
   if (view === 'create') prepareCreate();
-  if (view === 'accounts') run(() => { renderAccountsPage(); loadProviders(); });
+  if (view === 'accounts') run(() => { renderAccountsPage(); loadProviders(); renderProviderHints(); });
   if (view === 'discover') run(() => window.FMods?.discover());
   if (view === 'skins') run(() => window.FSkins?.shown());
   window.FAddons?.shown?.(view);
@@ -584,6 +584,18 @@ function renderAccountsPage() {
   }));
   if (!st.accounts.length) $('#acc-page').append(el('div', { class: 'acc-none' }, el('b', {}, _t("Аккаунтов пока нет")), el('span', {}, _t("Войдите через Microsoft, чтобы играть на серверах и менять скин."))));
   $('#acc-offline').hidden = !st.offline_available;
+}
+// A sign-in plugin that is installed but not switched on shows nothing on this page: say so, with a way in.
+function renderProviderHints() {
+  const box = $('#acc-hints');
+  if (!box) return;
+  const hints = window.FAddons?.providerHints?.() || [];
+  box.replaceChildren(...hints.map((h) => {
+    const b = el('button', { type: 'button', class: 'btn btn-primary' }, el('span', { class: 'lbl' }, h.pending ? _t("Подтвердить права") : _t("Включить")));
+    b.addEventListener('click', () => { show('plugins', true); window.FAddons.reveal(h.id); });
+    const text = h.pending ? _t("«{0}»: плагин входа ждёт подтверждения прав", [h.label]) : _t("«{0}»: плагин входа установлен, но выключен", [h.label]);
+    return el('div', { class: 'acc-hint' }, el('span', null, text), b);
+  }));
 }
 /** Provider accounts show the service name from their addon. */
 const PROVIDERS = new Map();
@@ -1184,6 +1196,7 @@ function applyLook() {
   $('#fx-motion').checked = document.documentElement.dataset.motion !== 'off';
   $('#sec-confirm').checked = S.themeConfirm !== false;
   $('#dev-mode').checked = !!S.devMode;
+  $('#doctor-on').checked = window.FDoctor ? window.FDoctor.isOn() : localStorage.getItem('fl.doctor') !== 'off';
   document.documentElement.dataset.fx = fxLite() ? 'lite' : 'full';
   $('#fx-lite').checked = fxLite();
   document.documentElement.dataset.cover = S.look.cover;
@@ -1222,6 +1235,7 @@ $('#fx-motion').addEventListener('change', (e) => { setMotion(e.target.checked);
 // native dialog (a theme's CSS can cover this switch, but not that dialog). Turning on needs no ask.
 // Developer mode: a «Разработка» tab in plugins (see addons.js). Harmless to switch on: linked plugins
 // are still ordinary community plugins that need approval.
+$('#doctor-on').addEventListener('change', (e) => window.FDoctor?.setEnabled(e.target.checked));
 $('#dev-mode').addEventListener('change', async (e) => {
   const box = e.target, on = box.checked;
   try { await call('settings.set', { developer_mode: on }); S.devMode = on; FAddons.setDev(on); }

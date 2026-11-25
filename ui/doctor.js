@@ -15,7 +15,10 @@
     shield: sv('<path d="M12 3 5 6v5.5c0 4.3 3 8.1 7 9.5 4-1.4 7-5.2 7-9.5V6l-7-3z"/><path d="m9 12 2.2 2.2L15.5 10"/>'),
   };
   const LOCAL = new Set(['disable', 'enable', 'move']);
-  const enabled = () => localStorage.getItem('fl.doctor.launch') !== 'off';
+  // The whole doctor can be switched off (Settings → Параметры сборок): no automatic checks, no button, no check
+  // before launch. `fl.doctor.launch` is the narrower choice inside the dialog (only the check before a launch).
+  const isOn = () => localStorage.getItem('fl.doctor') !== 'off';
+  const enabled = () => isOn() && localStorage.getItem('fl.doctor.launch') !== 'off';
   const reports = new Map();
   let cur = null, data = null, seq = 0, mode = 'view', pending = null, busy = false, scan = null;
 
@@ -54,6 +57,7 @@
     return r;
   }
   async function refresh(id) {
+    if (!isOn()) return;
     if (!id || loaderOf(id) === 'vanilla') { reports.delete(id); return; }
     try { await check(id); } catch { reports.delete(id); }
   }
@@ -96,16 +100,27 @@
   }
 
   // ---------- Strip in the «Контент» tab ----------
+  // A small button, not a banner: it only says that the doctor found something and how many things; the
+  // details and «Исправить всё» are one click away in the dialog. Nothing at all when everything is fine.
   function strip(id, { skipDup = false } = {}) {
+    if (!isOn()) return null;
     const errs = errors(reports.get(id)).filter((i) => !(skipDup && i.kind === 'duplicate'));
     if (!errs.length) return null;
-    const [title] = describe(errs[0], id);
-    const fixable = errs.filter(autoFix);
-    return el('div', { class: 'ct-dupes ct-doc' },
-      el('div', { class: 'ct-dupes-b' }, el('b', {}, _t("Доктор нашёл проблемы в модах")),
-        el('span', {}, errs.length > 1 ? _t("{0} и ещё {1}", [title, errs.length - 1]) : title)),
-      el('div', { class: 'ct-dupes-acts' }, btn(_t("Подробнее"), () => open(id)),
-        fixable.length ? btn(_t("Исправить всё"), (b) => fixAll(id, fixable, b), 'btn-primary') : null));
+    const b = el('button', { type: 'button', class: 'btn btn-sm ct-doc-btn', title: _t("Доктор нашёл проблемы в модах") },
+      el('i', { class: 'ct-doc-dot', 'aria-hidden': 'true' }),
+      el('span', { class: 'lbl' }, `${_t("Доктор")} · ${errs.length}`));
+    b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); open(id); });
+    return el('div', { class: 'ct-doc-row' }, b);
+  }
+
+  // Turning the doctor off or on: the button and the menu entries follow at once.
+  function showMenus(on) { for (const id of ['cx-doctor', 'mi-doctor']) { const m = $('#' + id); if (m) m.hidden = !on; } }
+  function setEnabled(on) {
+    localStorage.setItem('fl.doctor', on ? 'on' : 'off');
+    showMenus(on);
+    if (!on) { reports.clear(); if (dlg.hasAttribute('data-open')) closeDlg(); }
+    const reload = () => { if (S.view === 'instance') window.FContent?.reload(); };
+    if (on && S.current) refresh(S.current).then(reload); else reload();
   }
 
   // ---------- Dialog ----------
@@ -192,7 +207,7 @@
   function settle(v) { const p = pending; pending = null; p?.(v); }
   // Resolves to false when the player chose not to start the game.
   async function beforeLaunch(id) {
-    if (!enabled()) return true;
+    if (!enabled()) return true; // off entirely, or only the check before a launch is off
     if (busy) return false;
     if (loaderOf(id) === 'vanilla') return true;
     busy = true;
@@ -213,5 +228,6 @@
   skip.addEventListener('click', () => { settle(true); closeDlg(); });
   new MutationObserver(() => { if (!dlg.hasAttribute('data-open')) settle(false); }).observe(dlg, { attributes: true, attributeFilter: ['data-open'] });
   $('#mi-doctor').addEventListener('click', () => { FUI.closeMenu(); open(actInst()); });
-  window.FDoctor = { open, strip, refresh, beforeLaunch, check };
+  showMenus(isOn());
+  window.FDoctor = { open, strip, refresh, beforeLaunch, check, isOn, setEnabled };
 })();

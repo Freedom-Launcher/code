@@ -150,7 +150,7 @@ fn mods_dir_state(inst: &Instance, gd: &std::path::Path) -> (Vec<String>, usize,
 
 pub async fn analyze(core: &Core, inst: &Instance) -> Result<Value, CoreError> {
     let gd = inst.game_dir(&core.instances_root());
-    let global: crate::settings::Settings = store::load(&core.path("settings.json"))?;
+    let global = core.settings()?;
     let merged = inst.settings.over(&global.game);
     let total = launch::total_ram_mb();
     let (files, count, ids) = mods_dir_state(inst, &gd);

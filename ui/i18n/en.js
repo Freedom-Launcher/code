@@ -1,5 +1,11 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Подтвердить права": "Approve permissions",
+"«{0}»: плагин входа ждёт подтверждения прав": "“{0}”: the sign-in plugin is waiting for its permissions to be approved",
+"«{0}»: плагин входа установлен, но выключен": "“{0}”: the sign-in plugin is installed but switched off",
+"Доктор": "Doctor",
+"Доктор сборок": "Build doctor",
+"Ищет в модах повреждённые файлы, дубли и несовместимости и показывает маленькую кнопку, если что-то нашёл. Если выключить, проверки не запускаются, кнопка и пункты меню пропадают, а перед запуском ничего не проверяется.": "Looks for broken files, duplicates and incompatibilities in mods and shows a small button when it finds something. If you turn it off, no checks run, the button and menu entries disappear, and nothing is checked before a launch.",
 "Папка с плагином": "Plugin folder",
 "Где создать папку плагина": "Where to create the plugin folder",
 "Введите название и идентификатор (a-z, 0-9, «-»)": "Enter a name and an id (a-z, 0-9, “-”)",

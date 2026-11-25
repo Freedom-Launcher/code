@@ -24,6 +24,19 @@ service can show. Tick them before publishing a release (`scripts/release-feed.s
 - [ ] Sign in with a real Ely.by account (also one with two-factor): the account appears; start the game with it; skin and cape show up in game.
 - [ ] Next day (or after changing the system clock) start again: no new sign-in is asked, the token was refreshed by the launcher.
 
+- [ ] Ely.by plugin installed but not switched on: the accounts page says so («плагин входа установлен, но выключен») and the button leads to switching it on.
+- [ ] The sign-in page of the plugin looks right in the light and the dark theme, the 2FA field is hidden until the service asks, and the «Войти» button and Enter both work.
+
+## Plugin sources, updates, developer mode
+- [ ] Плагины → Каталог → «Добавить источник» with a real repository (`владелец/репозиторий` with a `freedom-plugins.json`): its plugins appear marked «Сообщество»; the chips filter by source; removing the source removes them.
+- [ ] Install a plugin from that source, then publish a higher version there: the banner «Доступны обновления» and «Обновить до vX» appear, the update installs, a new permission waits for approval.
+- [ ] Settings → Плагины → «Режим разработчика»: the «Разработка» tab appears; «Создать плагин…» makes a folder named like its id; edit a file and the plugin reloads within a second; a deliberate error shows in the log.
+- [ ] A linked folder with a name different from its id shows the error and installs nothing.
+
+## Doctor
+- [ ] A build with a broken or duplicate mod shows the small «Доктор · N» button (not a red banner); a click opens the details and «Исправить всё».
+- [ ] Settings → Параметры сборок → «Доктор сборок» off: no button, no menu entries, no check before launch; on again: they return.
+
 ## Other systems
 - [ ] Linux or macOS with a keyring: `cargo test -p fl-core --test keychain_live -- --ignored --test-threads=1` passes, and `accounts.json` holds no tokens.
 - [ ] Windows without a Mojang Java runtime for the chosen version: the launcher installs one and the game starts.
