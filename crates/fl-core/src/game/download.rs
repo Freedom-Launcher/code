@@ -19,7 +19,7 @@ use sha1::{Digest, Sha1};
 use crate::CoreError;
 
 pub const CONCURRENCY: usize = 8;
-const ATTEMPTS: u32 = 3;
+pub(crate) const ATTEMPTS: u32 = 3;
 
 #[derive(Debug, Clone)]
 pub struct Task {
@@ -178,16 +178,22 @@ pub fn is_valid(path: &Path, sha1: &str, size: u64) -> bool {
 }
 
 /// Downloads one file. `Ok(None)` means it was already valid and skipped.
-async fn fetch_one(http: &reqwest::Client, t: &Task) -> Result<Option<u64>, CoreError> {
+/// The last attempt may go to a mirror, per the rule (see `mirror`).
+async fn fetch_one(
+    http: &reqwest::Client,
+    t: &Task,
+    mirror: &crate::mirror::Rule,
+) -> Result<Option<u64>, CoreError> {
     if is_valid(&t.path, &t.sha1, t.size) {
         return Ok(None);
     }
+    let urls = crate::mirror::attempts(mirror, &t.url);
     let mut last = None;
-    for attempt in 0..ATTEMPTS {
+    for (attempt, url) in urls.iter().enumerate() {
         if attempt > 0 {
-            tokio::time::sleep(Duration::from_millis(500 * u64::from(attempt))).await;
+            tokio::time::sleep(Duration::from_millis(500 * u64::from(attempt as u32))).await;
         }
-        match try_fetch(http, t).await {
+        match try_fetch(http, url, t).await {
             Ok(n) => return Ok(Some(n)),
             Err(e) => last = Some(e),
         }
@@ -195,16 +201,16 @@ async fn fetch_one(http: &reqwest::Client, t: &Task) -> Result<Option<u64>, Core
     Err(last.unwrap_or_else(|| CoreError::msg("download failed")))
 }
 
-async fn try_fetch(http: &reqwest::Client, t: &Task) -> Result<u64, CoreError> {
+async fn try_fetch(http: &reqwest::Client, url: &str, t: &Task) -> Result<u64, CoreError> {
     let bytes = http
-        .get(&t.url)
+        .get(url)
         .send()
         .await?
         .error_for_status()?
         .bytes()
         .await?;
     if !t.sha1.is_empty() && !sha1_hex(&bytes).eq_ignore_ascii_case(&t.sha1) {
-        return Err(CoreError::msg(format!("checksum mismatch: {}", t.url)));
+        return Err(CoreError::msg(format!("checksum mismatch: {url}")));
     }
     write_atomic(&t.path, &bytes)?;
     Ok(bytes.len() as u64)
@@ -222,11 +228,13 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
 }
 
 /// Downloads all tasks, at most [`CONCURRENCY`] at a time. Fails on the first
-/// file that still fails after retries.
+/// file that still fails after retries. `mirror` decides whether a failing
+/// download retries against a mirror (see `crate::mirror`).
 pub async fn fetch_all(
     http: &reqwest::Client,
     tasks: Vec<Task>,
     progress: Arc<Progress>,
+    mirror: &crate::mirror::Rule,
 ) -> Result<(), CoreError> {
     progress
         .total_files
@@ -241,7 +249,7 @@ pub async fn fetch_all(
             async move {
                 // Skipped files leave the byte totals, so the bar shows only
                 // what is really downloaded (not a fake "re-download").
-                match fetch_one(http, &t).await? {
+                match fetch_one(http, &t, mirror).await? {
                     Some(n) => progress.file_done(n),
                     None => progress.file_skipped(t.size),
                 }
@@ -346,7 +354,12 @@ mod tests {
             sha1: "a9993e364706816aba3e25717850c26c9cd0d89d".into(),
             size: 3,
         };
-        fetch_all(&reqwest::Client::new(), vec![task], Arc::clone(&progress))
+        fetch_all(
+            &reqwest::Client::new(),
+            vec![task],
+            Arc::clone(&progress),
+            &crate::mirror::Rule::Never,
+        )
             .await
             .unwrap();
         assert_eq!(progress.done_files.load(Ordering::Relaxed), 1);

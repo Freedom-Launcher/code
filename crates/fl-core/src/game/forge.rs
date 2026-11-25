@@ -247,7 +247,8 @@ pub async fn post_install(
             }
         }
     }
-    download::fetch_all(core.http(), tasks, Arc::clone(&progress)).await?;
+    let mirror = crate::mirror::rule(core);
+    download::fetch_all(core.http(), tasks, Arc::clone(&progress), &mirror).await?;
 
     let tmp = layout.root.join("tmp").join(inst.version_id());
     let s = |p: &Path| p.to_string_lossy().into_owned();

@@ -150,26 +150,17 @@ async fn from_mojang(
     progress: Arc<Progress>,
 ) -> Result<(), CoreError> {
     let http = core.http();
-    let all: BTreeMap<String, BTreeMap<String, Vec<RuntimeEntry>>> = http
-        .get(RUNTIMES_URL)
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
+    let mirror = crate::mirror::rule(core);
+    let all: BTreeMap<String, BTreeMap<String, Vec<RuntimeEntry>>> = serde_json::from_slice(
+        &crate::mirror::get_with_fallback(http, &mirror, RUNTIMES_URL).await?,
+    )?;
     let entry = all
         .get(platform_key(env))
         .and_then(|p| p.get(component))
         .and_then(|v| v.first())
         .ok_or_else(|| CoreError::msg(format!("no {component} for {}", platform_key(env))))?;
 
-    let bytes = http
-        .get(&entry.manifest.url)
-        .send()
-        .await?
-        .error_for_status()?
-        .bytes()
-        .await?;
+    let bytes = crate::mirror::get_with_fallback(http, &mirror, &entry.manifest.url).await?;
     if !entry.manifest.sha1.is_empty()
         && !download::sha1_hex(&bytes).eq_ignore_ascii_case(&entry.manifest.sha1)
     {
@@ -178,7 +169,7 @@ async fn from_mojang(
     let files: FileManifest = serde_json::from_slice(&bytes)?;
 
     let (tasks, executables, links) = plan(&files, dir);
-    download::fetch_all(http, tasks, progress).await?;
+    download::fetch_all(http, tasks, progress, &mirror).await?;
     finish(dir, &executables, &links)?;
     fs::write(dir.join(".version"), &entry.version.name)?;
     Ok(())

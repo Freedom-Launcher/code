@@ -66,13 +66,6 @@ pub async fn manifest(core: &Core) -> Result<Value, CoreError> {
 }
 
 async fn fetch(core: &Core) -> Result<Vec<u8>, CoreError> {
-    Ok(core
-        .http()
-        .get(MANIFEST_URL)
-        .send()
-        .await?
-        .error_for_status()?
-        .bytes()
-        .await?
-        .to_vec())
+    let rule = crate::mirror::rule(core);
+    crate::mirror::get_with_fallback(core.http(), &rule, MANIFEST_URL).await
 }

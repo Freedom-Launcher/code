@@ -29,15 +29,8 @@ fn meta_base(loader: &str) -> Option<&'static str> {
 }
 
 pub(super) async fn get(core: &Core, url: &str) -> Result<Vec<u8>, CoreError> {
-    Ok(core
-        .http()
-        .get(url)
-        .send()
-        .await?
-        .error_for_status()?
-        .bytes()
-        .await?
-        .to_vec())
+    let rule = crate::mirror::rule(core);
+    crate::mirror::get_with_fallback(core.http(), &rule, url).await
 }
 
 /// Newest stable Fabric loader for a game version (the newest of any kind
