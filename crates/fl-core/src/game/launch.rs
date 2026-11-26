@@ -289,7 +289,12 @@ pub fn spawn(
         const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
         const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x0100_0000;
         // Break away from the launcher's job so closing the launcher doesn't kill the game.
-        cmd.creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB);
+        cmd.creation_flags(
+            CREATE_NO_WINDOW
+                | DETACHED_PROCESS
+                | CREATE_NEW_PROCESS_GROUP
+                | CREATE_BREAKAWAY_FROM_JOB,
+        );
         if let Ok(c) = cmd.spawn() {
             return Ok(c);
         }

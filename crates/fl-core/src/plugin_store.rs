@@ -1161,7 +1161,6 @@ mod sources {
 #[cfg(test)]
 mod end_to_end_support {
     pub use super::end_to_end::{archive, core, sha, Web, ZIP};
-    use super::*;
 
     pub fn manifest_v(id: &str, version: &str, perms: &str) -> String {
         format!(r#"{{"id":"{id}","name":"Demo","version":"{version}","permissions":[{perms}]}}"#)

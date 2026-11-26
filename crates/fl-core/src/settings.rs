@@ -197,6 +197,7 @@ impl Default for Settings {
             javas: BTreeMap::new(),
             colors: BTreeMap::new(),
             mirror: "auto".into(),
+            discord: false,
         }
     }
 }

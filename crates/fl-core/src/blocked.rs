@@ -184,7 +184,7 @@ mod tests {
         save(&gd, &list).unwrap();
         std::fs::write(dl.join("Structory_1.20.1 (1).jar"), &body).unwrap();
         std::fs::write(dl.join("o.jar"), b"bad").unwrap(); // right name, wrong hash
-        let (found, left) = resolve(&gd, &[dl.clone()]).unwrap();
+        let (found, left) = resolve(&gd, std::slice::from_ref(&dl)).unwrap();
         assert_eq!(found, ["Structory"]);
         assert_eq!(left.len(), 1);
         assert_eq!(
