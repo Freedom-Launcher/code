@@ -1,5 +1,14 @@
 // Generated: Russian source text -> en.
 window.FL_DICT = {
+"Источник загрузки": "Download source",
+"Откуда скачиваются файлы игры. «Автоматически» — серверы Mojang, а если они не отвечают — зеркало BMCLAPI. Каждый файл проверяется по SHA1.": "Where the game's files are downloaded from. “Automatic” means Mojang's servers, and the BMCLAPI mirror if they do not answer. Every file is checked against its SHA1.",
+"Автоматически": "Automatic",
+"Серверы Mojang": "Mojang servers",
+"Зеркало BMCLAPI": "BMCLAPI mirror",
+"Своё зеркало": "Own mirror",
+"Адрес зеркала": "Mirror address",
+"Зеркало с той же структурой ссылок, что у BMCLAPI: https-адрес без пути.": "A mirror with the same link layout as BMCLAPI: an https address without a path.",
+"Нужен https-адрес без пути, например https://mirror.example.org": "Enter an https address without a path, for example https://mirror.example.org",
 "Подтвердить права": "Approve permissions",
 "«{0}»: плагин входа ждёт подтверждения прав": "“{0}”: the sign-in plugin is waiting for its permissions to be approved",
 "«{0}»: плагин входа установлен, но выключен": "“{0}”: the sign-in plugin is installed but switched off",

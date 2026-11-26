@@ -253,6 +253,39 @@
     pick.addEventListener('focus', fill);
     return r;
   }
+  // ---------- Download source: Mojang's servers or a mirror ----------
+  // The rule lives in settings.mirror. The core rewrites only the known game-file hosts, and
+  // every file keeps its SHA1 check, so a mirror cannot hand over a broken or altered file.
+  function mirrorRows(current) {
+    const row = $('#gs-mirror-row');
+    if (!row) return [];
+    const PRESETS = ['auto', 'mojang', 'bmclapi'];
+    const isOwn = (m) => !!m && !PRESETS.includes(m);
+    const sel = $('#gs-mirror', row);
+    const url = el('input', { class: 'field mono', placeholder: 'https://mirror.example.org', spellcheck: false, autocomplete: 'off', 'aria-label': _t("Адрес зеркала") });
+    const save = el('button', { type: 'button', class: 'btn btn-sm' }, el('span', { class: 'lbl' }, _t("Сохранить")));
+    const own = el('div', { class: 'r', 'data-id': 'settings.game.mirror.own' },
+      el('div', { class: 'grow' }, el('div', { class: 't' }, _t("Адрес зеркала")),
+        el('div', { class: 's' }, _t("Зеркало с той же структурой ссылок, что у BMCLAPI: https-адрес без пути."))), url, save);
+    const set = (node, v) => run(node, 'settings.set', { mirror: v }).catch(() => { /* toast shown */ });
+    sel.value = PRESETS.includes(current) ? current : isOwn(current) ? 'custom' : 'auto';
+    url.value = isOwn(current) ? current : '';
+    own.hidden = !isOwn(current);
+    sel.addEventListener('change', () => {
+      own.hidden = sel.value !== 'custom';
+      if (sel.value === 'custom') url.focus(); else set(sel, sel.value);
+    });
+    const submit = () => {
+      const v = url.value.trim();
+      // The shape the core accepts: https, a host, nothing after it.
+      if (!/^https:\/\/[^\s/?#]+\/?$/.test(v)) { toast(_t("Нужен https-адрес без пути, например https://mirror.example.org"), { error: true }); return; }
+      set(save, v);
+    };
+    save.addEventListener('click', submit);
+    url.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+    return [row, own];
+  }
+
   async function build() {
     const [s0, mem] = await Promise.all([call('settings.get').catch(() => null), call('system.memory').catch(() => null)]);
     const s = s0 || {};
@@ -268,7 +301,7 @@
       ...sec(_t("Резервные копии миров"), ...bkRows()),
       ...sec(_t("Новые сборки"), tplRow()),
       ...sec(_t("Хуки запуска"), hooksBlock()),
-      ...sec(_t("Ресурсы"), ...(root ? [root] : [])),
+      ...sec(_t("Ресурсы"), ...(root ? [root] : []), ...mirrorRows(s.mirror)),
     );
     MAJORS.forEach(paintJava);
   }

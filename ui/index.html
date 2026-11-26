@@ -640,6 +640,8 @@
               <div class="r gs-root" id="gs-root-row" data-id="settings.game.root"><div class="grow"><div class="t">Папка сборок</div><div class="s" id="gs-root"></div><div class="progress gs-root-prog" id="gs-root-prog" hidden><i></i></div></div>
                 <button class="btn btn-ghost" id="gs-root-reset" hidden><span class="lbl">По умолчанию</span></button>
                 <button class="btn" id="gs-root-pick"><span class="lbl">Изменить</span></button></div>
+              <div class="r" id="gs-mirror-row" data-id="settings.game.mirror"><div class="grow"><div class="t">Источник загрузки</div><div class="s">Откуда скачиваются файлы игры. «Автоматически» — серверы Mojang, а если они не отвечают — зеркало BMCLAPI. Каждый файл проверяется по SHA1.</div></div>
+                <select class="field gs-sel" id="gs-mirror" aria-label="Источник загрузки"><option value="auto">Автоматически</option><option value="mojang">Серверы Mojang</option><option value="bmclapi">Зеркало BMCLAPI</option><option value="custom">Своё зеркало</option></select></div>
             </div>
           </div>
         </div>

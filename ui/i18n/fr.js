@@ -1,5 +1,14 @@
 // Generated: Russian source text -> fr.
 window.FL_DICT = {
+"Источник загрузки": "Source de téléchargement",
+"Откуда скачиваются файлы игры. «Автоматически» — серверы Mojang, а если они не отвечают — зеркало BMCLAPI. Каждый файл проверяется по SHA1.": "D'où viennent les fichiers du jeu. « Automatique » : les serveurs de Mojang, puis le miroir BMCLAPI s'ils ne répondent pas. Chaque fichier est vérifié par SHA1.",
+"Автоматически": "Automatique",
+"Серверы Mojang": "Serveurs Mojang",
+"Зеркало BMCLAPI": "Miroir BMCLAPI",
+"Своё зеркало": "Miroir personnel",
+"Адрес зеркала": "Adresse du miroir",
+"Зеркало с той же структурой ссылок, что у BMCLAPI: https-адрес без пути.": "Un miroir avec la même structure de liens que BMCLAPI : une adresse https sans chemin.",
+"Нужен https-адрес без пути, например https://mirror.example.org": "Saisissez une adresse https sans chemin, par exemple https://mirror.example.org",
 "Тема из файла": "Thème depuis un fichier",
 "Файл .fltheme можно просто перетащить в окно": "Vous pouvez aussi glisser un fichier .fltheme dans la fenêtre",
 "Установить…": "Installer…",
