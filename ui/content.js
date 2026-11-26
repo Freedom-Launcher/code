@@ -338,16 +338,17 @@
 
   function paintFilter() {
     const pop = $('#pop-ct-filter');
-    const opt = (set, key, label, n, lead) => {
+    const opt = (set, key, label, n, lead, off = false) => {
       const on = set.has(key);
-      const b = el('button', { type: 'button', class: 'ct-opt', role: 'menuitemcheckbox', 'aria-checked': String(on) },
+      const b = el('button', { type: 'button', class: `ct-opt${off ? ' is-off' : ''}`, role: 'menuitemcheckbox', 'aria-checked': String(on), disabled: off || undefined },
         el('i', { class: 'ct-box', html: I.check }), lead || null, el('span', { class: 'ct-opt-t' }, label), el('span', { class: 'ct-opt-n' }, String(n)));
-      b.addEventListener('click', () => { if (!set.delete(key)) set.add(key); paint(); paintFilter(); });
+      if (!off) b.addEventListener('click', () => { if (!set.delete(key)) set.add(key); paint(); paintFilter(); });
       return b;
     };
     const base = (skip) => items.filter((m) => pillOk(m) && passes(m, skip));
-    // An option that matches everything (or nothing) filters nothing — hidden, as in Modrinth.
+    // Hide options that match everything or nothing, but keep sections visible when data exists.
     const useful = (set, key, n, total) => set.has(key) || (n > 0 && n < total);
+    const known = (set, key, n) => set.has(key) || n > 0;
     const secs = [];
     const ab = base('author');
     const authors = new Map();
@@ -366,11 +367,11 @@
       secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, _t("Автор")), q, list));
     }
     const eb = base('env');
-    const eopts = Object.entries(ENV).map(([k, t]) => [k, t, eb.filter((m) => envOf(m) === k).length]).filter(([k, , n]) => useful(f.env, k, n, eb.length));
-    if (eopts.length) secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, _t("Окружение")), ...eopts.map(([k, t, n]) => opt(f.env, k, t, n))));
-    const popts = Object.entries(PROPS).map(([k, t]) => { const pb = base(k); return [k, t, pb.filter((m) => has(m, k)).length, pb.length]; }).filter(([k, , n, tot]) => useful(f.props, k, n, tot));
-    if (popts.length) secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, _t("Свойства")), ...popts.map(([k, t, n]) => opt(f.props, k, t, n))));
-    if (!secs.length) secs.push(el('div', { class: 'ct-fnone' }, _t("Фильтровать нечего")));
+    const eopts = Object.entries(ENV).map(([k, t]) => [k, t, eb.filter((m) => envOf(m) === k).length]).filter(([k, , n]) => known(f.env, k, n));
+    if (eopts.length) secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, _t("Окружение")), ...eopts.map(([k, t, n]) => opt(f.env, k, t, n, null, !useful(f.env, k, n, eb.length)))));
+    const popts = Object.entries(PROPS).map(([k, t]) => { const pb = base(k); return [k, t, pb.filter((m) => has(m, k)).length, pb.length]; }).filter(([k, , n]) => known(f.props, k, n));
+    if (popts.length) secs.push(el('div', { class: 'ct-fsec' }, el('div', { class: 'menu-label' }, _t("Свойства")), ...popts.map(([k, t, n, tot]) => opt(f.props, k, t, n, null, !useful(f.props, k, n, tot)))));
+    if (!secs.length) secs.push(el('div', { class: 'ct-fnone' }, _t("Фильтры появятся после загрузки информации о модах")));
     const active = f.author.size + f.env.size + f.props.size;
     if (active) {
       const r = el('button', { type: 'button', class: 'btn btn-sm btn-ghost ct-freset' }, _t("Сбросить"));

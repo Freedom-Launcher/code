@@ -732,7 +732,6 @@ async function play(id = S.current, launch = true, stay = false, opts = {}) {
   if (launch && isRunning(id)) { toast(_t("Эта сборка уже запущена")); return; }
   if (launch && !S.accounts.selected) { toast(_t("Сначала войдите в аккаунт"), { error: true }); $('#account-btn').click(); return; }
   if (launch && window.FDoctor && !(await window.FDoctor.beforeLaunch(id))) return;
-  if (S.playing) return;
   const inst = byId(id);
   S.playing = id;
   S.current = id;
@@ -1022,8 +1021,8 @@ try { const m = sessionStorage.getItem('fl:toast'); if (m) { sessionStorage.remo
 
 // Look (wallpaper, glass, cover, palette) lives in the core (settings.look).
 // localStorage keeps a mirror so the first paint is right before the core answers.
-const LOOK_KEYS = { peek: 'fl.peek', wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', wall_zoom: 'fl.wall-zoom', wall_x: 'fl.wall-x', wall_y: 'fl.wall-y', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels', menu_density: 'fl.menu-a', menu_blur: 'fl.menu-blur', plate_size: 'fl.plate-size', plate_font: 'fl.plate-font', plate_weight: 'fl.plate-weight', plate_meta: 'fl.plate-meta', ui_font: 'fl.ui-font', font_stamp: 'fl.font-v', font_name: 'fl.font-name', density: 'fl.density', ui_scale: 'fl.ui-scale' };
-const LOOK_DEF = { peek: true, wall: 'cover', wall_stamp: 0, wall_blur: 22, wall_zoom: 100, wall_x: 50, wall_y: 50, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto', menu_density: 92, menu_blur: 24, plate_size: 100, plate_font: 'ui', plate_weight: 600, plate_meta: true, ui_font: 'inter', font_stamp: 0, font_name: '', density: 'normal', ui_scale: 100 };
+const LOOK_KEYS = { peek: 'fl.peek', wall: 'fl.wall', wall_stamp: 'fl.wall-v', wall_blur: 'fl.wall-blur', wall_zoom: 'fl.wall-zoom', wall_x: 'fl.wall-x', wall_y: 'fl.wall-y', glass_blur: 'fl.glass-blur', glass_density: 'fl.wall-glass', cover: 'fl.cover-size', palette_pos: 'fl.palette-pos', palette_blur: 'fl.palette-blur', full_width: 'fl.full-width', browse: 'fl.browse', per_page: 'fl.per-page', panels: 'fl.panels', menu_density: 'fl.menu-a', menu_blur: 'fl.menu-blur', plate_size: 'fl.plate-size', plate_font: 'fl.plate-font', plate_weight: 'fl.plate-weight', plate_meta: 'fl.plate-meta', ui_font: 'fl.ui-font', font_stamp: 'fl.font-v', font_name: 'fl.font-name', density: 'fl.density', ui_scale: 'fl.ui-scale', search_suggest: 'fl.search-suggest' };
+const LOOK_DEF = { peek: true, wall: 'cover', wall_stamp: 0, wall_blur: 22, wall_zoom: 100, wall_x: 50, wall_y: 50, glass_blur: 28, glass_density: 45, cover: 'big', palette_pos: 'top', palette_blur: true, full_width: false, browse: 'pages', per_page: 20, panels: 'auto', menu_density: 92, menu_blur: 24, plate_size: 100, plate_font: 'ui', plate_weight: 600, plate_meta: true, ui_font: 'inter', font_stamp: 0, font_name: '', density: 'normal', ui_scale: 100, search_suggest: false };
 const LOOK_ENUM = { wall: ['cover', 'custom', 'off'], cover: ['big', 'slim', 'none'], palette_pos: ['top', 'bottom'], browse: ['pages', 'scroll'], panels: ['auto', 'on', 'off'], plate_font: ['ui', 'system', 'mono', 'serif'], ui_font: ['inter', 'system', 'serif', 'mono', 'custom'], density: ['compact', 'normal', 'comfy'] };
 function lookFromCache() {
   const l = { ...LOOK_DEF };
@@ -1233,6 +1232,9 @@ function applyLook() {
   document.documentElement.dataset.density = S.look.density || 'normal';
   document.documentElement.dataset.peek = S.look.peek === false ? 'off' : 'on';
   if ($('#fx-peek')) $('#fx-peek').checked = S.look.peek !== false;
+  const suggest = S.look.search_suggest === true;
+  if ($('#fx-search-suggest')) $('#fx-search-suggest').checked = suggest;
+  $$('input[type="search"], input#disc-q, input#disc-vq, input#mods-filter, input#lib-q, input#plg-q, input#sk-q, input#set-q, input#pal-q, input#ctv-q, input#log-find, input#sh-q').forEach((i) => { i.autocomplete = suggest ? 'on' : 'off'; });
   $$('#density-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.density === (S.look.density || 'normal'))));
   applyScale();
   $$('#panels-seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.panelsSet === (S.look.panels || 'auto'))));
@@ -1287,6 +1289,7 @@ $('#sec-confirm').addEventListener('change', async (e) => {
 $('#fx-lite').addEventListener('change', (e) => { localStorage.setItem('fl.fx', e.target.checked ? 'lite' : 'full'); applyLook(); });
 $('#fx-wide').addEventListener('change', (e) => { setLook({ full_width: e.target.checked }); applyLook(); document.dispatchEvent(new Event('look:change')); });
 $('#fx-peek')?.addEventListener('change', (e) => { setLook({ peek: e.target.checked }); applyLook(); });
+$('#fx-search-suggest')?.addEventListener('change', (e) => { setLook({ search_suggest: e.target.checked }); applyLook(); });
 
 // ---------- Startup ----------
 async function start() {
