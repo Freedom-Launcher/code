@@ -83,6 +83,7 @@
   <script src="nav.js" defer></script>
   <script src="motion.js" defer></script>
   <script src="skins.js" defer></script>
+  <script src="freedom-id.js" defer></script>
 </head>
 <body>
   <div id="app" class="app" data-id="app" hidden>
@@ -105,8 +106,8 @@
       <button class="rail-btn" data-view="skins" data-tip="Скины" data-id="rail.skins" aria-label="Скины">
         <svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M5.707 3.879A3 3 0 0 1 7.828 3c.79 0 1.948-.22 2.302.711a2.001 2.001 0 0 0 3.74 0c.354-.93 1.513-.71 2.302-.71a3 3 0 0 1 2.12.878L22 7.586a2 2 0 0 1 0 2.828l-1.478 1.478c-.52.52-1.246.689-1.9.526l.272 5.432A3 3 0 0 1 15.898 21H8.102a3 3 0 0 1-2.996-3.15l.272-5.432a1.996 1.996 0 0 1-1.9-.526L2 10.414a2 2 0 0 1 0-2.828z"/></g></svg>
       </button>
-      <button class="rail-btn" data-view="plugins" data-tip="Плагины" data-id="rail.plugins" aria-label="Плагины">
-        <svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M15 20a1 1 0 0 1 .117 1.993L15 22H9a1 1 0 0 1-.117-1.993L9 20zm0-18a1 1 0 0 1 .993.883L16 3v3h2a2 2 0 0 1 1.995 1.85L20 8v5a6 6 0 0 1-5.775 5.996L14 19h-4a6 6 0 0 1-5.996-5.775L4 13V8a2 2 0 0 1 1.85-1.995L6 6h2V3a1 1 0 0 1 1.993-.117L10 3v3h4V3a1 1 0 0 1 1-1m3 6H6v5a4 4 0 0 0 3.8 3.995L10 17h4a4 4 0 0 0 3.995-3.8L18 13z"/></g></svg>
+      <button class="rail-btn" data-view="freedom-id" data-tip="Freedom ID" data-id="rail.freedom-id" aria-label="Freedom ID">
+        <svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M12 2a5 5 0 0 1 5 5v1a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3v1a3 3 0 1 0 6 0V7a3 3 0 0 0-3-3m0 11c2.761 0 5.29.72 7.2 1.92.95.6 1.76 1.31 2.33 2.12.56.8.97 1.76.97 2.79 0 .87-.37 1.58-.94 2.1-.54.5-1.24.83-1.99 1.06C18 21.44 15.62 22 12 22s-6-.56-7.57-1.01c-.75-.23-1.45-.56-1.99-1.06-.57-.52-.94-1.23-.94-2.1 0-1.03.41-1.99.97-2.79.57-.81 1.38-1.52 2.33-2.12C6.71 15.72 9.24 15 12 15m0 2c-2.37 0-4.52.62-6.13 1.64-.8.5-1.41 1.05-1.82 1.62-.41.58-.55 1.08-.55 1.47 0 .2.05.35.24.53.22.2.6.42 1.16.59C6.42 21.29 8.72 22 12 22s5.58-.71 7.1-1.15c.56-.17.94-.39 1.16-.59.19-.18.24-.33.24-.53 0-.39-.14-.89-.55-1.47-.41-.57-1.02-1.12-1.82-1.62C16.52 17.62 14.37 17 12 17"/></g></svg>
       </button>
       <button class="rail-btn" data-view="settings" data-tip="Настройки" data-id="rail.settings" aria-label="Настройки">
         <svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M10.586 2.1a2 2 0 0 1 2.7-.116l.128.117L15.314 4H18a2 2 0 0 1 1.994 1.85L20 6v2.686l1.9 1.9a2 2 0 0 1 .116 2.701l-.117.127-1.9 1.9V18a2 2 0 0 1-1.85 1.995L18 20h-2.685l-1.9 1.9a2 2 0 0 1-2.701.116l-.127-.116-1.9-1.9H6a2 2 0 0 1-1.995-1.85L4 18v-2.686l-1.9-1.9a2 2 0 0 1-.116-2.701l.116-.127 1.9-1.9V6a2 2 0 0 1 1.85-1.994L6 4h2.686zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6"/></g></svg>
@@ -265,6 +266,29 @@
       <section class="view" id="view-addon" data-id="view.addon">
         <div class="addon-page" id="addon-page"></div>
       </section>
+      <section class="view" id="view-freedom-id" data-id="view.freedom-id">
+        <div class="narrow fid">
+          <h1 class="page-h" data-i18n="Freedom ID">Freedom ID</h1>
+          <p class="hint" id="fid-sub">Единый аккаунт лаунчера: синхронизация и сервисы Freedom Launcher.</p>
+          <div class="fid-card" id="fid-card">
+            <div class="seg" id="fid-mode" aria-label="Freedom ID"><button type="button" data-mode="login" aria-selected="true">Вход</button><button type="button" data-mode="signup">Регистрация</button></div>
+            <form id="fid-form" class="fields" autocomplete="on" novalidate>
+              <div id="fid-nick-row"><label class="label" for="fid-nick">Ник</label><input class="field" id="fid-nick" name="nickname" maxlength="32" autocomplete="username" spellcheck="false"></div>
+              <div><label class="label" for="fid-email">Почта</label><input class="field" id="fid-email" name="email" type="email" maxlength="254" autocomplete="email" spellcheck="false"></div>
+              <div><label class="label" for="fid-pass">Пароль</label><input class="field" id="fid-pass" name="password" type="password" maxlength="128" autocomplete="current-password"></div>
+              <div class="fid-msg" id="fid-msg" aria-live="polite"></div>
+              <div class="actions"><button type="submit" class="btn btn-primary" id="fid-submit"><span class="lbl">Войти</span></button></div>
+            </form>
+            <div class="fid-alt">
+              <div class="hint">Скоро: вход через Google и Discord.</div>
+            </div>
+          </div>
+          <div class="fid-card" id="fid-profile" hidden>
+            <div class="acc-row-big"><div class="grow"><div class="t" id="fid-user-name"></div><div class="s" id="fid-user-email"></div></div><span class="badge is-accent">Freedom ID</span></div>
+            <div class="actions"><button type="button" class="btn btn-ghost" id="fid-logout"><span class="lbl">Выйти</span></button></div>
+          </div>
+        </div>
+      </section>
       <section class="view" id="view-empty" data-id="view.empty">
         <div class="narrow empty-lib">
           <div class="el-art" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -388,7 +412,7 @@
             <button class="btn btn-icon disc-ftoggle" id="disc-filters-toggle" aria-pressed="true" aria-label="Фильтры" title="Фильтры" data-id="discover.filters.toggle"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M16 15c1.306 0 2.418.835 2.83 2H20a1 1 0 1 1 0 2h-1.17a3.001 3.001 0 0 1-5.66 0H4a1 1 0 1 1 0-2h9.17A3.001 3.001 0 0 1 16 15m0 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2M8 9a3 3 0 0 1 2.762 1.828l.067.172H20a1 1 0 0 1 .117 1.993L20 13h-9.17a3.001 3.001 0 0 1-5.592.172L5.17 13H4a1 1 0 0 1-.117-1.993L4 11h1.17A3.001 3.001 0 0 1 8 9m0 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2m8-8c1.306 0 2.418.835 2.83 2H20a1 1 0 1 1 0 2h-1.17a3.001 3.001 0 0 1-5.66 0H4a1 1 0 0 1 0-2h9.17A3.001 3.001 0 0 1 16 3m0 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2"/></g></svg></button>
             <label class="field-wrap grow">
               <svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M10.5 2a8.5 8.5 0 1 0 5.262 15.176l3.652 3.652a1 1 0 0 0 1.414-1.414l-3.652-3.652A8.5 8.5 0 0 0 10.5 2M4 10.5a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0"/></g></svg>
-              <input class="field" id="disc-q" placeholder="Сборки на Modrinth" data-id="discover.search">
+              <input class="field" id="disc-q" placeholder="Сборки на Modrinth" data-id="discover.search" autocomplete="off" spellcheck="false">
             </label>
             <select class="field disc-target" id="disc-target" aria-label="Сборка" data-id="discover.target"></select>
             <select class="field disc-target" id="disc-world" aria-label="Мир" data-id="discover.world" hidden></select>
@@ -405,7 +429,7 @@
             <aside class="disc-side" data-id="discover.filters">
               <label class="disc-hide"><span>Скрыть установленные</span><span class="switch"><input type="checkbox" id="disc-hide" data-id="discover.hide-installed"><i></i></span></label>
               <section class="disc-group" id="disc-ver-g" data-g="versions" hidden><h3><button class="disc-gh" type="button"><span>Версия игры</span></button></h3>
-                <div class="disc-gb"><label class="field-wrap disc-vq"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M10.5 2a8.5 8.5 0 1 0 5.262 15.176l3.652 3.652a1 1 0 0 0 1.414-1.414l-3.652-3.652A8.5 8.5 0 0 0 10.5 2M4 10.5a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0"/></g></svg><input class="field" id="disc-vq" placeholder="Поиск" data-id="discover.version.search"></label><div class="disc-opts disc-scroll" id="disc-vers"></div><label class="disc-hide disc-sw"><span>Снапшоты</span><span class="switch"><input type="checkbox" id="disc-snaps" data-id="discover.version.snapshots"><i></i></span></label></div></section>
+                <div class="disc-gb"><label class="field-wrap disc-vq"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M10.5 2a8.5 8.5 0 1 0 5.262 15.176l3.652 3.652a1 1 0 0 0 1.414-1.414l-3.652-3.652A8.5 8.5 0 0 0 10.5 2M4 10.5a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0"/></g></svg><input class="field" id="disc-vq" placeholder="Поиск" data-id="discover.version.search" autocomplete="off" spellcheck="false"></label><div class="disc-opts disc-scroll" id="disc-vers"></div><label class="disc-hide disc-sw"><span>Снапшоты</span><span class="switch"><input type="checkbox" id="disc-snaps" data-id="discover.version.snapshots"><i></i></span></label></div></section>
               <section class="disc-group" id="disc-loaders-g" data-g="loaders" hidden><h3><button class="disc-gh" type="button"><span>Загрузчик</span></button></h3>
                 <div class="disc-gb"><div class="disc-opts" id="disc-loaders" data-id="discover.loaders"></div></div></section>
               <div id="disc-cats"></div>
@@ -890,7 +914,7 @@
             </fieldset>
           </div>
           <div class="isx-block" data-own="jvm"><div class="isx-bh"><div class="grow"><div class="t">Аргументы JVM</div><div class="isx-inh" data-inh="jvm"></div></div><label class="switch isx-sw"><input type="checkbox" data-own-toggle="jvm" aria-label="Аргументы JVM"><i></i></label></div>
-            <fieldset class="isx-body"><input class="field mono" id="isx-jvm" placeholder="-XX:+UseG1GC" spellcheck="false" autocomplete="off"></fieldset>
+            <fieldset class="isx-body"><textarea class="field mono isx-jvm-ta" id="isx-jvm" placeholder="-XX:+UseG1GC" spellcheck="false" autocomplete="off" rows="3"></textarea><div class="hint" id="isx-jvm-hint">Один аргумент на строку или через пробел.</div></fieldset>
           </div>
           <div class="isx-block" data-own="env"><div class="isx-bh"><div class="grow"><div class="t">Переменные среды</div><div class="isx-inh" data-inh="env"></div></div><label class="switch isx-sw"><input type="checkbox" data-own-toggle="env" aria-label="Переменные среды"><i></i></label></div>
             <fieldset class="isx-body"><div class="isx-env" id="isx-env"></div><button type="button" class="btn btn-sm btn-ghost isx-add" id="isx-env-add"><svg class="mi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g fill="none"><path fill="currentColor" d="M11 20a1 1 0 1 0 2 0v-7h7a1 1 0 1 0 0-2h-7V4a1 1 0 1 0-2 0v7H4a1 1 0 1 0 0 2h7z"/></g></svg>Добавить</button></fieldset>

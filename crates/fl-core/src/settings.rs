@@ -57,6 +57,9 @@ pub struct Settings {
     /// the retry), `"mojang"`, `"bmclapi"`, or the https base of a self-hosted
     /// mirror with the same URL layout. Checked by `mirror::valid_base`.
     pub mirror: String,
+    /// Show what is being played in Discord (Rich Presence). Off by default:
+    /// it tells everyone viewing the user's profile what they are doing.
+    pub discord: bool,
 }
 
 /// Tokens the color editor may set. Shades (hover, press, soft, on-accent) are derived by the UI.

@@ -96,6 +96,7 @@
       case 'accounts': return [{ t: _t("Аккаунты") }];
       case 'skins': return [{ t: _t("Скины") }];
       case 'plugins': return [{ t: _t("Плагины") }];
+      case 'freedom-id': return [{ t: 'Freedom ID' }];
       default: return [lib];
     }
   }

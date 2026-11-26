@@ -160,6 +160,7 @@ function show(view, defer) {
   if (view === 'accounts') run(() => { renderAccountsPage(); loadProviders(); renderProviderHints(); });
   if (view === 'discover') run(() => window.FMods?.discover());
   if (view === 'skins') run(() => window.FSkins?.shown());
+  if (view === 'freedom-id') run(() => window.FFreedomId?.render());
   window.FAddons?.shown?.(view);
   window.FNav?.note();
 }

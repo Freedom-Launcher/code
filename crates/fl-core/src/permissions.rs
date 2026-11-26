@@ -23,6 +23,8 @@ pub enum Permission {
     /// Read and change files inside instance game folders (configs, worlds,
     /// resource packs). Never executable code, never outside an instance.
     InstanceFiles,
+    /// Set the Discord Rich Presence text while a game runs.
+    RichPresence,
     /// Retired with «Управление серверами» (0.3.18): no action needs it and no
     /// plugin may request it. Kept only so approvals saved earlier still load.
     Servers,
@@ -62,9 +64,8 @@ impl Permission {
         match self {
             Public => Tier::Theme,
             AccountsRead | InstancesRead | UiPages | UiOverlay | Storage => Tier::Interface,
-            AccountsManage | InstancesManage | InstanceFiles | Network | GameLaunch => {
-                Tier::Function
-            }
+            AccountsManage | InstancesManage | InstanceFiles | Network | GameLaunch
+            | RichPresence => Tier::Function,
             AccountsProvide | Servers | Process | Internal => Tier::Extended,
         }
     }

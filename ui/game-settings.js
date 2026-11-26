@@ -120,8 +120,11 @@
   }
 
   // ---------- Launch: JVM, env, after launch ----------
-  function field(label, key, ph) {
-    const i = el('input', { class: 'field mono', value: st.game[key] || '', placeholder: ph || '', spellcheck: false, autocomplete: 'off' });
+  function field(label, key, ph, multiline = false) {
+    const val = st.game[key] || '';
+    const i = multiline
+      ? el('textarea', { class: 'field mono isx-jvm-ta', placeholder: ph || '', spellcheck: false, autocomplete: 'off', rows: 3 }, val)
+      : el('input', { class: 'field mono', value: val, placeholder: ph || '', spellcheck: false, autocomplete: 'off' });
     i.addEventListener('input', () => { st.game[key] = i.value.trim(); saveGame(); });
     return el('label', { class: 'gs-block' }, el('span', { class: 't' }, label), i);
   }
@@ -296,7 +299,7 @@
     const sec = (title, ...rows) => [h(title), el('div', { class: 'rows' }, ...rows)];
     pane.replaceChildren(
       ...sec('Java', ...MAJORS.map(jvRow)),
-      ...sec(_t("Память и аргументы"), memBlock(), field(_t("Аргументы JVM"), 'jvm_args', '-XX:+UseG1GC'), envBlock()),
+      ...sec(_t("Память и аргументы"), memBlock(), field(_t("Аргументы JVM"), 'jvm_args', '-XX:+UseG1GC', true), envBlock()),
       ...sec(_t("Окно"), ...winRows(), afterRow()),
       ...sec(_t("Резервные копии миров"), ...bkRows()),
       ...sec(_t("Новые сборки"), tplRow()),

@@ -130,3 +130,6 @@ html[data-wall="on"] .isx-ink, html[data-wall="on"] .isx-jv { background: rgba(2
 .isx-bh > .btn svg { width: 14px; height: 14px; margin-right: 6px; }
 #isx-game.is-locked .isx-pick, #isx-game.is-locked .isx-two { opacity: .5; pointer-events: none; }
 #isx-covers .cover-opt { width: 84px; height: 52px; }
+
+.isx-jvm-ta { width: 100%; min-height: 72px; max-height: 220px; resize: vertical; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+#isx-jvm-hint { margin-top: 6px; }
